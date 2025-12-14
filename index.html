@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maisie Packing List</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #121824;
+      --text: #e7edf6;
+      --muted: #aab7c6;
+      --border: rgba(255,255,255,0.12);
+      --accent: #7aa2ff;
+      --danger: #ff6b6b;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.35;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 18px 16px 36px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      border-color: rgba(255,255,255,0.22);
+    }
+
+    button.danger {
+      border-color: rgba(255,107,107,0.55);
+      color: var(--danger);
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    details.card {
+      border: 1px solid var(--border);
+      background: rgba(18,24,36,0.85);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    details.card > summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      user-select: none;
+    }
+
+    details.card > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .chev {
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted);
+      transform: rotate(-45deg);
+      transition: transform 120ms ease;
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+
+    details[open] > summary .chev {
+      transform: rotate(45deg);
+    }
+
+    .section-body {
+      margin-top: 10px;
+    }
+
+    details.subsection {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+
+    details.subsection:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    details.subsection > summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      user-select: none;
+    }
+
+    details.subsection > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .subsection-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--muted);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 22px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 7px 0;
+    }
+
+    .item label {
+      cursor: pointer;
+    }
+
+    .item .remove {
+      border: 1px solid rgba(255,107,107,0.45);
+      color: var(--danger);
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: transparent;
+      font-weight: 700;
+    }
+
+    .add-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 10px;
+      padding-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.25);
+      color: var(--text);
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: rgba(122,162,255,0.6);
+    }
+
+    .notice {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: pre-wrap;
+    }
+
+    .error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --text: #1a2430;
+        --muted: #55677a;
+        --border: rgba(26,36,48,0.16);
+        --accent: #2f5bff;
+        --danger: #c02626;
+      }
+      details.card {
+        background: #ffffff;
+      }
+      input[type="text"] {
+        background: rgba(0,0,0,0.03);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <div>
+        <div class="title">Maisie Packing List</div>
+        <div class="status" id="syncStatus">Ready</div>
+      </div>
+      <div class="actions">
+        <button id="exportBtn" type="button">Export JSON</button>
+        <button id="importBtn" type="button">Import JSON</button>
+        <button id="resetBtn" type="button" class="danger">Reset to defaults</button>
+      </div>
+    </div>
+
+    <div class="grid" id="sectionsContainer"></div>
+
+    <div class="notice" id="notice"></div>
+  </main>
+
+  <script>
+    "use strict";
+
+    // Store everything in ONE synced key to reduce sync churn.
+    const STORAGE_KEY = "packing_app_v3";
+    // Use no_sync_ prefix for UI-only state (HTMLSync docs).
+    const UI_KEY = "no_sync_packing_app_v3_ui";
+
+    const DEFAULT_PAYLOAD = {
+      data: {
+  "Clothing - Winter & Comfort": {
+    "Outerwear & Footwear": [
+      "Heavy winter coat (waterproof if possible)",
+      "Dog walking boots (sturdy, waterproof, warm with good traction)",
+      "Slip-on shoes/clogs for quick backyard potty breaks",
+      "Indoor slippers (keep floors clean and feet warm)",
+      "Umbrella (for rainy dog walks)",
+      "Ice cleats (YakTrax or similar for icy walks)",
+      "Gaiters (keep bottoms of pants dry from snow)",
+      "Knit hats (bring 2-3 since they can get wet)",
+      "Scarves (bring 2)",
+      "Gloves (bring 2 pairs - one text-friendly, one extra warm)",
+      "Mittens (optional - if you prefer for really cold days)"
+    ],
+    "Daily Wear - Layering Strategy": [
+      "Thermal base layer tops (for drafty days)",
+      "Thermal base layer bottoms (for drafty days)",
+      "Jeans/durable pants (2-3 pairs - pets can be messy)",
+      "Belt(s) (if you wear them with jeans)",
+      "Leggings/sweatpants (2-3 pairs for lounging)",
+      "Long sleeve tops/layers (4-5 shirts)",
+      "Sweaters (1-2)",
+      "Fleece vests x2",
+      "Fleece jackets x2",
+      "Undergarments (10-12 sets)",
+      "Bra",
+      "Compression socks (for circulation and daily comfort)",
+      "Wool socks (5+ pairs for winter warmth)",
+      "Sleepwear - tops (2-3)",
+      "Sleepwear - bottoms (2-3)",
+      "Bathrobe (optional but nice to have)",
+      "Sleep mask",
+      "Bonnet (for sleeping)"
+    ]
+  },
+  "Essential Daily Items": {
+    "Things you need every day": [
+      "iPhone (personal)",
+      "iPhone (work)",
+      "Wallet/purse",
+      "Driver's license/ID",
+      "Work badge/ID",
+      "Insurance cards (health, car)",
+      "Credit/debit cards",
+      "Cash (small bills for emergencies)",
+      "Car keys",
+      "House keys (your own place)",
+      "Keys to Ben's house (confirm you have a working set)",
+      "Glasses (if you wear them)",
+      "Sunglasses (if you use them)",
+      "Reusable water bottle (your all-day water bottle)"
+    ]
+  },
+  "Toiletries & Personal Care": {
+    "Daily Hygiene": [
+      "Toothbrush",
+      "Toothpaste",
+      "Electric toothbrush (if you use one)",
+      "Electric toothbrush charger + case",
+      "Tongue scraper",
+      "Mouthwash",
+      "Shampoo",
+      "Conditioner",
+      "Body wash",
+      "Deodorant",
+      "Hairbrush/comb",
+      "Scrunchies/hair elastics",
+      "Nail file",
+      "Tweezers",
+      "Razor (if needed)"
+    ],
+    "Skincare": [
+      "Cotton rounds/pads",
+      "Micellar water",
+      "Face wash (if using)",
+      "Moisturizer (face)",
+      "Body lotion",
+      "Lip balm (winter air is dry!)",
+      "Sunscreen (winter sun can still burn!)"
+    ],
+    "Medications - Prescription": [
+      "Medication boxes x8 (pre-filled)",
+      "Medication bag (all Rx bottles)",
+      "Current bottle 'X' (sleep)",
+      "New bottle 'X' (sleep)",
+      "Dosing cups x2",
+      "Dosing syringe x2",
+      "Pill case holder"
+    ],
+    "Medications - Over-the-counter": [
+      "Pepto",
+      "Imodium",
+      "Gas-X",
+      "Lactaid",
+      "Melatonin",
+      "Ibuprofen/pain relief",
+      "Advil Liquid Gels",
+      "Acetaminophen",
+      "Tums/antacids",
+      "Benadryl",
+      "Allergy medication (daily)",
+      "Flonase",
+      "Pataday (allergy eye drops)",
+      "Miralax (if using)",
+      "Hydrocortisone cream"
+    ],
+    "Other Personal Care": [
+      "Glasses case (if applicable)",
+      "Glasses cleaner + repair kit (if you wear glasses)",
+      "Contact lens supplies (if applicable)",
+      "Feminine hygiene products (if needed)"
+    ],
+    "First Aid & Emergency": [
+      "Band-aids (various sizes)",
+      "Neosporin or antibiotic ointment",
+      "Wrist braces (carpal tunnel - for night use)",
+      "Heat pad (if you use one for PT)"
+    ]
+  },
+  "Pet Sitting Toolkit": {
+    "For Maisie": [
+      "Crossbody bag (for keys, phone, and treats on walks)",
+      "Hand sanitizer (small travel bottle)",
+      "Headlamp or flashlight (for backyard potty breaks in the dark)"
+    ]
+  },
+  "Food & Kitchen": {
+    "Baked Oatmeal Ingredients": [
+      "Kitchen scale (for weighing ingredients)",
+      "Old-fashioned rolled oats (Kodiak - 454g/1 bag)",
+      "Eggs (4 large)",
+      "Milk (3 cups / 720mL Lactaid 1%)",
+      "Baking powder (3 tsp)",
+      "Cinnamon (3 tsp ground)",
+      "Vanilla extract (2 tsp)",
+      "Blueberries (340g frozen)",
+      "Peaches (185g frozen)",
+      "Maple syrup (¼ cup / 60mL)",
+      "Honey (¼ cup / 84g)",
+      "Salt (1 tsp)",
+      "Butter (6 Tbsp / 84g - for recipe + greasing pan)",
+      "Bananas (2 medium ripe, for mashing)",
+      "Parchment paper (for pan)"
+    ],
+    "Meals & Snacks": [
+      "Frozen meals (that you like)",
+      "Apples (for snacking - with corer/slicer)",
+      "Oikos Triple Zero yogurts (for topping the baked oatmeal)",
+      "Sleepy Time tea",
+      "Orange Spice tea",
+      "Clementines",
+      "Raisin Bran Crunch (backup breakfast)"
+    ],
+    "Kitchen Items - Only If Ben Doesn't Have": [
+      "9x13 baking pan (for baked oatmeal)",
+      "Measuring cups",
+      "Measuring spoons",
+      "Parchment paper",
+      "Saran wrap",
+      "1 gallon freezer bags",
+      "Apple corer/slicer",
+      "Mixing bowls (need at least 2 for baked oatmeal)",
+      "Spatula (definitely need for serving baked oatmeal)",
+      "Wooden spoon or whisk (for mixing)"
+    ],
+    "Household Items": [
+      "Laundry detergent",
+      "Pillow",
+      "Pillowcase for your pillow",
+      "Water bottle cleaning kit/brush"
+    ]
+  },
+  "Electronics & Entertainment": {
+    "Chargers & Cables": [
+      "iPhone charger - MagSafe",
+      "iPhone charger - lightning (work)",
+      "Car phone charger (for iPhone)",
+      "Apple Watch charger",
+      "Shokz charger",
+      "USB charger hub x2",
+      "USB-C cord",
+      "Laptop charger (for streaming or remote work)",
+      "Tablet charger (if bringing)"
+    ],
+    "Devices": [
+      "Apple Watch",
+      "Shokz headphones x2",
+      "AirPods",
+      "Laptop (for streaming or remote work)",
+      "Tablet (if bringing)",
+      "HDMI cable/Chromecast (to connect laptop to TV if needed)",
+      "Books/e-reader (for quiet evenings)"
+    ]
+  },
+  "Work Essentials": {
+    "Work Setup": [
+      "Work laptop",
+      "Work laptop charger",
+      "Keyboard",
+      "Docking cube",
+      "Monitor",
+      "Surge protector",
+      "Connection/power cords (for monitor, docking station, etc.)",
+      "Jabra headphones",
+      "Jabra charging base",
+      "Jabra charging cord",
+      "Mouse (if you use one)",
+      "Any work files or materials needed",
+      "Pens/notebooks"
+    ]
+  },
+  "Physical Therapy Equipment": {
+    "PT Gear": [
+      "Big stability ball",
+      "Small ball",
+      "Black band",
+      "Yoga mat",
+      "Foam pad",
+      "4 pound weight",
+      "PT exercise card deck",
+      "SI belt",
+      "Enso3 TENS unit",
+      "Enso3 charger",
+      "Enso3 pads"
+    ]
+  },
+  "Backup & Comfort Items": {
+    "Extras": [
+      "Battery bank (for charging devices on the go)",
+      "Phone stand (for watching videos or video calls)",
+      "Extra pair of glasses (if you have one)",
+      "Backup phone charger",
+      "Notebook + pens/pencils (for notes, journaling, lists)",
+      "Earplugs (better to have and not need them!)",
+      "Comfort blanket or throw (for couch)",
+      "Comfort item(s) (anything that helps you feel grounded)"
+    ]
+  },
+  "Before You Leave Home": {
+    "Pre-Departure Checklist": [
+      "Fill med boxes for 8 days",
+      "Pack medication bottles (for remaining days + backup)",
+      "Water peace lily plant",
+      "Set thermostat to away temperature",
+      "Take out trash",
+      "Check all windows/doors are locked",
+      "Unplug unnecessary electronics",
+      "Double-check you packed all medications",
+      "Check weather forecast for the week",
+      "Confirm arrival time with Ben",
+      "Put your house keys in your bag"
+    ]
+  },
+  "The Updates Check": {
+    "Things to Confirm with Ben": [
+      "Maisie's current routine: How often does she need to go out?",
+      "Accident cleanup supplies: What does Ben use? Where are they located?",
+      "Maisie's stubbornness strategies: What works to convince her to go outside?",
+      "Vet info: Confirm emergency plan if needed",
+      "Emergency contact: Confirm who to call if Ben is unreachable",
+      "House keys: Confirm you have a working set"
+    ]
+  }
+},
+      checked: {}
+    };
+
+    const sectionsContainer = document.getElementById("sectionsContainer");
+    const syncStatus = document.getElementById("syncStatus");
+    const notice = document.getElementById("notice");
+
+    function slugify(str) {
+      return String(str)
+        .toLowerCase()
+        .trim()
+        .replace(/&/g, "and")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[c]));
+    }
+
+    function setStatus(text) {
+      syncStatus.textContent = text;
+    }
+
+    function showError(msg) {
+      notice.innerHTML = '<span class="error">' + escapeHtml(msg) + "</span>";
+    }
+
+    function showInfo(msg) {
+      notice.textContent = msg;
+    }
+
+    function safeGet(key) {
+      return localStorage.getItem(key);
+    }
+
+    function safeSet(key, value) {
+      localStorage.setItem(key, value);
+    }
+
+    function safeParse(jsonText, fallback) {
+      try {
+        const v = JSON.parse(jsonText);
+        return (v && typeof v === "object") ? v : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function loadUI() {
+      return safeParse(safeGet(UI_KEY) || "", { sectionOpen: {}, subsectionOpen: {} });
+    }
+
+    function saveUI(ui) {
+      try {
+        safeSet(UI_KEY, JSON.stringify(ui));
+      } catch {
+        // UI state is non-critical; ignore
+      }
+    }
+
+    function loadPayload() {
+      try {
+        const raw = safeGet(STORAGE_KEY);
+        if (!raw) return structuredClone(DEFAULT_PAYLOAD);
+        const parsed = safeParse(raw, null);
+        if (!parsed || typeof parsed !== "object") return structuredClone(DEFAULT_PAYLOAD);
+        if (!parsed.data || typeof parsed.data !== "object") return structuredClone(DEFAULT_PAYLOAD);
+        if (!parsed.checked || typeof parsed.checked !== "object") parsed.checked = {};
+        return parsed;
+      } catch (e) {
+        showError("localStorage read failed: " + (e && e.message ? e.message : String(e)));
+        throw e;
+      }
+    }
+
+    let state = loadPayload();
+    let uiState = loadUI();
+
+    // Debounced saves: reduce rapid back-to-back sync attempts.
+    let saveTimer = null;
+    function scheduleSave() {
+      setStatus("Saving…");
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        try {
+          safeSet(STORAGE_KEY, JSON.stringify(state));
+          setStatus("Saved");
+        } catch (e) {
+          // If HTMLSync shows "Failed to sync", devtools/network will usually reveal the root cause,
+          // but this at least surfaces local issues like quota, storage blocked, etc.
+          setStatus("Save failed");
+          showError("localStorage write failed: " + (e && e.message ? e.message : String(e)));
+        }
+      }, 250);
+    }
+
+    function makeCheckedKey(sectionName, subsectionName, itemText) {
+      return "k:" + slugify(sectionName) + ":" + slugify(subsectionName) + ":" + slugify(itemText);
+    }
+
+    function rememberDetailsOpen(type, key, open) {
+      if (type === "section") uiState.sectionOpen[key] = open;
+      if (type === "subsection") uiState.subsectionOpen[key] = open;
+      saveUI(uiState);
+    }
+
+    function isDetailsOpen(type, key, fallbackOpen) {
+      const m = (type === "section") ? uiState.sectionOpen : uiState.subsectionOpen;
+      if (Object.prototype.hasOwnProperty.call(m, key)) return Boolean(m[key]);
+      return fallbackOpen;
+    }
+
+    function render() {
+      notice.textContent = "";
+      sectionsContainer.innerHTML = "";
+
+      const data = state.data;
+
+      for (const [sectionName, subsections] of Object.entries(data)) {
+        const sectionKey = slugify(sectionName);
+
+        const sectionDetails = document.createElement("details");
+        sectionDetails.className = "card";
+        sectionDetails.open = isDetailsOpen("section", sectionKey, true);
+        sectionDetails.addEventListener("toggle", () => {
+          rememberDetailsOpen("section", sectionKey, sectionDetails.open);
+        });
+
+        const summary = document.createElement("summary");
+
+        const title = document.createElement("div");
+        title.className = "section-title";
+        title.textContent = sectionName;
+
+        const chev = document.createElement("div");
+        chev.className = "chev";
+
+        summary.appendChild(title);
+        summary.appendChild(chev);
+        sectionDetails.appendChild(summary);
+
+        const body = document.createElement("div");
+        body.className = "section-body";
+
+        for (const [subsectionName, items] of Object.entries(subsections)) {
+          const subKey = sectionKey + "__" + slugify(subsectionName);
+
+          const subDetails = document.createElement("details");
+          subDetails.className = "subsection";
+          subDetails.open = isDetailsOpen("subsection", subKey, true);
+          subDetails.addEventListener("toggle", () => {
+            rememberDetailsOpen("subsection", subKey, subDetails.open);
+          });
+
+          const subSummary = document.createElement("summary");
+          const subTitle = document.createElement("div");
+          subTitle.className = "subsection-title";
+          subTitle.textContent = subsectionName;
+          const subChev = document.createElement("div");
+          subChev.className = "chev";
+          subSummary.appendChild(subTitle);
+          subSummary.appendChild(subChev);
+          subDetails.appendChild(subSummary);
+
+          const list = document.createElement("div");
+
+          (items || []).forEach((itemText, idx) => {
+            const row = document.createElement("div");
+            row.className = "item";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+
+            const domId = "cb_" + sectionKey + "_" + slugify(subsectionName) + "_" + idx;
+            checkbox.id = domId;
+
+            const checkedKey = makeCheckedKey(sectionName, subsectionName, itemText);
+            checkbox.checked = Boolean(state.checked[checkedKey]);
+
+            checkbox.addEventListener("change", () => {
+              state.checked[checkedKey] = checkbox.checked;
+              scheduleSave();
+            });
+
+            const label = document.createElement("label");
+            label.setAttribute("for", domId);
+            label.textContent = itemText;
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "remove";
+            removeBtn.textContent = "Remove";
+            removeBtn.addEventListener("click", () => {
+              const arr = state.data?.[sectionName]?.[subsectionName];
+              if (!Array.isArray(arr)) return;
+
+              state.data[sectionName][subsectionName] = arr.filter((t, i) => i !== idx);
+              delete state.checked[checkedKey];
+              scheduleSave();
+              render();
+            });
+
+            row.appendChild(checkbox);
+            row.appendChild(label);
+            row.appendChild(removeBtn);
+            list.appendChild(row);
+          });
+
+          subDetails.appendChild(list);
+
+          const addRow = document.createElement("div");
+          addRow.className = "add-row";
+
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Add an item…";
+
+          const addBtn = document.createElement("button");
+          addBtn.type = "button";
+          addBtn.textContent = "Add";
+          addBtn.addEventListener("click", () => {
+            const value = input.value.trim();
+            if (!value) return;
+
+            if (!state.data[sectionName]) state.data[sectionName] = {};
+            if (!Array.isArray(state.data[sectionName][subsectionName])) {
+              state.data[sectionName][subsectionName] = [];
+            }
+            state.data[sectionName][subsectionName].push(value);
+
+            scheduleSave();
+            input.value = "";
+            render();
+          });
+
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") addBtn.click();
+          });
+
+          addRow.appendChild(input);
+          addRow.appendChild(addBtn);
+          subDetails.appendChild(addRow);
+
+          body.appendChild(subDetails);
+        }
+
+        sectionDetails.appendChild(body);
+        sectionsContainer.appendChild(sectionDetails);
+      }
+
+      setStatus("Ready");
+      showInfo("If you still see HTMLSync 'Failed to sync' while logged in, open DevTools → Network and Console; a 401/403 or blocked cookies/storage is the usual cause.\nUI collapse state is stored under a no_sync_ key (won't sync).");
+    }
+
+    // Export / Import
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      try {
+        const text = JSON.stringify(state, null, 2);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => {
+            showInfo("Export copied to clipboard.");
+          }).catch(() => {
+            window.prompt("Copy your export JSON:", text);
+          });
+        } else {
+          window.prompt("Copy your export JSON:", text);
+        }
+      } catch (e) {
+        showError("Export failed: " + (e && e.message ? e.message : String(e)));
+      }
+    });
+
+    document.getElementById("importBtn").addEventListener("click", () => {
+      const input = window.prompt("Paste export JSON to import:");
+      if (!input) return;
+      try {
+        const payload = JSON.parse(input);
+        if (!payload || typeof payload !== "object") throw new Error("Invalid JSON payload.");
+        if (!payload.data || typeof payload.data !== "object") throw new Error("Missing data.");
+        if (!payload.checked || typeof payload.checked !== "object") payload.checked = {};
+
+        state = payload;
+        scheduleSave();
+        showInfo("Import complete.");
+        render();
+      } catch (e) {
+        showError("Import failed: " + (e && e.message ? e.message : String(e)));
+      }
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      const ok = window.confirm("Reset to defaults? This will remove your saved changes for this app only.");
+      if (!ok) return;
+      state = structuredClone(DEFAULT_PAYLOAD);
+      scheduleSave();
+      showInfo("Reset complete.");
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
