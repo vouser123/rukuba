@@ -13,44 +13,39 @@
       --border: rgba(255,255,255,0.12);
       --accent: #7aa2ff;
       --danger: #ff6b6b;
+      --ok: #34d399;
     }
-
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.35;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
     }
-
     main {
       max-width: 980px;
       margin: 0 auto;
       padding: 18px 16px 36px;
     }
-
     .topbar {
       display: flex;
       gap: 12px;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
-
     .title {
       font-size: 20px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: 0.2px;
     }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
+    .meta { display: grid; gap: 6px; }
+    .status { font-size: 12px; color: var(--muted); }
+    .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     button {
       appearance: none;
       border: 1px solid var(--border);
@@ -59,56 +54,75 @@
       border-radius: 10px;
       padding: 10px 12px;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
     }
-
-    button:hover {
-      border-color: rgba(255,255,255,0.22);
+    button:hover { border-color: rgba(255,255,255,0.22); }
+    button.danger { border-color: rgba(255,107,107,0.55); color: var(--danger); }
+    .overall {
+      border: 1px solid var(--border);
+      background: rgba(18,24,36,0.85);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      display: grid;
+      gap: 8px;
     }
-
-    button.danger {
-      border-color: rgba(255,107,107,0.55);
-      color: var(--danger);
+    .overall-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-
-    .status {
-      font-size: 12px;
-      color: var(--muted);
+    .overall-row .label { font-weight: 800; }
+    .overall-row .counts { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
     }
-
+    .bar > .fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 180ms ease;
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 14px;
     }
-
     details.card {
       border: 1px solid var(--border);
       background: rgba(18,24,36,0.85);
       border-radius: 14px;
       padding: 12px 14px;
     }
-
     details.card > summary {
       list-style: none;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr auto;
       gap: 10px;
       user-select: none;
+      align-items: center;
     }
-
-    details.card > summary::-webkit-details-marker {
-      display: none;
-    }
-
+    details.card > summary::-webkit-details-marker { display: none; }
+    .section-head { display: grid; gap: 6px; min-width: 0; }
+    .section-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
     .section-title {
       font-size: 16px;
-      font-weight: 800;
+      font-weight: 900;
       margin: 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-
+    .section-count { font-size: 12px; color: var(--muted); font-weight: 800; flex: 0 0 auto; }
+    .section-mini-bar { height: 7px; }
     .chev {
       width: 10px;
       height: 10px;
@@ -116,30 +130,22 @@
       border-bottom: 2px solid var(--muted);
       transform: rotate(-45deg);
       transition: transform 120ms ease;
-      flex: 0 0 auto;
-      margin-left: auto;
+      justify-self: end;
+      margin-top: 2px;
     }
-
-    details[open] > summary .chev {
-      transform: rotate(45deg);
-    }
-
-    .section-body {
-      margin-top: 10px;
-    }
+    details[open] > summary .chev { transform: rotate(45deg); }
+    .section-body { margin-top: 10px; }
 
     details.subsection {
       border-top: 1px solid rgba(255,255,255,0.08);
       padding-top: 10px;
       margin-top: 10px;
     }
-
     details.subsection:first-of-type {
       border-top: none;
       padding-top: 0;
       margin-top: 0;
     }
-
     details.subsection > summary {
       list-style: none;
       cursor: pointer;
@@ -149,41 +155,49 @@
       gap: 10px;
       user-select: none;
     }
-
-    details.subsection > summary::-webkit-details-marker {
-      display: none;
-    }
-
+    details.subsection > summary::-webkit-details-marker { display: none; }
     .subsection-title {
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 900;
       color: var(--muted);
       margin: 0;
       text-transform: uppercase;
       letter-spacing: 0.6px;
     }
-
     .item {
       display: grid;
-      grid-template-columns: 22px 1fr auto;
+      grid-template-columns: 22px 28px 1fr auto;
       gap: 10px;
       align-items: center;
       padding: 7px 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.08);
     }
-
-    .item label {
-      cursor: pointer;
+    .item:last-child { border-bottom: none; }
+    .item label { cursor: pointer; }
+    .drag {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.15);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
     }
-
-    .item .remove {
+    .drag:active { cursor: grabbing; }
+    .item.dragging { opacity: 0.35; }
+    .remove {
       border: 1px solid rgba(255,107,107,0.45);
       color: var(--danger);
       padding: 6px 10px;
       border-radius: 10px;
       background: transparent;
-      font-weight: 700;
+      font-weight: 800;
     }
-
     .add-row {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -191,7 +205,6 @@
       margin-top: 10px;
       padding-bottom: 6px;
     }
-
     input[type="text"] {
       width: 100%;
       border-radius: 10px;
@@ -201,27 +214,15 @@
       padding: 10px 12px;
       outline: none;
     }
-
-    input[type="text"]:focus {
-      border-color: rgba(122,162,255,0.6);
-    }
-
+    input[type="text"]:focus { border-color: rgba(122,162,255,0.6); }
     .notice {
       margin-top: 10px;
       font-size: 12px;
       color: var(--muted);
       white-space: pre-wrap;
     }
-
-    .error {
-      color: var(--danger);
-      font-weight: 700;
-    }
-
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 12px;
-    }
+    .error { color: var(--danger); font-weight: 800; }
+    .ok { color: var(--ok); font-weight: 800; }
 
     @media (prefers-color-scheme: light) {
       :root {
@@ -232,20 +233,18 @@
         --border: rgba(26,36,48,0.16);
         --accent: #2f5bff;
         --danger: #c02626;
+        --ok: #059669;
       }
-      details.card {
-        background: #ffffff;
-      }
-      input[type="text"] {
-        background: rgba(0,0,0,0.03);
-      }
+      details.card, .overall { background: #ffffff; }
+      input[type="text"] { background: rgba(0,0,0,0.03); }
+      .drag { background: rgba(0,0,0,0.04); }
     }
   </style>
 </head>
 <body>
   <main>
     <div class="topbar">
-      <div>
+      <div class="meta">
         <div class="title">Maisie Packing List</div>
         <div class="status" id="syncStatus">Ready</div>
       </div>
@@ -256,18 +255,23 @@
       </div>
     </div>
 
-    <div class="grid" id="sectionsContainer"></div>
+    <div class="overall" aria-live="polite">
+      <div class="overall-row">
+        <div class="label">Overall progress</div>
+        <div class="counts" id="overallCounts">0 / 0</div>
+      </div>
+      <div class="bar"><div class="fill" id="overallFill"></div></div>
+    </div>
 
+    <div class="grid" id="sectionsContainer"></div>
     <div class="notice" id="notice"></div>
   </main>
 
   <script>
     "use strict";
 
-    // Store everything in ONE synced key to reduce sync churn.
-    const STORAGE_KEY = "packing_app_v3";
-    // Use no_sync_ prefix for UI-only state (HTMLSync docs).
-    const UI_KEY = "no_sync_packing_app_v3_ui";
+    const STORAGE_KEY = "packing_app_v5";
+    const UI_KEY = "no_sync_packing_app_v5_ui";
 
     const DEFAULT_PAYLOAD = {
       data: {
@@ -541,6 +545,8 @@
     const sectionsContainer = document.getElementById("sectionsContainer");
     const syncStatus = document.getElementById("syncStatus");
     const notice = document.getElementById("notice");
+    const overallCounts = document.getElementById("overallCounts");
+    const overallFill = document.getElementById("overallFill");
 
     function slugify(str) {
       return String(str)
@@ -561,25 +567,15 @@
       }[c]));
     }
 
-    function setStatus(text) {
-      syncStatus.textContent = text;
-    }
+    function setStatus(text) { syncStatus.textContent = text; }
 
-    function showError(msg) {
-      notice.innerHTML = '<span class="error">' + escapeHtml(msg) + "</span>";
-    }
+    function showError(msg) { notice.innerHTML = '<span class="error">' + escapeHtml(msg) + "</span>"; }
 
-    function showInfo(msg) {
-      notice.textContent = msg;
-    }
+    function showInfo(msg) { notice.textContent = msg; }
 
-    function safeGet(key) {
-      return localStorage.getItem(key);
-    }
+    function safeGet(key) { return localStorage.getItem(key); }
 
-    function safeSet(key, value) {
-      localStorage.setItem(key, value);
-    }
+    function safeSet(key, value) { localStorage.setItem(key, value); }
 
     function safeParse(jsonText, fallback) {
       try {
@@ -595,11 +591,7 @@
     }
 
     function saveUI(ui) {
-      try {
-        safeSet(UI_KEY, JSON.stringify(ui));
-      } catch {
-        // UI state is non-critical; ignore
-      }
+      try { safeSet(UI_KEY, JSON.stringify(ui)); } catch { /* non-critical */ }
     }
 
     function loadPayload() {
@@ -620,7 +612,6 @@
     let state = loadPayload();
     let uiState = loadUI();
 
-    // Debounced saves: reduce rapid back-to-back sync attempts.
     let saveTimer = null;
     function scheduleSave() {
       setStatus("Saving…");
@@ -629,13 +620,12 @@
         try {
           safeSet(STORAGE_KEY, JSON.stringify(state));
           setStatus("Saved");
+          updateProgressUI();
         } catch (e) {
-          // If HTMLSync shows "Failed to sync", devtools/network will usually reveal the root cause,
-          // but this at least surfaces local issues like quota, storage blocked, etc.
           setStatus("Save failed");
           showError("localStorage write failed: " + (e && e.message ? e.message : String(e)));
         }
-      }, 250);
+      }, 120);
     }
 
     function makeCheckedKey(sectionName, subsectionName, itemText) {
@@ -654,13 +644,204 @@
       return fallbackOpen;
     }
 
+    function computeProgress() {
+      let total = 0;
+      let done = 0;
+      const perSection = {};
+
+      for (const [sectionName, subsections] of Object.entries(state.data)) {
+        let sTotal = 0;
+        let sDone = 0;
+        for (const [subName, items] of Object.entries(subsections)) {
+          (items || []).forEach((t) => {
+            sTotal += 1;
+            total += 1;
+            const ck = makeCheckedKey(sectionName, subName, t);
+            if (state.checked[ck]) {
+              sDone += 1;
+              done += 1;
+            }
+          });
+        }
+        perSection[sectionName] = { total: sTotal, done: sDone };
+      }
+
+      return { total, done, perSection };
+    }
+
+    function pct(done, total) {
+      if (!total) return 0;
+      return Math.round((done / total) * 1000) / 10; // 1 decimal
+    }
+
+    function updateProgressUI() {
+      const p = computeProgress();
+      const percent = pct(p.done, p.total);
+      overallCounts.textContent = `${p.done} / ${p.total} (${percent}%)`;
+      overallFill.style.width = `${percent}%`;
+
+      for (const [sectionName, stats] of Object.entries(p.perSection)) {
+        const id = "secstats_" + slugify(sectionName);
+        const el = document.getElementById(id);
+        const fill = document.getElementById(id + "_fill");
+        if (el) el.textContent = `${stats.done} / ${stats.total}`;
+        if (fill) fill.style.width = `${pct(stats.done, stats.total)}%`;
+      }
+    }
+
+    function enableReorder(listEl, sectionName, subsectionName) {
+      listEl.querySelectorAll(".item").forEach((row) => {
+        row.draggable = true;
+
+        row.addEventListener("dragstart", (e) => {
+          const idx = Number(row.dataset.index);
+          row.classList.add("dragging");
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", JSON.stringify({ sectionName, subsectionName, idx }));
+        });
+
+        row.addEventListener("dragend", () => {
+          row.classList.remove("dragging");
+        });
+
+        row.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        });
+
+        row.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const payload = safeParse(e.dataTransfer.getData("text/plain"), null);
+          if (!payload) return;
+
+          if (payload.sectionName !== sectionName || payload.subsectionName !== subsectionName) return;
+
+          const from = Number(payload.idx);
+          const to = Number(row.dataset.index);
+          if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) return;
+
+          const arr = state.data?.[sectionName]?.[subsectionName];
+          if (!Array.isArray(arr)) return;
+
+          const [moved] = arr.splice(from, 1);
+          arr.splice(to, 0, moved);
+
+          scheduleSave();
+          render();
+        });
+      });
+
+      // Touch reorder (via handle)
+      let touch = null;
+
+      listEl.querySelectorAll(".drag").forEach((handle) => {
+        handle.addEventListener("touchstart", (e) => {
+          const row = handle.closest(".item");
+          if (!row) return;
+          const idx = Number(row.dataset.index);
+
+          const t = e.touches[0];
+          const rect = row.getBoundingClientRect();
+
+          const ghost = row.cloneNode(true);
+          ghost.style.position = "fixed";
+          ghost.style.left = rect.left + "px";
+          ghost.style.top = rect.top + "px";
+          ghost.style.width = rect.width + "px";
+          ghost.style.pointerEvents = "none";
+          ghost.style.opacity = "0.85";
+          ghost.style.zIndex = "9999";
+          ghost.style.transform = "scale(1.02)";
+          ghost.style.borderRadius = "14px";
+          ghost.style.paddingLeft = "14px";
+          ghost.style.paddingRight = "14px";
+
+          document.body.appendChild(ghost);
+          row.classList.add("dragging");
+
+          touch = {
+            sectionName, subsectionName,
+            fromIdx: idx,
+            ghost,
+            offsetX: t.clientX - rect.left,
+            offsetY: t.clientY - rect.top,
+            currentTargetIdx: idx,
+            listEl
+          };
+        }, { passive: true });
+
+        handle.addEventListener("touchmove", (e) => {
+          if (!touch) return;
+          e.preventDefault();
+
+          const t = e.touches[0];
+          const x = t.clientX - touch.offsetX;
+          const y = t.clientY - touch.offsetY;
+          touch.ghost.style.left = x + "px";
+          touch.ghost.style.top = y + "px";
+
+          touch.ghost.style.display = "none";
+          const elUnder = document.elementFromPoint(t.clientX, t.clientY);
+          touch.ghost.style.display = "";
+
+          const row = elUnder ? elUnder.closest(".item") : null;
+          if (row && row.parentElement === listEl) {
+            const idx = Number(row.dataset.index);
+            if (Number.isFinite(idx)) touch.currentTargetIdx = idx;
+          }
+        }, { passive: false });
+
+        handle.addEventListener("touchend", () => {
+          if (!touch) return;
+
+          const arr = state.data?.[touch.sectionName]?.[touch.subsectionName];
+          if (Array.isArray(arr)) {
+            const from = touch.fromIdx;
+            const to = touch.currentTargetIdx;
+            if (Number.isFinite(from) && Number.isFinite(to) && from !== to) {
+              const [moved] = arr.splice(from, 1);
+              arr.splice(to, 0, moved);
+              scheduleSave();
+            }
+          }
+
+          touch.ghost.remove();
+          touch.listEl.querySelectorAll(".item.dragging").forEach(r => r.classList.remove("dragging"));
+          touch = null;
+          render();
+        }, { passive: true });
+      });
+    }
+
+    function attachSwipeToDelete(row, itemText, removeFn) {
+      let startX = 0, startY = 0, fired = false;
+      row.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        fired = false;
+      }, { passive: true });
+
+      row.addEventListener("touchmove", (e) => {
+        if (fired) return;
+        const t = e.touches[0];
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+
+        if (Math.abs(dy) > 24) return;
+        if (dx < -70) {
+          fired = true;
+          const ok = window.confirm(`Remove "${itemText}"?`);
+          if (ok) removeFn();
+        }
+      }, { passive: true });
+    }
+
     function render() {
       notice.textContent = "";
       sectionsContainer.innerHTML = "";
 
-      const data = state.data;
-
-      for (const [sectionName, subsections] of Object.entries(data)) {
+      for (const [sectionName, subsections] of Object.entries(state.data)) {
         const sectionKey = slugify(sectionName);
 
         const sectionDetails = document.createElement("details");
@@ -672,14 +853,38 @@
 
         const summary = document.createElement("summary");
 
+        const head = document.createElement("div");
+        head.className = "section-head";
+
+        const titleRow = document.createElement("div");
+        titleRow.className = "section-title-row";
+
         const title = document.createElement("div");
         title.className = "section-title";
         title.textContent = sectionName;
 
+        const count = document.createElement("div");
+        count.className = "section-count";
+        count.id = "secstats_" + sectionKey;
+        count.textContent = "0 / 0";
+
+        titleRow.appendChild(title);
+        titleRow.appendChild(count);
+
+        const miniBar = document.createElement("div");
+        miniBar.className = "bar section-mini-bar";
+        const miniFill = document.createElement("div");
+        miniFill.className = "fill";
+        miniFill.id = count.id + "_fill";
+        miniBar.appendChild(miniFill);
+
+        head.appendChild(titleRow);
+        head.appendChild(miniBar);
+
         const chev = document.createElement("div");
         chev.className = "chev";
 
-        summary.appendChild(title);
+        summary.appendChild(head);
         summary.appendChild(chev);
         sectionDetails.appendChild(summary);
 
@@ -711,6 +916,7 @@
           (items || []).forEach((itemText, idx) => {
             const row = document.createElement("div");
             row.className = "item";
+            row.dataset.index = String(idx);
 
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
@@ -726,6 +932,12 @@
               scheduleSave();
             });
 
+            const drag = document.createElement("button");
+            drag.type = "button";
+            drag.className = "drag";
+            drag.setAttribute("aria-label", "Drag to reorder");
+            drag.textContent = "≡";
+
             const label = document.createElement("label");
             label.setAttribute("for", domId);
             label.textContent = itemText;
@@ -734,17 +946,29 @@
             removeBtn.type = "button";
             removeBtn.className = "remove";
             removeBtn.textContent = "Remove";
-            removeBtn.addEventListener("click", () => {
+
+            const doRemove = () => {
               const arr = state.data?.[sectionName]?.[subsectionName];
               if (!Array.isArray(arr)) return;
 
-              state.data[sectionName][subsectionName] = arr.filter((t, i) => i !== idx);
-              delete state.checked[checkedKey];
+              const currentIndex = Number(row.dataset.index);
+              if (!Number.isFinite(currentIndex)) return;
+
+              const removedText = arr[currentIndex];
+              arr.splice(currentIndex, 1);
+
+              const ck = makeCheckedKey(sectionName, subsectionName, removedText);
+              delete state.checked[ck];
+
               scheduleSave();
               render();
-            });
+            };
+
+            removeBtn.addEventListener("click", doRemove);
+            attachSwipeToDelete(row, itemText, doRemove);
 
             row.appendChild(checkbox);
+            row.appendChild(drag);
             row.appendChild(label);
             row.appendChild(removeBtn);
             list.appendChild(row);
@@ -786,6 +1010,10 @@
           subDetails.appendChild(addRow);
 
           body.appendChild(subDetails);
+
+          queueMicrotask(() => {
+            enableReorder(list, sectionName, subsectionName);
+          });
         }
 
         sectionDetails.appendChild(body);
@@ -793,10 +1021,10 @@
       }
 
       setStatus("Ready");
-      showInfo("If you still see HTMLSync 'Failed to sync' while logged in, open DevTools → Network and Console; a 401/403 or blocked cookies/storage is the usual cause.\nUI collapse state is stored under a no_sync_ key (won't sync).");
+      updateProgressUI();
+      showInfo("Tip: Drag using the ≡ handle to reorder. Swipe left on an item to remove (confirmation).");
     }
 
-    // Export / Import
     document.getElementById("exportBtn").addEventListener("click", () => {
       try {
         const text = JSON.stringify(state, null, 2);
