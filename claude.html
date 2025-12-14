@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -14,381 +13,378 @@
             padding: 0;
             box-sizing: border-box;
         }
-
-```
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-        line-height: 1.6;
-        background: #f5f5f5;
-        padding-bottom: 100px;
-        touch-action: pan-y;
-    }
-    
-    .header {
-        background: white;
-        padding: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-    }
-    
-    h1 {
-        color: #2c3e50;
-        font-size: 20px;
-        margin-bottom: 8px;
-    }
-    
-    .trip-info {
-        color: #666;
-        font-size: 13px;
-        margin-bottom: 12px;
-    }
-    
-    .progress {
-        background: #e0e0e0;
-        border-radius: 20px;
-        height: 28px;
-        overflow: hidden;
-        margin-bottom: 10px;
-    }
-    
-    .progress-bar {
-        background: linear-gradient(90deg, #4CAF50, #66BB6A);
-        height: 100%;
-        transition: width 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 13px;
-        min-width: 80px;
-    }
-    
-    .controls {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 10px;
-        flex-wrap: wrap;
-    }
-    
-    .search-box {
-        flex: 1;
-        min-width: 200px;
-        padding: 10px;
-        border: 2px solid #ddd;
-        border-radius: 8px;
-        font-size: 15px;
-    }
-    
-    .filter-btn {
-        padding: 10px 15px;
-        background: #2196F3;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    
-    .filter-btn.active {
-        background: #f44336;
-    }
-    
-    .content {
-        padding: 15px;
-    }
-    
-    .section {
-        background: white;
-        margin-bottom: 15px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        overflow: hidden;
-    }
-    
-    .section-header {
-        background: #2196F3;
-        color: white;
-        padding: 12px 15px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .section-progress {
-        font-size: 12px;
-        opacity: 0.9;
-    }
-    
-    .section-content {
-        padding: 10px;
-    }
-    
-    .section-content.collapsed {
-        display: none;
-    }
-    
-    .subsection {
-        margin-bottom: 15px;
-    }
-    
-    .subsection-title {
-        font-weight: bold;
-        color: #2c3e50;
-        margin-bottom: 8px;
-        font-size: 14px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .add-item-btn {
-        background: #4CAF50;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 12px;
-        cursor: pointer;
-    }
-    
-    .item {
-        padding: 12px;
-        margin-bottom: 6px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        display: flex;
-        align-items: flex-start;
-        position: relative;
-        transition: transform 0.2s, opacity 0.2s;
-        cursor: move;
-    }
-    
-    .item.dragging {
-        opacity: 0.5;
-    }
-    
-    .item.checked {
-        opacity: 0.6;
-        background: #e8f5e9;
-    }
-    
-    .item.checked .item-text {
-        text-decoration: line-through;
-    }
-    
-    .item.swiping {
-        transform: translateX(-80px);
-    }
-    
-    input[type="checkbox"] {
-        width: 22px;
-        height: 22px;
-        margin-right: 10px;
-        cursor: pointer;
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-    
-    .item-content {
-        flex: 1;
-        cursor: pointer;
-    }
-    
-    .item-text {
-        font-size: 15px;
-        margin-bottom: 4px;
-    }
-    
-    .item-note {
-        font-size: 13px;
-        color: #666;
-        font-style: italic;
-        margin-top: 4px;
-    }
-    
-    .item-actions {
-        position: absolute;
-        right: -80px;
-        top: 0;
-        bottom: 0;
-        width: 80px;
-        display: flex;
-    }
-    
-    .edit-btn, .delete-btn {
-        flex: 1;
-        border: none;
-        color: white;
-        font-size: 12px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    
-    .edit-btn {
-        background: #FF9800;
-    }
-    
-    .delete-btn {
-        background: #f44336;
-    }
-    
-    .footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: white;
-        padding: 12px;
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-        display: flex;
-        gap: 8px;
-        z-index: 999;
-    }
-    
-    .footer button {
-        flex: 1;
-        padding: 12px;
-        font-size: 14px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: bold;
-    }
-    
-    .collapse-btn {
-        background: #2196F3;
-        color: white;
-    }
-    
-    .reset-btn {
-        background: #f44336;
-        color: white;
-    }
-    
-    .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 2000;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-    }
-    
-    .modal.active {
-        display: flex;
-    }
-    
-    .modal-content {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        max-width: 500px;
-        width: 100%;
-    }
-    
-    .modal-title {
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 15px;
-    }
-    
-    .modal-input, .modal-textarea {
-        width: 100%;
-        padding: 10px;
-        border: 2px solid #ddd;
-        border-radius: 8px;
-        font-size: 15px;
-        margin-bottom: 10px;
-        font-family: inherit;
-    }
-    
-    .modal-textarea {
-        min-height: 80px;
-        resize: vertical;
-    }
-    
-    .modal-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 15px;
-    }
-    
-    .modal-buttons button {
-        flex: 1;
-        padding: 12px;
-        border: none;
-        border-radius: 8px;
-        font-size: 15px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    
-    .modal-save {
-        background: #4CAF50;
-        color: white;
-    }
-    
-    .modal-cancel {
-        background: #ddd;
-        color: #333;
-    }
-    
-    .select-section {
-        width: 100%;
-        padding: 10px;
-        border: 2px solid #ddd;
-        border-radius: 8px;
-        font-size: 15px;
-        margin-bottom: 10px;
-    }
-    
-    .undo-toast {
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #323232;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        display: none;
-        align-items: center;
-        gap: 15px;
-        z-index: 1500;
-    }
-    
-    .undo-toast.active {
-        display: flex;
-    }
-    
-    .undo-btn {
-        background: #4CAF50;
-        color: white;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    
-    .hidden {
-        display: none !important;
-    }
-</style>
-```
-
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            background: #f5f5f5;
+            padding-bottom: 100px;
+            touch-action: pan-y;
+        }
+        
+        .header {
+            background: white;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .trip-info {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        
+        .progress {
+            background: #e0e0e0;
+            border-radius: 20px;
+            height: 28px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #4CAF50, #66BB6A);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            min-width: 80px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        
+        .filter-btn {
+            padding: 10px 15px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .filter-btn.active {
+            background: #f44336;
+        }
+        
+        .content {
+            padding: 15px;
+        }
+        
+        .section {
+            background: white;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #2196F3;
+            color: white;
+            padding: 12px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-progress {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .section-content {
+            padding: 10px;
+        }
+        
+        .section-content.collapsed {
+            display: none;
+        }
+        
+        .subsection {
+            margin-bottom: 15px;
+        }
+        
+        .subsection-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .add-item-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .item {
+            padding: 12px;
+            margin-bottom: 6px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-start;
+            position: relative;
+            transition: transform 0.2s, opacity 0.2s;
+            cursor: move;
+        }
+        
+        .item.dragging {
+            opacity: 0.5;
+        }
+        
+        .item.checked {
+            opacity: 0.6;
+            background: #e8f5e9;
+        }
+        
+        .item.checked .item-text {
+            text-decoration: line-through;
+        }
+        
+        .item.swiping {
+            transform: translateX(-80px);
+        }
+        
+        input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            margin-right: 10px;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .item-content {
+            flex: 1;
+            cursor: pointer;
+        }
+        
+        .item-text {
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+        
+        .item-note {
+            font-size: 13px;
+            color: #666;
+            font-style: italic;
+            margin-top: 4px;
+        }
+        
+        .item-actions {
+            position: absolute;
+            right: -80px;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            display: flex;
+        }
+        
+        .edit-btn, .delete-btn {
+            flex: 1;
+            border: none;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .edit-btn {
+            background: #FF9800;
+        }
+        
+        .delete-btn {
+            background: #f44336;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 12px;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 8px;
+            z-index: 999;
+        }
+        
+        .footer button {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .collapse-btn {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .reset-btn {
+            background: #f44336;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .modal-input, .modal-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+        
+        .modal-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .modal-save {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .modal-cancel {
+            background: #ddd;
+            color: #333;
+        }
+        
+        .select-section {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .undo-toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #323232;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            gap: 15px;
+            z-index: 1500;
+        }
+        
+        .undo-toast.active {
+            display: flex;
+        }
+        
+        .undo-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -403,700 +399,697 @@
         </div>
     </div>
 
-```
-<div class="content" id="content"></div>
+    <div class="content" id="content"></div>
 
-<div class="footer">
-    <button class="collapse-btn" onclick="toggleAllSections()">Collapse All</button>
-    <button class="reset-btn" onclick="confirmReset()">Reset All</button>
-</div>
+    <div class="footer">
+        <button class="collapse-btn" onclick="toggleAllSections()">Collapse All</button>
+        <button class="reset-btn" onclick="confirmReset()">Reset All</button>
+    </div>
 
-<!-- Edit/Add Modal -->
-<div class="modal" id="edit-modal">
-    <div class="modal-content">
-        <div class="modal-title" id="modal-title">Edit Item</div>
-        <input type="text" class="modal-input" id="item-text-input" placeholder="Item text">
-        <textarea class="modal-textarea" id="item-note-input" placeholder="Notes (optional)"></textarea>
-        <select class="select-section hidden" id="move-section"></select>
-        <div class="modal-buttons">
-            <button class="modal-cancel" onclick="closeModal()">Cancel</button>
-            <button class="modal-save" onclick="saveModal()">Save</button>
+    <!-- Edit/Add Modal -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modal-title">Edit Item</div>
+            <input type="text" class="modal-input" id="item-text-input" placeholder="Item text">
+            <textarea class="modal-textarea" id="item-note-input" placeholder="Notes (optional)"></textarea>
+            <select class="select-section hidden" id="move-section"></select>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-save" onclick="saveModal()">Save</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Undo Toast -->
-<div class="undo-toast" id="undo-toast">
-    <span id="undo-message">Item deleted</span>
-    <button class="undo-btn" onclick="undoDelete()">Undo</button>
-</div>
+    <!-- Undo Toast -->
+    <div class="undo-toast" id="undo-toast">
+        <span id="undo-message">Item deleted</span>
+        <button class="undo-btn" onclick="undoDelete()">Undo</button>
+    </div>
 
-<script>
-    const STORAGE_KEY = 'packing_list_data';
-    let packingData = {};
-    let collapsed = new Set();
-    let showUncheckedOnly = false;
-    let searchTerm = '';
-    let editingItem = null;
-    let lastDeleted = null;
-    let undoTimeout = null;
-    
-    // Touch handling for swipe
-    let touchStartX = 0;
-    let touchCurrentX = 0;
-    let swipingItem = null;
-    
-    // Drag and drop
-    let draggedItem = null;
-    let draggedFrom = null;
-
-    // Initialize with default data
-    const defaultData = {
-        "Clothing - Winter & Comfort": {
-            "Outerwear & Footwear": [
-                {text: "Heavy winter coat (waterproof if possible)", checked: false, note: ""},
-                {text: "Dog walking boots (sturdy, waterproof, warm with good traction)", checked: false, note: ""},
-                {text: "Slip-on shoes/clogs for quick backyard potty breaks", checked: false, note: ""},
-                {text: "Indoor slippers (keep floors clean and feet warm)", checked: false, note: ""},
-                {text: "Umbrella (for rainy dog walks)", checked: false, note: ""},
-                {text: "Ice cleats (YakTrax or similar for icy walks)", checked: false, note: ""},
-                {text: "Gaiters (keep bottoms of pants dry from snow)", checked: false, note: ""},
-                {text: "Knit hats (bring 2-3 since they can get wet)", checked: false, note: ""},
-                {text: "Scarves (bring 2)", checked: false, note: ""},
-                {text: "Gloves (bring 2 pairs - one text-friendly, one extra warm)", checked: false, note: ""},
-                {text: "Mittens (optional - if you prefer for really cold days)", checked: false, note: ""}
-            ],
-            "Daily Wear - Layering Strategy": [
-                {text: "Thermal base layer tops (for drafty days)", checked: false, note: ""},
-                {text: "Thermal base layer bottoms (for drafty days)", checked: false, note: ""},
-                {text: "Jeans/durable pants (2-3 pairs - pets can be messy)", checked: false, note: ""},
-                {text: "Belt(s) (if you wear them with jeans)", checked: false, note: ""},
-                {text: "Leggings/sweatpants (2-3 pairs for lounging)", checked: false, note: ""},
-                {text: "Long sleeve tops/layers (4-5 shirts)", checked: false, note: ""},
-                {text: "Sweaters (1-2)", checked: false, note: ""},
-                {text: "Fleece vests x2", checked: false, note: ""},
-                {text: "Fleece jackets x2", checked: false, note: ""},
-                {text: "Undergarments (10-12 sets)", checked: false, note: ""},
-                {text: "Bra", checked: false, note: ""},
-                {text: "Compression socks (for circulation and daily comfort)", checked: false, note: ""},
-                {text: "Wool socks (5+ pairs for winter warmth)", checked: false, note: ""},
-                {text: "Sleepwear - tops (2-3)", checked: false, note: ""},
-                {text: "Sleepwear - bottoms (2-3)", checked: false, note: ""},
-                {text: "Bathrobe (optional but nice to have)", checked: false, note: ""},
-                {text: "Sleep mask", checked: false, note: ""},
-                {text: "Bonnet (for sleeping)", checked: false, note: ""}
-            ]
-        },
-        "Essential Daily Items": {
-            "Things you need every day": [
-                {text: "iPhone (personal)", checked: false, note: ""},
-                {text: "iPhone (work)", checked: false, note: ""},
-                {text: "Wallet/purse", checked: false, note: ""},
-                {text: "Driver's license/ID", checked: false, note: ""},
-                {text: "Work badge/ID", checked: false, note: ""},
-                {text: "Insurance cards (health, car)", checked: false, note: ""},
-                {text: "Credit/debit cards", checked: false, note: ""},
-                {text: "Cash (small bills for emergencies)", checked: false, note: ""},
-                {text: "Car keys", checked: false, note: ""},
-                {text: "House keys (your own place)", checked: false, note: ""},
-                {text: "Keys to Ben's house (confirm you have a working set)", checked: false, note: ""},
-                {text: "Glasses (if you wear them)", checked: false, note: ""},
-                {text: "Sunglasses (if you use them)", checked: false, note: ""},
-                {text: "Reusable water bottle (your all-day water bottle)", checked: false, note: ""}
-            ]
-        },
-        "Toiletries & Personal Care": {
-            "Daily Hygiene": [
-                {text: "Toothbrush", checked: false, note: ""},
-                {text: "Toothpaste", checked: false, note: ""},
-                {text: "Electric toothbrush (if you use one)", checked: false, note: ""},
-                {text: "Electric toothbrush charger + case", checked: false, note: ""},
-                {text: "Tongue scraper", checked: false, note: ""},
-                {text: "Mouthwash", checked: false, note: ""},
-                {text: "Shampoo", checked: false, note: ""},
-                {text: "Conditioner", checked: false, note: ""},
-                {text: "Body wash", checked: false, note: ""},
-                {text: "Deodorant", checked: false, note: ""},
-                {text: "Hairbrush/comb", checked: false, note: ""},
-                {text: "Scrunchies/hair elastics", checked: false, note: ""},
-                {text: "Nail file", checked: false, note: ""},
-                {text: "Tweezers", checked: false, note: ""},
-                {text: "Razor (if needed)", checked: false, note: ""}
-            ],
-            "Skincare": [
-                {text: "Cotton rounds/pads", checked: false, note: ""},
-                {text: "Micellar water", checked: false, note: ""},
-                {text: "Face wash (if using)", checked: false, note: ""},
-                {text: "Moisturizer (face)", checked: false, note: ""},
-                {text: "Body lotion", checked: false, note: ""},
-                {text: "Lip balm (winter air is dry!)", checked: false, note: ""},
-                {text: "Sunscreen (winter sun can still burn!)", checked: false, note: ""}
-            ],
-            "Medications - Prescription": [
-                {text: "Medication boxes x8 (pre-filled)", checked: false, note: ""},
-                {text: "Medication bag (all Rx bottles)", checked: false, note: ""},
-                {text: "Current bottle 'X' (sleep)", checked: false, note: ""},
-                {text: "New bottle 'X' (sleep)", checked: false, note: ""},
-                {text: "Dosing cups x2", checked: false, note: ""},
-                {text: "Dosing syringe x2", checked: false, note: ""},
-                {text: "Pill case holder", checked: false, note: ""}
-            ],
-            "Medications - Over-the-counter": [
-                {text: "Pepto", checked: false, note: ""},
-                {text: "Imodium", checked: false, note: ""},
-                {text: "Gas-X", checked: false, note: ""},
-                {text: "Lactaid", checked: false, note: ""},
-                {text: "Melatonin", checked: false, note: ""},
-                {text: "Ibuprofen/pain relief", checked: false, note: ""},
-                {text: "Advil Liquid Gels", checked: false, note: ""},
-                {text: "Acetaminophen", checked: false, note: ""},
-                {text: "Tums/antacids", checked: false, note: ""},
-                {text: "Benadryl", checked: false, note: ""},
-                {text: "Allergy medication (daily)", checked: false, note: ""},
-                {text: "Flonase", checked: false, note: ""},
-                {text: "Pataday (allergy eye drops)", checked: false, note: ""},
-                {text: "Miralax (if using)", checked: false, note: ""},
-                {text: "Hydrocortisone cream", checked: false, note: ""}
-            ],
-            "Other Personal Care": [
-                {text: "Glasses case (if applicable)", checked: false, note: ""},
-                {text: "Glasses cleaner + repair kit (if you wear glasses)", checked: false, note: ""},
-                {text: "Contact lens supplies (if applicable)", checked: false, note: ""},
-                {text: "Feminine hygiene products (if needed)", checked: false, note: ""}
-            ],
-            "First Aid & Emergency": [
-                {text: "Band-aids (various sizes)", checked: false, note: ""},
-                {text: "Neosporin or antibiotic ointment", checked: false, note: ""},
-                {text: "Wrist braces (carpal tunnel - for night use)", checked: false, note: ""},
-                {text: "Heat pad (if you use one for PT)", checked: false, note: ""}
-            ]
-        },
-        "Pet Sitting Toolkit": {
-            "For Maisie": [
-                {text: "Crossbody bag (for keys, phone, and treats on walks)", checked: false, note: ""},
-                {text: "Hand sanitizer (small travel bottle)", checked: false, note: ""},
-                {text: "Headlamp or flashlight (for backyard potty breaks in the dark)", checked: false, note: ""}
-            ]
-        },
-        "Food & Kitchen": {
-            "Baked Oatmeal Ingredients": [
-                {text: "Kitchen scale (for weighing ingredients)", checked: false, note: ""},
-                {text: "Old-fashioned rolled oats (Kodiak - 454g/1 bag)", checked: false, note: ""},
-                {text: "Eggs (4 large)", checked: false, note: ""},
-                {text: "Milk (3 cups / 720mL Lactaid 1%)", checked: false, note: ""},
-                {text: "Baking powder (3 tsp)", checked: false, note: ""},
-                {text: "Cinnamon (3 tsp ground)", checked: false, note: ""},
-                {text: "Vanilla extract (2 tsp)", checked: false, note: ""},
-                {text: "Blueberries (340g frozen)", checked: false, note: ""},
-                {text: "Peaches (185g frozen)", checked: false, note: ""},
-                {text: "Maple syrup (¼ cup / 60mL)", checked: false, note: ""},
-                {text: "Honey (¼ cup / 84g)", checked: false, note: ""},
-                {text: "Salt (1 tsp)", checked: false, note: ""},
-                {text: "Butter (6 Tbsp / 84g - for recipe + greasing pan)", checked: false, note: ""},
-                {text: "Bananas (2 medium ripe, for mashing)", checked: false, note: ""},
-                {text: "Parchment paper (for pan)", checked: false, note: ""}
-            ],
-            "Meals & Snacks": [
-                {text: "Frozen meals (that you like)", checked: false, note: ""},
-                {text: "Apples (for snacking - with corer/slicer)", checked: false, note: ""},
-                {text: "Oikos Triple Zero yogurts (for topping the baked oatmeal)", checked: false, note: ""},
-                {text: "Sleepy Time tea", checked: false, note: ""},
-                {text: "Orange Spice tea", checked: false, note: ""},
-                {text: "Clementines", checked: false, note: ""},
-                {text: "Raisin Bran Crunch (backup breakfast)", checked: false, note: ""}
-            ],
-            "Kitchen Items - Only If Ben Doesn't Have": [
-                {text: "9x13 baking pan (for baked oatmeal)", checked: false, note: ""},
-                {text: "Measuring cups", checked: false, note: ""},
-                {text: "Measuring spoons", checked: false, note: ""},
-                {text: "Parchment paper", checked: false, note: ""},
-                {text: "Saran wrap", checked: false, note: ""},
-                {text: "1 gallon freezer bags", checked: false, note: ""},
-                {text: "Apple corer/slicer", checked: false, note: ""},
-                {text: "Mixing bowls (need at least 2 for baked oatmeal)", checked: false, note: ""},
-                {text: "Spatula (definitely need for serving baked oatmeal)", checked: false, note: ""},
-                {text: "Wooden spoon or whisk (for mixing)", checked: false, note: ""}
-            ],
-            "Household Items": [
-                {text: "Laundry detergent", checked: false, note: ""},
-                {text: "Pillow", checked: false, note: ""},
-                {text: "Pillowcase for your pillow", checked: false, note: ""},
-                {text: "Water bottle cleaning kit/brush", checked: false, note: ""}
-            ]
-        },
-        "Electronics & Entertainment": {
-            "Chargers & Cables": [
-                {text: "iPhone charger - MagSafe", checked: false, note: ""},
-                {text: "iPhone charger - lightning (work)", checked: false, note: ""},
-                {text: "Car phone charger (for iPhone)", checked: false, note: ""},
-                {text: "Apple Watch charger", checked: false, note: ""},
-                {text: "Shokz charger", checked: false, note: ""},
-                {text: "USB charger hub x2", checked: false, note: ""},
-                {text: "USB-C cord", checked: false, note: ""},
-                {text: "Laptop charger (for streaming or remote work)", checked: false, note: ""},
-                {text: "Tablet charger (if bringing)", checked: false, note: ""}
-            ],
-            "Devices": [
-                {text: "Apple Watch", checked: false, note: ""},
-                {text: "Shokz headphones x2", checked: false, note: ""},
-                {text: "AirPods", checked: false, note: ""},
-                {text: "Laptop (for streaming or remote work)", checked: false, note: ""},
-                {text: "Tablet (if bringing)", checked: false, note: ""},
-                {text: "HDMI cable/Chromecast (to connect laptop to TV if needed)", checked: false, note: ""},
-                {text: "Books/e-reader (for quiet evenings)", checked: false, note: ""}
-            ]
-        },
-        "Work Essentials": {
-            "Work Setup": [
-                {text: "Work laptop", checked: false, note: ""},
-                {text: "Work laptop charger", checked: false, note: ""},
-                {text: "Keyboard", checked: false, note: ""},
-                {text: "Docking cube", checked: false, note: ""},
-                {text: "Monitor", checked: false, note: ""},
-                {text: "Surge protector", checked: false, note: ""},
-                {text: "Connection/power cords (for monitor, docking station, etc.)", checked: false, note: ""},
-                {text: "Jabra headphones", checked: false, note: ""},
-                {text: "Jabra charging base", checked: false, note: ""},
-                {text: "Jabra charging cord", checked: false, note: ""},
-                {text: "Mouse (if you use one)", checked: false, note: ""},
-                {text: "Any work files or materials needed", checked: false, note: ""},
-                {text: "Pens/notebooks", checked: false, note: ""}
-            ]
-        },
-        "Physical Therapy Equipment": {
-            "PT Gear": [
-                {text: "Big stability ball", checked: false, note: ""},
-                {text: "Small ball", checked: false, note: ""},
-                {text: "Black band", checked: false, note: ""},
-                {text: "Yoga mat", checked: false, note: ""},
-                {text: "Foam pad", checked: false, note: ""},
-                {text: "4 pound weight", checked: false, note: ""},
-                {text: "PT exercise card deck", checked: false, note: ""},
-                {text: "SI belt", checked: false, note: ""},
-                {text: "Enso3 TENS unit", checked: false, note: ""},
-                {text: "Enso3 charger", checked: false, note: ""},
-                {text: "Enso3 pads", checked: false, note: ""}
-            ]
-        },
-        "Backup & Comfort Items": {
-            "Extras": [
-                {text: "Battery bank (for charging devices on the go)", checked: false, note: ""},
-                {text: "Phone stand (for watching videos or video calls)", checked: false, note: ""},
-                {text: "Extra pair of glasses (if you have one)", checked: false, note: ""},
-                {text: "Backup phone charger", checked: false, note: ""},
-                {text: "Notebook + pens/pencils (for notes, journaling, lists)", checked: false, note: ""},
-                {text: "Earplugs (better to have and not need them!)", checked: false, note: ""},
-                {text: "Comfort blanket or throw (for couch)", checked: false, note: ""},
-                {text: "Comfort item(s) (anything that helps you feel grounded)", checked: false, note: ""}
-            ]
-        },
-        "Before You Leave Home": {
-            "Pre-Departure Checklist": [
-                {text: "Fill med boxes for 8 days", checked: false, note: ""},
-                {text: "Pack medication bottles (for remaining days + backup)", checked: false, note: ""},
-                {text: "Water peace lily plant", checked: false, note: ""},
-                {text: "Set thermostat to away temperature", checked: false, note: ""},
-                {text: "Take out trash", checked: false, note: ""},
-                {text: "Check all windows/doors are locked", checked: false, note: ""},
-                {text: "Unplug unnecessary electronics", checked: false, note: ""},
-                {text: "Double-check you packed all medications", checked: false, note: ""},
-                {text: "Check weather forecast for the week", checked: false, note: ""},
-                {text: "Confirm arrival time with Ben", checked: false, note: ""},
-                {text: "Put your house keys in your bag", checked: false, note: ""}
-            ]
-        },
-        "The Updates Check": {
-            "Things to Confirm with Ben": [
-                {text: "Maisie's current routine: How often does she need to go out?", checked: false, note: ""},
-                {text: "Accident cleanup supplies: What does Ben use? Where are they located?", checked: false, note: ""},
-                {text: "Maisie's stubbornness strategies: What works to convince her to go outside?", checked: false, note: ""},
-                {text: "Vet info: Confirm emergency plan if needed", checked: false, note: ""},
-                {text: "Emergency contact: Confirm who to call if Ben is unreachable", checked: false, note: ""},
-                {text: "House keys: Confirm you have a working set", checked: false, note: ""}
-            ]
-        }
-    };
-
-    function loadData() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            packingData = JSON.parse(saved);
-        } else {
-            packingData = JSON.parse(JSON.stringify(defaultData));
-            saveData();
-        }
-    }
-
-    function saveData() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(packingData));
-        updateProgress();
-    }
-
-    function render() {
-        const content = document.getElementById('content');
-        content.innerHTML = '';
+    <script>
+        const STORAGE_KEY = 'packing_list_data';
+        let packingData = {};
+        let collapsed = new Set();
+        let showUncheckedOnly = false;
+        let searchTerm = '';
+        let editingItem = null;
+        let lastDeleted = null;
+        let undoTimeout = null;
         
-        Object.keys(packingData).forEach((sectionName, sectionIdx) => {
-            const section = document.createElement('div');
-            section.className = 'section';
-            
-            const sectionItems = packingData[sectionName];
-            let sectionTotal = 0;
-            let sectionChecked = 0;
-            
-            Object.keys(sectionItems).forEach(subsectionName => {
-                sectionItems[subsectionName].forEach(item => {
-                    sectionTotal++;
-                    if (item.checked) sectionChecked++;
-                });
-            });
-            
-            const header = document.createElement('div');
-            header.className = 'section-header';
-            header.onclick = () => toggleSection(sectionIdx);
-            header.innerHTML = `
-                <span>${sectionName}</span>
-                <span class="section-progress">${sectionChecked}/${sectionTotal}</span>
-            `;
-            
-            const content = document.createElement('div');
-            content.className = 'section-content' + (collapsed.has(sectionIdx) ? ' collapsed' : '');
-            
-            Object.keys(sectionItems).forEach(subsectionName => {
-                const subsection = document.createElement('div');
-                subsection.className = 'subsection';
-                
-                const subsectionTitle = document.createElement('div');
-                subsectionTitle.className = 'subsection-title';
-                subsectionTitle.innerHTML = `
-                    <span>${subsectionName}</span>
-                    <button class="add-item-btn" onclick="addNewItem('${sectionName}', '${subsectionName}')">+ Add</button>
-                `;
-                subsection.appendChild(subsectionTitle);
-                
-                sectionItems[subsectionName].forEach((item, itemIdx) => {
-                    // Apply filters
-                    if (showUncheckedOnly && item.checked) return;
-                    if (searchTerm && !item.text.toLowerCase().includes(searchTerm.toLowerCase()) && 
-                        !item.note.toLowerCase().includes(searchTerm.toLowerCase())) return;
-                    
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'item' + (item.checked ? ' checked' : '');
-                    itemDiv.draggable = true;
-                    itemDiv.dataset.section = sectionName;
-                    itemDiv.dataset.subsection = subsectionName;
-                    itemDiv.dataset.index = itemIdx;
-                    
-                    // Drag events
-                    itemDiv.addEventListener('dragstart', handleDragStart);
-                    itemDiv.addEventListener('dragover', handleDragOver);
-                    itemDiv.addEventListener('drop', handleDrop);
-                    itemDiv.addEventListener('dragend', handleDragEnd);
-                    
-                    // Touch events for swipe
-                    itemDiv.addEventListener('touchstart', handleTouchStart);
-                    itemDiv.addEventListener('touchmove', handleTouchMove);
-                    itemDiv.addEventListener('touchend', handleTouchEnd);
-                    
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.checked = item.checked;
-                    checkbox.onchange = () => toggleItem(sectionName, subsectionName, itemIdx);
-                    
-                    const itemContent = document.createElement('div');
-                    itemContent.className = 'item-content';
-                    itemContent.onclick = () => editItem(sectionName, subsectionName, itemIdx, true);
-                    
-                    const itemText = document.createElement('div');
-                    itemText.className = 'item-text';
-                    itemText.textContent = item.text;
-                    itemContent.appendChild(itemText);
-                    
-                    if (item.note) {
-                        const itemNote = document.createElement('div');
-                        itemNote.className = 'item-note';
-                        itemNote.textContent = item.note;
-                        itemContent.appendChild(itemNote);
-                    }
-                    
-                    const actions = document.createElement('div');
-                    actions.className = 'item-actions';
-                    actions.innerHTML = `
-                        <button class="edit-btn" onclick="editItem('${sectionName}', '${subsectionName}', ${itemIdx}, false)">Edit</button>
-                        <button class="delete-btn" onclick="deleteItem('${sectionName}', '${subsectionName}', ${itemIdx})">Delete</button>
-                    `;
-                    
-                    itemDiv.appendChild(checkbox);
-                    itemDiv.appendChild(itemContent);
-                    itemDiv.appendChild(actions);
-                    subsection.appendChild(itemDiv);
-                });
-                
-                content.appendChild(subsection);
-            });
-            
-            section.appendChild(header);
-            section.appendChild(content);
-            content.appendChild(section);
-        });
-    }
-
-    function toggleSection(idx) {
-        if (collapsed.has(idx)) {
-            collapsed.delete(idx);
-        } else {
-            collapsed.add(idx);
-        }
-        render();
-    }
-
-    function toggleAllSections() {
-        if (collapsed.size > 0) {
-            collapsed.clear();
-        } else {
-            Object.keys(packingData).forEach((_, idx) => collapsed.add(idx));
-        }
-        render();
-    }
-
-    function toggleItem(section, subsection, idx) {
-        packingData[section][subsection][idx].checked = !packingData[section][subsection][idx].checked;
-        saveData();
-        render();
-    }
-
-    function toggleFilter() {
-        showUncheckedOnly = !showUncheckedOnly;
-        const btn = document.getElementById('filter-btn');
-        btn.textContent = showUncheckedOnly ? 'Show All Items' : 'Show Unchecked Only';
-        btn.classList.toggle('active');
-        render();
-    }
-
-    function updateProgress() {
-        let total = 0;
-        let checked = 0;
+        // Touch handling for swipe
+        let touchStartX = 0;
+        let touchCurrentX = 0;
+        let swipingItem = null;
         
-        Object.keys(packingData).forEach(sectionName => {
-            const sectionItems = packingData[sectionName];
-            Object.keys(sectionItems).forEach(subsectionName => {
-                sectionItems[subsectionName].forEach(item => {
-                    total++;
-                    if (item.checked) checked++;
-                });
-            });
-        });
-        
-        const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
-        const progressBar = document.getElementById('overall-progress');
-        progressBar.style.width = percentage + '%';
-        progressBar.textContent = `${checked} of ${total} (${percentage}%)`;
-    }
+        // Drag and drop
+        let draggedItem = null;
+        let draggedFrom = null;
 
-    function addNewItem(section, subsection) {
-        editingItem = {section, subsection, index: null};
-        document.getElementById('modal-title').textContent = 'Add New Item';
-        document.getElementById('item-text-input').value = '';
-        document.getElementById('item-note-input').value = '';
-        document.getElementById('move-section').classList.add('hidden');
-        document.getElementById('edit-modal').classList.add('active');
-    }
+        // Initialize with default data
+        const defaultData = {
+            "Clothing - Winter & Comfort": {
+                "Outerwear & Footwear": [
+                    {text: "Heavy winter coat (waterproof if possible)", checked: false, note: ""},
+                    {text: "Dog walking boots (sturdy, waterproof, warm with good traction)", checked: false, note: ""},
+                    {text: "Slip-on shoes/clogs for quick backyard potty breaks", checked: false, note: ""},
+                    {text: "Indoor slippers (keep floors clean and feet warm)", checked: false, note: ""},
+                    {text: "Umbrella (for rainy dog walks)", checked: false, note: ""},
+                    {text: "Ice cleats (YakTrax or similar for icy walks)", checked: false, note: ""},
+                    {text: "Gaiters (keep bottoms of pants dry from snow)", checked: false, note: ""},
+                    {text: "Knit hats (bring 2-3 since they can get wet)", checked: false, note: ""},
+                    {text: "Scarves (bring 2)", checked: false, note: ""},
+                    {text: "Gloves (bring 2 pairs - one text-friendly, one extra warm)", checked: false, note: ""},
+                    {text: "Mittens (optional - if you prefer for really cold days)", checked: false, note: ""}
+                ],
+                "Daily Wear - Layering Strategy": [
+                    {text: "Thermal base layer tops (for drafty days)", checked: false, note: ""},
+                    {text: "Thermal base layer bottoms (for drafty days)", checked: false, note: ""},
+                    {text: "Jeans/durable pants (2-3 pairs - pets can be messy)", checked: false, note: ""},
+                    {text: "Belt(s) (if you wear them with jeans)", checked: false, note: ""},
+                    {text: "Leggings/sweatpants (2-3 pairs for lounging)", checked: false, note: ""},
+                    {text: "Long sleeve tops/layers (4-5 shirts)", checked: false, note: ""},
+                    {text: "Sweaters (1-2)", checked: false, note: ""},
+                    {text: "Fleece vests x2", checked: false, note: ""},
+                    {text: "Fleece jackets x2", checked: false, note: ""},
+                    {text: "Undergarments (10-12 sets)", checked: false, note: ""},
+                    {text: "Bra", checked: false, note: ""},
+                    {text: "Compression socks (for circulation and daily comfort)", checked: false, note: ""},
+                    {text: "Wool socks (5+ pairs for winter warmth)", checked: false, note: ""},
+                    {text: "Sleepwear - tops (2-3)", checked: false, note: ""},
+                    {text: "Sleepwear - bottoms (2-3)", checked: false, note: ""},
+                    {text: "Bathrobe (optional but nice to have)", checked: false, note: ""},
+                    {text: "Sleep mask", checked: false, note: ""},
+                    {text: "Bonnet (for sleeping)", checked: false, note: ""}
+                ]
+            },
+            "Essential Daily Items": {
+                "Things you need every day": [
+                    {text: "iPhone (personal)", checked: false, note: ""},
+                    {text: "iPhone (work)", checked: false, note: ""},
+                    {text: "Wallet/purse", checked: false, note: ""},
+                    {text: "Driver's license/ID", checked: false, note: ""},
+                    {text: "Work badge/ID", checked: false, note: ""},
+                    {text: "Insurance cards (health, car)", checked: false, note: ""},
+                    {text: "Credit/debit cards", checked: false, note: ""},
+                    {text: "Cash (small bills for emergencies)", checked: false, note: ""},
+                    {text: "Car keys", checked: false, note: ""},
+                    {text: "House keys (your own place)", checked: false, note: ""},
+                    {text: "Keys to Ben's house (confirm you have a working set)", checked: false, note: ""},
+                    {text: "Glasses (if you wear them)", checked: false, note: ""},
+                    {text: "Sunglasses (if you use them)", checked: false, note: ""},
+                    {text: "Reusable water bottle (your all-day water bottle)", checked: false, note: ""}
+                ]
+            },
+            "Toiletries & Personal Care": {
+                "Daily Hygiene": [
+                    {text: "Toothbrush", checked: false, note: ""},
+                    {text: "Toothpaste", checked: false, note: ""},
+                    {text: "Electric toothbrush (if you use one)", checked: false, note: ""},
+                    {text: "Electric toothbrush charger + case", checked: false, note: ""},
+                    {text: "Tongue scraper", checked: false, note: ""},
+                    {text: "Mouthwash", checked: false, note: ""},
+                    {text: "Shampoo", checked: false, note: ""},
+                    {text: "Conditioner", checked: false, note: ""},
+                    {text: "Body wash", checked: false, note: ""},
+                    {text: "Deodorant", checked: false, note: ""},
+                    {text: "Hairbrush/comb", checked: false, note: ""},
+                    {text: "Scrunchies/hair elastics", checked: false, note: ""},
+                    {text: "Nail file", checked: false, note: ""},
+                    {text: "Tweezers", checked: false, note: ""},
+                    {text: "Razor (if needed)", checked: false, note: ""}
+                ],
+                "Skincare": [
+                    {text: "Cotton rounds/pads", checked: false, note: ""},
+                    {text: "Micellar water", checked: false, note: ""},
+                    {text: "Face wash (if using)", checked: false, note: ""},
+                    {text: "Moisturizer (face)", checked: false, note: ""},
+                    {text: "Body lotion", checked: false, note: ""},
+                    {text: "Lip balm (winter air is dry!)", checked: false, note: ""},
+                    {text: "Sunscreen (winter sun can still burn!)", checked: false, note: ""}
+                ],
+                "Medications - Prescription": [
+                    {text: "Medication boxes x8 (pre-filled)", checked: false, note: ""},
+                    {text: "Medication bag (all Rx bottles)", checked: false, note: ""},
+                    {text: "Current bottle 'X' (sleep)", checked: false, note: ""},
+                    {text: "New bottle 'X' (sleep)", checked: false, note: ""},
+                    {text: "Dosing cups x2", checked: false, note: ""},
+                    {text: "Dosing syringe x2", checked: false, note: ""},
+                    {text: "Pill case holder", checked: false, note: ""}
+                ],
+                "Medications - Over-the-counter": [
+                    {text: "Pepto", checked: false, note: ""},
+                    {text: "Imodium", checked: false, note: ""},
+                    {text: "Gas-X", checked: false, note: ""},
+                    {text: "Lactaid", checked: false, note: ""},
+                    {text: "Melatonin", checked: false, note: ""},
+                    {text: "Ibuprofen/pain relief", checked: false, note: ""},
+                    {text: "Advil Liquid Gels", checked: false, note: ""},
+                    {text: "Acetaminophen", checked: false, note: ""},
+                    {text: "Tums/antacids", checked: false, note: ""},
+                    {text: "Benadryl", checked: false, note: ""},
+                    {text: "Allergy medication (daily)", checked: false, note: ""},
+                    {text: "Flonase", checked: false, note: ""},
+                    {text: "Pataday (allergy eye drops)", checked: false, note: ""},
+                    {text: "Miralax (if using)", checked: false, note: ""},
+                    {text: "Hydrocortisone cream", checked: false, note: ""}
+                ],
+                "Other Personal Care": [
+                    {text: "Glasses case (if applicable)", checked: false, note: ""},
+                    {text: "Glasses cleaner + repair kit (if you wear glasses)", checked: false, note: ""},
+                    {text: "Contact lens supplies (if applicable)", checked: false, note: ""},
+                    {text: "Feminine hygiene products (if needed)", checked: false, note: ""}
+                ],
+                "First Aid & Emergency": [
+                    {text: "Band-aids (various sizes)", checked: false, note: ""},
+                    {text: "Neosporin or antibiotic ointment", checked: false, note: ""},
+                    {text: "Wrist braces (carpal tunnel - for night use)", checked: false, note: ""},
+                    {text: "Heat pad (if you use one for PT)", checked: false, note: ""}
+                ]
+            },
+            "Pet Sitting Toolkit": {
+                "For Maisie": [
+                    {text: "Crossbody bag (for keys, phone, and treats on walks)", checked: false, note: ""},
+                    {text: "Hand sanitizer (small travel bottle)", checked: false, note: ""},
+                    {text: "Headlamp or flashlight (for backyard potty breaks in the dark)", checked: false, note: ""}
+                ]
+            },
+            "Food & Kitchen": {
+                "Baked Oatmeal Ingredients": [
+                    {text: "Kitchen scale (for weighing ingredients)", checked: false, note: ""},
+                    {text: "Old-fashioned rolled oats (Kodiak - 454g/1 bag)", checked: false, note: ""},
+                    {text: "Eggs (4 large)", checked: false, note: ""},
+                    {text: "Milk (3 cups / 720mL Lactaid 1%)", checked: false, note: ""},
+                    {text: "Baking powder (3 tsp)", checked: false, note: ""},
+                    {text: "Cinnamon (3 tsp ground)", checked: false, note: ""},
+                    {text: "Vanilla extract (2 tsp)", checked: false, note: ""},
+                    {text: "Blueberries (340g frozen)", checked: false, note: ""},
+                    {text: "Peaches (185g frozen)", checked: false, note: ""},
+                    {text: "Maple syrup (¼ cup / 60mL)", checked: false, note: ""},
+                    {text: "Honey (¼ cup / 84g)", checked: false, note: ""},
+                    {text: "Salt (1 tsp)", checked: false, note: ""},
+                    {text: "Butter (6 Tbsp / 84g - for recipe + greasing pan)", checked: false, note: ""},
+                    {text: "Bananas (2 medium ripe, for mashing)", checked: false, note: ""},
+                    {text: "Parchment paper (for pan)", checked: false, note: ""}
+                ],
+                "Meals & Snacks": [
+                    {text: "Frozen meals (that you like)", checked: false, note: ""},
+                    {text: "Apples (for snacking - with corer/slicer)", checked: false, note: ""},
+                    {text: "Oikos Triple Zero yogurts (for topping the baked oatmeal)", checked: false, note: ""},
+                    {text: "Sleepy Time tea", checked: false, note: ""},
+                    {text: "Orange Spice tea", checked: false, note: ""},
+                    {text: "Clementines", checked: false, note: ""},
+                    {text: "Raisin Bran Crunch (backup breakfast)", checked: false, note: ""}
+                ],
+                "Kitchen Items - Only If Ben Doesn't Have": [
+                    {text: "9x13 baking pan (for baked oatmeal)", checked: false, note: ""},
+                    {text: "Measuring cups", checked: false, note: ""},
+                    {text: "Measuring spoons", checked: false, note: ""},
+                    {text: "Parchment paper", checked: false, note: ""},
+                    {text: "Saran wrap", checked: false, note: ""},
+                    {text: "1 gallon freezer bags", checked: false, note: ""},
+                    {text: "Apple corer/slicer", checked: false, note: ""},
+                    {text: "Mixing bowls (need at least 2 for baked oatmeal)", checked: false, note: ""},
+                    {text: "Spatula (definitely need for serving baked oatmeal)", checked: false, note: ""},
+                    {text: "Wooden spoon or whisk (for mixing)", checked: false, note: ""}
+                ],
+                "Household Items": [
+                    {text: "Laundry detergent", checked: false, note: ""},
+                    {text: "Pillow", checked: false, note: ""},
+                    {text: "Pillowcase for your pillow", checked: false, note: ""},
+                    {text: "Water bottle cleaning kit/brush", checked: false, note: ""}
+                ]
+            },
+            "Electronics & Entertainment": {
+                "Chargers & Cables": [
+                    {text: "iPhone charger - MagSafe", checked: false, note: ""},
+                    {text: "iPhone charger - lightning (work)", checked: false, note: ""},
+                    {text: "Car phone charger (for iPhone)", checked: false, note: ""},
+                    {text: "Apple Watch charger", checked: false, note: ""},
+                    {text: "Shokz charger", checked: false, note: ""},
+                    {text: "USB charger hub x2", checked: false, note: ""},
+                    {text: "USB-C cord", checked: false, note: ""},
+                    {text: "Laptop charger (for streaming or remote work)", checked: false, note: ""},
+                    {text: "Tablet charger (if bringing)", checked: false, note: ""}
+                ],
+                "Devices": [
+                    {text: "Apple Watch", checked: false, note: ""},
+                    {text: "Shokz headphones x2", checked: false, note: ""},
+                    {text: "AirPods", checked: false, note: ""},
+                    {text: "Laptop (for streaming or remote work)", checked: false, note: ""},
+                    {text: "Tablet (if bringing)", checked: false, note: ""},
+                    {text: "HDMI cable/Chromecast (to connect laptop to TV if needed)", checked: false, note: ""},
+                    {text: "Books/e-reader (for quiet evenings)", checked: false, note: ""}
+                ]
+            },
+            "Work Essentials": {
+                "Work Setup": [
+                    {text: "Work laptop", checked: false, note: ""},
+                    {text: "Work laptop charger", checked: false, note: ""},
+                    {text: "Keyboard", checked: false, note: ""},
+                    {text: "Docking cube", checked: false, note: ""},
+                    {text: "Monitor", checked: false, note: ""},
+                    {text: "Surge protector", checked: false, note: ""},
+                    {text: "Connection/power cords (for monitor, docking station, etc.)", checked: false, note: ""},
+                    {text: "Jabra headphones", checked: false, note: ""},
+                    {text: "Jabra charging base", checked: false, note: ""},
+                    {text: "Jabra charging cord", checked: false, note: ""},
+                    {text: "Mouse (if you use one)", checked: false, note: ""},
+                    {text: "Any work files or materials needed", checked: false, note: ""},
+                    {text: "Pens/notebooks", checked: false, note: ""}
+                ]
+            },
+            "Physical Therapy Equipment": {
+                "PT Gear": [
+                    {text: "Big stability ball", checked: false, note: ""},
+                    {text: "Small ball", checked: false, note: ""},
+                    {text: "Black band", checked: false, note: ""},
+                    {text: "Yoga mat", checked: false, note: ""},
+                    {text: "Foam pad", checked: false, note: ""},
+                    {text: "4 pound weight", checked: false, note: ""},
+                    {text: "PT exercise card deck", checked: false, note: ""},
+                    {text: "SI belt", checked: false, note: ""},
+                    {text: "Enso3 TENS unit", checked: false, note: ""},
+                    {text: "Enso3 charger", checked: false, note: ""},
+                    {text: "Enso3 pads", checked: false, note: ""}
+                ]
+            },
+            "Backup & Comfort Items": {
+                "Extras": [
+                    {text: "Battery bank (for charging devices on the go)", checked: false, note: ""},
+                    {text: "Phone stand (for watching videos or video calls)", checked: false, note: ""},
+                    {text: "Extra pair of glasses (if you have one)", checked: false, note: ""},
+                    {text: "Backup phone charger", checked: false, note: ""},
+                    {text: "Notebook + pens/pencils (for notes, journaling, lists)", checked: false, note: ""},
+                    {text: "Earplugs (better to have and not need them!)", checked: false, note: ""},
+                    {text: "Comfort blanket or throw (for couch)", checked: false, note: ""},
+                    {text: "Comfort item(s) (anything that helps you feel grounded)", checked: false, note: ""}
+                ]
+            },
+            "Before You Leave Home": {
+                "Pre-Departure Checklist": [
+                    {text: "Fill med boxes for 8 days", checked: false, note: ""},
+                    {text: "Pack medication bottles (for remaining days + backup)", checked: false, note: ""},
+                    {text: "Water peace lily plant", checked: false, note: ""},
+                    {text: "Set thermostat to away temperature", checked: false, note: ""},
+                    {text: "Take out trash", checked: false, note: ""},
+                    {text: "Check all windows/doors are locked", checked: false, note: ""},
+                    {text: "Unplug unnecessary electronics", checked: false, note: ""},
+                    {text: "Double-check you packed all medications", checked: false, note: ""},
+                    {text: "Check weather forecast for the week", checked: false, note: ""},
+                    {text: "Confirm arrival time with Ben", checked: false, note: ""},
+                    {text: "Put your house keys in your bag", checked: false, note: ""}
+                ]
+            },
+            "The Updates Check": {
+                "Things to Confirm with Ben": [
+                    {text: "Maisie's current routine: How often does she need to go out?", checked: false, note: ""},
+                    {text: "Accident cleanup supplies: What does Ben use? Where are they located?", checked: false, note: ""},
+                    {text: "Maisie's stubbornness strategies: What works to convince her to go outside?", checked: false, note: ""},
+                    {text: "Vet info: Confirm emergency plan if needed", checked: false, note: ""},
+                    {text: "Emergency contact: Confirm who to call if Ben is unreachable", checked: false, note: ""},
+                    {text: "House keys: Confirm you have a working set", checked: false, note: ""}
+                ]
+            }
+        };
 
-    function editItem(section, subsection, idx, showMove) {
-        editingItem = {section, subsection, index: idx};
-        const item = packingData[section][subsection][idx];
-        document.getElementById('modal-title').textContent = 'Edit Item';
-        document.getElementById('item-text-input').value = item.text;
-        document.getElementById('item-note-input').value = item.note || '';
-        
-        if (showMove) {
-            const select = document.getElementById('move-section');
-            select.innerHTML = '<option value="">Keep in current section</option>';
-            Object.keys(packingData).forEach(sectionName => {
-                Object.keys(packingData[sectionName]).forEach(subsectionName => {
-                    if (sectionName !== section || subsectionName !== subsection) {
-                        select.innerHTML += `<option value="${sectionName}|||${subsectionName}">${sectionName} - ${subsectionName}</option>`;
-                    }
-                });
-            });
-            select.classList.remove('hidden');
-        } else {
-            document.getElementById('move-section').classList.add('hidden');
-        }
-        
-        document.getElementById('edit-modal').classList.add('active');
-    }
-
-    function closeModal() {
-        document.getElementById('edit-modal').classList.remove('active');
-        editingItem = null;
-    }
-
-    function saveModal() {
-        const text = document.getElementById('item-text-input').value.trim();
-        if (!text) return;
-        
-        const note = document.getElementById('item-note-input').value.trim();
-        const moveTarget = document.getElementById('move-section').value;
-        
-        if (editingItem.index === null) {
-            // Adding new item
-            packingData[editingItem.section][editingItem.subsection].push({
-                text: text,
-                note: note,
-                checked: false
-            });
-        } else {
-            // Editing existing item
-            const item = packingData[editingItem.section][editingItem.subsection][editingItem.index];
-            item.text = text;
-            item.note = note;
-            
-            // Move to different section if requested
-            if (moveTarget) {
-                const [targetSection, targetSubsection] = moveTarget.split('|||');
-                packingData[targetSection][targetSubsection].push(item);
-                packingData[editingItem.section][editingItem.subsection].splice(editingItem.index, 1);
+        function loadData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                packingData = JSON.parse(saved);
+            } else {
+                packingData = JSON.parse(JSON.stringify(defaultData));
+                saveData();
             }
         }
-        
-        saveData();
-        render();
-        closeModal();
-    }
 
-    function deleteItem(section, subsection, idx) {
-        const item = packingData[section][subsection][idx];
-        lastDeleted = {section, subsection, index: idx, item: JSON.parse(JSON.stringify(item))};
-        
-        packingData[section][subsection].splice(idx, 1);
-        saveData();
-        render();
-        
-        // Show undo toast
-        const toast = document.getElementById('undo-toast');
-        toast.classList.add('active');
-        
-        if (undoTimeout) clearTimeout(undoTimeout);
-        undoTimeout = setTimeout(() => {
-            toast.classList.remove('active');
-            lastDeleted = null;
-        }, 5000);
-    }
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(packingData));
+            updateProgress();
+        }
 
-    function undoDelete() {
-        if (!lastDeleted) return;
-        
-        packingData[lastDeleted.section][lastDeleted.subsection].splice(lastDeleted.index, 0, lastDeleted.item);
-        saveData();
-        render();
-        
-        document.getElementById('undo-toast').classList.remove('active');
-        if (undoTimeout) clearTimeout(undoTimeout);
-        lastDeleted = null;
-    }
-
-    function confirmReset() {
-        if (confirm('Reset all checkboxes? This will uncheck everything but keep your items.')) {
-            Object.keys(packingData).forEach(section => {
-                Object.keys(packingData[section]).forEach(subsection => {
-                    packingData[section][subsection].forEach(item => {
-                        item.checked = false;
+        function render() {
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            
+            Object.keys(packingData).forEach((sectionName, sectionIdx) => {
+                const section = document.createElement('div');
+                section.className = 'section';
+                
+                const sectionItems = packingData[sectionName];
+                let sectionTotal = 0;
+                let sectionChecked = 0;
+                
+                Object.keys(sectionItems).forEach(subsectionName => {
+                    sectionItems[subsectionName].forEach(item => {
+                        sectionTotal++;
+                        if (item.checked) sectionChecked++;
                     });
                 });
+                
+                const header = document.createElement('div');
+                header.className = 'section-header';
+                header.onclick = () => toggleSection(sectionIdx);
+                header.innerHTML = `
+                    <span>${sectionName}</span>
+                    <span class="section-progress">${sectionChecked}/${sectionTotal}</span>
+                `;
+                
+                const content = document.createElement('div');
+                content.className = 'section-content' + (collapsed.has(sectionIdx) ? ' collapsed' : '');
+                
+                Object.keys(sectionItems).forEach(subsectionName => {
+                    const subsection = document.createElement('div');
+                    subsection.className = 'subsection';
+                    
+                    const subsectionTitle = document.createElement('div');
+                    subsectionTitle.className = 'subsection-title';
+                    subsectionTitle.innerHTML = `
+                        <span>${subsectionName}</span>
+                        <button class="add-item-btn" onclick="addNewItem('${sectionName}', '${subsectionName}')">+ Add</button>
+                    `;
+                    subsection.appendChild(subsectionTitle);
+                    
+                    sectionItems[subsectionName].forEach((item, itemIdx) => {
+                        // Apply filters
+                        if (showUncheckedOnly && item.checked) return;
+                        if (searchTerm && !item.text.toLowerCase().includes(searchTerm.toLowerCase()) && 
+                            !item.note.toLowerCase().includes(searchTerm.toLowerCase())) return;
+                        
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'item' + (item.checked ? ' checked' : '');
+                        itemDiv.draggable = true;
+                        itemDiv.dataset.section = sectionName;
+                        itemDiv.dataset.subsection = subsectionName;
+                        itemDiv.dataset.index = itemIdx;
+                        
+                        // Drag events
+                        itemDiv.addEventListener('dragstart', handleDragStart);
+                        itemDiv.addEventListener('dragover', handleDragOver);
+                        itemDiv.addEventListener('drop', handleDrop);
+                        itemDiv.addEventListener('dragend', handleDragEnd);
+                        
+                        // Touch events for swipe
+                        itemDiv.addEventListener('touchstart', handleTouchStart);
+                        itemDiv.addEventListener('touchmove', handleTouchMove);
+                        itemDiv.addEventListener('touchend', handleTouchEnd);
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.checked = item.checked;
+                        checkbox.onchange = () => toggleItem(sectionName, subsectionName, itemIdx);
+                        
+                        const itemContent = document.createElement('div');
+                        itemContent.className = 'item-content';
+                        itemContent.onclick = () => editItem(sectionName, subsectionName, itemIdx, true);
+                        
+                        const itemText = document.createElement('div');
+                        itemText.className = 'item-text';
+                        itemText.textContent = item.text;
+                        itemContent.appendChild(itemText);
+                        
+                        if (item.note) {
+                            const itemNote = document.createElement('div');
+                            itemNote.className = 'item-note';
+                            itemNote.textContent = item.note;
+                            itemContent.appendChild(itemNote);
+                        }
+                        
+                        const actions = document.createElement('div');
+                        actions.className = 'item-actions';
+                        actions.innerHTML = `
+                            <button class="edit-btn" onclick="editItem('${sectionName}', '${subsectionName}', ${itemIdx}, false)">Edit</button>
+                            <button class="delete-btn" onclick="deleteItem('${sectionName}', '${subsectionName}', ${itemIdx})">Delete</button>
+                        `;
+                        
+                        itemDiv.appendChild(checkbox);
+                        itemDiv.appendChild(itemContent);
+                        itemDiv.appendChild(actions);
+                        subsection.appendChild(itemDiv);
+                    });
+                    
+                    content.appendChild(subsection);
+                });
+                
+                section.appendChild(header);
+                section.appendChild(content);
+                content.appendChild(section);
             });
+        }
+
+        function toggleSection(idx) {
+            if (collapsed.has(idx)) {
+                collapsed.delete(idx);
+            } else {
+                collapsed.add(idx);
+            }
+            render();
+        }
+
+        function toggleAllSections() {
+            if (collapsed.size > 0) {
+                collapsed.clear();
+            } else {
+                Object.keys(packingData).forEach((_, idx) => collapsed.add(idx));
+            }
+            render();
+        }
+
+        function toggleItem(section, subsection, idx) {
+            packingData[section][subsection][idx].checked = !packingData[section][subsection][idx].checked;
             saveData();
             render();
         }
-    }
 
-    // Drag and drop handlers
-    function handleDragStart(e) {
-        draggedItem = e.target;
-        draggedFrom = {
-            section: e.target.dataset.section,
-            subsection: e.target.dataset.subsection,
-            index: parseInt(e.target.dataset.index)
-        };
-        e.target.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-    }
-
-    function handleDragOver(e) {
-        if (e.preventDefault) e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        return false;
-    }
-
-    function handleDrop(e) {
-        if (e.stopPropagation) e.stopPropagation();
-        
-        const dropTarget = e.target.closest('.item');
-        if (!dropTarget || dropTarget === draggedItem) return false;
-        
-        const dropSection = dropTarget.dataset.section;
-        const dropSubsection = dropTarget.dataset.subsection;
-        const dropIndex = parseInt(dropTarget.dataset.index);
-        
-        // Remove from original position
-        const item = packingData[draggedFrom.section][draggedFrom.subsection].splice(draggedFrom.index, 1)[0];
-        
-        // Insert at new position
-        packingData[dropSection][dropSubsection].splice(dropIndex, 0, item);
-        
-        saveData();
-        render();
-        
-        return false;
-    }
-
-    function handleDragEnd(e) {
-        e.target.classList.remove('dragging');
-        draggedItem = null;
-        draggedFrom = null;
-    }
-
-    // Touch handlers for swipe
-    function handleTouchStart(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-        touchStartX = e.touches[0].clientX;
-        swipingItem = e.currentTarget;
-    }
-
-    function handleTouchMove(e) {
-        if (!swipingItem || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-        touchCurrentX = e.touches[0].clientX;
-        const diff = touchStartX - touchCurrentX;
-        
-        if (diff > 50) {
-            swipingItem.classList.add('swiping');
-        } else {
-            swipingItem.classList.remove('swiping');
+        function toggleFilter() {
+            showUncheckedOnly = !showUncheckedOnly;
+            const btn = document.getElementById('filter-btn');
+            btn.textContent = showUncheckedOnly ? 'Show All Items' : 'Show Unchecked Only';
+            btn.classList.toggle('active');
+            render();
         }
-    }
 
-    function handleTouchEnd(e) {
-        if (!swipingItem) return;
-        const diff = touchStartX - touchCurrentX;
-        
-        if (diff < 50) {
-            swipingItem.classList.remove('swiping');
+        function updateProgress() {
+            let total = 0;
+            let checked = 0;
+            
+            Object.keys(packingData).forEach(sectionName => {
+                const sectionItems = packingData[sectionName];
+                Object.keys(sectionItems).forEach(subsectionName => {
+                    sectionItems[subsectionName].forEach(item => {
+                        total++;
+                        if (item.checked) checked++;
+                    });
+                });
+            });
+            
+            const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
+            const progressBar = document.getElementById('overall-progress');
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = `${checked} of ${total} (${percentage}%)`;
         }
-        
-        swipingItem = null;
-    }
 
-    // Search handler
-    document.getElementById('search').addEventListener('input', (e) => {
-        searchTerm = e.target.value;
+        function addNewItem(section, subsection) {
+            editingItem = {section, subsection, index: null};
+            document.getElementById('modal-title').textContent = 'Add New Item';
+            document.getElementById('item-text-input').value = '';
+            document.getElementById('item-note-input').value = '';
+            document.getElementById('move-section').classList.add('hidden');
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function editItem(section, subsection, idx, showMove) {
+            editingItem = {section, subsection, index: idx};
+            const item = packingData[section][subsection][idx];
+            document.getElementById('modal-title').textContent = 'Edit Item';
+            document.getElementById('item-text-input').value = item.text;
+            document.getElementById('item-note-input').value = item.note || '';
+            
+            if (showMove) {
+                const select = document.getElementById('move-section');
+                select.innerHTML = '<option value="">Keep in current section</option>';
+                Object.keys(packingData).forEach(sectionName => {
+                    Object.keys(packingData[sectionName]).forEach(subsectionName => {
+                        if (sectionName !== section || subsectionName !== subsection) {
+                            select.innerHTML += `<option value="${sectionName}|||${subsectionName}">${sectionName} - ${subsectionName}</option>`;
+                        }
+                    });
+                });
+                select.classList.remove('hidden');
+            } else {
+                document.getElementById('move-section').classList.add('hidden');
+            }
+            
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+            editingItem = null;
+        }
+
+        function saveModal() {
+            const text = document.getElementById('item-text-input').value.trim();
+            if (!text) return;
+            
+            const note = document.getElementById('item-note-input').value.trim();
+            const moveTarget = document.getElementById('move-section').value;
+            
+            if (editingItem.index === null) {
+                // Adding new item
+                packingData[editingItem.section][editingItem.subsection].push({
+                    text: text,
+                    note: note,
+                    checked: false
+                });
+            } else {
+                // Editing existing item
+                const item = packingData[editingItem.section][editingItem.subsection][editingItem.index];
+                item.text = text;
+                item.note = note;
+                
+                // Move to different section if requested
+                if (moveTarget) {
+                    const [targetSection, targetSubsection] = moveTarget.split('|||');
+                    packingData[targetSection][targetSubsection].push(item);
+                    packingData[editingItem.section][editingItem.subsection].splice(editingItem.index, 1);
+                }
+            }
+            
+            saveData();
+            render();
+            closeModal();
+        }
+
+        function deleteItem(section, subsection, idx) {
+            const item = packingData[section][subsection][idx];
+            lastDeleted = {section, subsection, index: idx, item: JSON.parse(JSON.stringify(item))};
+            
+            packingData[section][subsection].splice(idx, 1);
+            saveData();
+            render();
+            
+            // Show undo toast
+            const toast = document.getElementById('undo-toast');
+            toast.classList.add('active');
+            
+            if (undoTimeout) clearTimeout(undoTimeout);
+            undoTimeout = setTimeout(() => {
+                toast.classList.remove('active');
+                lastDeleted = null;
+            }, 5000);
+        }
+
+        function undoDelete() {
+            if (!lastDeleted) return;
+            
+            packingData[lastDeleted.section][lastDeleted.subsection].splice(lastDeleted.index, 0, lastDeleted.item);
+            saveData();
+            render();
+            
+            document.getElementById('undo-toast').classList.remove('active');
+            if (undoTimeout) clearTimeout(undoTimeout);
+            lastDeleted = null;
+        }
+
+        function confirmReset() {
+            if (confirm('Reset all checkboxes? This will uncheck everything but keep your items.')) {
+                Object.keys(packingData).forEach(section => {
+                    Object.keys(packingData[section]).forEach(subsection => {
+                        packingData[section][subsection].forEach(item => {
+                            item.checked = false;
+                        });
+                    });
+                });
+                saveData();
+                render();
+            }
+        }
+
+        // Drag and drop handlers
+        function handleDragStart(e) {
+            draggedItem = e.target;
+            draggedFrom = {
+                section: e.target.dataset.section,
+                subsection: e.target.dataset.subsection,
+                index: parseInt(e.target.dataset.index)
+            };
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) e.stopPropagation();
+            
+            const dropTarget = e.target.closest('.item');
+            if (!dropTarget || dropTarget === draggedItem) return false;
+            
+            const dropSection = dropTarget.dataset.section;
+            const dropSubsection = dropTarget.dataset.subsection;
+            const dropIndex = parseInt(dropTarget.dataset.index);
+            
+            // Remove from original position
+            const item = packingData[draggedFrom.section][draggedFrom.subsection].splice(draggedFrom.index, 1)[0];
+            
+            // Insert at new position
+            packingData[dropSection][dropSubsection].splice(dropIndex, 0, item);
+            
+            saveData();
+            render();
+            
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedItem = null;
+            draggedFrom = null;
+        }
+
+        // Touch handlers for swipe
+        function handleTouchStart(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+            touchStartX = e.touches[0].clientX;
+            swipingItem = e.currentTarget;
+        }
+
+        function handleTouchMove(e) {
+            if (!swipingItem || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+            touchCurrentX = e.touches[0].clientX;
+            const diff = touchStartX - touchCurrentX;
+            
+            if (diff > 50) {
+                swipingItem.classList.add('swiping');
+            } else {
+                swipingItem.classList.remove('swiping');
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (!swipingItem) return;
+            const diff = touchStartX - touchCurrentX;
+            
+            if (diff < 50) {
+                swipingItem.classList.remove('swiping');
+            }
+            
+            swipingItem = null;
+        }
+
+        // Search handler
+        document.getElementById('search').addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            render();
+        });
+
+        // Initialize
+        loadData();
         render();
-    });
-
-    // Initialize
-    loadData();
-    render();
-</script>
-```
-
+    </script>
 </body>
 </html>
