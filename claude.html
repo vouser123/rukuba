@@ -187,17 +187,44 @@
             position: relative;
             transition: transform 0.2s, opacity 0.2s;
             cursor: move;
+            overflow: hidden;
         }
-        
+
+        .item::before {
+            content: '🗑️';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: #FF3B30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transform: translateX(100%);
+            transition: transform 0.2s ease;
+            border-radius: 0 8px 8px 0;
+            z-index: -1;
+        }
+
+        .item.swiping::before {
+            transform: translateX(0);
+        }
+
+        .item.swiping {
+            transform: translateX(-80px);
+        }
+
         .item.dragging {
             opacity: 0.5;
         }
-        
+
         .item.checked {
             opacity: 0.6;
             background: #e8f5e9;
         }
-        
+
         .item.checked .item-text {
             text-decoration: line-through;
         }
@@ -1146,6 +1173,7 @@
 
                         // Swipe and long-press on item
                         let swipeStartX = 0, swipeStartY = 0, swipeFired = false, longPressTimer = null;
+                        let isSwipingVisually = false;
 
                         itemDiv.addEventListener('touchstart', (e) => {
                             if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' ||
@@ -1155,6 +1183,7 @@
                             swipeStartX = touch.clientX;
                             swipeStartY = touch.clientY;
                             swipeFired = false;
+                            isSwipingVisually = false;
 
                             longPressTimer = setTimeout(() => {
                                 const section = itemDiv.dataset.section;
@@ -1175,6 +1204,7 @@
                             const dx = touch.clientX - swipeStartX;
                             const dy = touch.clientY - swipeStartY;
 
+                            // Cancel long press if moving
                             if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
                                 if (longPressTimer) {
                                     clearTimeout(longPressTimer);
@@ -1182,7 +1212,16 @@
                                 }
                             }
 
-                            // Swipe left to delete
+                            // Show swipe visual feedback
+                            if (Math.abs(dy) < 30 && dx < -20) {
+                                if (!isSwipingVisually) {
+                                    itemDiv.classList.add('swiping');
+                                    isSwipingVisually = true;
+                                    haptic('light');
+                                }
+                            }
+
+                            // Trigger delete at threshold
                             if (Math.abs(dy) < 30 && dx < -70) {
                                 swipeFired = true;
                                 const section = itemDiv.dataset.section;
@@ -1203,6 +1242,11 @@
                             if (longPressTimer) {
                                 clearTimeout(longPressTimer);
                                 longPressTimer = null;
+                            }
+                            // Remove swipe visual if not triggered
+                            if (isSwipingVisually && !swipeFired) {
+                                itemDiv.classList.remove('swiping');
+                                isSwipingVisually = false;
                             }
                         }, { passive: true });
 
