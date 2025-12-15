@@ -208,8 +208,12 @@
             color: #999;
         }
 
-        .item.swiping {
+        .item.swiping-left {
             transform: translateX(-80px);
+        }
+
+        .item.swiping-right {
+            transform: translateX(80px);
         }
 
         .item.deleting {
@@ -296,6 +300,15 @@
             display: flex;
         }
 
+        .item-actions-left {
+            position: absolute;
+            left: -80px;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            display: flex;
+        }
+
         .delete-btn {
             flex: 1;
             border: none;
@@ -304,6 +317,16 @@
             font-weight: bold;
             cursor: pointer;
             background: #f44336;
+        }
+
+        .edit-btn-swipe {
+            flex: 1;
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #007AFF;
         }
         
         .footer {
@@ -1033,18 +1056,26 @@
                         }
 
                         itemContent.appendChild(itemTextWrapper);
-                        
-                        const actions = document.createElement('div');
-                        actions.className = 'item-actions';
-                        actions.innerHTML = `
-                            <button class="edit-btn" onclick="editItem('${sectionName}', '${subsectionName}', ${itemIdx}, false)">Edit</button>
+
+                        // Left actions (swipe right to reveal)
+                        const actionsLeft = document.createElement('div');
+                        actionsLeft.className = 'item-actions-left';
+                        actionsLeft.innerHTML = `
+                            <button class="edit-btn-swipe" onclick="editItem('${sectionName}', '${subsectionName}', ${itemIdx}, true)">Edit</button>
+                        `;
+
+                        // Right actions (swipe left to reveal)
+                        const actionsRight = document.createElement('div');
+                        actionsRight.className = 'item-actions';
+                        actionsRight.innerHTML = `
                             <button class="delete-btn" onclick="deleteItem('${sectionName}', '${subsectionName}', ${itemIdx})">Delete</button>
                         `;
-                        
+
+                        itemDiv.appendChild(actionsLeft);
                         itemDiv.appendChild(dragHandle);
                         itemDiv.appendChild(checkbox);
                         itemDiv.appendChild(itemContent);
-                        itemDiv.appendChild(actions);
+                        itemDiv.appendChild(actionsRight);
                         subsection.appendChild(itemDiv);
                     });
                     
@@ -1300,22 +1331,29 @@
         // Touch handlers for swipe and long-press
         function handleTouchStart(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+
+            // Don't start long-press if touching drag handle
+            const isDragHandle = e.target.classList.contains('drag-handle') ||
+                                e.target.parentElement?.classList.contains('drag-handle');
+
             touchStartX = e.touches[0].clientX;
             swipingItem = e.currentTarget;
 
-            // Start long-press timer
-            longPressTarget = e.currentTarget;
-            longPressTimer = setTimeout(() => {
-                if (longPressTarget) {
-                    // Trigger edit with move option
-                    const section = longPressTarget.dataset.section;
-                    const subsection = longPressTarget.dataset.subsection;
-                    const idx = parseInt(longPressTarget.dataset.index);
-                    editItem(section, subsection, idx, true);
-                    longPressTarget = null;
-                    swipingItem = null;
-                }
-            }, 500); // 500ms for long-press
+            // Start long-press timer (but not on drag handle)
+            if (!isDragHandle) {
+                longPressTarget = e.currentTarget;
+                longPressTimer = setTimeout(() => {
+                    if (longPressTarget) {
+                        // Trigger edit with move option
+                        const section = longPressTarget.dataset.section;
+                        const subsection = longPressTarget.dataset.subsection;
+                        const idx = parseInt(longPressTarget.dataset.index);
+                        editItem(section, subsection, idx, true);
+                        longPressTarget = null;
+                        swipingItem = null;
+                    }
+                }, 500); // 500ms for long-press
+            }
         }
 
         function handleTouchMove(e) {
@@ -1332,10 +1370,19 @@
                 }
             }
 
+            // Swipe left (reveal delete)
             if (diff > 50) {
-                swipingItem.classList.add('swiping');
-            } else {
-                swipingItem.classList.remove('swiping');
+                swipingItem.classList.remove('swiping-right');
+                swipingItem.classList.add('swiping-left');
+            }
+            // Swipe right (reveal edit)
+            else if (diff < -50) {
+                swipingItem.classList.remove('swiping-left');
+                swipingItem.classList.add('swiping-right');
+            }
+            // Neither - reset
+            else {
+                swipingItem.classList.remove('swiping-left', 'swiping-right');
             }
         }
 
@@ -1350,8 +1397,9 @@
             if (!swipingItem) return;
             const diff = touchStartX - touchCurrentX;
 
-            if (diff < 50) {
-                swipingItem.classList.remove('swiping');
+            // If swipe wasn't strong enough, reset
+            if (Math.abs(diff) < 50) {
+                swipingItem.classList.remove('swiping-left', 'swiping-right');
             }
 
             swipingItem = null;
