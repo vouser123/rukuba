@@ -444,14 +444,20 @@
 
         <!-- Timer Mode -->
         <div id="timer-mode" class="hidden">
+            <div class="target-info" id="timer-rep-info">Rep 1 of 10</div>
             <div class="timer-display" id="timer-display">00:00</div>
-            <div class="target-info" id="timer-target">Target: 30 seconds</div>
+            <div class="target-info" id="timer-target">Target: 10 seconds</div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="timer-progress-bar"></div>
             </div>
+            <div class="controls" style="margin-bottom: 20px;">
+                <button class="control-btn btn-primary" id="timer-start-btn" onclick="startTimer()">Start Timer</button>
+                <button class="control-btn btn-danger hidden" id="timer-stop-btn" onclick="stopTimer()">Stop</button>
+                <button class="control-btn btn-secondary hidden" id="timer-reset-btn" onclick="resetTimer()">Reset</button>
+            </div>
         </div>
 
-        <div class="controls">
+        <div class="controls" id="main-controls">
             <button class="control-btn btn-secondary" onclick="previousSet()">Previous</button>
             <button class="control-btn btn-success" onclick="completeSet()">Complete Set</button>
         </div>
@@ -474,12 +480,13 @@
                     <option value="step_ups">Step Ups</option>
                     <option value="clamshells">Clamshells</option>
                 </select>
-                <select class="modal-select" id="exercise-type">
+                <select class="modal-select" id="exercise-type" onchange="updateTargetLabel()">
                     <option value="reps">Rep-based</option>
-                    <option value="timed">Timed Hold</option>
+                    <option value="timed">Timed Reps</option>
                 </select>
                 <input type="number" class="modal-input" id="sets-input" placeholder="Number of sets" value="3">
-                <input type="number" class="modal-input" id="target-input" placeholder="Target (reps or seconds)" value="10">
+                <input type="number" class="modal-input" id="reps-input" placeholder="Reps per set" value="10">
+                <input type="number" class="modal-input" id="target-input" placeholder="Seconds per rep (for timed)" value="10">
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeExerciseModal()">Cancel</button>
@@ -505,20 +512,22 @@
             name: 'Goblet Squat',
             type: 'reps',
             sets: 3,
-            target: 10,
+            repsPerSet: 10,
+            secondsPerRep: 10, // for timed exercises
             currentSet: 1,
-            currentCount: 0,
+            currentRep: 0, // for counter mode OR current timed rep
             sessionData: []
         };
 
         let timerInterval = null;
-        let timerSeconds = 0;
+        let timerSecondsRemaining = 0; // counts DOWN
+        let timerRunning = false;
         let actionSheetCallback = null;
 
         // Audio for timer
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playBeep(frequency = 800, duration = 100) {
+        function playBeep(frequency = 800, duration = 200) {
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
 
@@ -526,13 +535,20 @@
             gainNode.connect(audioContext.destination);
 
             oscillator.frequency.value = frequency;
-            oscillator.type = 'sine';
+            oscillator.type = 'square'; // More noticeable than sine
 
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Louder
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
 
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + duration / 1000);
+        }
+
+        function playCompletionSound() {
+            // Triple beep for completion
+            playBeep(1000, 150);
+            setTimeout(() => playBeep(1200, 150), 200);
+            setTimeout(() => playBeep(1400, 200), 400);
         }
 
         // Haptic feedback helper
@@ -599,8 +615,15 @@
         function incrementCounter() {
             if (currentExercise.type !== 'reps') return;
 
-            currentExercise.currentCount++;
+            currentExercise.currentRep++;
             haptic('light');
+
+            // Check if target reached
+            if (currentExercise.currentRep >= currentExercise.repsPerSet) {
+                playCompletionSound();
+                haptic('success');
+            }
+
             updateDisplay();
         }
 
@@ -609,50 +632,99 @@
             document.getElementById('set-info').textContent = `Set ${currentExercise.currentSet} of ${currentExercise.sets}`;
 
             if (currentExercise.type === 'reps') {
+                // Rep-based exercise
                 document.getElementById('counter-mode').classList.remove('hidden');
                 document.getElementById('timer-mode').classList.add('hidden');
+                document.getElementById('main-controls').classList.remove('hidden');
 
-                document.getElementById('counter-display').textContent = currentExercise.currentCount;
-                document.getElementById('target-info').textContent = `Target: ${currentExercise.target} reps`;
+                document.getElementById('counter-display').textContent = currentExercise.currentRep;
+                document.getElementById('target-info').textContent = `Target: ${currentExercise.repsPerSet} reps`;
 
-                const progress = Math.min((currentExercise.currentCount / currentExercise.target) * 100, 100);
+                const progress = Math.min((currentExercise.currentRep / currentExercise.repsPerSet) * 100, 100);
                 document.getElementById('progress-bar').style.width = progress + '%';
             } else {
+                // Timed exercise (multiple timed reps)
                 document.getElementById('counter-mode').classList.add('hidden');
                 document.getElementById('timer-mode').classList.remove('hidden');
+                document.getElementById('main-controls').classList.remove('hidden');
 
-                const minutes = Math.floor(timerSeconds / 60);
-                const seconds = timerSeconds % 60;
+                // Show current rep
+                document.getElementById('timer-rep-info').textContent = `Rep ${currentExercise.currentRep + 1} of ${currentExercise.repsPerSet}`;
+
+                // Display countdown timer
+                const minutes = Math.floor(timerSecondsRemaining / 60);
+                const seconds = timerSecondsRemaining % 60;
                 const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
                 document.getElementById('timer-display').textContent = display;
-                document.getElementById('timer-target').textContent = `Target: ${currentExercise.target} seconds`;
+                document.getElementById('timer-target').textContent = `Target: ${currentExercise.secondsPerRep} seconds`;
 
-                const progress = Math.min((timerSeconds / currentExercise.target) * 100, 100);
+                // Progress bar (counts down)
+                const progress = Math.max(0, (timerSecondsRemaining / currentExercise.secondsPerRep) * 100);
                 document.getElementById('timer-progress-bar').style.width = progress + '%';
 
-                // Color changes for timer
+                // Color changes for timer countdown
                 const timerDisplay = document.getElementById('timer-display');
                 timerDisplay.classList.remove('warning', 'danger');
-                if (timerSeconds >= currentExercise.target * 0.9) {
+                if (timerSecondsRemaining <= 5 && timerSecondsRemaining > 0) {
                     timerDisplay.classList.add('danger');
-                } else if (timerSeconds >= currentExercise.target * 0.75) {
+                } else if (timerSecondsRemaining <= 10 && timerSecondsRemaining > 5) {
                     timerDisplay.classList.add('warning');
+                }
+
+                // Update button visibility
+                if (timerRunning) {
+                    document.getElementById('timer-start-btn').classList.add('hidden');
+                    document.getElementById('timer-stop-btn').classList.remove('hidden');
+                    document.getElementById('timer-reset-btn').classList.add('hidden');
+                } else if (timerSecondsRemaining === 0 || timerSecondsRemaining === currentExercise.secondsPerRep) {
+                    document.getElementById('timer-start-btn').classList.remove('hidden');
+                    document.getElementById('timer-stop-btn').classList.add('hidden');
+                    document.getElementById('timer-reset-btn').classList.add('hidden');
+                } else {
+                    document.getElementById('timer-start-btn').classList.remove('hidden');
+                    document.getElementById('timer-stop-btn').classList.add('hidden');
+                    document.getElementById('timer-reset-btn').classList.remove('hidden');
                 }
             }
         }
 
         function startTimer() {
-            if (timerInterval) return;
+            if (timerInterval || currentExercise.type !== 'timed') return;
+
+            // Initialize timer if starting fresh
+            if (timerSecondsRemaining === 0) {
+                timerSecondsRemaining = currentExercise.secondsPerRep;
+            }
+
+            timerRunning = true;
+            haptic('medium');
 
             timerInterval = setInterval(() => {
-                timerSeconds++;
+                timerSecondsRemaining--;
                 updateDisplay();
 
-                if (timerSeconds === currentExercise.target) {
-                    playBeep(1000, 200);
+                // Countdown beeps
+                if (timerSecondsRemaining <= 3 && timerSecondsRemaining > 0) {
+                    playBeep(600, 100);
+                    haptic('light');
+                }
+
+                // Timer complete
+                if (timerSecondsRemaining <= 0) {
+                    stopTimer();
+                    playCompletionSound();
                     haptic('success');
+
+                    // Auto-advance to next rep
+                    currentExercise.currentRep++;
+
+                    // Reset timer for next rep
+                    timerSecondsRemaining = currentExercise.secondsPerRep;
+                    updateDisplay();
                 }
             }, 1000);
+
+            updateDisplay();
         }
 
         function stopTimer() {
@@ -660,13 +732,23 @@
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
+            timerRunning = false;
+            haptic('light');
+            updateDisplay();
+        }
+
+        function resetTimer() {
+            stopTimer();
+            timerSecondsRemaining = currentExercise.secondsPerRep;
+            haptic('medium');
+            updateDisplay();
         }
 
         function completeSet() {
-            const count = currentExercise.type === 'reps' ? currentExercise.currentCount : timerSeconds;
+            const reps = currentExercise.currentRep;
 
-            if (count === 0) {
-                showActionSheet('No reps/time recorded. Complete set anyway?', () => {
+            if (reps === 0) {
+                showActionSheet('No reps recorded. Complete set anyway?', () => {
                     finishSet();
                 });
                 return;
@@ -674,7 +756,8 @@
 
             currentExercise.sessionData.push({
                 set: currentExercise.currentSet,
-                count: count,
+                reps: reps,
+                type: currentExercise.type,
                 timestamp: new Date().toISOString()
             });
 
@@ -682,8 +765,8 @@
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
-                currentExercise.currentCount = 0;
-                timerSeconds = 0;
+                currentExercise.currentRep = 0;
+                timerSecondsRemaining = currentExercise.secondsPerRep;
                 stopTimer();
                 updateDisplay();
             } else {
@@ -696,14 +779,15 @@
         function finishSet() {
             currentExercise.sessionData.push({
                 set: currentExercise.currentSet,
-                count: currentExercise.type === 'reps' ? currentExercise.currentCount : timerSeconds,
+                reps: currentExercise.currentRep,
+                type: currentExercise.type,
                 timestamp: new Date().toISOString()
             });
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
-                currentExercise.currentCount = 0;
-                timerSeconds = 0;
+                currentExercise.currentRep = 0;
+                timerSecondsRemaining = currentExercise.secondsPerRep;
                 stopTimer();
                 updateDisplay();
             } else {
@@ -714,8 +798,8 @@
         function previousSet() {
             if (currentExercise.currentSet > 1) {
                 currentExercise.currentSet--;
-                currentExercise.currentCount = 0;
-                timerSeconds = 0;
+                currentExercise.currentRep = 0;
+                timerSecondsRemaining = currentExercise.secondsPerRep;
                 stopTimer();
                 haptic('light');
                 updateDisplay();
@@ -736,9 +820,9 @@
 
             // Reset for new session
             currentExercise.currentSet = 1;
-            currentExercise.currentCount = 0;
+            currentExercise.currentRep = 0;
             currentExercise.sessionData = [];
-            timerSeconds = 0;
+            timerSecondsRemaining = currentExercise.secondsPerRep;
             stopTimer();
             updateDisplay();
         }
@@ -747,11 +831,7 @@
         function showExerciseModal() {
             document.getElementById('exercise-modal').classList.add('active');
             haptic('light');
-
-            // Start timer if switching to timer mode
-            if (currentExercise.type === 'timed' && !timerInterval) {
-                startTimer();
-            }
+            updateTargetLabel();
         }
 
         function closeExerciseModal() {
@@ -759,19 +839,36 @@
             haptic('light');
         }
 
+        function updateTargetLabel() {
+            const type = document.getElementById('exercise-type').value;
+            const targetInput = document.getElementById('target-input');
+
+            if (type === 'timed') {
+                targetInput.placeholder = 'Seconds per rep (for timed)';
+                targetInput.parentElement.querySelector('#reps-input').classList.remove('hidden');
+            } else {
+                targetInput.placeholder = 'Target (not used for rep-based)';
+                targetInput.value = '';
+            }
+        }
+
         function updateExerciseType() {
             const select = document.getElementById('exercise-select');
             const typeSelect = document.getElementById('exercise-type');
             const targetInput = document.getElementById('target-input');
+            const repsInput = document.getElementById('reps-input');
 
             // Auto-set type based on exercise
             if (select.value === 'plank') {
                 typeSelect.value = 'timed';
                 targetInput.value = 30;
+                repsInput.value = 3;
             } else {
                 typeSelect.value = 'reps';
-                targetInput.value = 10;
+                targetInput.value = '';
+                repsInput.value = 10;
             }
+            updateTargetLabel();
         }
 
         function saveExercise() {
@@ -779,10 +876,16 @@
             const exerciseName = select.options[select.selectedIndex].text;
             const type = document.getElementById('exercise-type').value;
             const sets = parseInt(document.getElementById('sets-input').value);
-            const target = parseInt(document.getElementById('target-input').value);
+            const reps = parseInt(document.getElementById('reps-input').value);
+            const seconds = parseInt(document.getElementById('target-input').value);
 
-            if (!sets || !target) {
-                alert('Please enter valid numbers for sets and target.');
+            if (!sets || !reps) {
+                alert('Please enter valid numbers for sets and reps.');
+                return;
+            }
+
+            if (type === 'timed' && !seconds) {
+                alert('Please enter seconds per rep for timed exercises.');
                 return;
             }
 
@@ -790,18 +893,15 @@
                 name: exerciseName,
                 type: type,
                 sets: sets,
-                target: target,
+                repsPerSet: reps,
+                secondsPerRep: seconds || 10,
                 currentSet: 1,
-                currentCount: 0,
+                currentRep: 0,
                 sessionData: []
             };
 
-            timerSeconds = 0;
+            timerSecondsRemaining = currentExercise.secondsPerRep;
             stopTimer();
-
-            if (type === 'timed') {
-                startTimer();
-            }
 
             haptic('success');
             updateDisplay();
