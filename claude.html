@@ -214,7 +214,26 @@
             flex-shrink: 0;
             margin-top: 2px;
         }
-        
+
+        .drag-handle {
+            width: 22px;
+            height: 22px;
+            margin-right: 10px;
+            cursor: grab;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 18px;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
         .item-content {
             flex: 1;
             cursor: pointer;
@@ -230,6 +249,27 @@
             color: #666;
             font-style: italic;
             margin-top: 4px;
+        }
+
+        .priority-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+            align-self: center;
+        }
+
+        .priority-high {
+            background: #f44336;
+        }
+
+        .priority-medium {
+            background: #FF9800;
+        }
+
+        .priority-normal {
+            background: transparent;
         }
         
         .item-actions {
@@ -428,6 +468,83 @@
                 font-size: 12px;
             }
         }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .header {
+                position: static;
+                box-shadow: none;
+                border-bottom: 2px solid #333;
+                padding: 10px 0;
+            }
+
+            .controls,
+            .footer,
+            .add-item-btn,
+            .item-actions,
+            .drag-handle,
+            .undo-toast,
+            .progress {
+                display: none !important;
+            }
+
+            .content {
+                padding: 10px 0;
+            }
+
+            .section {
+                page-break-inside: avoid;
+                box-shadow: none;
+                margin-bottom: 20px;
+                border: 1px solid #ddd;
+            }
+
+            .section-header {
+                background: #f0f0f0 !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .item.checked {
+                display: none !important;
+            }
+
+            .item {
+                page-break-inside: avoid;
+                padding: 8px;
+                background: white;
+            }
+
+            input[type="checkbox"] {
+                border: 2px solid #333;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .item-text {
+                font-size: 13px;
+                color: #000;
+            }
+
+            .item-note {
+                font-size: 11px;
+                color: #555;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .trip-info {
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -457,6 +574,11 @@
             <div class="modal-title" id="modal-title">Edit Item</div>
             <input type="text" class="modal-input" id="item-text-input" placeholder="Item text">
             <textarea class="modal-textarea" id="item-note-input" placeholder="Notes (optional)"></textarea>
+            <select class="select-section" id="priority-select">
+                <option value="normal">Normal Priority</option>
+                <option value="medium">Medium Priority (Orange)</option>
+                <option value="high">High Priority (Red)</option>
+            </select>
             <select class="select-section hidden" id="move-section"></select>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeModal()">Cancel</button>
@@ -485,7 +607,11 @@
         let touchStartX = 0;
         let touchCurrentX = 0;
         let swipingItem = null;
-        
+
+        // Long-press handling
+        let longPressTimer = null;
+        let longPressTarget = null;
+
         // Drag and drop
         let draggedItem = null;
         let draggedFrom = null;
@@ -822,22 +948,27 @@
                         
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'item' + (item.checked ? ' checked' : '');
-                        itemDiv.draggable = true;
                         itemDiv.dataset.section = sectionName;
                         itemDiv.dataset.subsection = subsectionName;
                         itemDiv.dataset.index = itemIdx;
-                        
-                        // Drag events
-                        itemDiv.addEventListener('dragstart', handleDragStart);
+
+                        // Drag events on drop target
                         itemDiv.addEventListener('dragover', handleDragOver);
                         itemDiv.addEventListener('drop', handleDrop);
-                        itemDiv.addEventListener('dragend', handleDragEnd);
-                        
+
                         // Touch events for swipe
                         itemDiv.addEventListener('touchstart', handleTouchStart);
                         itemDiv.addEventListener('touchmove', handleTouchMove);
                         itemDiv.addEventListener('touchend', handleTouchEnd);
-                        
+
+                        // Drag handle
+                        const dragHandle = document.createElement('div');
+                        dragHandle.className = 'drag-handle';
+                        dragHandle.innerHTML = '☰';
+                        dragHandle.draggable = true;
+                        dragHandle.addEventListener('dragstart', handleDragStart);
+                        dragHandle.addEventListener('dragend', handleDragEnd);
+
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
                         checkbox.checked = item.checked;
@@ -846,18 +977,31 @@
                         const itemContent = document.createElement('div');
                         itemContent.className = 'item-content';
                         itemContent.onclick = () => toggleItem(sectionName, subsectionName, itemIdx);
-                        
+                        itemContent.style.display = 'flex';
+                        itemContent.style.alignItems = 'center';
+
+                        // Priority indicator
+                        const priority = item.priority || 'normal';
+                        const priorityIndicator = document.createElement('div');
+                        priorityIndicator.className = `priority-indicator priority-${priority}`;
+                        itemContent.appendChild(priorityIndicator);
+
+                        const itemTextWrapper = document.createElement('div');
+                        itemTextWrapper.style.flex = '1';
+
                         const itemText = document.createElement('div');
                         itemText.className = 'item-text';
                         itemText.textContent = item.text;
-                        itemContent.appendChild(itemText);
+                        itemTextWrapper.appendChild(itemText);
                         
                         if (item.note) {
                             const itemNote = document.createElement('div');
                             itemNote.className = 'item-note';
                             itemNote.textContent = item.note;
-                            itemContent.appendChild(itemNote);
+                            itemTextWrapper.appendChild(itemNote);
                         }
+
+                        itemContent.appendChild(itemTextWrapper);
                         
                         const actions = document.createElement('div');
                         actions.className = 'item-actions';
@@ -866,6 +1010,7 @@
                             <button class="delete-btn" onclick="deleteItem('${sectionName}', '${subsectionName}', ${itemIdx})">Delete</button>
                         `;
                         
+                        itemDiv.appendChild(dragHandle);
                         itemDiv.appendChild(checkbox);
                         itemDiv.appendChild(itemContent);
                         itemDiv.appendChild(actions);
@@ -939,6 +1084,7 @@
             document.getElementById('modal-title').textContent = 'Add New Item';
             document.getElementById('item-text-input').value = '';
             document.getElementById('item-note-input').value = '';
+            document.getElementById('priority-select').value = 'normal';
             document.getElementById('move-section').classList.add('hidden');
             document.getElementById('edit-modal').classList.add('active');
         }
@@ -949,7 +1095,8 @@
             document.getElementById('modal-title').textContent = 'Edit Item';
             document.getElementById('item-text-input').value = item.text;
             document.getElementById('item-note-input').value = item.note || '';
-            
+            document.getElementById('priority-select').value = item.priority || 'normal';
+
             if (showMove) {
                 const select = document.getElementById('move-section');
                 select.innerHTML = '<option value="">Keep in current section</option>';
@@ -976,23 +1123,26 @@
         function saveModal() {
             const text = document.getElementById('item-text-input').value.trim();
             if (!text) return;
-            
+
             const note = document.getElementById('item-note-input').value.trim();
+            const priority = document.getElementById('priority-select').value;
             const moveTarget = document.getElementById('move-section').value;
-            
+
             if (editingItem.index === null) {
                 // Adding new item
                 packingData[editingItem.section][editingItem.subsection].push({
                     text: text,
                     note: note,
-                    checked: false
+                    checked: false,
+                    priority: priority
                 });
             } else {
                 // Editing existing item
                 const item = packingData[editingItem.section][editingItem.subsection][editingItem.index];
                 item.text = text;
                 item.note = note;
-                
+                item.priority = priority;
+
                 // Move to different section if requested
                 if (moveTarget) {
                     const [targetSection, targetSubsection] = moveTarget.split('|||');
@@ -1000,7 +1150,7 @@
                     packingData[editingItem.section][editingItem.subsection].splice(editingItem.index, 1);
                 }
             }
-            
+
             saveData();
             render();
             closeModal();
@@ -1008,16 +1158,22 @@
 
         function deleteItem(section, subsection, idx) {
             const item = packingData[section][subsection][idx];
+
+            // Confirm deletion
+            if (!confirm(`Delete "${item.text}"?`)) {
+                return;
+            }
+
             lastDeleted = {section, subsection, index: idx, item: JSON.parse(JSON.stringify(item))};
-            
+
             packingData[section][subsection].splice(idx, 1);
             saveData();
             render();
-            
+
             // Show undo toast
             const toast = document.getElementById('undo-toast');
             toast.classList.add('active');
-            
+
             if (undoTimeout) clearTimeout(undoTimeout);
             undoTimeout = setTimeout(() => {
                 toast.classList.remove('active');
@@ -1053,13 +1209,15 @@
 
         // Drag and drop handlers
         function handleDragStart(e) {
-            draggedItem = e.target;
+            // Get the item div (parent of drag handle)
+            const itemDiv = e.target.classList.contains('drag-handle') ? e.target.parentElement : e.target;
+            draggedItem = itemDiv;
             draggedFrom = {
-                section: e.target.dataset.section,
-                subsection: e.target.dataset.subsection,
-                index: parseInt(e.target.dataset.index)
+                section: itemDiv.dataset.section,
+                subsection: itemDiv.dataset.subsection,
+                index: parseInt(itemDiv.dataset.index)
             };
-            e.target.classList.add('dragging');
+            itemDiv.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         }
 
@@ -1097,18 +1255,41 @@
             draggedFrom = null;
         }
 
-        // Touch handlers for swipe
+        // Touch handlers for swipe and long-press
         function handleTouchStart(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
             touchStartX = e.touches[0].clientX;
             swipingItem = e.currentTarget;
+
+            // Start long-press timer
+            longPressTarget = e.currentTarget;
+            longPressTimer = setTimeout(() => {
+                if (longPressTarget) {
+                    // Trigger edit with move option
+                    const section = longPressTarget.dataset.section;
+                    const subsection = longPressTarget.dataset.subsection;
+                    const idx = parseInt(longPressTarget.dataset.index);
+                    editItem(section, subsection, idx, true);
+                    longPressTarget = null;
+                    swipingItem = null;
+                }
+            }, 500); // 500ms for long-press
         }
 
         function handleTouchMove(e) {
             if (!swipingItem || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
             touchCurrentX = e.touches[0].clientX;
             const diff = touchStartX - touchCurrentX;
-            
+
+            // Cancel long-press if moving
+            if (Math.abs(diff) > 10) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                    longPressTarget = null;
+                }
+            }
+
             if (diff > 50) {
                 swipingItem.classList.add('swiping');
             } else {
@@ -1117,13 +1298,20 @@
         }
 
         function handleTouchEnd(e) {
+            // Cancel long-press timer
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+                longPressTarget = null;
+            }
+
             if (!swipingItem) return;
             const diff = touchStartX - touchCurrentX;
-            
+
             if (diff < 50) {
                 swipingItem.classList.remove('swiping');
             }
-            
+
             swipingItem = null;
         }
 
