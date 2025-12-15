@@ -1179,7 +1179,35 @@
                     <span>${sectionName}</span>
                     <span class="section-progress">${sectionChecked}/${sectionTotal}</span>
                 `;
-                
+
+                // Add long-press to delete section
+                let sectionLongPressTimer = null;
+                header.addEventListener('touchstart', (e) => {
+                    sectionLongPressTimer = setTimeout(() => {
+                        haptic('medium');
+                        showActionSheet(`Delete section "${sectionName}" and all its items?`, () => {
+                            delete packingData[sectionName];
+                            saveData();
+                            render();
+                        });
+                        sectionLongPressTimer = null;
+                    }, 800);
+                }, { passive: true });
+
+                header.addEventListener('touchend', () => {
+                    if (sectionLongPressTimer) {
+                        clearTimeout(sectionLongPressTimer);
+                        sectionLongPressTimer = null;
+                    }
+                }, { passive: true });
+
+                header.addEventListener('touchmove', () => {
+                    if (sectionLongPressTimer) {
+                        clearTimeout(sectionLongPressTimer);
+                        sectionLongPressTimer = null;
+                    }
+                }, { passive: true });
+
                 const sectionContent = document.createElement('div');
                 sectionContent.className = 'section-content' + (collapsed.has(sectionIdx) ? ' collapsed' : '');
                 
