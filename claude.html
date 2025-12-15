@@ -185,25 +185,40 @@
             display: flex;
             align-items: flex-start;
             position: relative;
-            transition: transform 0.2s, opacity 0.2s;
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+                        opacity 0.3s ease,
+                        background 0.3s ease,
+                        max-height 0.3s ease;
             cursor: move;
+            overflow: hidden;
         }
-        
+
         .item.dragging {
             opacity: 0.5;
+            transform: scale(1.02);
         }
-        
+
         .item.checked {
             opacity: 0.6;
             background: #e8f5e9;
         }
-        
+
         .item.checked .item-text {
             text-decoration: line-through;
+            color: #999;
         }
-        
+
         .item.swiping {
             transform: translateX(-80px);
+        }
+
+        .item.deleting {
+            opacity: 0;
+            transform: translateX(-100%);
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-bottom: 0;
         }
         
         input[type="checkbox"] {
@@ -608,6 +623,29 @@
         // Drag and drop
         let draggedItem = null;
         let draggedFrom = null;
+
+        // Haptic feedback helper
+        function haptic(style = 'light') {
+            if ('vibrate' in navigator) {
+                switch(style) {
+                    case 'light':
+                        navigator.vibrate(10);
+                        break;
+                    case 'medium':
+                        navigator.vibrate(20);
+                        break;
+                    case 'heavy':
+                        navigator.vibrate(30);
+                        break;
+                    case 'success':
+                        navigator.vibrate([10, 50, 10]);
+                        break;
+                    case 'error':
+                        navigator.vibrate([20, 100, 20]);
+                        break;
+                }
+            }
+        }
 
         // Initialize with default data
         const defaultData = {
@@ -1020,6 +1058,7 @@
         }
 
         function toggleSection(idx) {
+            haptic('light');
             if (collapsed.has(idx)) {
                 collapsed.delete(idx);
             } else {
@@ -1038,7 +1077,12 @@
         }
 
         function toggleItem(section, subsection, idx) {
-            packingData[section][subsection][idx].checked = !packingData[section][subsection][idx].checked;
+            const wasChecked = packingData[section][subsection][idx].checked;
+            packingData[section][subsection][idx].checked = !wasChecked;
+
+            // Haptic feedback - success when checking, light when unchecking
+            haptic(wasChecked ? 'light' : 'success');
+
             saveData();
             render();
         }
@@ -1083,6 +1127,7 @@
         }
 
         function editItem(section, subsection, idx, showMove) {
+            haptic('light');
             editingItem = {section, subsection, index: idx};
             const item = packingData[section][subsection][idx];
             document.getElementById('modal-title').textContent = 'Edit Item';
@@ -1144,6 +1189,7 @@
                 }
             }
 
+            haptic('success');
             saveData();
             render();
             closeModal();
@@ -1156,6 +1202,9 @@
             if (!confirm(`Delete "${item.text}"?`)) {
                 return;
             }
+
+            // Haptic feedback for deletion
+            haptic('medium');
 
             lastDeleted = {section, subsection, index: idx, item: JSON.parse(JSON.stringify(item))};
 
