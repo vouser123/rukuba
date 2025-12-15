@@ -303,32 +303,42 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
             padding: 12px;
-            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            border-top: 0.5px solid rgba(0, 0, 0, 0.1);
             display: flex;
-            gap: 8px;
+            gap: 12px;
             z-index: 999;
         }
-        
+
         .footer button {
             flex: 1;
-            padding: 12px;
-            font-size: 14px;
+            padding: 14px;
+            font-size: 17px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 600;
+            transition: transform 0.1s, opacity 0.2s;
         }
-        
+
+        .footer button:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
         .collapse-btn {
-            background: #2196F3;
+            background: #007AFF;
             color: white;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
         }
-        
+
         .reset-btn {
-            background: #f44336;
+            background: #FF3B30;
             color: white;
+            box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
         }
         
         /* iOS-style Bottom Sheet Modal */
