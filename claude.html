@@ -335,6 +335,12 @@
             box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
         }
 
+        .clear-completed-btn {
+            background: #34C759;
+            color: white;
+            box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+        }
+
         .reset-btn {
             background: #FF3B30;
             color: white;
@@ -744,8 +750,9 @@
     <div class="content" id="content"></div>
 
     <div class="footer">
-        <button class="collapse-btn" onclick="toggleAllSections()">Collapse All</button>
-        <button class="reset-btn" onclick="confirmReset()">Reset All</button>
+        <button class="collapse-btn" onclick="toggleAllSections()">Collapse</button>
+        <button class="clear-completed-btn" onclick="clearCompleted()">Clear Done</button>
+        <button class="reset-btn" onclick="confirmReset()">Reset</button>
     </div>
 
     <!-- Edit/Add Modal -->
@@ -1647,6 +1654,22 @@
                 saveData();
                 render();
             }
+        }
+
+        function clearCompleted() {
+            showActionSheet('Remove all checked items from the list?', () => {
+                let itemsRemoved = 0;
+                Object.keys(packingData).forEach(section => {
+                    Object.keys(packingData[section]).forEach(subsection => {
+                        const originalLength = packingData[section][subsection].length;
+                        packingData[section][subsection] = packingData[section][subsection].filter(item => !item.checked);
+                        itemsRemoved += originalLength - packingData[section][subsection].length;
+                    });
+                });
+                haptic('success');
+                saveData();
+                render();
+            });
         }
 
         // Add section/subsection functions
