@@ -301,6 +301,7 @@
             color: white;
         }
         
+        /* iOS-style Bottom Sheet Modal */
         .modal {
             display: none;
             position: fixed;
@@ -308,79 +309,128 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.4);
             z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.25s ease;
         }
-        
+
         .modal.active {
-            display: flex;
+            display: block;
+            opacity: 1;
         }
-        
+
         .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 500px;
-            width: 100%;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #F2F2F7;
+            border-radius: 20px 20px 0 0;
+            padding: 0;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -2px 20px rgba(0,0,0,0.15);
         }
-        
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-drag-handle {
+            width: 36px;
+            height: 5px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+            margin: 12px auto 8px;
+        }
+
         .modal-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px 20px 16px;
+            color: #000;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
         }
-        
+
+        .modal-form {
+            padding: 20px;
+        }
+
         .modal-input, .modal-textarea {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 15px;
-            margin-bottom: 10px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            margin-bottom: 12px;
             font-family: inherit;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        
+
+        .modal-input:focus, .modal-textarea:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #007AFF;
+        }
+
         .modal-textarea {
             min-height: 80px;
             resize: vertical;
         }
-        
+
         .modal-buttons {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 12px;
+            margin-top: 20px;
+            padding: 0 20px 20px;
         }
-        
+
         .modal-buttons button {
             flex: 1;
-            padding: 12px;
+            padding: 14px;
             border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: bold;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
             cursor: pointer;
+            transition: transform 0.1s, opacity 0.1s;
         }
-        
+
+        .modal-buttons button:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
         .modal-save {
-            background: #4CAF50;
+            background: #007AFF;
             color: white;
         }
-        
+
         .modal-cancel {
-            background: #ddd;
-            color: #333;
+            background: white;
+            color: #007AFF;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
         .select-section {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 15px;
-            margin-bottom: 10px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            margin-bottom: 12px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-family: inherit;
+        }
+
+        .select-section:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #007AFF;
         }
         
         .undo-toast {
@@ -633,17 +683,20 @@
     </div>
 
     <!-- Edit/Add Modal -->
-    <div class="modal" id="edit-modal">
+    <div class="modal" id="edit-modal" onclick="if(event.target === this) closeModal()">
         <div class="modal-content">
+            <div class="modal-drag-handle"></div>
             <div class="modal-title" id="modal-title">Edit Item</div>
-            <input type="text" class="modal-input" id="item-text-input" placeholder="Item text">
-            <textarea class="modal-textarea" id="item-note-input" placeholder="Notes (optional)"></textarea>
-            <select class="select-section" id="priority-select">
-                <option value="normal">Normal Priority</option>
-                <option value="medium">Medium Priority (Orange)</option>
-                <option value="high">High Priority (Red)</option>
-            </select>
-            <select class="select-section hidden" id="move-section"></select>
+            <div class="modal-form">
+                <input type="text" class="modal-input" id="item-text-input" placeholder="Item text">
+                <textarea class="modal-textarea" id="item-note-input" placeholder="Notes (optional)"></textarea>
+                <select class="select-section" id="priority-select">
+                    <option value="normal">Normal Priority</option>
+                    <option value="medium">Medium Priority (Orange)</option>
+                    <option value="high">High Priority (Red)</option>
+                </select>
+                <select class="select-section hidden" id="move-section"></select>
+            </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeModal()">Cancel</button>
                 <button class="modal-save" onclick="saveModal()">Save</button>
