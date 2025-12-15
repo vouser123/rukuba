@@ -911,6 +911,7 @@
         let lastDeleted = null;
         let undoTimeout = null;
         let actionSheetCallback = null;
+        let currentSwipedElement = null;
 
         // Desktop drag and drop
         let draggedItem = null;
@@ -1232,6 +1233,12 @@
                 backdrop.classList.remove('active');
             }, 300);
 
+            // Reset any swiped item
+            if (currentSwipedElement) {
+                currentSwipedElement.classList.remove('swiping');
+                currentSwipedElement = null;
+            }
+
             actionSheetCallback = null;
             haptic('light');
         }
@@ -1412,6 +1419,7 @@
                                 if (!isNaN(idx)) {
                                     const item = packingData[section][subsection][idx];
                                     if (item) {
+                                        currentSwipedElement = itemDiv;
                                         showActionSheet(`Delete "${item.text}"?`, () => {
                                             deleteItem(section, subsection, idx);
                                         });
