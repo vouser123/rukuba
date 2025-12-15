@@ -587,6 +587,32 @@
             background: rgba(0, 0, 0, 0.05);
         }
 
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #007AFF;
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+
         /* Mobile optimizations */
         @media (max-width: 430px) {
             .controls {
@@ -735,6 +761,25 @@
     <div class="undo-toast" id="undo-toast">
         <span id="undo-message">Item deleted</span>
         <button class="undo-btn" onclick="undoDelete()">Undo</button>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="openAddSectionModal()" title="Add Section">+</button>
+
+    <!-- Add Section/Subsection Modal -->
+    <div class="modal" id="add-section-modal" onclick="if(event.target === this) closeAddSectionModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Add New Section</div>
+            <div class="modal-form">
+                <input type="text" class="modal-input" id="new-section-input" placeholder="Section name (e.g., Camping Gear)">
+                <input type="text" class="modal-input" id="new-subsection-input" placeholder="Subsection name (e.g., Tent & Shelter)">
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeAddSectionModal()">Cancel</button>
+                <button class="modal-save" onclick="saveNewSection()">Add</button>
+            </div>
+        </div>
     </div>
 
     <!-- iOS Action Sheet -->
@@ -1561,6 +1606,47 @@
                 saveData();
                 render();
             }
+        }
+
+        // Add section/subsection functions
+        function openAddSectionModal() {
+            document.getElementById('new-section-input').value = '';
+            document.getElementById('new-subsection-input').value = '';
+            document.getElementById('add-section-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeAddSectionModal() {
+            document.getElementById('add-section-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function saveNewSection() {
+            const sectionName = document.getElementById('new-section-input').value.trim();
+            const subsectionName = document.getElementById('new-subsection-input').value.trim();
+
+            if (!sectionName || !subsectionName) {
+                alert('Please enter both a section name and subsection name.');
+                return;
+            }
+
+            // Create section if it doesn't exist
+            if (!packingData[sectionName]) {
+                packingData[sectionName] = {};
+            }
+
+            // Create subsection if it doesn't exist
+            if (!packingData[sectionName][subsectionName]) {
+                packingData[sectionName][subsectionName] = [];
+            } else {
+                alert('This subsection already exists in this section.');
+                return;
+            }
+
+            haptic('success');
+            saveData();
+            render();
+            closeAddSectionModal();
         }
 
         // Desktop drag and drop handlers
