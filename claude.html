@@ -948,87 +948,6 @@
                         dragHandle.addEventListener('dragstart', handleDragStart);
                         dragHandle.addEventListener('dragend', handleDragEnd);
 
-                        // Touch drag on handle (GPT's simpler approach)
-                        let touchDragState = null;
-
-                        dragHandle.addEventListener('touchstart', (e) => {
-                            const t = e.touches[0];
-                            const rect = itemDiv.getBoundingClientRect();
-                            const idx = parseInt(itemDiv.dataset.index);
-
-                            const ghost = itemDiv.cloneNode(true);
-                            ghost.style.position = 'fixed';
-                            ghost.style.left = rect.left + 'px';
-                            ghost.style.top = rect.top + 'px';
-                            ghost.style.width = rect.width + 'px';
-                            ghost.style.pointerEvents = 'none';
-                            ghost.style.opacity = '0.85';
-                            ghost.style.zIndex = '9999';
-                            ghost.style.transform = 'scale(1.02)';
-                            ghost.style.borderRadius = '14px';
-                            ghost.style.paddingLeft = '14px';
-                            ghost.style.paddingRight = '14px';
-
-                            document.body.appendChild(ghost);
-                            itemDiv.classList.add('dragging');
-                            haptic('medium');
-
-                            touchDragState = {
-                                sectionName,
-                                subsectionName,
-                                fromIdx: idx,
-                                ghost,
-                                offsetX: t.clientX - rect.left,
-                                offsetY: t.clientY - rect.top,
-                                currentTargetIdx: idx,
-                                subsectionEl: subsection
-                            };
-                        }, { passive: true });
-
-                        dragHandle.addEventListener('touchmove', (e) => {
-                            if (!touchDragState) return;
-                            e.preventDefault();
-
-                            const t = e.touches[0];
-                            const x = t.clientX - touchDragState.offsetX;
-                            const y = t.clientY - touchDragState.offsetY;
-                            touchDragState.ghost.style.left = x + 'px';
-                            touchDragState.ghost.style.top = y + 'px';
-
-                            touchDragState.ghost.style.display = 'none';
-                            const elUnder = document.elementFromPoint(t.clientX, t.clientY);
-                            touchDragState.ghost.style.display = '';
-
-                            const targetRow = elUnder ? elUnder.closest('.item') : null;
-                            if (targetRow && targetRow.parentElement === touchDragState.subsectionEl) {
-                                const targetIdx = parseInt(targetRow.dataset.index);
-                                if (!isNaN(targetIdx)) {
-                                    touchDragState.currentTargetIdx = targetIdx;
-                                }
-                            }
-                        }, { passive: false });
-
-                        dragHandle.addEventListener('touchend', () => {
-                            if (!touchDragState) return;
-
-                            const arr = packingData[touchDragState.sectionName]?.[touchDragState.subsectionName];
-                            if (Array.isArray(arr)) {
-                                const from = touchDragState.fromIdx;
-                                const to = touchDragState.currentTargetIdx;
-                                if (!isNaN(from) && !isNaN(to) && from !== to) {
-                                    const [moved] = arr.splice(from, 1);
-                                    arr.splice(to, 0, moved);
-                                    haptic('success');
-                                    saveData();
-                                }
-                            }
-
-                            touchDragState.ghost.remove();
-                            touchDragState.subsectionEl.querySelectorAll('.item.dragging').forEach(r => r.classList.remove('dragging'));
-                            touchDragState = null;
-                            render();
-                        }, { passive: true });
-
                         // Swipe and long-press on item
                         let swipeStartX = 0, swipeStartY = 0, swipeFired = false, longPressTimer = null;
 
@@ -1128,8 +1047,85 @@
                         itemDiv.appendChild(itemContent);
                         subsection.appendChild(itemDiv);
                     });
-                    
+
                     sectionContent.appendChild(subsection);
+
+                    // Set up touch drag after all items are in DOM
+                    let touchState = null;
+                    subsection.querySelectorAll('.drag-handle').forEach(handle => {
+                        handle.addEventListener('touchstart', (e) => {
+                            const row = handle.closest('.item');
+                            if (!row) return;
+
+                            const t = e.touches[0];
+                            const rect = row.getBoundingClientRect();
+
+                            const ghost = row.cloneNode(true);
+                            ghost.style.position = 'fixed';
+                            ghost.style.left = rect.left + 'px';
+                            ghost.style.top = rect.top + 'px';
+                            ghost.style.width = rect.width + 'px';
+                            ghost.style.pointerEvents = 'none';
+                            ghost.style.opacity = '0.85';
+                            ghost.style.zIndex = '9999';
+                            ghost.style.transform = 'scale(1.02)';
+
+                            document.body.appendChild(ghost);
+                            row.classList.add('dragging');
+                            haptic('medium');
+
+                            touchState = {
+                                sectionName,
+                                subsectionName,
+                                fromIdx: parseInt(row.dataset.index),
+                                ghost,
+                                offsetX: t.clientX - rect.left,
+                                offsetY: t.clientY - rect.top,
+                                currentTargetIdx: parseInt(row.dataset.index),
+                                listEl: subsection
+                            };
+                        }, { passive: true });
+
+                        handle.addEventListener('touchmove', (e) => {
+                            if (!touchState) return;
+                            e.preventDefault();
+
+                            const t = e.touches[0];
+                            touchState.ghost.style.left = (t.clientX - touchState.offsetX) + 'px';
+                            touchState.ghost.style.top = (t.clientY - touchState.offsetY) + 'px';
+
+                            touchState.ghost.style.display = 'none';
+                            const elUnder = document.elementFromPoint(t.clientX, t.clientY);
+                            touchState.ghost.style.display = '';
+
+                            const targetRow = elUnder ? elUnder.closest('.item') : null;
+                            if (targetRow && targetRow.parentElement === touchState.listEl) {
+                                const idx = parseInt(targetRow.dataset.index);
+                                if (!isNaN(idx)) touchState.currentTargetIdx = idx;
+                            }
+                        }, { passive: false });
+
+                        handle.addEventListener('touchend', () => {
+                            if (!touchState) return;
+
+                            const arr = packingData[touchState.sectionName]?.[touchState.subsectionName];
+                            if (Array.isArray(arr)) {
+                                const from = touchState.fromIdx;
+                                const to = touchState.currentTargetIdx;
+                                if (!isNaN(from) && !isNaN(to) && from !== to) {
+                                    const [moved] = arr.splice(from, 1);
+                                    arr.splice(to, 0, moved);
+                                    haptic('success');
+                                    saveData();
+                                }
+                            }
+
+                            touchState.ghost.remove();
+                            touchState.listEl.querySelectorAll('.item.dragging').forEach(r => r.classList.remove('dragging'));
+                            touchState = null;
+                            render();
+                        }, { passive: true });
+                    });
                 });
 
                 section.appendChild(header);
