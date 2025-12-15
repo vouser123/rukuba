@@ -416,6 +416,100 @@
             display: none !important;
         }
 
+        /* iOS-style Action Sheet */
+        .action-sheet-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 3000;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .action-sheet-backdrop.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .action-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: transparent;
+            z-index: 3001;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 8px;
+        }
+
+        .action-sheet.active {
+            transform: translateY(0);
+        }
+
+        .action-sheet-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .action-sheet-message {
+            padding: 20px;
+            text-align: center;
+            color: #8E8E93;
+            font-size: 13px;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .action-sheet-button {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+            color: #007AFF;
+            transition: background 0.2s;
+        }
+
+        .action-sheet-button:last-child {
+            border-bottom: none;
+        }
+
+        .action-sheet-button:active {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .action-sheet-button.destructive {
+            color: #FF3B30;
+            font-weight: 600;
+        }
+
+        .action-sheet-cancel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 14px;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            font-size: 20px;
+            font-weight: 600;
+            color: #007AFF;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .action-sheet-cancel:active {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
         /* Mobile optimizations */
         @media (max-width: 430px) {
             .controls {
@@ -563,6 +657,16 @@
         <button class="undo-btn" onclick="undoDelete()">Undo</button>
     </div>
 
+    <!-- iOS Action Sheet -->
+    <div class="action-sheet-backdrop" id="action-sheet-backdrop" onclick="hideActionSheet()"></div>
+    <div class="action-sheet" id="action-sheet">
+        <div class="action-sheet-content">
+            <div class="action-sheet-message" id="action-sheet-message"></div>
+            <button class="action-sheet-button destructive" id="action-sheet-confirm" onclick="confirmActionSheet()">Delete</button>
+        </div>
+        <button class="action-sheet-cancel" onclick="hideActionSheet()">Cancel</button>
+    </div>
+
     <script>
         const STORAGE_KEY = 'packing_list_data';
         let packingData = {};
@@ -572,6 +676,7 @@
         let editingItem = null;
         let lastDeleted = null;
         let undoTimeout = null;
+        let actionSheetCallback = null;
 
         // Desktop drag and drop
         let draggedItem = null;
@@ -867,6 +972,44 @@
             }
         }
 
+        // iOS-style Action Sheet
+        function showActionSheet(message, onConfirm) {
+            document.getElementById('action-sheet-message').textContent = message;
+            actionSheetCallback = onConfirm;
+
+            const backdrop = document.getElementById('action-sheet-backdrop');
+            const sheet = document.getElementById('action-sheet');
+
+            backdrop.classList.add('active');
+            // Small delay for smooth animation
+            setTimeout(() => {
+                sheet.classList.add('active');
+            }, 10);
+
+            haptic('light');
+        }
+
+        function hideActionSheet() {
+            const backdrop = document.getElementById('action-sheet-backdrop');
+            const sheet = document.getElementById('action-sheet');
+
+            sheet.classList.remove('active');
+            setTimeout(() => {
+                backdrop.classList.remove('active');
+            }, 300);
+
+            actionSheetCallback = null;
+            haptic('light');
+        }
+
+        function confirmActionSheet() {
+            if (actionSheetCallback) {
+                actionSheetCallback();
+            }
+            hideActionSheet();
+            haptic('medium');
+        }
+
         function loadData() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -994,8 +1137,10 @@
                                 const idx = parseInt(itemDiv.dataset.index);
                                 if (!isNaN(idx)) {
                                     const item = packingData[section][subsection][idx];
-                                    if (item && confirm(`Delete "${item.text}"?`)) {
-                                        deleteItem(section, subsection, idx);
+                                    if (item) {
+                                        showActionSheet(`Delete "${item.text}"?`, () => {
+                                            deleteItem(section, subsection, idx);
+                                        });
                                     }
                                 }
                             }
@@ -1274,11 +1419,6 @@
 
         function deleteItem(section, subsection, idx) {
             const item = packingData[section][subsection][idx];
-
-            // Confirm deletion
-            if (!confirm(`Delete "${item.text}"?`)) {
-                return;
-            }
 
             // Haptic feedback for deletion
             haptic('medium');
