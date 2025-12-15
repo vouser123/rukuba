@@ -802,7 +802,7 @@
 
     <div class="footer">
         <button class="collapse-btn" onclick="toggleAllSections()">Collapse</button>
-        <button class="clear-completed-btn" onclick="clearCompleted()">Clear Done</button>
+        <button class="clear-completed-btn" onclick="archiveCompleted()">Archive Done</button>
         <button class="reset-btn" onclick="confirmReset()">Reset</button>
     </div>
 
@@ -1753,16 +1753,46 @@
             }
         }
 
-        function clearCompleted() {
-            showActionSheet('Remove all checked items from the list?', () => {
-                let itemsRemoved = 0;
+        function archiveCompleted() {
+            showActionSheet('Move all checked items to "Completed" section?', () => {
+                let itemsMoved = 0;
+                const completedItems = [];
+
+                // Collect all checked items from all sections
                 Object.keys(packingData).forEach(section => {
+                    if (section === '✅ Completed Items') return; // Skip the completed section itself
+
                     Object.keys(packingData[section]).forEach(subsection => {
-                        const originalLength = packingData[section][subsection].length;
+                        const checked = packingData[section][subsection].filter(item => item.checked);
+                        itemsMoved += checked.length;
+
+                        // Add source info to each item for reference
+                        checked.forEach(item => {
+                            completedItems.push({
+                                ...item,
+                                originalSection: section,
+                                originalSubsection: subsection
+                            });
+                        });
+
+                        // Remove checked items from current section
                         packingData[section][subsection] = packingData[section][subsection].filter(item => !item.checked);
-                        itemsRemoved += originalLength - packingData[section][subsection].length;
                     });
                 });
+
+                // Create or update "Completed Items" section
+                if (itemsMoved > 0) {
+                    if (!packingData['✅ Completed Items']) {
+                        packingData['✅ Completed Items'] = {};
+                    }
+                    if (!packingData['✅ Completed Items']['Archived']) {
+                        packingData['✅ Completed Items']['Archived'] = [];
+                    }
+
+                    // Add all completed items to the archived subsection
+                    packingData['✅ Completed Items']['Archived'].push(...completedItems);
+                }
+
                 haptic('success');
                 saveData();
                 render();
