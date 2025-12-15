@@ -844,6 +844,29 @@
             }
         };
 
+        // Haptic feedback helper
+        function haptic(style = 'light') {
+            if ('vibrate' in navigator) {
+                switch(style) {
+                    case 'light':
+                        navigator.vibrate(10);
+                        break;
+                    case 'medium':
+                        navigator.vibrate(20);
+                        break;
+                    case 'heavy':
+                        navigator.vibrate(30);
+                        break;
+                    case 'success':
+                        navigator.vibrate([10, 50, 10]);
+                        break;
+                    case 'error':
+                        navigator.vibrate([20, 100, 20]);
+                        break;
+                }
+            }
+        }
+
         function loadData() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -981,6 +1004,7 @@
         }
 
         function toggleSection(idx) {
+            haptic('light');
             if (collapsed.has(idx)) {
                 collapsed.delete(idx);
             } else {
@@ -999,7 +1023,12 @@
         }
 
         function toggleItem(section, subsection, idx) {
-            packingData[section][subsection][idx].checked = !packingData[section][subsection][idx].checked;
+            const wasChecked = packingData[section][subsection][idx].checked;
+            packingData[section][subsection][idx].checked = !wasChecked;
+
+            // Haptic feedback - success when checking, light when unchecking
+            haptic(wasChecked ? 'light' : 'success');
+
             saveData();
             render();
         }
@@ -1044,6 +1073,7 @@
         }
 
         function editItem(section, subsection, idx, showMove) {
+            haptic('light');
             editingItem = {section, subsection, index: idx};
             const item = packingData[section][subsection][idx];
             document.getElementById('modal-title').textContent = 'Edit Item';
@@ -1105,6 +1135,7 @@
                 }
             }
 
+            haptic('success');
             saveData();
             render();
             closeModal();
@@ -1117,6 +1148,9 @@
             if (!confirm(`Delete "${item.text}"?`)) {
                 return;
             }
+
+            // Haptic feedback for deletion
+            haptic('medium');
 
             lastDeleted = {section, subsection, index: idx, item: JSON.parse(JSON.stringify(item))};
 
