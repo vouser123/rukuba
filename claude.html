@@ -844,6 +844,29 @@
             }
         };
 
+        // Haptic feedback helper
+        function haptic(style = 'light') {
+            if ('vibrate' in navigator) {
+                switch(style) {
+                    case 'light':
+                        navigator.vibrate(10);
+                        break;
+                    case 'medium':
+                        navigator.vibrate(20);
+                        break;
+                    case 'heavy':
+                        navigator.vibrate(30);
+                        break;
+                    case 'success':
+                        navigator.vibrate([10, 50, 10]);
+                        break;
+                    case 'error':
+                        navigator.vibrate([20, 100, 20]);
+                        break;
+                }
+            }
+        }
+
         function loadData() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -925,11 +948,146 @@
                         dragHandle.addEventListener('dragstart', handleDragStart);
                         dragHandle.addEventListener('dragend', handleDragEnd);
 
-                        // Touch events - setup after elements are added to DOM
-                        setTimeout(() => {
-                            setupTouchDrag(dragHandle, itemDiv, sectionName, subsectionName, itemIdx);
-                            setupSwipeAndLongPress(itemDiv, sectionName, subsectionName, itemIdx);
-                        }, 0);
+                        // Touch drag on handle (GPT's simpler approach)
+                        let touchDragState = null;
+
+                        dragHandle.addEventListener('touchstart', (e) => {
+                            const t = e.touches[0];
+                            const rect = itemDiv.getBoundingClientRect();
+                            const idx = parseInt(itemDiv.dataset.index);
+
+                            const ghost = itemDiv.cloneNode(true);
+                            ghost.style.position = 'fixed';
+                            ghost.style.left = rect.left + 'px';
+                            ghost.style.top = rect.top + 'px';
+                            ghost.style.width = rect.width + 'px';
+                            ghost.style.pointerEvents = 'none';
+                            ghost.style.opacity = '0.85';
+                            ghost.style.zIndex = '9999';
+                            ghost.style.transform = 'scale(1.02)';
+                            ghost.style.borderRadius = '14px';
+                            ghost.style.paddingLeft = '14px';
+                            ghost.style.paddingRight = '14px';
+
+                            document.body.appendChild(ghost);
+                            itemDiv.classList.add('dragging');
+                            haptic('medium');
+
+                            touchDragState = {
+                                sectionName,
+                                subsectionName,
+                                fromIdx: idx,
+                                ghost,
+                                offsetX: t.clientX - rect.left,
+                                offsetY: t.clientY - rect.top,
+                                currentTargetIdx: idx,
+                                subsectionEl: subsection
+                            };
+                        }, { passive: true });
+
+                        dragHandle.addEventListener('touchmove', (e) => {
+                            if (!touchDragState) return;
+                            e.preventDefault();
+
+                            const t = e.touches[0];
+                            const x = t.clientX - touchDragState.offsetX;
+                            const y = t.clientY - touchDragState.offsetY;
+                            touchDragState.ghost.style.left = x + 'px';
+                            touchDragState.ghost.style.top = y + 'px';
+
+                            touchDragState.ghost.style.display = 'none';
+                            const elUnder = document.elementFromPoint(t.clientX, t.clientY);
+                            touchDragState.ghost.style.display = '';
+
+                            const targetRow = elUnder ? elUnder.closest('.item') : null;
+                            if (targetRow && targetRow.parentElement === touchDragState.subsectionEl) {
+                                const targetIdx = parseInt(targetRow.dataset.index);
+                                if (!isNaN(targetIdx)) {
+                                    touchDragState.currentTargetIdx = targetIdx;
+                                }
+                            }
+                        }, { passive: false });
+
+                        dragHandle.addEventListener('touchend', () => {
+                            if (!touchDragState) return;
+
+                            const arr = packingData[touchDragState.sectionName]?.[touchDragState.subsectionName];
+                            if (Array.isArray(arr)) {
+                                const from = touchDragState.fromIdx;
+                                const to = touchDragState.currentTargetIdx;
+                                if (!isNaN(from) && !isNaN(to) && from !== to) {
+                                    const [moved] = arr.splice(from, 1);
+                                    arr.splice(to, 0, moved);
+                                    haptic('success');
+                                    saveData();
+                                }
+                            }
+
+                            touchDragState.ghost.remove();
+                            touchDragState.subsectionEl.querySelectorAll('.item.dragging').forEach(r => r.classList.remove('dragging'));
+                            touchDragState = null;
+                            render();
+                        }, { passive: true });
+
+                        // Swipe and long-press on item
+                        let swipeStartX = 0, swipeStartY = 0, swipeFired = false, longPressTimer = null;
+
+                        itemDiv.addEventListener('touchstart', (e) => {
+                            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' ||
+                                e.target.classList.contains('drag-handle')) return;
+
+                            const touch = e.touches[0];
+                            swipeStartX = touch.clientX;
+                            swipeStartY = touch.clientY;
+                            swipeFired = false;
+
+                            longPressTimer = setTimeout(() => {
+                                const section = itemDiv.dataset.section;
+                                const subsection = itemDiv.dataset.subsection;
+                                const idx = parseInt(itemDiv.dataset.index);
+                                if (!isNaN(idx)) {
+                                    haptic('medium');
+                                    editItem(section, subsection, idx, true);
+                                }
+                                longPressTimer = null;
+                            }, 500);
+                        }, { passive: true });
+
+                        itemDiv.addEventListener('touchmove', (e) => {
+                            if (swipeFired) return;
+
+                            const touch = e.touches[0];
+                            const dx = touch.clientX - swipeStartX;
+                            const dy = touch.clientY - swipeStartY;
+
+                            if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                                if (longPressTimer) {
+                                    clearTimeout(longPressTimer);
+                                    longPressTimer = null;
+                                }
+                            }
+
+                            // Swipe left to delete
+                            if (Math.abs(dy) < 30 && dx < -70) {
+                                swipeFired = true;
+                                const section = itemDiv.dataset.section;
+                                const subsection = itemDiv.dataset.subsection;
+                                const idx = parseInt(itemDiv.dataset.index);
+                                if (!isNaN(idx)) {
+                                    const item = packingData[section][subsection][idx];
+                                    if (item && confirm(`Delete "${item.text}"?`)) {
+                                        deleteItem(section, subsection, idx);
+                                    }
+                                }
+                            }
+                        }, { passive: true });
+
+                        itemDiv.addEventListener('touchend', () => {
+                            if (longPressTimer) {
+                                clearTimeout(longPressTimer);
+                                longPressTimer = null;
+                            }
+                        }, { passive: true });
 
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
@@ -981,6 +1139,7 @@
         }
 
         function toggleSection(idx) {
+            haptic('light');
             if (collapsed.has(idx)) {
                 collapsed.delete(idx);
             } else {
@@ -999,7 +1158,12 @@
         }
 
         function toggleItem(section, subsection, idx) {
-            packingData[section][subsection][idx].checked = !packingData[section][subsection][idx].checked;
+            const wasChecked = packingData[section][subsection][idx].checked;
+            packingData[section][subsection][idx].checked = !wasChecked;
+
+            // Haptic feedback - success when checking, light when unchecking
+            haptic(wasChecked ? 'light' : 'success');
+
             saveData();
             render();
         }
@@ -1044,6 +1208,7 @@
         }
 
         function editItem(section, subsection, idx, showMove) {
+            haptic('light');
             editingItem = {section, subsection, index: idx};
             const item = packingData[section][subsection][idx];
             document.getElementById('modal-title').textContent = 'Edit Item';
@@ -1105,6 +1270,7 @@
                 }
             }
 
+            haptic('success');
             saveData();
             render();
             closeModal();
@@ -1117,6 +1283,9 @@
             if (!confirm(`Delete "${item.text}"?`)) {
                 return;
             }
+
+            // Haptic feedback for deletion
+            haptic('medium');
 
             lastDeleted = {section, subsection, index: idx, item: JSON.parse(JSON.stringify(item))};
 
@@ -1211,149 +1380,6 @@
             }
             draggedItem = null;
             draggedFrom = null;
-        }
-
-        // Touch drag state (for drag handle)
-        let touchDragState = null;
-
-        // Touch handlers - Hold-and-drag on drag handle
-        function setupTouchDrag(dragHandle, itemDiv, section, subsection, idx) {
-            dragHandle.addEventListener('touchstart', (e) => {
-                const touch = e.touches[0];
-                const rect = itemDiv.getBoundingClientRect();
-
-                // Create ghost element
-                const ghost = itemDiv.cloneNode(true);
-                ghost.style.position = 'fixed';
-                ghost.style.left = rect.left + 'px';
-                ghost.style.top = rect.top + 'px';
-                ghost.style.width = rect.width + 'px';
-                ghost.style.pointerEvents = 'none';
-                ghost.style.opacity = '0.85';
-                ghost.style.zIndex = '9999';
-                ghost.style.transform = 'scale(1.05)';
-                document.body.appendChild(ghost);
-
-                itemDiv.classList.add('dragging');
-                haptic('medium');
-
-                touchDragState = {
-                    section,
-                    subsection,
-                    fromIdx: idx,
-                    ghost,
-                    offsetX: touch.clientX - rect.left,
-                    offsetY: touch.clientY - rect.top,
-                    currentTargetIdx: idx,
-                    itemDiv
-                };
-            }, { passive: true });
-
-            dragHandle.addEventListener('touchmove', (e) => {
-                if (!touchDragState) return;
-                e.preventDefault();
-
-                const touch = e.touches[0];
-                const x = touch.clientX - touchDragState.offsetX;
-                const y = touch.clientY - touchDragState.offsetY;
-
-                touchDragState.ghost.style.left = x + 'px';
-                touchDragState.ghost.style.top = y + 'px';
-
-                // Find what's under the touch
-                touchDragState.ghost.style.display = 'none';
-                const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
-                touchDragState.ghost.style.display = '';
-
-                const targetItem = elementUnder ? elementUnder.closest('.item') : null;
-                if (targetItem && targetItem.dataset.section === section && targetItem.dataset.subsection === subsection) {
-                    const targetIdx = parseInt(targetItem.dataset.index);
-                    if (!isNaN(targetIdx)) {
-                        touchDragState.currentTargetIdx = targetIdx;
-                    }
-                }
-            }, { passive: false });
-
-            dragHandle.addEventListener('touchend', () => {
-                if (!touchDragState) return;
-
-                const from = touchDragState.fromIdx;
-                const to = touchDragState.currentTargetIdx;
-
-                if (from !== to) {
-                    const items = packingData[section][subsection];
-                    const [movedItem] = items.splice(from, 1);
-                    items.splice(to, 0, movedItem);
-                    haptic('success');
-                    saveData();
-                }
-
-                touchDragState.ghost.remove();
-                touchDragState.itemDiv.classList.remove('dragging');
-                touchDragState = null;
-                render();
-            }, { passive: true });
-        }
-
-        // Touch handlers - Swipe to delete / Long press to edit
-        function setupSwipeAndLongPress(itemDiv, section, subsection, idx) {
-            let swipeStartX = 0;
-            let swipeStartY = 0;
-            let swipeFired = false;
-            let longPressTimer = null;
-
-            itemDiv.addEventListener('touchstart', (e) => {
-                // Ignore if touching input, button, or drag handle
-                if (e.target.tagName === 'INPUT' ||
-                    e.target.tagName === 'BUTTON' ||
-                    e.target.classList.contains('drag-handle')) {
-                    return;
-                }
-
-                const touch = e.touches[0];
-                swipeStartX = touch.clientX;
-                swipeStartY = touch.clientY;
-                swipeFired = false;
-
-                // Start long-press timer
-                longPressTimer = setTimeout(() => {
-                    haptic('medium');
-                    editItem(section, subsection, idx, true);
-                    longPressTimer = null;
-                }, 500);
-            }, { passive: true });
-
-            itemDiv.addEventListener('touchmove', (e) => {
-                if (swipeFired) return;
-
-                const touch = e.touches[0];
-                const dx = touch.clientX - swipeStartX;
-                const dy = touch.clientY - swipeStartY;
-
-                // Cancel long-press if finger moves
-                if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-                    if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                }
-
-                // Swipe left to delete
-                if (Math.abs(dy) < 30 && dx < -70) {
-                    swipeFired = true;
-                    const item = packingData[section][subsection][idx];
-                    if (confirm(`Delete "${item.text}"?`)) {
-                        deleteItem(section, subsection, idx);
-                    }
-                }
-            }, { passive: true });
-
-            itemDiv.addEventListener('touchend', () => {
-                if (longPressTimer) {
-                    clearTimeout(longPressTimer);
-                    longPressTimer = null;
-                }
-            }, { passive: true });
         }
 
         // Search handler
