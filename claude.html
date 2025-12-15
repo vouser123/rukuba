@@ -185,25 +185,44 @@
             display: flex;
             align-items: flex-start;
             position: relative;
-            transition: transform 0.2s, opacity 0.2s;
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+                        opacity 0.3s ease,
+                        background 0.3s ease,
+                        max-height 0.3s ease;
             cursor: move;
+            overflow: hidden;
         }
-        
+
         .item.dragging {
             opacity: 0.5;
+            transform: scale(1.02);
         }
-        
+
         .item.checked {
             opacity: 0.6;
             background: #e8f5e9;
         }
-        
+
         .item.checked .item-text {
             text-decoration: line-through;
+            color: #999;
         }
-        
-        .item.swiping {
+
+        .item.swiping-left {
             transform: translateX(-80px);
+        }
+
+        .item.swiping-right {
+            transform: translateX(80px);
+        }
+
+        .item.deleting {
+            opacity: 0;
+            transform: translateX(-100%);
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-bottom: 0;
         }
         
         input[type="checkbox"] {
@@ -280,22 +299,34 @@
             width: 80px;
             display: flex;
         }
-        
-        .edit-btn, .delete-btn {
+
+        .item-actions-left {
+            position: absolute;
+            left: -80px;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            display: flex;
+        }
+
+        .delete-btn {
             flex: 1;
             border: none;
             color: white;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
-        }
-        
-        .edit-btn {
-            background: #FF9800;
-        }
-        
-        .delete-btn {
             background: #f44336;
+        }
+
+        .edit-btn-swipe {
+            flex: 1;
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #007AFF;
         }
         
         .footer {
@@ -615,6 +646,29 @@
         // Drag and drop
         let draggedItem = null;
         let draggedFrom = null;
+
+        // Haptic feedback helper
+        function haptic(style = 'light') {
+            if ('vibrate' in navigator) {
+                switch(style) {
+                    case 'light':
+                        navigator.vibrate(10);
+                        break;
+                    case 'medium':
+                        navigator.vibrate(20);
+                        break;
+                    case 'heavy':
+                        navigator.vibrate(30);
+                        break;
+                    case 'success':
+                        navigator.vibrate([10, 50, 10]);
+                        break;
+                    case 'error':
+                        navigator.vibrate([20, 100, 20]);
+                        break;
+                }
+            }
+        }
 
         // Initialize with default data
         const defaultData = {
@@ -1002,18 +1056,26 @@
                         }
 
                         itemContent.appendChild(itemTextWrapper);
-                        
-                        const actions = document.createElement('div');
-                        actions.className = 'item-actions';
-                        actions.innerHTML = `
-                            <button class="edit-btn" onclick="editItem('${sectionName}', '${subsectionName}', ${itemIdx}, false)">Edit</button>
+
+                        // Left actions (swipe right to reveal)
+                        const actionsLeft = document.createElement('div');
+                        actionsLeft.className = 'item-actions-left';
+                        actionsLeft.innerHTML = `
+                            <button class="edit-btn-swipe" onclick="editItem('${sectionName}', '${subsectionName}', ${itemIdx}, true)">Edit</button>
+                        `;
+
+                        // Right actions (swipe left to reveal)
+                        const actionsRight = document.createElement('div');
+                        actionsRight.className = 'item-actions';
+                        actionsRight.innerHTML = `
                             <button class="delete-btn" onclick="deleteItem('${sectionName}', '${subsectionName}', ${itemIdx})">Delete</button>
                         `;
-                        
+
+                        itemDiv.appendChild(actionsLeft);
                         itemDiv.appendChild(dragHandle);
                         itemDiv.appendChild(checkbox);
                         itemDiv.appendChild(itemContent);
-                        itemDiv.appendChild(actions);
+                        itemDiv.appendChild(actionsRight);
                         subsection.appendChild(itemDiv);
                     });
                     
@@ -1027,6 +1089,7 @@
         }
 
         function toggleSection(idx) {
+            haptic('light');
             if (collapsed.has(idx)) {
                 collapsed.delete(idx);
             } else {
@@ -1045,7 +1108,12 @@
         }
 
         function toggleItem(section, subsection, idx) {
-            packingData[section][subsection][idx].checked = !packingData[section][subsection][idx].checked;
+            const wasChecked = packingData[section][subsection][idx].checked;
+            packingData[section][subsection][idx].checked = !wasChecked;
+
+            // Haptic feedback - success when checking, light when unchecking
+            haptic(wasChecked ? 'light' : 'success');
+
             saveData();
             render();
         }
@@ -1090,6 +1158,7 @@
         }
 
         function editItem(section, subsection, idx, showMove) {
+            haptic('light');
             editingItem = {section, subsection, index: idx};
             const item = packingData[section][subsection][idx];
             document.getElementById('modal-title').textContent = 'Edit Item';
@@ -1151,6 +1220,7 @@
                 }
             }
 
+            haptic('success');
             saveData();
             render();
             closeModal();
@@ -1163,6 +1233,9 @@
             if (!confirm(`Delete "${item.text}"?`)) {
                 return;
             }
+
+            // Haptic feedback for deletion
+            haptic('medium');
 
             lastDeleted = {section, subsection, index: idx, item: JSON.parse(JSON.stringify(item))};
 
@@ -1258,22 +1331,29 @@
         // Touch handlers for swipe and long-press
         function handleTouchStart(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+
+            // Don't start long-press if touching drag handle
+            const isDragHandle = e.target.classList.contains('drag-handle') ||
+                                e.target.parentElement?.classList.contains('drag-handle');
+
             touchStartX = e.touches[0].clientX;
             swipingItem = e.currentTarget;
 
-            // Start long-press timer
-            longPressTarget = e.currentTarget;
-            longPressTimer = setTimeout(() => {
-                if (longPressTarget) {
-                    // Trigger edit with move option
-                    const section = longPressTarget.dataset.section;
-                    const subsection = longPressTarget.dataset.subsection;
-                    const idx = parseInt(longPressTarget.dataset.index);
-                    editItem(section, subsection, idx, true);
-                    longPressTarget = null;
-                    swipingItem = null;
-                }
-            }, 500); // 500ms for long-press
+            // Start long-press timer (but not on drag handle)
+            if (!isDragHandle) {
+                longPressTarget = e.currentTarget;
+                longPressTimer = setTimeout(() => {
+                    if (longPressTarget) {
+                        // Trigger edit with move option
+                        const section = longPressTarget.dataset.section;
+                        const subsection = longPressTarget.dataset.subsection;
+                        const idx = parseInt(longPressTarget.dataset.index);
+                        editItem(section, subsection, idx, true);
+                        longPressTarget = null;
+                        swipingItem = null;
+                    }
+                }, 500); // 500ms for long-press
+            }
         }
 
         function handleTouchMove(e) {
@@ -1290,10 +1370,19 @@
                 }
             }
 
+            // Swipe left (reveal delete)
             if (diff > 50) {
-                swipingItem.classList.add('swiping');
-            } else {
-                swipingItem.classList.remove('swiping');
+                swipingItem.classList.remove('swiping-right');
+                swipingItem.classList.add('swiping-left');
+            }
+            // Swipe right (reveal edit)
+            else if (diff < -50) {
+                swipingItem.classList.remove('swiping-left');
+                swipingItem.classList.add('swiping-right');
+            }
+            // Neither - reset
+            else {
+                swipingItem.classList.remove('swiping-left', 'swiping-right');
             }
         }
 
@@ -1308,8 +1397,9 @@
             if (!swipingItem) return;
             const diff = touchStartX - touchCurrentX;
 
-            if (diff < 50) {
-                swipingItem.classList.remove('swiping');
+            // If swipe wasn't strong enough, reset
+            if (Math.abs(diff) < 50) {
+                swipingItem.classList.remove('swiping-left', 'swiping-right');
             }
 
             swipingItem = null;
