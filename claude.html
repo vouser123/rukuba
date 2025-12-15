@@ -20,6 +20,8 @@
             background: #f5f5f5;
             padding-bottom: 100px;
             touch-action: pan-y;
+            max-width: 100vw;
+            overflow-x: hidden;
         }
         
         .header {
@@ -29,6 +31,8 @@
             position: sticky;
             top: 0;
             z-index: 1000;
+            max-width: 100vw;
+            overflow: hidden;
         }
         
         h1 {
@@ -60,8 +64,10 @@
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 13px;
-            min-width: 80px;
+            font-size: 12px;
+            min-width: 60px;
+            white-space: nowrap;
+            padding: 0 8px;
         }
         
         .controls {
@@ -73,7 +79,8 @@
         
         .search-box {
             flex: 1;
-            min-width: 200px;
+            min-width: 150px;
+            max-width: 100%;
             padding: 10px;
             border: 2px solid #ddd;
             border-radius: 8px;
@@ -81,14 +88,16 @@
         }
         
         .filter-btn {
-            padding: 10px 15px;
+            padding: 10px 12px;
             background: #2196F3;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         
         .filter-btn.active {
@@ -97,6 +106,8 @@
         
         .content {
             padding: 15px;
+            max-width: 100vw;
+            overflow-x: hidden;
         }
         
         .section {
@@ -383,6 +394,29 @@
         
         .hidden {
             display: none !important;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 430px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            .filter-btn {
+                width: 100%;
+            }
+
+            h1 {
+                font-size: 18px;
+            }
+
+            .trip-info {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
