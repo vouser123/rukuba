@@ -51,23 +51,31 @@
             background: #e0e0e0;
             border-radius: 20px;
             height: 28px;
-            overflow: hidden;
             margin-bottom: 10px;
+            position: relative;
         }
-        
+
         .progress-bar {
             background: linear-gradient(90deg, #4CAF50, #66BB6A);
             height: 100%;
             transition: width 0.3s ease;
+            border-radius: 20px;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #333;
             font-weight: bold;
             font-size: 12px;
-            min-width: 60px;
             white-space: nowrap;
-            padding: 0 8px;
+            pointer-events: none;
         }
         
         .controls {
@@ -423,9 +431,10 @@
 <body>
     <div class="header">
         <h1>🏠 Maisie House Sitting</h1>
-        <div class="trip-info">December 19-28, 2024 • Ben's Place</div>
+        <div class="trip-info">December 19-28, 2025 • Ben's Place</div>
         <div class="progress">
-            <div class="progress-bar" id="overall-progress">0 of 0</div>
+            <div class="progress-bar" id="overall-progress-bar"></div>
+            <div class="progress-text" id="overall-progress-text">0 of 0</div>
         </div>
         <div class="controls">
             <input type="text" class="search-box" id="search" placeholder="Search items...">
@@ -834,7 +843,7 @@
                         
                         const itemContent = document.createElement('div');
                         itemContent.className = 'item-content';
-                        itemContent.onclick = () => editItem(sectionName, subsectionName, itemIdx, true);
+                        itemContent.onclick = () => toggleItem(sectionName, subsectionName, itemIdx);
                         
                         const itemText = document.createElement('div');
                         itemText.className = 'item-text';
@@ -905,7 +914,7 @@
         function updateProgress() {
             let total = 0;
             let checked = 0;
-            
+
             Object.keys(packingData).forEach(sectionName => {
                 const sectionItems = packingData[sectionName];
                 Object.keys(sectionItems).forEach(subsectionName => {
@@ -915,11 +924,12 @@
                     });
                 });
             });
-            
+
             const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
-            const progressBar = document.getElementById('overall-progress');
+            const progressBar = document.getElementById('overall-progress-bar');
+            const progressText = document.getElementById('overall-progress-text');
             progressBar.style.width = percentage + '%';
-            progressBar.textContent = `${checked} of ${total} (${percentage}%)`;
+            progressText.textContent = `${checked} of ${total} (${percentage}%)`;
         }
 
         function addNewItem(section, subsection) {
