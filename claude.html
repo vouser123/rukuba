@@ -207,23 +207,6 @@
             text-decoration: line-through;
             color: #999;
         }
-
-        .item.swiping-left {
-            transform: translateX(-80px);
-        }
-
-        .item.swiping-right {
-            transform: translateX(80px);
-        }
-
-        .item.deleting {
-            opacity: 0;
-            transform: translateX(-100%);
-            max-height: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            margin-bottom: 0;
-        }
         
         input[type="checkbox"] {
             width: 22px;
@@ -290,45 +273,7 @@
         .priority-normal {
             background: transparent;
         }
-        
-        .item-actions {
-            position: absolute;
-            right: -80px;
-            top: 0;
-            bottom: 0;
-            width: 80px;
-            display: flex;
-        }
 
-        .item-actions-left {
-            position: absolute;
-            left: -80px;
-            top: 0;
-            bottom: 0;
-            width: 80px;
-            display: flex;
-        }
-
-        .delete-btn {
-            flex: 1;
-            border: none;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            background: #f44336;
-        }
-
-        .edit-btn-swipe {
-            flex: 1;
-            border: none;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            background: #007AFF;
-        }
-        
         .footer {
             position: fixed;
             bottom: 0;
@@ -633,17 +578,8 @@
         let editingItem = null;
         let lastDeleted = null;
         let undoTimeout = null;
-        
-        // Touch handling for swipe
-        let touchStartX = 0;
-        let touchCurrentX = 0;
-        let swipingItem = null;
 
-        // Long-press handling
-        let longPressTimer = null;
-        let longPressTarget = null;
-
-        // Drag and drop
+        // Desktop drag and drop
         let draggedItem = null;
         let draggedFrom = null;
 
@@ -1006,14 +942,9 @@
                         itemDiv.dataset.subsection = subsectionName;
                         itemDiv.dataset.index = itemIdx;
 
-                        // Drag events on drop target
+                        // Desktop drag events
                         itemDiv.addEventListener('dragover', handleDragOver);
                         itemDiv.addEventListener('drop', handleDrop);
-
-                        // Touch events for swipe
-                        itemDiv.addEventListener('touchstart', handleTouchStart);
-                        itemDiv.addEventListener('touchmove', handleTouchMove);
-                        itemDiv.addEventListener('touchend', handleTouchEnd);
 
                         // Drag handle
                         const dragHandle = document.createElement('div');
@@ -1022,6 +953,12 @@
                         dragHandle.draggable = true;
                         dragHandle.addEventListener('dragstart', handleDragStart);
                         dragHandle.addEventListener('dragend', handleDragEnd);
+
+                        // Touch events - setup after elements are added to DOM
+                        setTimeout(() => {
+                            setupTouchDrag(dragHandle, itemDiv, sectionName, subsectionName, itemIdx);
+                            setupSwipeAndLongPress(itemDiv, sectionName, subsectionName, itemIdx);
+                        }, 0);
 
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
@@ -1057,25 +994,9 @@
 
                         itemContent.appendChild(itemTextWrapper);
 
-                        // Left actions (swipe right to reveal)
-                        const actionsLeft = document.createElement('div');
-                        actionsLeft.className = 'item-actions-left';
-                        actionsLeft.innerHTML = `
-                            <button class="edit-btn-swipe" onclick="editItem('${sectionName}', '${subsectionName}', ${itemIdx}, true)">Edit</button>
-                        `;
-
-                        // Right actions (swipe left to reveal)
-                        const actionsRight = document.createElement('div');
-                        actionsRight.className = 'item-actions';
-                        actionsRight.innerHTML = `
-                            <button class="delete-btn" onclick="deleteItem('${sectionName}', '${subsectionName}', ${itemIdx})">Delete</button>
-                        `;
-
-                        itemDiv.appendChild(actionsLeft);
                         itemDiv.appendChild(dragHandle);
                         itemDiv.appendChild(checkbox);
                         itemDiv.appendChild(itemContent);
-                        itemDiv.appendChild(actionsRight);
                         subsection.appendChild(itemDiv);
                     });
                     
@@ -1280,10 +1201,11 @@
             }
         }
 
-        // Drag and drop handlers
+        // Desktop drag and drop handlers
         function handleDragStart(e) {
-            // Get the item div (parent of drag handle)
-            const itemDiv = e.target.classList.contains('drag-handle') ? e.target.parentElement : e.target;
+            const itemDiv = e.target.closest('.item');
+            if (!itemDiv) return;
+
             draggedItem = itemDiv;
             draggedFrom = {
                 section: itemDiv.dataset.section,
@@ -1302,107 +1224,176 @@
 
         function handleDrop(e) {
             if (e.stopPropagation) e.stopPropagation();
-            
+
             const dropTarget = e.target.closest('.item');
             if (!dropTarget || dropTarget === draggedItem) return false;
-            
+
             const dropSection = dropTarget.dataset.section;
             const dropSubsection = dropTarget.dataset.subsection;
             const dropIndex = parseInt(dropTarget.dataset.index);
-            
+
             // Remove from original position
             const item = packingData[draggedFrom.section][draggedFrom.subsection].splice(draggedFrom.index, 1)[0];
-            
+
             // Insert at new position
             packingData[dropSection][dropSubsection].splice(dropIndex, 0, item);
-            
+
+            haptic('medium');
             saveData();
             render();
-            
+
             return false;
         }
 
         function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
+            if (draggedItem) {
+                draggedItem.classList.remove('dragging');
+            }
             draggedItem = null;
             draggedFrom = null;
         }
 
-        // Touch handlers for swipe and long-press
-        function handleTouchStart(e) {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+        // Touch drag state (for drag handle)
+        let touchDragState = null;
 
-            // Don't start long-press if touching drag handle
-            const isDragHandle = e.target.classList.contains('drag-handle') ||
-                                e.target.parentElement?.classList.contains('drag-handle');
+        // Touch handlers - Hold-and-drag on drag handle
+        function setupTouchDrag(dragHandle, itemDiv, section, subsection, idx) {
+            dragHandle.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                const rect = itemDiv.getBoundingClientRect();
 
-            touchStartX = e.touches[0].clientX;
-            swipingItem = e.currentTarget;
+                // Create ghost element
+                const ghost = itemDiv.cloneNode(true);
+                ghost.style.position = 'fixed';
+                ghost.style.left = rect.left + 'px';
+                ghost.style.top = rect.top + 'px';
+                ghost.style.width = rect.width + 'px';
+                ghost.style.pointerEvents = 'none';
+                ghost.style.opacity = '0.85';
+                ghost.style.zIndex = '9999';
+                ghost.style.transform = 'scale(1.05)';
+                document.body.appendChild(ghost);
 
-            // Start long-press timer (but not on drag handle)
-            if (!isDragHandle) {
-                longPressTarget = e.currentTarget;
-                longPressTimer = setTimeout(() => {
-                    if (longPressTarget) {
-                        // Trigger edit with move option
-                        const section = longPressTarget.dataset.section;
-                        const subsection = longPressTarget.dataset.subsection;
-                        const idx = parseInt(longPressTarget.dataset.index);
-                        editItem(section, subsection, idx, true);
-                        longPressTarget = null;
-                        swipingItem = null;
+                itemDiv.classList.add('dragging');
+                haptic('medium');
+
+                touchDragState = {
+                    section,
+                    subsection,
+                    fromIdx: idx,
+                    ghost,
+                    offsetX: touch.clientX - rect.left,
+                    offsetY: touch.clientY - rect.top,
+                    currentTargetIdx: idx,
+                    itemDiv
+                };
+            }, { passive: true });
+
+            dragHandle.addEventListener('touchmove', (e) => {
+                if (!touchDragState) return;
+                e.preventDefault();
+
+                const touch = e.touches[0];
+                const x = touch.clientX - touchDragState.offsetX;
+                const y = touch.clientY - touchDragState.offsetY;
+
+                touchDragState.ghost.style.left = x + 'px';
+                touchDragState.ghost.style.top = y + 'px';
+
+                // Find what's under the touch
+                touchDragState.ghost.style.display = 'none';
+                const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+                touchDragState.ghost.style.display = '';
+
+                const targetItem = elementUnder ? elementUnder.closest('.item') : null;
+                if (targetItem && targetItem.dataset.section === section && targetItem.dataset.subsection === subsection) {
+                    const targetIdx = parseInt(targetItem.dataset.index);
+                    if (!isNaN(targetIdx)) {
+                        touchDragState.currentTargetIdx = targetIdx;
                     }
-                }, 500); // 500ms for long-press
-            }
+                }
+            }, { passive: false });
+
+            dragHandle.addEventListener('touchend', () => {
+                if (!touchDragState) return;
+
+                const from = touchDragState.fromIdx;
+                const to = touchDragState.currentTargetIdx;
+
+                if (from !== to) {
+                    const items = packingData[section][subsection];
+                    const [movedItem] = items.splice(from, 1);
+                    items.splice(to, 0, movedItem);
+                    haptic('success');
+                    saveData();
+                }
+
+                touchDragState.ghost.remove();
+                touchDragState.itemDiv.classList.remove('dragging');
+                touchDragState = null;
+                render();
+            }, { passive: true });
         }
 
-        function handleTouchMove(e) {
-            if (!swipingItem || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-            touchCurrentX = e.touches[0].clientX;
-            const diff = touchStartX - touchCurrentX;
+        // Touch handlers - Swipe to delete / Long press to edit
+        function setupSwipeAndLongPress(itemDiv, section, subsection, idx) {
+            let swipeStartX = 0;
+            let swipeStartY = 0;
+            let swipeFired = false;
+            let longPressTimer = null;
 
-            // Cancel long-press if moving
-            if (Math.abs(diff) > 10) {
+            itemDiv.addEventListener('touchstart', (e) => {
+                // Ignore if touching input, button, or drag handle
+                if (e.target.tagName === 'INPUT' ||
+                    e.target.tagName === 'BUTTON' ||
+                    e.target.classList.contains('drag-handle')) {
+                    return;
+                }
+
+                const touch = e.touches[0];
+                swipeStartX = touch.clientX;
+                swipeStartY = touch.clientY;
+                swipeFired = false;
+
+                // Start long-press timer
+                longPressTimer = setTimeout(() => {
+                    haptic('medium');
+                    editItem(section, subsection, idx, true);
+                    longPressTimer = null;
+                }, 500);
+            }, { passive: true });
+
+            itemDiv.addEventListener('touchmove', (e) => {
+                if (swipeFired) return;
+
+                const touch = e.touches[0];
+                const dx = touch.clientX - swipeStartX;
+                const dy = touch.clientY - swipeStartY;
+
+                // Cancel long-press if finger moves
+                if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                }
+
+                // Swipe left to delete
+                if (Math.abs(dy) < 30 && dx < -70) {
+                    swipeFired = true;
+                    const item = packingData[section][subsection][idx];
+                    if (confirm(`Delete "${item.text}"?`)) {
+                        deleteItem(section, subsection, idx);
+                    }
+                }
+            }, { passive: true });
+
+            itemDiv.addEventListener('touchend', () => {
                 if (longPressTimer) {
                     clearTimeout(longPressTimer);
                     longPressTimer = null;
-                    longPressTarget = null;
                 }
-            }
-
-            // Swipe left (reveal delete)
-            if (diff > 50) {
-                swipingItem.classList.remove('swiping-right');
-                swipingItem.classList.add('swiping-left');
-            }
-            // Swipe right (reveal edit)
-            else if (diff < -50) {
-                swipingItem.classList.remove('swiping-left');
-                swipingItem.classList.add('swiping-right');
-            }
-            // Neither - reset
-            else {
-                swipingItem.classList.remove('swiping-left', 'swiping-right');
-            }
-        }
-
-        function handleTouchEnd(e) {
-            // Cancel long-press timer
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-                longPressTarget = null;
-            }
-
-            if (!swipingItem) return;
-            const diff = touchStartX - touchCurrentX;
-
-            // If swipe wasn't strong enough, reset
-            if (Math.abs(diff) < 50) {
-                swipingItem.classList.remove('swiping-left', 'swiping-right');
-            }
-
-            swipingItem = null;
+            }, { passive: true });
         }
 
         // Search handler
