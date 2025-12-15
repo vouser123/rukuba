@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PT Tracker">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23007AFF' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white'>💪</text></svg>">
+    <meta name="theme-color" content="#007AFF">
+    <title>PT Exercise Tracker</title>
+    <style>
+        :root {
+            --ios-blue: #007AFF;
+            --ios-red: #FF3B30;
+            --ios-green: #34C759;
+            --ios-orange: #FF9500;
+            --ios-gray: #8E8E93;
+            --ios-background: #F2F2F7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: var(--ios-background);
+            color: #000;
+            touch-action: manipulation;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .exercise-name {
+            font-size: 17px;
+            color: var(--ios-blue);
+            font-weight: 600;
+        }
+
+        /* Main Counter View */
+        .counter-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 250px);
+            padding: 20px;
+        }
+
+        .set-info {
+            font-size: 17px;
+            color: var(--ios-gray);
+            margin-bottom: 20px;
+        }
+
+        .counter-display {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 72px;
+            font-weight: 700;
+            color: var(--ios-blue);
+            box-shadow: 0 4px 20px rgba(0, 122, 255, 0.3);
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .counter-display:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(0, 122, 255, 0.2);
+        }
+
+        .timer-display {
+            font-size: 64px;
+            font-weight: 700;
+            color: var(--ios-blue);
+            margin-bottom: 20px;
+        }
+
+        .timer-display.warning {
+            color: var(--ios-orange);
+        }
+
+        .timer-display.danger {
+            color: var(--ios-red);
+        }
+
+        .target-info {
+            font-size: 17px;
+            color: var(--ios-gray);
+            margin-bottom: 30px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            max-width: 300px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--ios-blue), var(--ios-green));
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            max-width: 400px;
+            padding: 0 20px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 14px;
+            font-size: 17px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .control-btn:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
+        .btn-primary {
+            background: var(--ios-blue);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--ios-blue);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-success {
+            background: var(--ios-green);
+            color: white;
+            box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--ios-red);
+            color: white;
+            box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 12px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 12px;
+            z-index: 999;
+        }
+
+        .footer button {
+            flex: 1;
+            padding: 14px;
+            font-size: 17px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .footer button:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
+        /* iOS Bottom Sheet Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .modal-content {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--ios-background);
+            border-radius: 20px 20px 0 0;
+            padding: 0;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -2px 20px rgba(0,0,0,0.15);
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-drag-handle {
+            width: 36px;
+            height: 5px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+            margin: 12px auto 8px;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px 20px 16px;
+            color: #000;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
+        }
+
+        .modal-form {
+            padding: 20px;
+        }
+
+        .modal-input, .modal-select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            margin-bottom: 12px;
+            font-family: inherit;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .modal-input:focus, .modal-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--ios-blue);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            padding: 0 20px 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.1s;
+        }
+
+        .modal-buttons button:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
+        .modal-save {
+            background: var(--ios-blue);
+            color: white;
+        }
+
+        .modal-cancel {
+            background: white;
+            color: var(--ios-blue);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* iOS Action Sheet */
+        .action-sheet-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 3000;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .action-sheet-backdrop.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .action-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: transparent;
+            z-index: 3001;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 8px;
+        }
+
+        .action-sheet.active {
+            transform: translateY(0);
+        }
+
+        .action-sheet-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .action-sheet-message {
+            padding: 20px;
+            text-align: center;
+            color: var(--ios-gray);
+            font-size: 13px;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .action-sheet-button {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+            color: var(--ios-blue);
+            transition: background 0.2s;
+        }
+
+        .action-sheet-button:last-child {
+            border-bottom: none;
+        }
+
+        .action-sheet-button:active {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .action-sheet-button.destructive {
+            color: var(--ios-red);
+            font-weight: 600;
+        }
+
+        .action-sheet-cancel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 14px;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--ios-blue);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .action-sheet-cancel:active {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💪 PT Exercise Tracker</h1>
+        <div class="exercise-name" id="exercise-name">Goblet Squat</div>
+    </div>
+
+    <!-- Counter View -->
+    <div class="counter-view" id="counter-view">
+        <div class="set-info" id="set-info">Set 1 of 3</div>
+
+        <!-- Counter Mode -->
+        <div id="counter-mode">
+            <div class="counter-display" id="counter-display" onclick="incrementCounter()">0</div>
+            <div class="target-info" id="target-info">Target: 10 reps</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- Timer Mode -->
+        <div id="timer-mode" class="hidden">
+            <div class="timer-display" id="timer-display">00:00</div>
+            <div class="target-info" id="timer-target">Target: 30 seconds</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="timer-progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn btn-secondary" onclick="previousSet()">Previous</button>
+            <button class="control-btn btn-success" onclick="completeSet()">Complete Set</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <button class="btn-primary" onclick="showExerciseModal()">Change Exercise</button>
+        <button class="btn-secondary" onclick="showHistory()">History</button>
+    </div>
+
+    <!-- Exercise Selection Modal -->
+    <div class="modal" id="exercise-modal" onclick="if(event.target === this) closeExerciseModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Select Exercise</div>
+            <div class="modal-form">
+                <select class="modal-select" id="exercise-select" onchange="updateExerciseType()">
+                    <option value="goblet_squat">Goblet Squat</option>
+                    <option value="plank">Plank Hold</option>
+                    <option value="step_ups">Step Ups</option>
+                    <option value="clamshells">Clamshells</option>
+                </select>
+                <select class="modal-select" id="exercise-type">
+                    <option value="reps">Rep-based</option>
+                    <option value="timed">Timed Hold</option>
+                </select>
+                <input type="number" class="modal-input" id="sets-input" placeholder="Number of sets" value="3">
+                <input type="number" class="modal-input" id="target-input" placeholder="Target (reps or seconds)" value="10">
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeExerciseModal()">Cancel</button>
+                <button class="modal-save" onclick="saveExercise()">Start</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- iOS Action Sheet -->
+    <div class="action-sheet-backdrop" id="action-sheet-backdrop" onclick="hideActionSheet()"></div>
+    <div class="action-sheet" id="action-sheet">
+        <div class="action-sheet-content">
+            <div class="action-sheet-message" id="action-sheet-message"></div>
+            <button class="action-sheet-button destructive" id="action-sheet-confirm" onclick="confirmActionSheet()">Confirm</button>
+        </div>
+        <button class="action-sheet-cancel" onclick="hideActionSheet()">Cancel</button>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'pt_tracker_data';
+
+        let currentExercise = {
+            name: 'Goblet Squat',
+            type: 'reps',
+            sets: 3,
+            target: 10,
+            currentSet: 1,
+            currentCount: 0,
+            sessionData: []
+        };
+
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let actionSheetCallback = null;
+
+        // Audio for timer
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playBeep(frequency = 800, duration = 100) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+        }
+
+        // Haptic feedback helper
+        function haptic(style = 'light') {
+            if ('vibrate' in navigator) {
+                switch(style) {
+                    case 'light':
+                        navigator.vibrate(10);
+                        break;
+                    case 'medium':
+                        navigator.vibrate(20);
+                        break;
+                    case 'heavy':
+                        navigator.vibrate(30);
+                        break;
+                    case 'success':
+                        navigator.vibrate([10, 50, 10]);
+                        break;
+                    case 'error':
+                        navigator.vibrate([20, 100, 20]);
+                        break;
+                }
+            }
+        }
+
+        // iOS-style Action Sheet
+        function showActionSheet(message, onConfirm) {
+            document.getElementById('action-sheet-message').textContent = message;
+            actionSheetCallback = onConfirm;
+
+            const backdrop = document.getElementById('action-sheet-backdrop');
+            const sheet = document.getElementById('action-sheet');
+
+            backdrop.classList.add('active');
+            setTimeout(() => {
+                sheet.classList.add('active');
+            }, 10);
+
+            haptic('light');
+        }
+
+        function hideActionSheet() {
+            const backdrop = document.getElementById('action-sheet-backdrop');
+            const sheet = document.getElementById('action-sheet');
+
+            sheet.classList.remove('active');
+            setTimeout(() => {
+                backdrop.classList.remove('active');
+            }, 300);
+
+            actionSheetCallback = null;
+            haptic('light');
+        }
+
+        function confirmActionSheet() {
+            if (actionSheetCallback) {
+                actionSheetCallback();
+            }
+            hideActionSheet();
+            haptic('medium');
+        }
+
+        // Counter Functions
+        function incrementCounter() {
+            if (currentExercise.type !== 'reps') return;
+
+            currentExercise.currentCount++;
+            haptic('light');
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            document.getElementById('exercise-name').textContent = currentExercise.name;
+            document.getElementById('set-info').textContent = `Set ${currentExercise.currentSet} of ${currentExercise.sets}`;
+
+            if (currentExercise.type === 'reps') {
+                document.getElementById('counter-mode').classList.remove('hidden');
+                document.getElementById('timer-mode').classList.add('hidden');
+
+                document.getElementById('counter-display').textContent = currentExercise.currentCount;
+                document.getElementById('target-info').textContent = `Target: ${currentExercise.target} reps`;
+
+                const progress = Math.min((currentExercise.currentCount / currentExercise.target) * 100, 100);
+                document.getElementById('progress-bar').style.width = progress + '%';
+            } else {
+                document.getElementById('counter-mode').classList.add('hidden');
+                document.getElementById('timer-mode').classList.remove('hidden');
+
+                const minutes = Math.floor(timerSeconds / 60);
+                const seconds = timerSeconds % 60;
+                const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                document.getElementById('timer-display').textContent = display;
+                document.getElementById('timer-target').textContent = `Target: ${currentExercise.target} seconds`;
+
+                const progress = Math.min((timerSeconds / currentExercise.target) * 100, 100);
+                document.getElementById('timer-progress-bar').style.width = progress + '%';
+
+                // Color changes for timer
+                const timerDisplay = document.getElementById('timer-display');
+                timerDisplay.classList.remove('warning', 'danger');
+                if (timerSeconds >= currentExercise.target * 0.9) {
+                    timerDisplay.classList.add('danger');
+                } else if (timerSeconds >= currentExercise.target * 0.75) {
+                    timerDisplay.classList.add('warning');
+                }
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) return;
+
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                updateDisplay();
+
+                if (timerSeconds === currentExercise.target) {
+                    playBeep(1000, 200);
+                    haptic('success');
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function completeSet() {
+            const count = currentExercise.type === 'reps' ? currentExercise.currentCount : timerSeconds;
+
+            if (count === 0) {
+                showActionSheet('No reps/time recorded. Complete set anyway?', () => {
+                    finishSet();
+                });
+                return;
+            }
+
+            currentExercise.sessionData.push({
+                set: currentExercise.currentSet,
+                count: count,
+                timestamp: new Date().toISOString()
+            });
+
+            haptic('success');
+
+            if (currentExercise.currentSet < currentExercise.sets) {
+                currentExercise.currentSet++;
+                currentExercise.currentCount = 0;
+                timerSeconds = 0;
+                stopTimer();
+                updateDisplay();
+            } else {
+                showActionSheet('Exercise complete! Save this session?', () => {
+                    saveSession();
+                });
+            }
+        }
+
+        function finishSet() {
+            currentExercise.sessionData.push({
+                set: currentExercise.currentSet,
+                count: currentExercise.type === 'reps' ? currentExercise.currentCount : timerSeconds,
+                timestamp: new Date().toISOString()
+            });
+
+            if (currentExercise.currentSet < currentExercise.sets) {
+                currentExercise.currentSet++;
+                currentExercise.currentCount = 0;
+                timerSeconds = 0;
+                stopTimer();
+                updateDisplay();
+            } else {
+                saveSession();
+            }
+        }
+
+        function previousSet() {
+            if (currentExercise.currentSet > 1) {
+                currentExercise.currentSet--;
+                currentExercise.currentCount = 0;
+                timerSeconds = 0;
+                stopTimer();
+                haptic('light');
+                updateDisplay();
+            }
+        }
+
+        function saveSession() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            sessions.push({
+                exerciseName: currentExercise.name,
+                exerciseType: currentExercise.type,
+                date: new Date().toISOString(),
+                sets: currentExercise.sessionData
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+
+            haptic('success');
+
+            // Reset for new session
+            currentExercise.currentSet = 1;
+            currentExercise.currentCount = 0;
+            currentExercise.sessionData = [];
+            timerSeconds = 0;
+            stopTimer();
+            updateDisplay();
+        }
+
+        // Modal Functions
+        function showExerciseModal() {
+            document.getElementById('exercise-modal').classList.add('active');
+            haptic('light');
+
+            // Start timer if switching to timer mode
+            if (currentExercise.type === 'timed' && !timerInterval) {
+                startTimer();
+            }
+        }
+
+        function closeExerciseModal() {
+            document.getElementById('exercise-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function updateExerciseType() {
+            const select = document.getElementById('exercise-select');
+            const typeSelect = document.getElementById('exercise-type');
+            const targetInput = document.getElementById('target-input');
+
+            // Auto-set type based on exercise
+            if (select.value === 'plank') {
+                typeSelect.value = 'timed';
+                targetInput.value = 30;
+            } else {
+                typeSelect.value = 'reps';
+                targetInput.value = 10;
+            }
+        }
+
+        function saveExercise() {
+            const select = document.getElementById('exercise-select');
+            const exerciseName = select.options[select.selectedIndex].text;
+            const type = document.getElementById('exercise-type').value;
+            const sets = parseInt(document.getElementById('sets-input').value);
+            const target = parseInt(document.getElementById('target-input').value);
+
+            if (!sets || !target) {
+                alert('Please enter valid numbers for sets and target.');
+                return;
+            }
+
+            currentExercise = {
+                name: exerciseName,
+                type: type,
+                sets: sets,
+                target: target,
+                currentSet: 1,
+                currentCount: 0,
+                sessionData: []
+            };
+
+            timerSeconds = 0;
+            stopTimer();
+
+            if (type === 'timed') {
+                startTimer();
+            }
+
+            haptic('success');
+            updateDisplay();
+            closeExerciseModal();
+        }
+
+        function showHistory() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (sessions.length === 0) {
+                showActionSheet('No workout history yet. Complete your first exercise!', () => {});
+                return;
+            }
+
+            // TODO: Build a proper history view
+            alert(`You have ${sessions.length} completed sessions!`);
+        }
+
+        // Initialize
+        updateDisplay();
+    </script>
+</body>
+</html>
