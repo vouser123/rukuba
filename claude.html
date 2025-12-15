@@ -754,8 +754,8 @@
                     <span class="section-progress">${sectionChecked}/${sectionTotal}</span>
                 `;
                 
-                const content = document.createElement('div');
-                content.className = 'section-content' + (collapsed.has(sectionIdx) ? ' collapsed' : '');
+                const sectionContent = document.createElement('div');
+                sectionContent.className = 'section-content' + (collapsed.has(sectionIdx) ? ' collapsed' : '');
                 
                 Object.keys(sectionItems).forEach(subsectionName => {
                     const subsection = document.createElement('div');
@@ -827,11 +827,11 @@
                         subsection.appendChild(itemDiv);
                     });
                     
-                    content.appendChild(subsection);
+                    sectionContent.appendChild(subsection);
                 });
-                
+
                 section.appendChild(header);
-                section.appendChild(content);
+                section.appendChild(sectionContent);
                 content.appendChild(section);
             });
         }
