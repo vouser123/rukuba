@@ -752,6 +752,7 @@
                     <div class="history-heading">Recent sessions</div>
                     <div class="history-list" id="session-history-list"></div>
                 </div>
+                <button class="control-btn btn-primary" onclick="exportForPT()" style="width: 100%; margin-top: 12px;">Export Report for PT</button>
             </div>
         </div>
     </div>
@@ -1725,11 +1726,20 @@
                         const sessionLabel = session.exerciseType === 'timed'
                             ? `${session.sets?.length || 0} sets · ${session.exerciseType} · ${totalReps} reps`
                             : `${session.sets?.length || 0} sets · ${totalReps} reps`;
+
+                        // Show side info for unilateral exercises
+                        const setDetails = (session.sets || []).map((set, idx) => {
+                            const sideLabel = set.side ? ` (${set.side})` : '';
+                            const manualLabel = set.manualLog ? ' 📝' : '';
+                            return `Set ${idx + 1}: ${set.reps}${sideLabel}${manualLabel}`;
+                        }).join(' · ');
+
                         const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: #555;">"${session.notes}"</div>` : '';
                         return `
                             <div class="history-item">
                                 <div>${session.exerciseName}</div>
                                 <div class="history-meta">${new Date(session.date).toLocaleString()} · ${sessionLabel}</div>
+                                <div style="font-size: 12px; color: #888; margin-top: 4px;">${setDetails}</div>
                                 ${notesHtml}
                             </div>
                         `;
@@ -1790,17 +1800,29 @@
                 return;
             }
 
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
             container.innerHTML = list.map(ex => {
                 const spec = ex.current || {};
                 const tags = ex.tags || [];
                 const tagHtml = tags.length ? tags.map(t => `<span class="pill">${t}</span>`).join('') : '';
                 const hasDetails = ex.details && (ex.details.description || ex.details.executionTips);
                 const detailsIndicator = hasDetails ? ' 📋' : '';
+
+                // Calculate quick stats
+                const exerciseSessions = sessions.filter(s => s.exerciseId === ex.id || s.exerciseName === ex.name);
+                const totalSessions = exerciseSessions.length;
+                const lastSession = exerciseSessions.length ? new Date(exerciseSessions[exerciseSessions.length - 1].date) : null;
+                const statsHtml = totalSessions > 0
+                    ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">Last: ${lastSession.toLocaleDateString()} · ${totalSessions} session${totalSessions > 1 ? 's' : ''}</div>`
+                    : '';
+
                 return `
                     <div class="history-item" style="cursor: pointer;">
                         <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}</div>
                         ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
                         <div class="history-meta">${describeSpec(spec)}</div>
+                        ${statsHtml}
                         <div style="margin-top: 8px; display: flex; gap: 8px;">
                             <button class="control-btn btn-secondary" onclick="showExerciseDetailsModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
                             <button class="control-btn btn-secondary" onclick="editExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Edit</button>
@@ -2152,6 +2174,104 @@
         // Auto-save recovery every time session data changes
         window.addEventListener('beforeunload', saveSessionRecovery);
         setInterval(saveSessionRecovery, 5000); // Save every 5 seconds
+
+        // PT Export Function
+        function exportForPT() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const entry = getLibraryEntryById(currentExercise.id);
+            const exerciseSessions = sessions.filter(s => s.exerciseId === currentExercise.id || s.exerciseName === currentExercise.name);
+
+            if (exerciseSessions.length === 0) {
+                alert('No sessions to export yet.');
+                return;
+            }
+
+            let report = `PHYSICAL THERAPY PROGRESS REPORT\n`;
+            report += `Generated: ${new Date().toLocaleDateString()}\n`;
+            report += `\n${'='.repeat(50)}\n\n`;
+            report += `EXERCISE: ${entry.name}\n`;
+
+            // Exercise details
+            if (entry.details?.description) {
+                report += `Description: ${entry.details.description}\n`;
+            }
+            if (entry.details?.executionTips) {
+                report += `Form: ${entry.details.executionTips}\n`;
+            }
+            if (entry.tags && entry.tags.length) {
+                report += `Body parts: ${entry.tags.join(', ')}\n`;
+            }
+            if (entry.bilateral !== undefined) {
+                report += `Type: ${entry.bilateral ? 'Bilateral' : 'Unilateral'}\n`;
+            }
+
+            report += `\n${'='.repeat(50)}\n`;
+            report += `SESSION HISTORY (${exerciseSessions.length} sessions)\n`;
+            report += `${'='.repeat(50)}\n\n`;
+
+            exerciseSessions.reverse().forEach((session, idx) => {
+                const sessionDate = new Date(session.date);
+                report += `Session ${exerciseSessions.length - idx} - ${sessionDate.toLocaleDateString()} at ${sessionDate.toLocaleTimeString()}\n`;
+                report += `${'-'.repeat(50)}\n`;
+
+                session.sets.forEach((set, setIdx) => {
+                    const sideInfo = set.side ? ` (${set.side} side)` : '';
+                    const manualInfo = set.manualLog ? ' [manually logged]' : '';
+                    report += `  Set ${setIdx + 1}: ${set.reps} reps${sideInfo}${manualInfo}\n`;
+                });
+
+                const totalReps = session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+                report += `  Total: ${session.sets.length} sets, ${totalReps} reps\n`;
+
+                if (session.notes) {
+                    report += `  Notes: "${session.notes}"\n`;
+                }
+
+                report += `\n`;
+            });
+
+            report += `${'='.repeat(50)}\n`;
+            report += `SUMMARY\n`;
+            report += `${'='.repeat(50)}\n`;
+            report += `Total sessions: ${exerciseSessions.length}\n`;
+
+            const allReps = exerciseSessions.flatMap(s => s.sets.map(set => set.reps || 0));
+            const avgReps = allReps.length ? (allReps.reduce((a, b) => a + b, 0) / allReps.length).toFixed(1) : 0;
+            const maxReps = allReps.length ? Math.max(...allReps) : 0;
+            const minReps = allReps.length ? Math.min(...allReps) : 0;
+
+            report += `Average reps per set: ${avgReps}\n`;
+            report += `Best set: ${maxReps} reps\n`;
+            report += `Lowest set: ${minReps} reps\n`;
+
+            const firstSession = exerciseSessions[exerciseSessions.length - 1];
+            const lastSession = exerciseSessions[0];
+            const firstAvg = firstSession.sets.reduce((sum, set) => sum + set.reps, 0) / firstSession.sets.length;
+            const lastAvg = lastSession.sets.reduce((sum, set) => sum + set.reps, 0) / lastSession.sets.length;
+            const improvement = ((lastAvg - firstAvg) / firstAvg * 100).toFixed(1);
+
+            if (exerciseSessions.length > 1) {
+                report += `\nProgress: ${improvement > 0 ? '+' : ''}${improvement}% from first to most recent session\n`;
+            }
+
+            report += `\n${'='.repeat(50)}\n`;
+            report += `END OF REPORT\n`;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(report).then(() => {
+                speak('Report copied');
+                haptic('success');
+                alert('PT report copied to clipboard! You can paste it in a text message or email to your physical therapist.');
+            }).catch(() => {
+                // Fallback: show in a textarea for manual copy
+                const textarea = document.createElement('textarea');
+                textarea.value = report;
+                textarea.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; font-family: monospace; font-size: 12px; padding: 20px;';
+                document.body.appendChild(textarea);
+                textarea.select();
+                alert('Report generated! Copy this text and share with your PT.');
+            });
+        }
 
         // Initialize
         updateDisplay();
