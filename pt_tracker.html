@@ -527,6 +527,62 @@
         .hidden {
             display: none !important;
         }
+
+        /* Body Heatmap */
+        .body-diagram {
+            position: relative;
+            width: 200px;
+            height: 380px;
+            margin: 20px auto;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 380"><ellipse cx="100" cy="40" rx="25" ry="30" fill="%23e0e0e0"/><rect x="75" y="65" width="50" height="80" rx="10" fill="%23e0e0e0"/><rect x="45" y="70" width="30" height="60" rx="8" fill="%23e0e0e0"/><rect x="125" y="70" width="30" height="60" rx="8" fill="%23e0e0e0"/><rect x="70" y="145" width="60" height="40" rx="8" fill="%23e0e0e0"/><rect x="65" y="185" width="30" height="90" rx="8" fill="%23e0e0e0"/><rect x="105" y="185" width="30" height="90" rx="8" fill="%23e0e0e0"/><rect x="60" y="275" width="35" height="100" rx="8" fill="%23e0e0e0"/><rect x="105" y="275" width="35" height="100" rx="8" fill="%23e0e0e0"/></svg>') no-repeat center;
+            background-size: contain;
+        }
+
+        .body-part-overlay {
+            position: absolute;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .heat-none { background: rgba(142, 142, 147, 0.2); }
+        .heat-low { background: rgba(0, 122, 255, 0.4); }
+        .heat-medium { background: rgba(255, 149, 0, 0.5); }
+        .heat-high { background: rgba(255, 59, 48, 0.6); }
+        .heat-very-high { background: rgba(255, 59, 48, 0.8); }
+
+        .body-part-overlay:hover {
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .heatmap-legend {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -580,6 +636,7 @@
     <div class="footer">
         <button class="btn-primary" onclick="showExerciseList()">Exercises</button>
         <button class="btn-secondary" onclick="showHistory()">History</button>
+        <button class="btn-secondary" onclick="showBodyHeatmap()" style="font-size: 15px;">🔥 Body</button>
         <button class="btn-success" onclick="togglePocketMode(true)">Pocket</button>
     </div>
 
@@ -797,6 +854,39 @@
                     <div class="history-list" id="session-history-list"></div>
                 </div>
                 <button class="control-btn btn-primary" onclick="exportForPT()" style="width: 100%; margin-top: 12px;">Export Report for PT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Body Heatmap Modal -->
+    <div class="modal" id="body-heatmap-modal" onclick="if(event.target === this) closeBodyHeatmap()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Body Parts Worked (Last 7 Days)</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); text-align: center; margin-bottom: 12px;">
+                    Tap body parts to see exercises
+                </div>
+                <div class="body-diagram" id="body-diagram"></div>
+                <div class="heatmap-legend">
+                    <div class="legend-item">
+                        <div class="legend-color heat-none"></div>
+                        <span>None</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color heat-low"></div>
+                        <span>1-2×</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color heat-medium"></div>
+                        <span>3-4×</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color heat-high"></div>
+                        <span>5+×</span>
+                    </div>
+                </div>
+                <div id="body-part-details" style="margin-top: 12px;"></div>
             </div>
         </div>
     </div>
@@ -2537,61 +2627,189 @@
             });
         }
 
-        // Streak Tracking
-        function calculateStreak() {
+        // PT-Appropriate Progress Tracking (Weekly Sessions, not daily streaks)
+        function calculateWeeklyProgress() {
             const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if (sessions.length === 0) return { current: 0, longest: 0 };
+            if (sessions.length === 0) return { thisWeek: 0, lastWeek: 0, totalWeeks: 0 };
 
-            // Get unique workout dates (YYYY-MM-DD)
-            const workoutDates = [...new Set(sessions.map(s => new Date(s.date).toDateString()))].sort((a, b) => new Date(b) - new Date(a));
+            const now = new Date();
+            const startOfThisWeek = new Date(now);
+            startOfThisWeek.setDate(now.getDate() - now.getDay()); // Sunday
+            startOfThisWeek.setHours(0, 0, 0, 0);
 
-            let currentStreak = 0;
-            let longestStreak = 0;
-            let tempStreak = 0;
-            let previousDate = null;
+            const startOfLastWeek = new Date(startOfThisWeek);
+            startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
 
-            workoutDates.forEach(dateStr => {
-                const date = new Date(dateStr);
-                if (!previousDate) {
-                    tempStreak = 1;
-                } else {
-                    const dayDiff = Math.floor((new Date(previousDate) - date) / (1000 * 60 * 60 * 24));
-                    if (dayDiff === 1) {
-                        tempStreak++;
-                    } else {
-                        longestStreak = Math.max(longestStreak, tempStreak);
-                        tempStreak = 1;
-                    }
-                }
-                previousDate = dateStr;
+            const thisWeekSessions = sessions.filter(s => new Date(s.date) >= startOfThisWeek);
+            const lastWeekSessions = sessions.filter(s => {
+                const date = new Date(s.date);
+                return date >= startOfLastWeek && date < startOfThisWeek;
             });
 
-            longestStreak = Math.max(longestStreak, tempStreak);
+            // Count unique workout weeks
+            const uniqueWeeks = new Set();
+            sessions.forEach(s => {
+                const date = new Date(s.date);
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay());
+                uniqueWeeks.add(weekStart.toDateString());
+            });
 
-            // Current streak: check if today or yesterday
-            const today = new Date().toDateString();
-            const yesterday = new Date(Date.now() - 86400000).toDateString();
-            const mostRecentDate = workoutDates[0];
-
-            if (mostRecentDate === today || mostRecentDate === yesterday) {
-                currentStreak = tempStreak;
-            }
-
-            return { current: currentStreak, longest: longestStreak };
+            return {
+                thisWeek: thisWeekSessions.length,
+                lastWeek: lastWeekSessions.length,
+                totalWeeks: uniqueWeeks.size
+            };
         }
 
         function updateStreakDisplay() {
-            const { current, longest } = calculateStreak();
+            const { thisWeek, lastWeek, totalWeeks } = calculateWeeklyProgress();
             const display = document.getElementById('streak-display');
 
-            if (current > 0) {
-                display.textContent = `🔥 ${current} day streak`;
-                if (current >= 7) display.textContent += ' 🎉';
-            } else if (longest > 0) {
-                display.textContent = `Best: ${longest} days`;
+            if (thisWeek > 0) {
+                display.textContent = `${thisWeek} session${thisWeek > 1 ? 's' : ''} this week`;
+                if (thisWeek >= 3) display.textContent += ' 💪';
+            } else if (lastWeek > 0) {
+                display.textContent = `${lastWeek} last week`;
+            } else if (totalWeeks > 0) {
+                display.textContent = `${totalWeeks} week${totalWeeks > 1 ? 's' : ''} tracked`;
             } else {
                 display.textContent = '';
             }
+        }
+
+        // Body Heatmap - Shows which body parts worked recently
+        const BODY_PART_COORDS = {
+            neck: { top: '8%', left: '40%', width: '20%', height: '8%' },
+            shoulder: { top: '16%', left: '20%', width: '60%', height: '10%' },
+            arm: { top: '18%', left: '10%', width: '15%', height: '18%' },
+            core: { top: '28%', left: '35%', width: '30%', height: '16%' },
+            back: { top: '17%', left: '35%', width: '30%', height: '20%' },
+            hip: { top: '38%', left: '32%', width: '36%', height: '12%' },
+            glute: { top: '44%', left: '32%', width: '36%', height: '10%' },
+            leg: { top: '50%', left: '30%', width: '18%', height: '25%' },
+            knee: { top: '62%', left: '30%', width: '18%', height: '10%' },
+            ankle: { top: '88%', left: '30%', width: '18%', height: '8%' },
+            wrist: { top: '34%', left: '8%', width: '12%', height: '6%' },
+            elbow: { top: '28%', left: '8%', width: '12%', height: '6%' }
+        };
+
+        function getBodyPartHeatLevel(sessions, bodyPart) {
+            // Count sessions in last 7 days that worked this body part
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            const recentSessions = sessions.filter(s => new Date(s.date).getTime() > sevenDaysAgo);
+
+            let count = 0;
+            recentSessions.forEach(session => {
+                const exercise = getLibraryEntryById(session.exerciseId);
+                if (!exercise) return;
+
+                // Check tags
+                if (exercise.tags && exercise.tags.includes(bodyPart)) count++;
+
+                // Check anatomic regions
+                if (exercise.anatomicRegions && exercise.anatomicRegions.toLowerCase().includes(bodyPart)) count++;
+            });
+
+            if (count === 0) return 'heat-none';
+            if (count <= 2) return 'heat-low';
+            if (count <= 4) return 'heat-medium';
+            if (count <= 6) return 'heat-high';
+            return 'heat-very-high';
+        }
+
+        function showBodyHeatmap() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const diagram = document.getElementById('body-diagram');
+
+            // Clear previous overlays
+            diagram.innerHTML = '';
+
+            // Add overlays for each body part
+            Object.keys(BODY_PART_COORDS).forEach(part => {
+                const coords = BODY_PART_COORDS[part];
+                const heatLevel = getBodyPartHeatLevel(sessions, part);
+
+                const overlay = document.createElement('div');
+                overlay.className = `body-part-overlay ${heatLevel}`;
+                overlay.style.top = coords.top;
+                overlay.style.left = coords.left;
+                overlay.style.width = coords.width;
+                overlay.style.height = coords.height;
+                overlay.textContent = part === 'leg' ? 'leg' : '';
+                overlay.onclick = () => showBodyPartDetails(part, sessions);
+
+                diagram.appendChild(overlay);
+            });
+
+            document.getElementById('body-heatmap-modal').classList.add('active');
+            document.getElementById('body-part-details').innerHTML = '';
+            haptic('light');
+        }
+
+        function closeBodyHeatmap() {
+            document.getElementById('body-heatmap-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function showBodyPartDetails(bodyPart, sessions) {
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            const recentSessions = sessions.filter(s => new Date(s.date).getTime() > sevenDaysAgo);
+
+            const relevantExercises = [];
+            recentSessions.forEach(session => {
+                const exercise = getLibraryEntryById(session.exerciseId);
+                if (!exercise) return;
+
+                const matchesTags = exercise.tags && exercise.tags.includes(bodyPart);
+                const matchesRegions = exercise.anatomicRegions && exercise.anatomicRegions.toLowerCase().includes(bodyPart);
+
+                if (matchesTags || matchesRegions) {
+                    const existing = relevantExercises.find(e => e.id === exercise.id);
+                    if (existing) {
+                        existing.count++;
+                        existing.lastDate = new Date(Math.max(new Date(existing.lastDate), new Date(session.date)));
+                    } else {
+                        relevantExercises.push({
+                            id: exercise.id,
+                            name: exercise.name,
+                            count: 1,
+                            lastDate: new Date(session.date)
+                        });
+                    }
+                }
+            });
+
+            const detailsDiv = document.getElementById('body-part-details');
+
+            if (relevantExercises.length === 0) {
+                detailsDiv.innerHTML = `
+                    <div class="history-list">
+                        <div class="history-item">
+                            <strong>${bodyPart.toUpperCase()}</strong>
+                            <div class="history-meta">No exercises in last 7 days</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                detailsDiv.innerHTML = `
+                    <div class="history-list">
+                        <div class="history-item">
+                            <strong>${bodyPart.toUpperCase()}</strong>
+                            <div style="margin-top: 8px;">
+                                ${relevantExercises.map(ex => `
+                                    <div style="font-size: 14px; padding: 4px 0;">
+                                        ${ex.name} <span class="pill">${ex.count}× this week</span>
+                                        <div style="font-size: 11px; color: #888;">Last: ${ex.lastDate.toLocaleDateString()}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            haptic('light');
         }
 
         // Quick Exercise Switcher
