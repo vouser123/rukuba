@@ -527,12 +527,74 @@
         .hidden {
             display: none !important;
         }
+
+        /* Body Heatmap */
+        .body-diagram {
+            position: relative;
+            width: 200px;
+            height: 380px;
+            margin: 20px auto;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 380"><ellipse cx="100" cy="40" rx="25" ry="30" fill="%23e0e0e0"/><rect x="75" y="65" width="50" height="80" rx="10" fill="%23e0e0e0"/><rect x="45" y="70" width="30" height="60" rx="8" fill="%23e0e0e0"/><rect x="125" y="70" width="30" height="60" rx="8" fill="%23e0e0e0"/><rect x="70" y="145" width="60" height="40" rx="8" fill="%23e0e0e0"/><rect x="65" y="185" width="30" height="90" rx="8" fill="%23e0e0e0"/><rect x="105" y="185" width="30" height="90" rx="8" fill="%23e0e0e0"/><rect x="60" y="275" width="35" height="100" rx="8" fill="%23e0e0e0"/><rect x="105" y="275" width="35" height="100" rx="8" fill="%23e0e0e0"/></svg>') no-repeat center;
+            background-size: contain;
+        }
+
+        .body-part-overlay {
+            position: absolute;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .heat-none { background: rgba(142, 142, 147, 0.2); }
+        .heat-low { background: rgba(0, 122, 255, 0.4); }
+        .heat-medium { background: rgba(255, 149, 0, 0.5); }
+        .heat-high { background: rgba(255, 59, 48, 0.6); }
+        .heat-very-high { background: rgba(255, 59, 48, 0.8); }
+
+        .body-part-overlay:hover {
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .heatmap-legend {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>💪 PT Exercise Tracker</h1>
-        <div class="exercise-name" id="exercise-name">Goblet Squat</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <h1 style="margin: 0;">💪 PT Exercise Tracker</h1>
+            <div id="streak-display" style="font-size: 14px; font-weight: 600; color: var(--ios-orange);"></div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="exercise-name" id="exercise-name" onclick="showQuickSwitcher()" style="cursor: pointer;">Goblet Squat ▾</div>
+            <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
+        </div>
     </div>
 
     <!-- Counter View -->
@@ -566,13 +628,15 @@
 
         <div class="controls" id="main-controls">
             <button class="control-btn btn-secondary" onclick="previousSet()">Previous</button>
+            <button class="control-btn btn-primary" onclick="showLogSetModal()">Log Set</button>
             <button class="control-btn btn-success" onclick="completeSet()">Complete Set</button>
         </div>
     </div>
 
     <div class="footer">
-        <button class="btn-primary" onclick="showExerciseModal()">Change Exercise</button>
+        <button class="btn-primary" onclick="showExerciseList()">Exercises</button>
         <button class="btn-secondary" onclick="showHistory()">History</button>
+        <button class="btn-secondary" onclick="showBodyHeatmap()" style="font-size: 15px;">🔥 Body</button>
         <button class="btn-success" onclick="togglePocketMode(true)">Pocket Tap</button>
     </div>
 
@@ -610,6 +674,171 @@
         </div>
     </div>
 
+    <!-- Exercise List Modal -->
+    <div class="modal" id="exercise-list-modal" onclick="if(event.target === this) closeExerciseList()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">My Exercises</div>
+            <div class="modal-form">
+                <input type="text" class="modal-input" id="exercise-search" placeholder="Search exercises..." oninput="filterExercises()">
+                <div id="tag-filter-container" style="margin-bottom: 12px;"></div>
+                <div id="recent-exercises-container" style="margin-bottom: 12px;"></div>
+                <div class="history-list" id="exercise-list-content"></div>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="control-btn btn-success" onclick="showAddExerciseModal()" style="flex: 1;">+ Add New</button>
+                    <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Exercise Modal -->
+    <div class="modal" id="add-exercise-modal" onclick="if(event.target === this) closeAddExerciseModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="add-exercise-title">Add Exercise</div>
+            <div class="modal-form">
+                <input type="text" class="modal-input" id="new-exercise-name" placeholder="Exercise name">
+                <select class="modal-select" id="new-exercise-type">
+                    <option value="reps">Rep-based</option>
+                    <option value="timed">Timed Reps</option>
+                    <option value="hold">Hold</option>
+                    <option value="duration">Duration</option>
+                    <option value="amrap">AMRAP</option>
+                    <option value="distance">Distance</option>
+                </select>
+                <input type="number" class="modal-input" id="new-sets" placeholder="Sets (e.g., 3)" value="3">
+                <input type="number" class="modal-input" id="new-reps" placeholder="Reps per set (e.g., 10)" value="10">
+                <input type="number" class="modal-input" id="new-seconds" placeholder="Seconds (for timed)" value="">
+                <div id="tag-selector-container" style="margin: 12px 0;"></div>
+
+                <!-- ATLAS Features -->
+                <div style="margin: 12px 0;">
+                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer;">
+                        <input type="checkbox" id="bilateral-checkbox" style="margin-right: 8px;">
+                        <span>Bilateral (both sides together)</span>
+                    </label>
+                </div>
+                <div id="side-options-container" style="margin: 12px 0;"></div>
+                <input type="text" class="modal-input" id="supersedes-input" placeholder="Supersedes (e.g., ex_basic_squats_01)">
+
+                <!-- ATLAS: Muscles & Regions -->
+                <textarea class="modal-input" id="primary-muscles" placeholder="Primary muscles (e.g., quadriceps, gluteus maximus)" style="min-height: 50px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="anatomic-regions" placeholder="Anatomic regions (e.g., knee, hip, lower back)" style="min-height: 50px; resize: vertical;"></textarea>
+
+                <!-- Equipment & Modifiers -->
+                <select class="modal-select" id="equipment-select" multiple style="min-height: 80px;">
+                    <option value="none">No equipment</option>
+                    <option value="band">Resistance band</option>
+                    <option value="weights">Weights/dumbbells</option>
+                    <option value="ball">Exercise ball</option>
+                    <option value="step">Step/platform</option>
+                    <option value="wall">Wall</option>
+                    <option value="chair">Chair</option>
+                    <option value="foam_roller">Foam roller</option>
+                    <option value="mat">Mat</option>
+                </select>
+                <div style="font-size: 12px; color: var(--ios-gray); margin-top: 4px; margin-bottom: 8px;">Hold Ctrl/Cmd to select multiple</div>
+
+                <select class="modal-select" id="difficulty-select">
+                    <option value="">Difficulty (optional)</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeAddExerciseModal()">Cancel</button>
+                <button class="modal-save" onclick="saveNewExercise()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Notes Modal -->
+    <div class="modal" id="session-notes-modal" onclick="if(event.target === this) closeSessionNotesModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Session Notes (Optional)</div>
+            <div class="modal-form">
+                <textarea class="modal-input" id="session-notes" placeholder="How did it feel? Any pain? Progress notes..." style="min-height: 100px; resize: vertical;"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="saveSessionWithNotes('')">Skip</button>
+                <button class="modal-save" onclick="saveSessionWithNotes(document.getElementById('session-notes').value)">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Set Modal -->
+    <div class="modal" id="log-set-modal" onclick="if(event.target === this) closeLogSetModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="log-set-title">Log Set</div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--ios-gray); margin-bottom: 12px; text-align: center;" id="log-set-subtitle">
+                    Enter actual reps performed
+                </div>
+                <input type="number" class="modal-input" id="log-set-reps" placeholder="Reps performed" min="0">
+                <div id="log-set-side-selector" style="margin: 12px 0;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeLogSetModal()">Cancel</button>
+                <button class="modal-save" onclick="saveLoggedSet()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise Details Modal -->
+    <div class="modal" id="exercise-details-modal" onclick="if(event.target === this) closeExerciseDetailsModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="exercise-details-title">Exercise Details</div>
+            <div class="modal-form">
+                <textarea class="modal-input" id="exercise-description" placeholder="Description (what is this exercise?)" style="min-height: 60px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="exercise-tips" placeholder="Execution tips (form, alignment, cues)" style="min-height: 80px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="exercise-feel" placeholder="Where to feel (target muscles)" style="min-height: 50px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="exercise-not-feel" placeholder="Where NOT to feel (avoid strain)" style="min-height: 50px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="exercise-modifications" placeholder="Modifications (easier/harder variations)" style="min-height: 60px; resize: vertical;"></textarea>
+                <input type="number" class="modal-input" id="exercise-rest-seconds" placeholder="Rest between sets (seconds, optional)" min="0">
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeExerciseDetailsModal()">Cancel</button>
+                <button class="modal-save" onclick="saveExerciseDetails()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rest Timer Modal -->
+    <div class="modal" id="rest-timer-modal">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Rest Timer</div>
+            <div class="modal-form">
+                <div style="text-align: center; font-size: 48px; font-weight: 700; color: var(--ios-blue); margin: 20px 0;" id="rest-countdown">60</div>
+                <div style="text-align: center; font-size: 15px; color: var(--ios-gray); margin-bottom: 20px;">Rest between sets</div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="rest-progress-bar"></div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="skipRest()">Skip Rest</button>
+                <button class="modal-save" onclick="closeRestTimer()">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Exercise Switcher Modal -->
+    <div class="modal" id="quick-switcher-modal" onclick="if(event.target === this) closeQuickSwitcher()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Switch Exercise</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px; text-align: center;">Tap to switch (current progress will be saved)</div>
+                <div class="history-list" id="quick-switcher-list"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- History Modal -->
     <div class="modal" id="history-modal" onclick="if(event.target === this) closeHistoryModal()">
         <div class="modal-content">
@@ -624,6 +853,43 @@
                     <div class="history-heading">Recent sessions</div>
                     <div class="history-list" id="session-history-list"></div>
                 </div>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="control-btn btn-secondary" onclick="exportWeeklySummary()" style="flex: 1;">📊 Weekly Summary</button>
+                    <button class="control-btn btn-primary" onclick="exportForPT()" style="flex: 1;">Full Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Body Heatmap Modal -->
+    <div class="modal" id="body-heatmap-modal" onclick="if(event.target === this) closeBodyHeatmap()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Body Parts Worked (Last 7 Days)</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); text-align: center; margin-bottom: 12px;">
+                    Tap body parts to see exercises
+                </div>
+                <div class="body-diagram" id="body-diagram"></div>
+                <div class="heatmap-legend">
+                    <div class="legend-item">
+                        <div class="legend-color heat-none"></div>
+                        <span>None</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color heat-low"></div>
+                        <span>1-2×</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color heat-medium"></div>
+                        <span>3-4×</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color heat-high"></div>
+                        <span>5+×</span>
+                    </div>
+                </div>
+                <div id="body-part-details" style="margin-top: 12px;"></div>
             </div>
         </div>
     </div>
@@ -655,64 +921,64 @@
         const ATLAS_SEED = [
             {
                 id: 'goblet_squat',
-                name: 'Goblet Squat',
+                name: 'Goblet Squat (Example)',
                 dosage: 'S3x10 (both)',
                 supersedes: ['ex_basic_squats_01'],
-                summary: 'Seeded from atlas_pt_min_250817.json; supersedes ex_basic_squats_01'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'plank_hold',
-                name: 'Plank Hold',
+                name: 'Plank Hold (Example)',
                 dosage: 'S3x1',
                 hold_seconds: 30,
                 supersedes: [],
-                summary: 'Seeded hold duration from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'step_ups',
-                name: 'Step Ups',
+                name: 'Step Ups (Example)',
                 dosage: 'S3x10 (side)',
                 supersedes: ['ex_basic_squats_01'],
-                summary: 'Seeded from atlas_pt_min_250817.json; supersedes ex_basic_squats_01'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'clamshells',
-                name: 'Clamshells',
+                name: 'Clamshells (Example)',
                 dosage: 'S3x15 (side)',
                 supersedes: [],
-                summary: 'Seeded from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'bridge_hold',
-                name: 'Bridge Hold',
+                name: 'Bridge Hold (Example)',
                 dosage: 'S3x1',
                 hold_seconds: 30,
                 supersedes: [],
-                summary: 'Seeded bridge hold parameters from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'bike_intervals',
-                name: 'Bike Intervals',
+                name: 'Bike Intervals (Example)',
                 dosage: 'S4x1',
                 duration_seconds: 300,
                 supersedes: [],
-                summary: 'Seeded duration pattern from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'pushup_amrap',
-                name: 'Push-up AMRAP',
+                name: 'Push-up AMRAP (Example)',
                 dosage: 'AMRAP',
                 amrap_window_sec: 60,
                 supersedes: [],
-                summary: 'Seeded AMRAP window from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'walk_distance',
-                name: 'Walk (distance)',
+                name: 'Walk (Example)',
                 dosage: 'S1x400',
                 distance_meters: 400,
                 supersedes: [],
-                summary: 'Seeded distance goal from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             }
         ];
 
@@ -787,8 +1053,28 @@
         const TIMER_TYPES = ['timed', 'hold', 'duration'];
         const COUNTER_TYPES = ['reps', 'amrap', 'distance'];
 
+        const AVAILABLE_TAGS = ['knee', 'back', 'ankle', 'hip', 'shoulder', 'core', 'arm', 'leg', 'glute', 'neck', 'wrist', 'elbow'];
+
+        let editingExerciseId = null;
+        let selectedTags = [];
+        let filterTags = [];
+        let selectedSideOptions = [];
+
+        const SIDE_OPTIONS_AVAILABLE = ['left', 'right', 'both'];
+
         // Audio for timer
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Speech synthesis for voice announcements
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                speechSynthesis.speak(utterance);
+            }
+        }
 
         function loadExerciseLibrary() {
             const stored = localStorage.getItem(LIBRARY_KEY);
@@ -1034,10 +1320,18 @@
             currentExercise.currentRep++;
             haptic('light');
 
-            // Check if target reached
-            if (currentExercise.repsPerSet && currentExercise.currentRep >= currentExercise.repsPerSet && currentExercise.type !== 'amrap') {
-                playCompletionSound();
-                haptic('success');
+            const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
+
+            // Voice announcements at milestones
+            if (currentExercise.repsPerSet && currentExercise.type !== 'amrap') {
+                if (repsLeft === 5) speak('5 reps left');
+                else if (repsLeft === 3) speak('3 reps left');
+                else if (repsLeft === 1) speak('Last rep');
+                else if (repsLeft === 0) {
+                    playCompletionSound();
+                    haptic('success');
+                    speak('Set complete');
+                }
             }
 
             updateDisplay();
@@ -1169,6 +1463,11 @@
 
                     currentExercise.currentRep++;
 
+                    const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
+                    if (repsLeft === 0) speak('Set complete');
+                    else if (repsLeft === 1) speak('Last rep');
+                    else speak(`${repsLeft} reps left`);
+
                     // Auto-complete holds/durations when rep target is reached
                     if (currentExercise.type !== 'timed' && currentExercise.repsPerSet && currentExercise.currentRep >= currentExercise.repsPerSet) {
                         updateDisplay();
@@ -1225,6 +1524,10 @@
             });
 
             haptic('success');
+            speak(`Set ${currentExercise.currentSet} complete`);
+
+            // Check for progress
+            detectProgress(currentExercise.currentSet, reps);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -1232,10 +1535,16 @@
                 seedTimerSeconds();
                 stopTimer();
                 updateDisplay();
+
+                // Show rest timer if rest time is recommended
+                const entry = getLibraryEntryById(currentExercise.id);
+                const restSeconds = entry.details?.restSeconds;
+                if (restSeconds && restSeconds > 0) {
+                    showRestTimer(restSeconds);
+                }
             } else {
-                showActionSheet('Exercise complete! Save this session?', () => {
-                    saveSession();
-                });
+                speak('All sets complete');
+                showSessionNotesModal();
             }
         }
 
@@ -1254,7 +1563,126 @@
                 stopTimer();
                 updateDisplay();
             } else {
-                saveSession();
+                showSessionNotesModal();
+            }
+        }
+
+        let logSetSide = 'both'; // Track which side for unilateral exercises
+
+        function showLogSetModal() {
+            const targetReps = currentExercise.repsPerSet || 0;
+            document.getElementById('log-set-title').textContent = `Log Set ${currentExercise.currentSet}`;
+            document.getElementById('log-set-subtitle').textContent = `Target: ${targetReps} reps · Enter actual reps performed`;
+            document.getElementById('log-set-reps').value = targetReps;
+
+            // Show side selector for unilateral exercises
+            const entry = getLibraryEntryById(currentExercise.id);
+            const isBilateral = entry.bilateral === true;
+            const sideOptions = entry.sideOptions || [];
+
+            const sideContainer = document.getElementById('log-set-side-selector');
+            if (sideOptions.length > 0 && !isBilateral) {
+                logSetSide = sideOptions[0] || 'left';
+                sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side:</div>' +
+                    sideOptions.map(side => {
+                        return `<span class="pill" style="cursor: pointer; background: ${logSetSide === side ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === side ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${side}')">${side}</span>`;
+                    }).join(' ');
+            } else {
+                sideContainer.innerHTML = '';
+                logSetSide = 'both';
+            }
+
+            document.getElementById('log-set-modal').classList.add('active');
+            haptic('light');
+
+            // Auto-focus the input
+            setTimeout(() => {
+                document.getElementById('log-set-reps').focus();
+                document.getElementById('log-set-reps').select();
+            }, 300);
+        }
+
+        function selectLogSetSide(side) {
+            logSetSide = side;
+            const sideOptions = getLibraryEntryById(currentExercise.id).sideOptions || [];
+            const sideContainer = document.getElementById('log-set-side-selector');
+            sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side:</div>' +
+                sideOptions.map(s => {
+                    return `<span class="pill" style="cursor: pointer; background: ${logSetSide === s ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === s ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${s}')">${s}</span>`;
+                }).join(' ');
+        }
+
+        function closeLogSetModal() {
+            document.getElementById('log-set-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function saveLoggedSet() {
+            const reps = parseInt(document.getElementById('log-set-reps').value);
+
+            if (isNaN(reps) || reps < 0) {
+                alert('Please enter a valid number of reps (0 or more).');
+                return;
+            }
+
+            const setData = {
+                set: currentExercise.currentSet,
+                reps: reps,
+                type: currentExercise.type,
+                timestamp: new Date().toISOString(),
+                manualLog: true
+            };
+
+            // Add side if applicable
+            if (logSetSide && logSetSide !== 'both') {
+                setData.side = logSetSide;
+            }
+
+            currentExercise.sessionData.push(setData);
+
+            closeLogSetModal();
+            haptic('success');
+            speak(`Set ${currentExercise.currentSet} logged: ${reps} reps`);
+
+            // Check for progress
+            detectProgress(currentExercise.currentSet, reps);
+
+            if (currentExercise.currentSet < currentExercise.sets) {
+                currentExercise.currentSet++;
+                currentExercise.currentRep = 0;
+                seedTimerSeconds();
+                stopTimer();
+                updateDisplay();
+            } else {
+                speak('All sets complete');
+                showSessionNotesModal();
+            }
+        }
+
+        // Smart Progress Detection
+        function detectProgress(setNumber, reps) {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const previousSessions = sessions.filter(s => s.exerciseId === currentExercise.id);
+
+            if (previousSessions.length === 0) return; // First time doing this exercise
+
+            const lastSession = previousSessions[previousSessions.length - 1];
+            const lastSetReps = lastSession.sets && lastSession.sets[setNumber - 1]?.reps;
+
+            if (!lastSetReps) return; // No comparison data
+
+            const diff = reps - lastSetReps;
+
+            if (diff > 0) {
+                setTimeout(() => {
+                    speak(`${diff} more rep${diff > 1 ? 's' : ''} than last time!`);
+                    haptic('success');
+                }, 1500);
+            } else if (diff < 0 && Math.abs(diff) > 2) {
+                // Only mention if significantly fewer (more than 2 reps)
+                setTimeout(() => {
+                    speak(`${Math.abs(diff)} fewer reps than last time`);
+                }, 1500);
             }
         }
 
@@ -1269,13 +1697,25 @@
             }
         }
 
-        function saveSession() {
+        function showSessionNotesModal() {
+            document.getElementById('session-notes').value = '';
+            document.getElementById('session-notes-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeSessionNotesModal() {
+            document.getElementById('session-notes-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function saveSessionWithNotes(notes) {
             const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             sessions.push({
                 exerciseId: currentExercise.id,
                 exerciseName: currentExercise.name,
                 exerciseType: currentExercise.type,
                 date: new Date().toISOString(),
+                notes: notes.trim(),
                 exerciseSpec: {
                     sets: currentExercise.sets,
                     repsPerSet: currentExercise.repsPerSet,
@@ -1287,6 +1727,7 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 
             haptic('success');
+            closeSessionNotesModal();
 
             // Reset for new session
             currentExercise.currentSet = 1;
@@ -1295,6 +1736,7 @@
             seedTimerSeconds();
             stopTimer();
             updateDisplay();
+            updateStreakDisplay(); // Refresh streak after completing session
         }
 
         // Modal Functions
@@ -1455,10 +1897,21 @@
                         const sessionLabel = session.exerciseType === 'timed'
                             ? `${session.sets?.length || 0} sets · ${session.exerciseType} · ${totalReps} reps`
                             : `${session.sets?.length || 0} sets · ${totalReps} reps`;
+
+                        // Show side info for unilateral exercises
+                        const setDetails = (session.sets || []).map((set, idx) => {
+                            const sideLabel = set.side ? ` (${set.side})` : '';
+                            const manualLabel = set.manualLog ? ' 📝' : '';
+                            return `Set ${idx + 1}: ${set.reps}${sideLabel}${manualLabel}`;
+                        }).join(' · ');
+
+                        const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: #555;">"${session.notes}"</div>` : '';
                         return `
                             <div class="history-item">
                                 <div>${session.exerciseName}</div>
                                 <div class="history-meta">${new Date(session.date).toLocaleString()} · ${sessionLabel}</div>
+                                <div style="font-size: 12px; color: #888; margin-top: 4px;">${setDetails}</div>
+                                ${notesHtml}
                             </div>
                         `;
                     })
@@ -1466,8 +1919,1094 @@
             }
         }
 
+        // Exercise List Management
+        function showExerciseList() {
+            renderRecentExercises();
+            renderExerciseList();
+            renderTagFilters();
+            document.getElementById('exercise-list-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function renderRecentExercises() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (sessions.length === 0) {
+                document.getElementById('recent-exercises-container').innerHTML = '';
+                return;
+            }
+
+            // Get unique exercises from most recent sessions
+            const recentExerciseIds = new Set();
+            const recentExercises = [];
+
+            sessions.slice().reverse().forEach(session => {
+                if (session.exerciseId && !recentExerciseIds.has(session.exerciseId) && recentExercises.length < 5) {
+                    recentExerciseIds.add(session.exerciseId);
+                    const entry = getLibraryEntryById(session.exerciseId);
+                    if (entry) {
+                        recentExercises.push(entry);
+                    }
+                }
+            });
+
+            if (recentExercises.length === 0) {
+                document.getElementById('recent-exercises-container').innerHTML = '';
+                return;
+            }
+
+            const container = document.getElementById('recent-exercises-container');
+            container.innerHTML = `
+                <div style="font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px;">⚡ Recent Exercises</div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                    ${recentExercises.map(ex =>
+                        `<button class="pill" style="cursor: pointer; padding: 6px 12px; background: var(--ios-blue); color: white;" onclick="selectExerciseFromList('${ex.id}'); event.stopPropagation();">${ex.name}</button>`
+                    ).join('')}
+                </div>
+            `;
+        }
+
+        function closeExerciseList() {
+            document.getElementById('exercise-list-modal').classList.remove('active');
+            document.getElementById('exercise-search').value = '';
+            filterTags = [];
+            haptic('light');
+        }
+
+        function renderTagFilters() {
+            const container = document.getElementById('tag-filter-container');
+            container.innerHTML = AVAILABLE_TAGS.map(tag => {
+                const active = filterTags.includes(tag);
+                return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleFilterTag('${tag}')">${tag}</span>`;
+            }).join(' ');
+        }
+
+        function toggleFilterTag(tag) {
+            if (filterTags.includes(tag)) {
+                filterTags = filterTags.filter(t => t !== tag);
+            } else {
+                filterTags.push(tag);
+            }
+            renderTagFilters();
+            filterExercises();
+        }
+
+        function filterExercises() {
+            const searchTerm = document.getElementById('exercise-search').value.toLowerCase();
+            const filtered = exerciseLibrary.filter(ex => {
+                const matchesSearch = !searchTerm || ex.name.toLowerCase().includes(searchTerm);
+                const matchesTags = filterTags.length === 0 || (ex.tags && filterTags.some(tag => ex.tags.includes(tag)));
+                const notArchived = !ex.archived;
+                return matchesSearch && matchesTags && notArchived;
+            });
+            renderExerciseList(filtered);
+        }
+
+        function toggleFavorite(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            entry.favorite = !entry.favorite;
+            persistExerciseLibrary();
+            exerciseLibrary = loadExerciseLibrary();
+            renderExerciseList();
+            haptic('light');
+        }
+
+        function archiveExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            showActionSheet(`Archive "${entry.name}"? You can restore it later from archived exercises.`, () => {
+                entry.archived = true;
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                renderExerciseList();
+                haptic('success');
+            });
+        }
+
+        let viewingArchived = false;
+
+        function showArchivedExercises() {
+            viewingArchived = !viewingArchived;
+            const btn = document.getElementById('archived-btn');
+
+            if (viewingArchived) {
+                const archived = exerciseLibrary.filter(ex => ex.archived);
+                btn.textContent = '← Back';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-primary');
+                renderArchivedList(archived);
+            } else {
+                btn.textContent = '📦 Archived';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+                renderExerciseList();
+            }
+        }
+
+        function renderArchivedList(archivedExercises) {
+            const container = document.getElementById('exercise-list-content');
+
+            if (archivedExercises.length === 0) {
+                container.innerHTML = '<div class="history-item">No archived exercises.</div>';
+                return;
+            }
+
+            container.innerHTML = archivedExercises.map(ex => {
+                const spec = ex.current || {};
+                return `
+                    <div class="history-item">
+                        <div>${ex.name}</div>
+                        <div class="history-meta">${describeSpec(spec)}</div>
+                        <div style="margin-top: 8px; display: flex; gap: 8px;">
+                            <button class="control-btn btn-success" onclick="unarchiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Restore</button>
+                            <button class="control-btn btn-danger" onclick="permanentlyDeleteExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Delete Forever</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function unarchiveExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            entry.archived = false;
+            persistExerciseLibrary();
+            exerciseLibrary = loadExerciseLibrary();
+            haptic('success');
+            speak('Exercise restored');
+            showArchivedExercises(); // Refresh archived view
+        }
+
+        function permanentlyDeleteExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            showActionSheet(`PERMANENTLY delete "${entry.name}"? This cannot be undone!`, () => {
+                exerciseLibrary = exerciseLibrary.filter(ex => ex.id !== exerciseId);
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                haptic('success');
+                showArchivedExercises(); // Refresh archived view
+            });
+        }
+
+        function renderExerciseList(filteredLibrary = null) {
+            let list = filteredLibrary || exerciseLibrary.filter(ex => !ex.archived);
+            const container = document.getElementById('exercise-list-content');
+
+            if (list.length === 0) {
+                container.innerHTML = '<div class="history-item">No exercises found.</div>';
+                return;
+            }
+
+            // Sort: favorites first, then by last used, then alphabetically
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            list = list.slice().sort((a, b) => {
+                // Favorites first
+                if (a.favorite && !b.favorite) return -1;
+                if (!a.favorite && b.favorite) return 1;
+
+                // Then by most recently used
+                const aSession = sessions.filter(s => s.exerciseId === a.id).pop();
+                const bSession = sessions.filter(s => s.exerciseId === b.id).pop();
+                const aDate = aSession ? new Date(aSession.date).getTime() : 0;
+                const bDate = bSession ? new Date(bSession.date).getTime() : 0;
+                if (aDate !== bDate) return bDate - aDate;
+
+                // Then alphabetically
+                return a.name.localeCompare(b.name);
+            });
+
+            container.innerHTML = list.map(ex => {
+                const spec = ex.current || {};
+                const tags = ex.tags || [];
+                const tagHtml = tags.length ? tags.map(t => `<span class="pill">${t}</span>`).join('') : '';
+                const hasDetails = ex.details && (ex.details.description || ex.details.executionTips);
+                const detailsIndicator = hasDetails ? ' 📋' : '';
+
+                // Calculate quick stats and adherence
+                const exerciseSessions = sessions.filter(s => s.exerciseId === ex.id || s.exerciseName === ex.name);
+                const totalSessions = exerciseSessions.length;
+                const lastSession = exerciseSessions.length ? new Date(exerciseSessions[exerciseSessions.length - 1].date) : null;
+
+                // PT Adherence indicators
+                let adherenceColor = '#999';
+                let adherenceText = '';
+                let adherenceIcon = '';
+
+                if (lastSession) {
+                    const daysSince = Math.floor((Date.now() - lastSession.getTime()) / (1000 * 60 * 60 * 24));
+                    if (daysSince === 0) {
+                        adherenceText = 'Done today ✓';
+                        adherenceColor = '#34C759';
+                    } else if (daysSince <= 3) {
+                        adherenceText = `${daysSince} day${daysSince > 1 ? 's' : ''} ago`;
+                        adherenceColor = '#34C759';
+                    } else if (daysSince <= 7) {
+                        adherenceText = `${daysSince} days ago`;
+                        adherenceColor = '#FF9500';
+                        adherenceIcon = '⚠️ ';
+                    } else {
+                        adherenceText = `${daysSince} days ago`;
+                        adherenceColor = '#FF3B30';
+                        adherenceIcon = '❗ ';
+                    }
+                } else {
+                    adherenceText = 'Never done';
+                    adherenceColor = '#8E8E93';
+                    adherenceIcon = '○ ';
+                }
+
+                const statsHtml = `<div style="font-size: 12px; color: ${adherenceColor}; margin-top: 4px; font-weight: 600;">${adherenceIcon}${adherenceText}${totalSessions > 0 ? ` · ${totalSessions} session${totalSessions > 1 ? 's' : ''} total` : ''}</div>`;
+
+                return `
+                    <div class="history-item" style="cursor: pointer; border-left: 4px solid ${adherenceColor};">
+                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}</div>
+                        ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
+                        <div class="history-meta">${describeSpec(spec)}</div>
+                        ${statsHtml}
+                        <div style="margin-top: 8px; display: flex; gap: 8px;">
+                            <button class="control-btn ${ex.favorite ? 'btn-primary' : 'btn-secondary'}" onclick="toggleFavorite('${ex.id}'); event.stopPropagation();" style="flex: 0 0 auto; padding: 8px 12px; font-size: 18px;">${ex.favorite ? '⭐' : '☆'}</button>
+                            <button class="control-btn btn-secondary" onclick="showExerciseDetailsModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
+                            <button class="control-btn btn-secondary" onclick="editExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Edit</button>
+                            <button class="control-btn btn-danger" onclick="archiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Archive</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectExerciseFromList(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            currentExercise = toSessionExercise(entry);
+            seedTimerSeconds();
+            stopTimer();
+            updateDisplay();
+            closeExerciseList();
+            haptic('success');
+
+            // Announce last session info if available
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const lastSession = sessions.filter(s => s.exerciseId === exerciseId).pop();
+            if (lastSession) {
+                const daysSince = Math.floor((Date.now() - new Date(lastSession.date).getTime()) / (1000 * 60 * 60 * 24));
+                if (daysSince === 0) {
+                    speak('Last session: today');
+                } else if (daysSince === 1) {
+                    speak('Last session: yesterday');
+                } else if (daysSince < 7) {
+                    speak(`Last session: ${daysSince} days ago`);
+                }
+            }
+        }
+
+        function showAddExerciseModal() {
+            editingExerciseId = null;
+            selectedTags = [];
+            selectedSideOptions = [];
+            document.getElementById('add-exercise-title').textContent = 'Add Exercise';
+            document.getElementById('new-exercise-name').value = '';
+            document.getElementById('new-exercise-type').value = 'reps';
+            document.getElementById('new-sets').value = '3';
+            document.getElementById('new-reps').value = '10';
+            document.getElementById('new-seconds').value = '';
+            document.getElementById('bilateral-checkbox').checked = false;
+            document.getElementById('supersedes-input').value = '';
+            document.getElementById('primary-muscles').value = '';
+            document.getElementById('anatomic-regions').value = '';
+            document.getElementById('equipment-select').selectedIndex = -1;
+            document.getElementById('difficulty-select').value = '';
+            renderTagSelector();
+            renderSideOptionsSelector();
+            document.getElementById('add-exercise-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeAddExerciseModal() {
+            document.getElementById('add-exercise-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function renderTagSelector() {
+            const container = document.getElementById('tag-selector-container');
+            container.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Tags (body parts):</div>' +
+                AVAILABLE_TAGS.map(tag => {
+                    const active = selectedTags.includes(tag);
+                    return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleTag('${tag}')">${tag}</span>`;
+                }).join(' ');
+        }
+
+        function toggleTag(tag) {
+            if (selectedTags.includes(tag)) {
+                selectedTags = selectedTags.filter(t => t !== tag);
+            } else {
+                selectedTags.push(tag);
+            }
+            renderTagSelector();
+        }
+
+        function renderSideOptionsSelector() {
+            const container = document.getElementById('side-options-container');
+            const isBilateral = document.getElementById('bilateral-checkbox').checked;
+
+            if (isBilateral) {
+                container.innerHTML = '';
+                selectedSideOptions = [];
+                return;
+            }
+
+            container.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side options (for unilateral):</div>' +
+                SIDE_OPTIONS_AVAILABLE.map(side => {
+                    const active = selectedSideOptions.includes(side);
+                    return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleSideOption('${side}')">${side}</span>`;
+                }).join(' ');
+        }
+
+        function toggleSideOption(side) {
+            if (selectedSideOptions.includes(side)) {
+                selectedSideOptions = selectedSideOptions.filter(s => s !== side);
+            } else {
+                selectedSideOptions.push(side);
+            }
+            renderSideOptionsSelector();
+        }
+
+        // Update bilateral checkbox listener
+        document.addEventListener('DOMContentLoaded', () => {
+            const bilateralCheckbox = document.getElementById('bilateral-checkbox');
+            if (bilateralCheckbox) {
+                bilateralCheckbox.addEventListener('change', renderSideOptionsSelector);
+            }
+        });
+
+        function saveNewExercise() {
+            const name = document.getElementById('new-exercise-name').value.trim();
+            const type = document.getElementById('new-exercise-type').value;
+            const sets = parseInt(document.getElementById('new-sets').value);
+            const reps = parseInt(document.getElementById('new-reps').value);
+            const seconds = parseInt(document.getElementById('new-seconds').value);
+            const isBilateral = document.getElementById('bilateral-checkbox').checked;
+            const supersedesValue = document.getElementById('supersedes-input').value.trim();
+
+            // ATLAS fields
+            const primaryMuscles = document.getElementById('primary-muscles').value.trim();
+            const anatomicRegions = document.getElementById('anatomic-regions').value.trim();
+            const equipmentSelect = document.getElementById('equipment-select');
+            const equipment = Array.from(equipmentSelect.selectedOptions).map(opt => opt.value);
+            const difficulty = document.getElementById('difficulty-select').value;
+
+            if (!name) {
+                alert('Please enter an exercise name.');
+                return;
+            }
+
+            if (!sets || sets <= 0) {
+                alert('Please enter a valid number of sets.');
+                return;
+            }
+
+            const spec = {
+                type: type,
+                sets: sets,
+                repsPerSet: reps || 0,
+                secondsPerRep: seconds || 0
+            };
+
+            const supersedes = supersedesValue ? supersedesValue.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+            if (editingExerciseId) {
+                // Edit existing
+                const entry = getLibraryEntryById(editingExerciseId);
+                entry.name = name;
+                entry.tags = selectedTags;
+                entry.bilateral = isBilateral;
+                entry.sideOptions = isBilateral ? [] : selectedSideOptions;
+                entry.supersedes = supersedes;
+                entry.primaryMuscles = primaryMuscles;
+                entry.anatomicRegions = anatomicRegions;
+                entry.equipment = equipment;
+                entry.difficulty = difficulty;
+                entry.favorite = entry.favorite || false; // Preserve favorite status
+                recordRevision(entry, spec, 'Manual edit');
+            } else {
+                // Add new
+                const newId = 'ex_' + Date.now();
+                const newEntry = {
+                    id: newId,
+                    name: name,
+                    tags: selectedTags,
+                    bilateral: isBilateral,
+                    sideOptions: isBilateral ? [] : selectedSideOptions,
+                    supersedes: supersedes,
+                    primaryMuscles: primaryMuscles,
+                    anatomicRegions: anatomicRegions,
+                    equipment: equipment,
+                    difficulty: difficulty,
+                    favorite: false,
+                    archived: false,
+                    current: spec,
+                    history: [{
+                        timestamp: new Date().toISOString(),
+                        summary: 'Exercise created',
+                        previous: null,
+                        next: spec,
+                        supersedes: supersedes
+                    }]
+                };
+                exerciseLibrary.push(newEntry);
+                persistExerciseLibrary();
+            }
+
+            exerciseLibrary = loadExerciseLibrary();
+            renderExerciseList();
+            closeAddExerciseModal();
+            haptic('success');
+        }
+
+        function editExerciseFromList(exerciseId) {
+            editingExerciseId = exerciseId;
+            const entry = getLibraryEntryById(exerciseId);
+            const spec = entry.current || {};
+
+            document.getElementById('add-exercise-title').textContent = 'Edit Exercise';
+            document.getElementById('new-exercise-name').value = entry.name;
+            document.getElementById('new-exercise-type').value = spec.type || 'reps';
+            document.getElementById('new-sets').value = spec.sets || 3;
+            document.getElementById('new-reps').value = spec.repsPerSet || 10;
+            document.getElementById('new-seconds').value = spec.secondsPerRep || '';
+            document.getElementById('bilateral-checkbox').checked = entry.bilateral || false;
+            document.getElementById('supersedes-input').value = (entry.supersedes || []).join(', ');
+            document.getElementById('primary-muscles').value = entry.primaryMuscles || '';
+            document.getElementById('anatomic-regions').value = entry.anatomicRegions || '';
+            document.getElementById('difficulty-select').value = entry.difficulty || '';
+
+            // Set equipment multi-select
+            const equipmentSelect = document.getElementById('equipment-select');
+            Array.from(equipmentSelect.options).forEach(opt => {
+                opt.selected = (entry.equipment || []).includes(opt.value);
+            });
+
+            selectedTags = entry.tags || [];
+            selectedSideOptions = entry.sideOptions || [];
+            renderTagSelector();
+            renderSideOptionsSelector();
+            document.getElementById('add-exercise-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function deleteExerciseFromList(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            showActionSheet(`Delete "${entry.name}"? This cannot be undone.`, () => {
+                exerciseLibrary = exerciseLibrary.filter(ex => ex.id !== exerciseId);
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                renderExerciseList();
+                haptic('success');
+            });
+        }
+
+        // Exercise Details Modal
+        let editingDetailsExerciseId = null;
+
+        function showExerciseDetailsModal(exerciseId = null) {
+            editingDetailsExerciseId = exerciseId || currentExercise.id;
+            const entry = getLibraryEntryById(editingDetailsExerciseId);
+            const details = entry.details || {};
+
+            document.getElementById('exercise-details-title').textContent = entry.name;
+            document.getElementById('exercise-description').value = details.description || '';
+            document.getElementById('exercise-tips').value = details.executionTips || '';
+            document.getElementById('exercise-feel').value = details.shouldFeel || '';
+            document.getElementById('exercise-not-feel').value = details.shouldNotFeel || '';
+            document.getElementById('exercise-modifications').value = details.modifications || '';
+            document.getElementById('exercise-rest-seconds').value = details.restSeconds || '';
+
+            document.getElementById('exercise-details-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeExerciseDetailsModal() {
+            document.getElementById('exercise-details-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function saveExerciseDetails() {
+            const entry = getLibraryEntryById(editingDetailsExerciseId);
+            const details = {
+                description: document.getElementById('exercise-description').value.trim(),
+                executionTips: document.getElementById('exercise-tips').value.trim(),
+                shouldFeel: document.getElementById('exercise-feel').value.trim(),
+                shouldNotFeel: document.getElementById('exercise-not-feel').value.trim(),
+                modifications: document.getElementById('exercise-modifications').value.trim(),
+                restSeconds: parseInt(document.getElementById('exercise-rest-seconds').value) || null
+            };
+
+            entry.details = details;
+            persistExerciseLibrary();
+            exerciseLibrary = loadExerciseLibrary();
+
+            closeExerciseDetailsModal();
+            haptic('success');
+        }
+
+        // Rest Timer
+        let restTimerInterval = null;
+        let restSecondsRemaining = 0;
+        let restSecondsTotal = 0;
+
+        function showRestTimer(seconds) {
+            restSecondsTotal = seconds;
+            restSecondsRemaining = seconds;
+            document.getElementById('rest-countdown').textContent = restSecondsRemaining;
+            document.getElementById('rest-progress-bar').style.width = '100%';
+            document.getElementById('rest-timer-modal').classList.add('active');
+            haptic('light');
+
+            restTimerInterval = setInterval(() => {
+                restSecondsRemaining--;
+                document.getElementById('rest-countdown').textContent = restSecondsRemaining;
+                const progress = (restSecondsRemaining / restSecondsTotal) * 100;
+                document.getElementById('rest-progress-bar').style.width = progress + '%';
+
+                // Countdown beeps
+                if (restSecondsRemaining <= 3 && restSecondsRemaining > 0) {
+                    playBeep(500, 100);
+                    haptic('light');
+                }
+
+                if (restSecondsRemaining <= 0) {
+                    clearInterval(restTimerInterval);
+                    restTimerInterval = null;
+                    playCompletionSound();
+                    haptic('success');
+                    speak('Rest complete');
+                    closeRestTimer();
+                }
+            }, 1000);
+        }
+
+        function closeRestTimer() {
+            if (restTimerInterval) {
+                clearInterval(restTimerInterval);
+                restTimerInterval = null;
+            }
+            document.getElementById('rest-timer-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function skipRest() {
+            if (restTimerInterval) {
+                clearInterval(restTimerInterval);
+                restTimerInterval = null;
+            }
+            closeRestTimer();
+            haptic('medium');
+        }
+
+        // Session Recovery
+        const RECOVERY_KEY = 'pt_session_recovery';
+
+        function saveSessionRecovery() {
+            if (currentExercise.sessionData.length > 0 || currentExercise.currentSet > 1 || currentExercise.currentRep > 0) {
+                const recovery = {
+                    exerciseId: currentExercise.id,
+                    exerciseName: currentExercise.name,
+                    currentSet: currentExercise.currentSet,
+                    currentRep: currentExercise.currentRep,
+                    sessionData: currentExercise.sessionData,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem(RECOVERY_KEY, JSON.stringify(recovery));
+            } else {
+                localStorage.removeItem(RECOVERY_KEY);
+            }
+        }
+
+        function checkSessionRecovery() {
+            const recoveryData = localStorage.getItem(RECOVERY_KEY);
+            if (!recoveryData) return;
+
+            try {
+                const recovery = JSON.parse(recoveryData);
+                const timeDiff = Date.now() - new Date(recovery.timestamp).getTime();
+                const hoursSince = timeDiff / (1000 * 60 * 60);
+
+                // Only offer recovery if less than 24 hours old
+                if (hoursSince < 24 && recovery.sessionData.length > 0) {
+                    showActionSheet(
+                        `Recover incomplete session for "${recovery.exerciseName}"? (${recovery.sessionData.length} sets completed)`,
+                        () => {
+                            const entry = getLibraryEntryById(recovery.exerciseId);
+                            if (entry) {
+                                currentExercise = toSessionExercise(entry);
+                                currentExercise.currentSet = recovery.currentSet;
+                                currentExercise.currentRep = recovery.currentRep;
+                                currentExercise.sessionData = recovery.sessionData;
+                                seedTimerSeconds();
+                                updateDisplay();
+                                haptic('success');
+                                speak(`Recovered session: Set ${recovery.currentSet}`);
+                            } else {
+                                localStorage.removeItem(RECOVERY_KEY);
+                            }
+                        }
+                    );
+                } else {
+                    localStorage.removeItem(RECOVERY_KEY);
+                }
+            } catch (e) {
+                console.warn('Failed to parse recovery data:', e);
+                localStorage.removeItem(RECOVERY_KEY);
+            }
+        }
+
+        // Auto-save recovery every time session data changes
+        window.addEventListener('beforeunload', saveSessionRecovery);
+        setInterval(saveSessionRecovery, 5000); // Save every 5 seconds
+
+        // PT Export Function
+        function exportForPT() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const entry = getLibraryEntryById(currentExercise.id);
+            const exerciseSessions = sessions.filter(s => s.exerciseId === currentExercise.id || s.exerciseName === currentExercise.name);
+
+            if (exerciseSessions.length === 0) {
+                alert('No sessions to export yet.');
+                return;
+            }
+
+            let report = `PHYSICAL THERAPY PROGRESS REPORT\n`;
+            report += `Generated: ${new Date().toLocaleDateString()}\n`;
+            report += `\n${'='.repeat(50)}\n\n`;
+            report += `EXERCISE: ${entry.name}\n`;
+
+            // Exercise details
+            if (entry.details?.description) {
+                report += `Description: ${entry.details.description}\n`;
+            }
+            if (entry.details?.executionTips) {
+                report += `Form: ${entry.details.executionTips}\n`;
+            }
+            if (entry.tags && entry.tags.length) {
+                report += `Body parts: ${entry.tags.join(', ')}\n`;
+            }
+            if (entry.bilateral !== undefined) {
+                report += `Type: ${entry.bilateral ? 'Bilateral' : 'Unilateral'}\n`;
+            }
+
+            report += `\n${'='.repeat(50)}\n`;
+            report += `SESSION HISTORY (${exerciseSessions.length} sessions)\n`;
+            report += `${'='.repeat(50)}\n\n`;
+
+            exerciseSessions.reverse().forEach((session, idx) => {
+                const sessionDate = new Date(session.date);
+                report += `Session ${exerciseSessions.length - idx} - ${sessionDate.toLocaleDateString()} at ${sessionDate.toLocaleTimeString()}\n`;
+                report += `${'-'.repeat(50)}\n`;
+
+                session.sets.forEach((set, setIdx) => {
+                    const sideInfo = set.side ? ` (${set.side} side)` : '';
+                    const manualInfo = set.manualLog ? ' [manually logged]' : '';
+                    report += `  Set ${setIdx + 1}: ${set.reps} reps${sideInfo}${manualInfo}\n`;
+                });
+
+                const totalReps = session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+                report += `  Total: ${session.sets.length} sets, ${totalReps} reps\n`;
+
+                if (session.notes) {
+                    report += `  Notes: "${session.notes}"\n`;
+                }
+
+                report += `\n`;
+            });
+
+            report += `${'='.repeat(50)}\n`;
+            report += `SUMMARY\n`;
+            report += `${'='.repeat(50)}\n`;
+            report += `Total sessions: ${exerciseSessions.length}\n`;
+
+            const allReps = exerciseSessions.flatMap(s => s.sets.map(set => set.reps || 0));
+            const avgReps = allReps.length ? (allReps.reduce((a, b) => a + b, 0) / allReps.length).toFixed(1) : 0;
+            const maxReps = allReps.length ? Math.max(...allReps) : 0;
+            const minReps = allReps.length ? Math.min(...allReps) : 0;
+
+            report += `Average reps per set: ${avgReps}\n`;
+            report += `Best set: ${maxReps} reps\n`;
+            report += `Lowest set: ${minReps} reps\n`;
+
+            const firstSession = exerciseSessions[exerciseSessions.length - 1];
+            const lastSession = exerciseSessions[0];
+            const firstAvg = firstSession.sets.reduce((sum, set) => sum + set.reps, 0) / firstSession.sets.length;
+            const lastAvg = lastSession.sets.reduce((sum, set) => sum + set.reps, 0) / lastSession.sets.length;
+            const improvement = ((lastAvg - firstAvg) / firstAvg * 100).toFixed(1);
+
+            if (exerciseSessions.length > 1) {
+                report += `\nProgress: ${improvement > 0 ? '+' : ''}${improvement}% from first to most recent session\n`;
+            }
+
+            report += `\n${'='.repeat(50)}\n`;
+            report += `END OF REPORT\n`;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(report).then(() => {
+                speak('Report copied');
+                haptic('success');
+                alert('PT report copied to clipboard! You can paste it in a text message or email to your physical therapist.');
+            }).catch(() => {
+                // Fallback: show in a textarea for manual copy
+                const textarea = document.createElement('textarea');
+                textarea.value = report;
+                textarea.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; font-family: monospace; font-size: 12px; padding: 20px;';
+                document.body.appendChild(textarea);
+                textarea.select();
+                alert('Report generated! Copy this text and share with your PT.');
+            });
+        }
+
+        // Weekly Summary for PT - Quick Overview
+        function exportWeeklySummary() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const now = new Date();
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
+
+            if (weekSessions.length === 0) {
+                alert('No sessions this week yet.');
+                return;
+            }
+
+            let summary = `PT WEEKLY SUMMARY\n`;
+            summary += `Week of ${startOfWeek.toLocaleDateString()}\n`;
+            summary += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+
+            summary += `${'='.repeat(40)}\n`;
+            summary += `OVERVIEW\n`;
+            summary += `${'='.repeat(40)}\n`;
+            summary += `Total sessions this week: ${weekSessions.length}\n`;
+
+            // Count unique exercises
+            const uniqueExercises = new Set(weekSessions.map(s => s.exerciseId));
+            summary += `Exercises performed: ${uniqueExercises.size}\n`;
+
+            // Total work
+            const totalSets = weekSessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+            const totalReps = weekSessions.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+            summary += `Total sets: ${totalSets}\n`;
+            summary += `Total reps: ${totalReps}\n\n`;
+
+            // Group by exercise
+            summary += `${'='.repeat(40)}\n`;
+            summary += `EXERCISES THIS WEEK\n`;
+            summary += `${'='.repeat(40)}\n`;
+
+            const exerciseGroups = {};
+            weekSessions.forEach(session => {
+                const exName = session.exerciseName;
+                if (!exerciseGroups[exName]) {
+                    exerciseGroups[exName] = {
+                        sessions: [],
+                        totalSets: 0,
+                        totalReps: 0
+                    };
+                }
+                exerciseGroups[exName].sessions.push(session);
+                exerciseGroups[exName].totalSets += session.sets.length;
+                exerciseGroups[exName].totalReps += session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            });
+
+            Object.keys(exerciseGroups).sort().forEach(exName => {
+                const group = exerciseGroups[exName];
+                summary += `\n${exName}\n`;
+                summary += `  Sessions: ${group.sessions.length}× this week\n`;
+                summary += `  Total: ${group.totalSets} sets, ${group.totalReps} reps\n`;
+
+                // Show dates
+                const dates = group.sessions.map(s => new Date(s.date).toLocaleDateString());
+                summary += `  Dates: ${dates.join(', ')}\n`;
+
+                // Show notes if any
+                const notes = group.sessions.filter(s => s.notes).map(s => s.notes);
+                if (notes.length > 0) {
+                    summary += `  Notes: ${notes.join(' | ')}\n`;
+                }
+            });
+
+            summary += `\n${'='.repeat(40)}\n`;
+            summary += `BODY PARTS WORKED\n`;
+            summary += `${'='.repeat(40)}\n`;
+
+            // Count body parts
+            const bodyParts = {};
+            weekSessions.forEach(session => {
+                const exercise = getLibraryEntryById(session.exerciseId);
+                if (exercise && exercise.tags) {
+                    exercise.tags.forEach(tag => {
+                        bodyParts[tag] = (bodyParts[tag] || 0) + 1;
+                    });
+                }
+            });
+
+            if (Object.keys(bodyParts).length > 0) {
+                Object.keys(bodyParts).sort((a, b) => bodyParts[b] - bodyParts[a]).forEach(part => {
+                    summary += `  ${part}: ${bodyParts[part]}× this week\n`;
+                });
+            } else {
+                summary += `  (No body part tags set)\n`;
+            }
+
+            summary += `\n${'='.repeat(40)}\n`;
+            summary += `END OF WEEKLY SUMMARY\n`;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(summary).then(() => {
+                speak('Summary copied');
+                haptic('success');
+                alert('Weekly summary copied! Share with your PT.');
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = summary;
+                textarea.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; font-family: monospace; font-size: 12px; padding: 20px;';
+                document.body.appendChild(textarea);
+                textarea.select();
+                alert('Weekly summary generated! Copy and share with your PT.');
+            });
+        }
+
+        // PT-Appropriate Progress Tracking (Weekly Sessions, not daily streaks)
+        function calculateWeeklyProgress() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (sessions.length === 0) return { thisWeek: 0, lastWeek: 0, totalWeeks: 0 };
+
+            const now = new Date();
+            const startOfThisWeek = new Date(now);
+            startOfThisWeek.setDate(now.getDate() - now.getDay()); // Sunday
+            startOfThisWeek.setHours(0, 0, 0, 0);
+
+            const startOfLastWeek = new Date(startOfThisWeek);
+            startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+            const thisWeekSessions = sessions.filter(s => new Date(s.date) >= startOfThisWeek);
+            const lastWeekSessions = sessions.filter(s => {
+                const date = new Date(s.date);
+                return date >= startOfLastWeek && date < startOfThisWeek;
+            });
+
+            // Count unique workout weeks
+            const uniqueWeeks = new Set();
+            sessions.forEach(s => {
+                const date = new Date(s.date);
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay());
+                uniqueWeeks.add(weekStart.toDateString());
+            });
+
+            return {
+                thisWeek: thisWeekSessions.length,
+                lastWeek: lastWeekSessions.length,
+                totalWeeks: uniqueWeeks.size
+            };
+        }
+
+        function updateStreakDisplay() {
+            const { thisWeek, lastWeek, totalWeeks } = calculateWeeklyProgress();
+            const display = document.getElementById('streak-display');
+
+            if (thisWeek > 0) {
+                display.textContent = `${thisWeek} session${thisWeek > 1 ? 's' : ''} this week`;
+                if (thisWeek >= 3) display.textContent += ' 💪';
+            } else if (lastWeek > 0) {
+                display.textContent = `${lastWeek} last week`;
+            } else if (totalWeeks > 0) {
+                display.textContent = `${totalWeeks} week${totalWeeks > 1 ? 's' : ''} tracked`;
+            } else {
+                display.textContent = '';
+            }
+        }
+
+        // Body Heatmap - Shows which body parts worked recently
+        const BODY_PART_COORDS = {
+            neck: { top: '8%', left: '40%', width: '20%', height: '8%' },
+            shoulder: { top: '16%', left: '20%', width: '60%', height: '10%' },
+            arm: { top: '18%', left: '10%', width: '15%', height: '18%' },
+            core: { top: '28%', left: '35%', width: '30%', height: '16%' },
+            back: { top: '17%', left: '35%', width: '30%', height: '20%' },
+            hip: { top: '38%', left: '32%', width: '36%', height: '12%' },
+            glute: { top: '44%', left: '32%', width: '36%', height: '10%' },
+            leg: { top: '50%', left: '30%', width: '18%', height: '25%' },
+            knee: { top: '62%', left: '30%', width: '18%', height: '10%' },
+            ankle: { top: '88%', left: '30%', width: '18%', height: '8%' },
+            wrist: { top: '34%', left: '8%', width: '12%', height: '6%' },
+            elbow: { top: '28%', left: '8%', width: '12%', height: '6%' }
+        };
+
+        function getBodyPartHeatLevel(sessions, bodyPart) {
+            // Count sessions in last 7 days that worked this body part
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            const recentSessions = sessions.filter(s => new Date(s.date).getTime() > sevenDaysAgo);
+
+            let count = 0;
+            recentSessions.forEach(session => {
+                const exercise = getLibraryEntryById(session.exerciseId);
+                if (!exercise) return;
+
+                // Check tags
+                if (exercise.tags && exercise.tags.includes(bodyPart)) count++;
+
+                // Check anatomic regions
+                if (exercise.anatomicRegions && exercise.anatomicRegions.toLowerCase().includes(bodyPart)) count++;
+            });
+
+            if (count === 0) return 'heat-none';
+            if (count <= 2) return 'heat-low';
+            if (count <= 4) return 'heat-medium';
+            if (count <= 6) return 'heat-high';
+            return 'heat-very-high';
+        }
+
+        function showBodyHeatmap() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const diagram = document.getElementById('body-diagram');
+
+            // Clear previous overlays
+            diagram.innerHTML = '';
+
+            // Add overlays for each body part
+            Object.keys(BODY_PART_COORDS).forEach(part => {
+                const coords = BODY_PART_COORDS[part];
+                const heatLevel = getBodyPartHeatLevel(sessions, part);
+
+                const overlay = document.createElement('div');
+                overlay.className = `body-part-overlay ${heatLevel}`;
+                overlay.style.top = coords.top;
+                overlay.style.left = coords.left;
+                overlay.style.width = coords.width;
+                overlay.style.height = coords.height;
+                overlay.textContent = part === 'leg' ? 'leg' : '';
+                overlay.onclick = () => showBodyPartDetails(part, sessions);
+
+                diagram.appendChild(overlay);
+            });
+
+            document.getElementById('body-heatmap-modal').classList.add('active');
+            document.getElementById('body-part-details').innerHTML = '';
+            haptic('light');
+        }
+
+        function closeBodyHeatmap() {
+            document.getElementById('body-heatmap-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function showBodyPartDetails(bodyPart, sessions) {
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            const recentSessions = sessions.filter(s => new Date(s.date).getTime() > sevenDaysAgo);
+
+            const relevantExercises = [];
+            recentSessions.forEach(session => {
+                const exercise = getLibraryEntryById(session.exerciseId);
+                if (!exercise) return;
+
+                const matchesTags = exercise.tags && exercise.tags.includes(bodyPart);
+                const matchesRegions = exercise.anatomicRegions && exercise.anatomicRegions.toLowerCase().includes(bodyPart);
+
+                if (matchesTags || matchesRegions) {
+                    const existing = relevantExercises.find(e => e.id === exercise.id);
+                    if (existing) {
+                        existing.count++;
+                        existing.lastDate = new Date(Math.max(new Date(existing.lastDate), new Date(session.date)));
+                    } else {
+                        relevantExercises.push({
+                            id: exercise.id,
+                            name: exercise.name,
+                            count: 1,
+                            lastDate: new Date(session.date)
+                        });
+                    }
+                }
+            });
+
+            const detailsDiv = document.getElementById('body-part-details');
+
+            if (relevantExercises.length === 0) {
+                detailsDiv.innerHTML = `
+                    <div class="history-list">
+                        <div class="history-item">
+                            <strong>${bodyPart.toUpperCase()}</strong>
+                            <div class="history-meta">No exercises in last 7 days</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                detailsDiv.innerHTML = `
+                    <div class="history-list">
+                        <div class="history-item">
+                            <strong>${bodyPart.toUpperCase()}</strong>
+                            <div style="margin-top: 8px;">
+                                ${relevantExercises.map(ex => `
+                                    <div style="font-size: 14px; padding: 4px 0;">
+                                        ${ex.name} <span class="pill">${ex.count}× this week</span>
+                                        <div style="font-size: 11px; color: #888;">Last: ${ex.lastDate.toLocaleDateString()}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            haptic('light');
+        }
+
+        // Quick Exercise Switcher
+        function showQuickSwitcher() {
+            const container = document.getElementById('quick-switcher-list');
+            const activeExercises = exerciseLibrary.filter(ex => !ex.archived && (ex.favorite || ex.id === currentExercise.id));
+
+            if (activeExercises.length <= 1) {
+                // Show full exercise list if only one active
+                showExerciseList();
+                return;
+            }
+
+            container.innerHTML = activeExercises.map(ex => {
+                const isCurrent = ex.id === currentExercise.id;
+                return `
+                    <div class="history-item" style="cursor: pointer; background: ${isCurrent ? 'rgba(0,122,255,0.1)' : 'white'};" onclick="quickSwitchTo('${ex.id}')">
+                        <div>${isCurrent ? '▶ ' : ''}${ex.name}${ex.favorite ? ' ⭐' : ''}</div>
+                        <div class="history-meta">${describeSpec(ex.current || {})}</div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('quick-switcher-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeQuickSwitcher() {
+            document.getElementById('quick-switcher-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function quickSwitchTo(exerciseId) {
+            if (exerciseId === currentExercise.id) {
+                closeQuickSwitcher();
+                return;
+            }
+
+            // Save current progress before switching
+            saveSessionRecovery();
+
+            const entry = getLibraryEntryById(exerciseId);
+            currentExercise = toSessionExercise(entry);
+            seedTimerSeconds();
+            stopTimer();
+            updateDisplay();
+            closeQuickSwitcher();
+            haptic('success');
+            speak(`Switched to ${entry.name}`);
+        }
+
         // Initialize
         updateDisplay();
+        updateStreakDisplay();
+        setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
     </script>
 </body>
 </html>
