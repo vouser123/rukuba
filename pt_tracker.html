@@ -532,7 +532,10 @@
 <body>
     <div class="header">
         <h1>💪 PT Exercise Tracker</h1>
-        <div class="exercise-name" id="exercise-name">Goblet Squat</div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="exercise-name" id="exercise-name">Goblet Squat</div>
+            <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
+        </div>
     </div>
 
     <!-- Counter View -->
@@ -566,7 +569,7 @@
 
         <div class="controls" id="main-controls">
             <button class="control-btn btn-secondary" onclick="previousSet()">Previous</button>
-            <button class="control-btn btn-primary" onclick="skipSet()">Skip Set</button>
+            <button class="control-btn btn-primary" onclick="showLogSetModal()">Log Set</button>
             <button class="control-btn btn-success" onclick="completeSet()">Complete Set</button>
         </div>
     </div>
@@ -644,6 +647,16 @@
                 <input type="number" class="modal-input" id="new-reps" placeholder="Reps per set (e.g., 10)" value="10">
                 <input type="number" class="modal-input" id="new-seconds" placeholder="Seconds (for timed)" value="">
                 <div id="tag-selector-container" style="margin: 12px 0;"></div>
+
+                <!-- ATLAS Features -->
+                <div style="margin: 12px 0;">
+                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer;">
+                        <input type="checkbox" id="bilateral-checkbox" style="margin-right: 8px;">
+                        <span>Bilateral (both sides together)</span>
+                    </label>
+                </div>
+                <div id="side-options-container" style="margin: 12px 0;"></div>
+                <input type="text" class="modal-input" id="supersedes-input" placeholder="Supersedes (e.g., ex_basic_squats_01)">
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeAddExerciseModal()">Cancel</button>
@@ -663,6 +676,64 @@
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="saveSessionWithNotes('')">Skip</button>
                 <button class="modal-save" onclick="saveSessionWithNotes(document.getElementById('session-notes').value)">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Set Modal -->
+    <div class="modal" id="log-set-modal" onclick="if(event.target === this) closeLogSetModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="log-set-title">Log Set</div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--ios-gray); margin-bottom: 12px; text-align: center;" id="log-set-subtitle">
+                    Enter actual reps performed
+                </div>
+                <input type="number" class="modal-input" id="log-set-reps" placeholder="Reps performed" min="0">
+                <div id="log-set-side-selector" style="margin: 12px 0;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeLogSetModal()">Cancel</button>
+                <button class="modal-save" onclick="saveLoggedSet()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise Details Modal -->
+    <div class="modal" id="exercise-details-modal" onclick="if(event.target === this) closeExerciseDetailsModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="exercise-details-title">Exercise Details</div>
+            <div class="modal-form">
+                <textarea class="modal-input" id="exercise-description" placeholder="Description (what is this exercise?)" style="min-height: 60px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="exercise-tips" placeholder="Execution tips (form, alignment, cues)" style="min-height: 80px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="exercise-feel" placeholder="Where to feel (target muscles)" style="min-height: 50px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="exercise-not-feel" placeholder="Where NOT to feel (avoid strain)" style="min-height: 50px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="exercise-modifications" placeholder="Modifications (easier/harder variations)" style="min-height: 60px; resize: vertical;"></textarea>
+                <input type="number" class="modal-input" id="exercise-rest-seconds" placeholder="Rest between sets (seconds, optional)" min="0">
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeExerciseDetailsModal()">Cancel</button>
+                <button class="modal-save" onclick="saveExerciseDetails()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rest Timer Modal -->
+    <div class="modal" id="rest-timer-modal">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Rest Timer</div>
+            <div class="modal-form">
+                <div style="text-align: center; font-size: 48px; font-weight: 700; color: var(--ios-blue); margin: 20px 0;" id="rest-countdown">60</div>
+                <div style="text-align: center; font-size: 15px; color: var(--ios-gray); margin-bottom: 20px;">Rest between sets</div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="rest-progress-bar"></div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="skipRest()">Skip Rest</button>
+                <button class="modal-save" onclick="closeRestTimer()">Continue</button>
             </div>
         </div>
     </div>
@@ -849,6 +920,9 @@
         let editingExerciseId = null;
         let selectedTags = [];
         let filterTags = [];
+        let selectedSideOptions = [];
+
+        const SIDE_OPTIONS_AVAILABLE = ['left', 'right', 'both'];
 
         // Audio for timer
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1320,6 +1394,13 @@
                 seedTimerSeconds();
                 stopTimer();
                 updateDisplay();
+
+                // Show rest timer if rest time is recommended
+                const entry = getLibraryEntryById(currentExercise.id);
+                const restSeconds = entry.details?.restSeconds;
+                if (restSeconds && restSeconds > 0) {
+                    showRestTimer(restSeconds);
+                }
             } else {
                 speak('All sets complete');
                 showSessionNotesModal();
@@ -1345,20 +1426,82 @@
             }
         }
 
-        function skipSet() {
-            // Log set as complete with target reps (assumes you did it manually)
-            const targetReps = currentExercise.repsPerSet || 0;
+        let logSetSide = 'both'; // Track which side for unilateral exercises
 
-            currentExercise.sessionData.push({
+        function showLogSetModal() {
+            const targetReps = currentExercise.repsPerSet || 0;
+            document.getElementById('log-set-title').textContent = `Log Set ${currentExercise.currentSet}`;
+            document.getElementById('log-set-subtitle').textContent = `Target: ${targetReps} reps · Enter actual reps performed`;
+            document.getElementById('log-set-reps').value = targetReps;
+
+            // Show side selector for unilateral exercises
+            const entry = getLibraryEntryById(currentExercise.id);
+            const isBilateral = entry.bilateral === true;
+            const sideOptions = entry.sideOptions || [];
+
+            const sideContainer = document.getElementById('log-set-side-selector');
+            if (sideOptions.length > 0 && !isBilateral) {
+                logSetSide = sideOptions[0] || 'left';
+                sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side:</div>' +
+                    sideOptions.map(side => {
+                        return `<span class="pill" style="cursor: pointer; background: ${logSetSide === side ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === side ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${side}')">${side}</span>`;
+                    }).join(' ');
+            } else {
+                sideContainer.innerHTML = '';
+                logSetSide = 'both';
+            }
+
+            document.getElementById('log-set-modal').classList.add('active');
+            haptic('light');
+
+            // Auto-focus the input
+            setTimeout(() => {
+                document.getElementById('log-set-reps').focus();
+                document.getElementById('log-set-reps').select();
+            }, 300);
+        }
+
+        function selectLogSetSide(side) {
+            logSetSide = side;
+            const sideOptions = getLibraryEntryById(currentExercise.id).sideOptions || [];
+            const sideContainer = document.getElementById('log-set-side-selector');
+            sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side:</div>' +
+                sideOptions.map(s => {
+                    return `<span class="pill" style="cursor: pointer; background: ${logSetSide === s ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === s ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${s}')">${s}</span>`;
+                }).join(' ');
+        }
+
+        function closeLogSetModal() {
+            document.getElementById('log-set-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function saveLoggedSet() {
+            const reps = parseInt(document.getElementById('log-set-reps').value);
+
+            if (isNaN(reps) || reps < 0) {
+                alert('Please enter a valid number of reps (0 or more).');
+                return;
+            }
+
+            const setData = {
                 set: currentExercise.currentSet,
-                reps: targetReps,
+                reps: reps,
                 type: currentExercise.type,
                 timestamp: new Date().toISOString(),
-                skipped: true // Mark that this was manually logged
-            });
+                manualLog: true
+            };
 
-            haptic('medium');
-            speak(`Set ${currentExercise.currentSet} skipped`);
+            // Add side if applicable
+            if (logSetSide && logSetSide !== 'both') {
+                setData.side = logSetSide;
+            }
+
+            currentExercise.sessionData.push(setData);
+
+            closeLogSetModal();
+            haptic('success');
+            speak(`Set ${currentExercise.currentSet} logged: ${reps} reps`);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -1651,12 +1794,15 @@
                 const spec = ex.current || {};
                 const tags = ex.tags || [];
                 const tagHtml = tags.length ? tags.map(t => `<span class="pill">${t}</span>`).join('') : '';
+                const hasDetails = ex.details && (ex.details.description || ex.details.executionTips);
+                const detailsIndicator = hasDetails ? ' 📋' : '';
                 return `
                     <div class="history-item" style="cursor: pointer;">
-                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}</div>
+                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}</div>
                         ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
                         <div class="history-meta">${describeSpec(spec)}</div>
                         <div style="margin-top: 8px; display: flex; gap: 8px;">
+                            <button class="control-btn btn-secondary" onclick="showExerciseDetailsModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
                             <button class="control-btn btn-secondary" onclick="editExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Edit</button>
                             <button class="control-btn btn-danger" onclick="deleteExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Delete</button>
                         </div>
@@ -1678,13 +1824,17 @@
         function showAddExerciseModal() {
             editingExerciseId = null;
             selectedTags = [];
+            selectedSideOptions = [];
             document.getElementById('add-exercise-title').textContent = 'Add Exercise';
             document.getElementById('new-exercise-name').value = '';
             document.getElementById('new-exercise-type').value = 'reps';
             document.getElementById('new-sets').value = '3';
             document.getElementById('new-reps').value = '10';
             document.getElementById('new-seconds').value = '';
+            document.getElementById('bilateral-checkbox').checked = false;
+            document.getElementById('supersedes-input').value = '';
             renderTagSelector();
+            renderSideOptionsSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
             haptic('light');
         }
@@ -1712,12 +1862,48 @@
             renderTagSelector();
         }
 
+        function renderSideOptionsSelector() {
+            const container = document.getElementById('side-options-container');
+            const isBilateral = document.getElementById('bilateral-checkbox').checked;
+
+            if (isBilateral) {
+                container.innerHTML = '';
+                selectedSideOptions = [];
+                return;
+            }
+
+            container.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side options (for unilateral):</div>' +
+                SIDE_OPTIONS_AVAILABLE.map(side => {
+                    const active = selectedSideOptions.includes(side);
+                    return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleSideOption('${side}')">${side}</span>`;
+                }).join(' ');
+        }
+
+        function toggleSideOption(side) {
+            if (selectedSideOptions.includes(side)) {
+                selectedSideOptions = selectedSideOptions.filter(s => s !== side);
+            } else {
+                selectedSideOptions.push(side);
+            }
+            renderSideOptionsSelector();
+        }
+
+        // Update bilateral checkbox listener
+        document.addEventListener('DOMContentLoaded', () => {
+            const bilateralCheckbox = document.getElementById('bilateral-checkbox');
+            if (bilateralCheckbox) {
+                bilateralCheckbox.addEventListener('change', renderSideOptionsSelector);
+            }
+        });
+
         function saveNewExercise() {
             const name = document.getElementById('new-exercise-name').value.trim();
             const type = document.getElementById('new-exercise-type').value;
             const sets = parseInt(document.getElementById('new-sets').value);
             const reps = parseInt(document.getElementById('new-reps').value);
             const seconds = parseInt(document.getElementById('new-seconds').value);
+            const isBilateral = document.getElementById('bilateral-checkbox').checked;
+            const supersedesValue = document.getElementById('supersedes-input').value.trim();
 
             if (!name) {
                 alert('Please enter an exercise name.');
@@ -1736,11 +1922,16 @@
                 secondsPerRep: seconds || 0
             };
 
+            const supersedes = supersedesValue ? supersedesValue.split(',').map(s => s.trim()).filter(Boolean) : [];
+
             if (editingExerciseId) {
                 // Edit existing
                 const entry = getLibraryEntryById(editingExerciseId);
                 entry.name = name;
                 entry.tags = selectedTags;
+                entry.bilateral = isBilateral;
+                entry.sideOptions = isBilateral ? [] : selectedSideOptions;
+                entry.supersedes = supersedes;
                 recordRevision(entry, spec, 'Manual edit');
             } else {
                 // Add new
@@ -1749,13 +1940,16 @@
                     id: newId,
                     name: name,
                     tags: selectedTags,
+                    bilateral: isBilateral,
+                    sideOptions: isBilateral ? [] : selectedSideOptions,
+                    supersedes: supersedes,
                     current: spec,
                     history: [{
                         timestamp: new Date().toISOString(),
                         summary: 'Exercise created',
                         previous: null,
                         next: spec,
-                        supersedes: []
+                        supersedes: supersedes
                     }]
                 };
                 exerciseLibrary.push(newEntry);
@@ -1779,8 +1973,12 @@
             document.getElementById('new-sets').value = spec.sets || 3;
             document.getElementById('new-reps').value = spec.repsPerSet || 10;
             document.getElementById('new-seconds').value = spec.secondsPerRep || '';
+            document.getElementById('bilateral-checkbox').checked = entry.bilateral || false;
+            document.getElementById('supersedes-input').value = (entry.supersedes || []).join(', ');
             selectedTags = entry.tags || [];
+            selectedSideOptions = entry.sideOptions || [];
             renderTagSelector();
+            renderSideOptionsSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
             haptic('light');
         }
@@ -1796,8 +1994,168 @@
             });
         }
 
+        // Exercise Details Modal
+        let editingDetailsExerciseId = null;
+
+        function showExerciseDetailsModal(exerciseId = null) {
+            editingDetailsExerciseId = exerciseId || currentExercise.id;
+            const entry = getLibraryEntryById(editingDetailsExerciseId);
+            const details = entry.details || {};
+
+            document.getElementById('exercise-details-title').textContent = entry.name;
+            document.getElementById('exercise-description').value = details.description || '';
+            document.getElementById('exercise-tips').value = details.executionTips || '';
+            document.getElementById('exercise-feel').value = details.shouldFeel || '';
+            document.getElementById('exercise-not-feel').value = details.shouldNotFeel || '';
+            document.getElementById('exercise-modifications').value = details.modifications || '';
+            document.getElementById('exercise-rest-seconds').value = details.restSeconds || '';
+
+            document.getElementById('exercise-details-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeExerciseDetailsModal() {
+            document.getElementById('exercise-details-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function saveExerciseDetails() {
+            const entry = getLibraryEntryById(editingDetailsExerciseId);
+            const details = {
+                description: document.getElementById('exercise-description').value.trim(),
+                executionTips: document.getElementById('exercise-tips').value.trim(),
+                shouldFeel: document.getElementById('exercise-feel').value.trim(),
+                shouldNotFeel: document.getElementById('exercise-not-feel').value.trim(),
+                modifications: document.getElementById('exercise-modifications').value.trim(),
+                restSeconds: parseInt(document.getElementById('exercise-rest-seconds').value) || null
+            };
+
+            entry.details = details;
+            persistExerciseLibrary();
+            exerciseLibrary = loadExerciseLibrary();
+
+            closeExerciseDetailsModal();
+            haptic('success');
+        }
+
+        // Rest Timer
+        let restTimerInterval = null;
+        let restSecondsRemaining = 0;
+        let restSecondsTotal = 0;
+
+        function showRestTimer(seconds) {
+            restSecondsTotal = seconds;
+            restSecondsRemaining = seconds;
+            document.getElementById('rest-countdown').textContent = restSecondsRemaining;
+            document.getElementById('rest-progress-bar').style.width = '100%';
+            document.getElementById('rest-timer-modal').classList.add('active');
+            haptic('light');
+
+            restTimerInterval = setInterval(() => {
+                restSecondsRemaining--;
+                document.getElementById('rest-countdown').textContent = restSecondsRemaining;
+                const progress = (restSecondsRemaining / restSecondsTotal) * 100;
+                document.getElementById('rest-progress-bar').style.width = progress + '%';
+
+                // Countdown beeps
+                if (restSecondsRemaining <= 3 && restSecondsRemaining > 0) {
+                    playBeep(500, 100);
+                    haptic('light');
+                }
+
+                if (restSecondsRemaining <= 0) {
+                    clearInterval(restTimerInterval);
+                    restTimerInterval = null;
+                    playCompletionSound();
+                    haptic('success');
+                    speak('Rest complete');
+                    closeRestTimer();
+                }
+            }, 1000);
+        }
+
+        function closeRestTimer() {
+            if (restTimerInterval) {
+                clearInterval(restTimerInterval);
+                restTimerInterval = null;
+            }
+            document.getElementById('rest-timer-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function skipRest() {
+            if (restTimerInterval) {
+                clearInterval(restTimerInterval);
+                restTimerInterval = null;
+            }
+            closeRestTimer();
+            haptic('medium');
+        }
+
+        // Session Recovery
+        const RECOVERY_KEY = 'pt_session_recovery';
+
+        function saveSessionRecovery() {
+            if (currentExercise.sessionData.length > 0 || currentExercise.currentSet > 1 || currentExercise.currentRep > 0) {
+                const recovery = {
+                    exerciseId: currentExercise.id,
+                    exerciseName: currentExercise.name,
+                    currentSet: currentExercise.currentSet,
+                    currentRep: currentExercise.currentRep,
+                    sessionData: currentExercise.sessionData,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem(RECOVERY_KEY, JSON.stringify(recovery));
+            } else {
+                localStorage.removeItem(RECOVERY_KEY);
+            }
+        }
+
+        function checkSessionRecovery() {
+            const recoveryData = localStorage.getItem(RECOVERY_KEY);
+            if (!recoveryData) return;
+
+            try {
+                const recovery = JSON.parse(recoveryData);
+                const timeDiff = Date.now() - new Date(recovery.timestamp).getTime();
+                const hoursSince = timeDiff / (1000 * 60 * 60);
+
+                // Only offer recovery if less than 24 hours old
+                if (hoursSince < 24 && recovery.sessionData.length > 0) {
+                    showActionSheet(
+                        `Recover incomplete session for "${recovery.exerciseName}"? (${recovery.sessionData.length} sets completed)`,
+                        () => {
+                            const entry = getLibraryEntryById(recovery.exerciseId);
+                            if (entry) {
+                                currentExercise = toSessionExercise(entry);
+                                currentExercise.currentSet = recovery.currentSet;
+                                currentExercise.currentRep = recovery.currentRep;
+                                currentExercise.sessionData = recovery.sessionData;
+                                seedTimerSeconds();
+                                updateDisplay();
+                                haptic('success');
+                                speak(`Recovered session: Set ${recovery.currentSet}`);
+                            } else {
+                                localStorage.removeItem(RECOVERY_KEY);
+                            }
+                        }
+                    );
+                } else {
+                    localStorage.removeItem(RECOVERY_KEY);
+                }
+            } catch (e) {
+                console.warn('Failed to parse recovery data:', e);
+                localStorage.removeItem(RECOVERY_KEY);
+            }
+        }
+
+        // Auto-save recovery every time session data changes
+        window.addEventListener('beforeunload', saveSessionRecovery);
+        setInterval(saveSessionRecovery, 5000); // Save every 5 seconds
+
         // Initialize
         updateDisplay();
+        setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
     </script>
 </body>
 </html>
