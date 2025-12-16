@@ -611,6 +611,62 @@
         </div>
     </div>
 
+    <!-- Exercise List Modal -->
+    <div class="modal" id="exercise-list-modal" onclick="if(event.target === this) closeExerciseList()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">My Exercises</div>
+            <div class="modal-form">
+                <input type="text" class="modal-input" id="exercise-search" placeholder="Search exercises..." oninput="filterExercises()">
+                <div id="tag-filter-container" style="margin-bottom: 12px;"></div>
+                <div class="history-list" id="exercise-list-content"></div>
+                <button class="control-btn btn-success" onclick="showAddExerciseModal()" style="width: 100%; margin-top: 12px;">+ Add New Exercise</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Exercise Modal -->
+    <div class="modal" id="add-exercise-modal" onclick="if(event.target === this) closeAddExerciseModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="add-exercise-title">Add Exercise</div>
+            <div class="modal-form">
+                <input type="text" class="modal-input" id="new-exercise-name" placeholder="Exercise name">
+                <select class="modal-select" id="new-exercise-type">
+                    <option value="reps">Rep-based</option>
+                    <option value="timed">Timed Reps</option>
+                    <option value="hold">Hold</option>
+                    <option value="duration">Duration</option>
+                    <option value="amrap">AMRAP</option>
+                    <option value="distance">Distance</option>
+                </select>
+                <input type="number" class="modal-input" id="new-sets" placeholder="Sets (e.g., 3)" value="3">
+                <input type="number" class="modal-input" id="new-reps" placeholder="Reps per set (e.g., 10)" value="10">
+                <input type="number" class="modal-input" id="new-seconds" placeholder="Seconds (for timed)" value="">
+                <div id="tag-selector-container" style="margin: 12px 0;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeAddExerciseModal()">Cancel</button>
+                <button class="modal-save" onclick="saveNewExercise()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Notes Modal -->
+    <div class="modal" id="session-notes-modal" onclick="if(event.target === this) closeSessionNotesModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Session Notes (Optional)</div>
+            <div class="modal-form">
+                <textarea class="modal-input" id="session-notes" placeholder="How did it feel? Any pain? Progress notes..." style="min-height: 100px; resize: vertical;"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="saveSessionWithNotes('')">Skip</button>
+                <button class="modal-save" onclick="saveSessionWithNotes(document.getElementById('session-notes').value)">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- History Modal -->
     <div class="modal" id="history-modal" onclick="if(event.target === this) closeHistoryModal()">
         <div class="modal-content">
@@ -788,8 +844,25 @@
         const TIMER_TYPES = ['timed', 'hold', 'duration'];
         const COUNTER_TYPES = ['reps', 'amrap', 'distance'];
 
+        const AVAILABLE_TAGS = ['knee', 'back', 'ankle', 'hip', 'shoulder', 'core', 'arm', 'leg', 'glute', 'neck', 'wrist', 'elbow'];
+
+        let editingExerciseId = null;
+        let selectedTags = [];
+        let filterTags = [];
+
         // Audio for timer
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Speech synthesis for voice announcements
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                speechSynthesis.speak(utterance);
+            }
+        }
 
         function loadExerciseLibrary() {
             const stored = localStorage.getItem(LIBRARY_KEY);
@@ -1035,10 +1108,18 @@
             currentExercise.currentRep++;
             haptic('light');
 
-            // Check if target reached
-            if (currentExercise.repsPerSet && currentExercise.currentRep >= currentExercise.repsPerSet && currentExercise.type !== 'amrap') {
-                playCompletionSound();
-                haptic('success');
+            const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
+
+            // Voice announcements at milestones
+            if (currentExercise.repsPerSet && currentExercise.type !== 'amrap') {
+                if (repsLeft === 5) speak('5 reps left');
+                else if (repsLeft === 3) speak('3 reps left');
+                else if (repsLeft === 1) speak('Last rep');
+                else if (repsLeft === 0) {
+                    playCompletionSound();
+                    haptic('success');
+                    speak('Set complete');
+                }
             }
 
             updateDisplay();
@@ -1170,6 +1251,11 @@
 
                     currentExercise.currentRep++;
 
+                    const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
+                    if (repsLeft === 0) speak('Set complete');
+                    else if (repsLeft === 1) speak('Last rep');
+                    else speak(`${repsLeft} reps left`);
+
                     // Auto-complete holds/durations when rep target is reached
                     if (currentExercise.type !== 'timed' && currentExercise.repsPerSet && currentExercise.currentRep >= currentExercise.repsPerSet) {
                         updateDisplay();
@@ -1226,6 +1312,7 @@
             });
 
             haptic('success');
+            speak(`Set ${currentExercise.currentSet} complete`);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -1234,9 +1321,8 @@
                 stopTimer();
                 updateDisplay();
             } else {
-                showActionSheet('Exercise complete! Save this session?', () => {
-                    saveSession();
-                });
+                speak('All sets complete');
+                showSessionNotesModal();
             }
         }
 
@@ -1255,7 +1341,7 @@
                 stopTimer();
                 updateDisplay();
             } else {
-                saveSession();
+                showSessionNotesModal();
             }
         }
 
@@ -1272,6 +1358,7 @@
             });
 
             haptic('medium');
+            speak(`Set ${currentExercise.currentSet} skipped`);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -1280,9 +1367,8 @@
                 stopTimer();
                 updateDisplay();
             } else {
-                showActionSheet('Exercise complete! Save this session?', () => {
-                    saveSession();
-                });
+                speak('All sets complete');
+                showSessionNotesModal();
             }
         }
 
@@ -1297,13 +1383,25 @@
             }
         }
 
-        function saveSession() {
+        function showSessionNotesModal() {
+            document.getElementById('session-notes').value = '';
+            document.getElementById('session-notes-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeSessionNotesModal() {
+            document.getElementById('session-notes-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function saveSessionWithNotes(notes) {
             const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             sessions.push({
                 exerciseId: currentExercise.id,
                 exerciseName: currentExercise.name,
                 exerciseType: currentExercise.type,
                 date: new Date().toISOString(),
+                notes: notes.trim(),
                 exerciseSpec: {
                     sets: currentExercise.sets,
                     repsPerSet: currentExercise.repsPerSet,
@@ -1315,6 +1413,7 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 
             haptic('success');
+            closeSessionNotesModal();
 
             // Reset for new session
             currentExercise.currentSet = 1;
@@ -1483,15 +1582,218 @@
                         const sessionLabel = session.exerciseType === 'timed'
                             ? `${session.sets?.length || 0} sets · ${session.exerciseType} · ${totalReps} reps`
                             : `${session.sets?.length || 0} sets · ${totalReps} reps`;
+                        const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: #555;">"${session.notes}"</div>` : '';
                         return `
                             <div class="history-item">
                                 <div>${session.exerciseName}</div>
                                 <div class="history-meta">${new Date(session.date).toLocaleString()} · ${sessionLabel}</div>
+                                ${notesHtml}
                             </div>
                         `;
                     })
                     .join('');
             }
+        }
+
+        // Exercise List Management
+        function showExerciseList() {
+            renderExerciseList();
+            renderTagFilters();
+            document.getElementById('exercise-list-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeExerciseList() {
+            document.getElementById('exercise-list-modal').classList.remove('active');
+            document.getElementById('exercise-search').value = '';
+            filterTags = [];
+            haptic('light');
+        }
+
+        function renderTagFilters() {
+            const container = document.getElementById('tag-filter-container');
+            container.innerHTML = AVAILABLE_TAGS.map(tag => {
+                const active = filterTags.includes(tag);
+                return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleFilterTag('${tag}')">${tag}</span>`;
+            }).join(' ');
+        }
+
+        function toggleFilterTag(tag) {
+            if (filterTags.includes(tag)) {
+                filterTags = filterTags.filter(t => t !== tag);
+            } else {
+                filterTags.push(tag);
+            }
+            renderTagFilters();
+            filterExercises();
+        }
+
+        function filterExercises() {
+            const searchTerm = document.getElementById('exercise-search').value.toLowerCase();
+            const filtered = exerciseLibrary.filter(ex => {
+                const matchesSearch = !searchTerm || ex.name.toLowerCase().includes(searchTerm);
+                const matchesTags = filterTags.length === 0 || (ex.tags && filterTags.some(tag => ex.tags.includes(tag)));
+                return matchesSearch && matchesTags;
+            });
+            renderExerciseList(filtered);
+        }
+
+        function renderExerciseList(filteredLibrary = null) {
+            const list = filteredLibrary || exerciseLibrary;
+            const container = document.getElementById('exercise-list-content');
+
+            if (list.length === 0) {
+                container.innerHTML = '<div class="history-item">No exercises found.</div>';
+                return;
+            }
+
+            container.innerHTML = list.map(ex => {
+                const spec = ex.current || {};
+                const tags = ex.tags || [];
+                const tagHtml = tags.length ? tags.map(t => `<span class="pill">${t}</span>`).join('') : '';
+                return `
+                    <div class="history-item" style="cursor: pointer;">
+                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}</div>
+                        ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
+                        <div class="history-meta">${describeSpec(spec)}</div>
+                        <div style="margin-top: 8px; display: flex; gap: 8px;">
+                            <button class="control-btn btn-secondary" onclick="editExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Edit</button>
+                            <button class="control-btn btn-danger" onclick="deleteExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectExerciseFromList(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            currentExercise = toSessionExercise(entry);
+            seedTimerSeconds();
+            stopTimer();
+            updateDisplay();
+            closeExerciseList();
+            haptic('success');
+        }
+
+        function showAddExerciseModal() {
+            editingExerciseId = null;
+            selectedTags = [];
+            document.getElementById('add-exercise-title').textContent = 'Add Exercise';
+            document.getElementById('new-exercise-name').value = '';
+            document.getElementById('new-exercise-type').value = 'reps';
+            document.getElementById('new-sets').value = '3';
+            document.getElementById('new-reps').value = '10';
+            document.getElementById('new-seconds').value = '';
+            renderTagSelector();
+            document.getElementById('add-exercise-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeAddExerciseModal() {
+            document.getElementById('add-exercise-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function renderTagSelector() {
+            const container = document.getElementById('tag-selector-container');
+            container.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Tags (body parts):</div>' +
+                AVAILABLE_TAGS.map(tag => {
+                    const active = selectedTags.includes(tag);
+                    return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleTag('${tag}')">${tag}</span>`;
+                }).join(' ');
+        }
+
+        function toggleTag(tag) {
+            if (selectedTags.includes(tag)) {
+                selectedTags = selectedTags.filter(t => t !== tag);
+            } else {
+                selectedTags.push(tag);
+            }
+            renderTagSelector();
+        }
+
+        function saveNewExercise() {
+            const name = document.getElementById('new-exercise-name').value.trim();
+            const type = document.getElementById('new-exercise-type').value;
+            const sets = parseInt(document.getElementById('new-sets').value);
+            const reps = parseInt(document.getElementById('new-reps').value);
+            const seconds = parseInt(document.getElementById('new-seconds').value);
+
+            if (!name) {
+                alert('Please enter an exercise name.');
+                return;
+            }
+
+            if (!sets || sets <= 0) {
+                alert('Please enter a valid number of sets.');
+                return;
+            }
+
+            const spec = {
+                type: type,
+                sets: sets,
+                repsPerSet: reps || 0,
+                secondsPerRep: seconds || 0
+            };
+
+            if (editingExerciseId) {
+                // Edit existing
+                const entry = getLibraryEntryById(editingExerciseId);
+                entry.name = name;
+                entry.tags = selectedTags;
+                recordRevision(entry, spec, 'Manual edit');
+            } else {
+                // Add new
+                const newId = 'ex_' + Date.now();
+                const newEntry = {
+                    id: newId,
+                    name: name,
+                    tags: selectedTags,
+                    current: spec,
+                    history: [{
+                        timestamp: new Date().toISOString(),
+                        summary: 'Exercise created',
+                        previous: null,
+                        next: spec,
+                        supersedes: []
+                    }]
+                };
+                exerciseLibrary.push(newEntry);
+                persistExerciseLibrary();
+            }
+
+            exerciseLibrary = loadExerciseLibrary();
+            renderExerciseList();
+            closeAddExerciseModal();
+            haptic('success');
+        }
+
+        function editExerciseFromList(exerciseId) {
+            editingExerciseId = exerciseId;
+            const entry = getLibraryEntryById(exerciseId);
+            const spec = entry.current || {};
+
+            document.getElementById('add-exercise-title').textContent = 'Edit Exercise';
+            document.getElementById('new-exercise-name').value = entry.name;
+            document.getElementById('new-exercise-type').value = spec.type || 'reps';
+            document.getElementById('new-sets').value = spec.sets || 3;
+            document.getElementById('new-reps').value = spec.repsPerSet || 10;
+            document.getElementById('new-seconds').value = spec.secondsPerRep || '';
+            selectedTags = entry.tags || [];
+            renderTagSelector();
+            document.getElementById('add-exercise-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function deleteExerciseFromList(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            showActionSheet(`Delete "${entry.name}"? This cannot be undone.`, () => {
+                exerciseLibrary = exerciseLibrary.filter(ex => ex.id !== exerciseId);
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                renderExerciseList();
+                haptic('success');
+            });
         }
 
         // Initialize
