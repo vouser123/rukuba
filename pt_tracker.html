@@ -531,9 +531,12 @@
 </head>
 <body>
     <div class="header">
-        <h1>💪 PT Exercise Tracker</h1>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <h1 style="margin: 0;">💪 PT Exercise Tracker</h1>
+            <div id="streak-display" style="font-size: 14px; font-weight: 600; color: var(--ios-orange);"></div>
+        </div>
         <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div class="exercise-name" id="exercise-name">Goblet Squat</div>
+            <div class="exercise-name" id="exercise-name" onclick="showQuickSwitcher()" style="cursor: pointer;">Goblet Squat ▾</div>
             <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
         </div>
     </div>
@@ -763,6 +766,18 @@
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="skipRest()">Skip Rest</button>
                 <button class="modal-save" onclick="closeRestTimer()">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Exercise Switcher Modal -->
+    <div class="modal" id="quick-switcher-modal" onclick="if(event.target === this) closeQuickSwitcher()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Switch Exercise</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px; text-align: center;">Tap to switch (current progress will be saved)</div>
+                <div class="history-list" id="quick-switcher-list"></div>
             </div>
         </div>
     </div>
@@ -1628,6 +1643,7 @@
             seedTimerSeconds();
             stopTimer();
             updateDisplay();
+            updateStreakDisplay(); // Refresh streak after completing session
         }
 
         // Modal Functions
@@ -2521,8 +2537,115 @@
             });
         }
 
+        // Streak Tracking
+        function calculateStreak() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (sessions.length === 0) return { current: 0, longest: 0 };
+
+            // Get unique workout dates (YYYY-MM-DD)
+            const workoutDates = [...new Set(sessions.map(s => new Date(s.date).toDateString()))].sort((a, b) => new Date(b) - new Date(a));
+
+            let currentStreak = 0;
+            let longestStreak = 0;
+            let tempStreak = 0;
+            let previousDate = null;
+
+            workoutDates.forEach(dateStr => {
+                const date = new Date(dateStr);
+                if (!previousDate) {
+                    tempStreak = 1;
+                } else {
+                    const dayDiff = Math.floor((new Date(previousDate) - date) / (1000 * 60 * 60 * 24));
+                    if (dayDiff === 1) {
+                        tempStreak++;
+                    } else {
+                        longestStreak = Math.max(longestStreak, tempStreak);
+                        tempStreak = 1;
+                    }
+                }
+                previousDate = dateStr;
+            });
+
+            longestStreak = Math.max(longestStreak, tempStreak);
+
+            // Current streak: check if today or yesterday
+            const today = new Date().toDateString();
+            const yesterday = new Date(Date.now() - 86400000).toDateString();
+            const mostRecentDate = workoutDates[0];
+
+            if (mostRecentDate === today || mostRecentDate === yesterday) {
+                currentStreak = tempStreak;
+            }
+
+            return { current: currentStreak, longest: longestStreak };
+        }
+
+        function updateStreakDisplay() {
+            const { current, longest } = calculateStreak();
+            const display = document.getElementById('streak-display');
+
+            if (current > 0) {
+                display.textContent = `🔥 ${current} day streak`;
+                if (current >= 7) display.textContent += ' 🎉';
+            } else if (longest > 0) {
+                display.textContent = `Best: ${longest} days`;
+            } else {
+                display.textContent = '';
+            }
+        }
+
+        // Quick Exercise Switcher
+        function showQuickSwitcher() {
+            const container = document.getElementById('quick-switcher-list');
+            const activeExercises = exerciseLibrary.filter(ex => !ex.archived && (ex.favorite || ex.id === currentExercise.id));
+
+            if (activeExercises.length <= 1) {
+                // Show full exercise list if only one active
+                showExerciseList();
+                return;
+            }
+
+            container.innerHTML = activeExercises.map(ex => {
+                const isCurrent = ex.id === currentExercise.id;
+                return `
+                    <div class="history-item" style="cursor: pointer; background: ${isCurrent ? 'rgba(0,122,255,0.1)' : 'white'};" onclick="quickSwitchTo('${ex.id}')">
+                        <div>${isCurrent ? '▶ ' : ''}${ex.name}${ex.favorite ? ' ⭐' : ''}</div>
+                        <div class="history-meta">${describeSpec(ex.current || {})}</div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('quick-switcher-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeQuickSwitcher() {
+            document.getElementById('quick-switcher-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function quickSwitchTo(exerciseId) {
+            if (exerciseId === currentExercise.id) {
+                closeQuickSwitcher();
+                return;
+            }
+
+            // Save current progress before switching
+            saveSessionRecovery();
+
+            const entry = getLibraryEntryById(exerciseId);
+            currentExercise = toSessionExercise(entry);
+            seedTimerSeconds();
+            stopTimer();
+            updateDisplay();
+            closeQuickSwitcher();
+            haptic('success');
+            speak(`Switched to ${entry.name}`);
+        }
+
         // Initialize
         updateDisplay();
+        updateStreakDisplay();
         setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
     </script>
 </body>
