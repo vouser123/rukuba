@@ -622,6 +622,7 @@
             <div class="modal-form">
                 <input type="text" class="modal-input" id="exercise-search" placeholder="Search exercises..." oninput="filterExercises()">
                 <div id="tag-filter-container" style="margin-bottom: 12px;"></div>
+                <div id="recent-exercises-container" style="margin-bottom: 12px;"></div>
                 <div class="history-list" id="exercise-list-content"></div>
                 <button class="control-btn btn-success" onclick="showAddExerciseModal()" style="width: 100%; margin-top: 12px;">+ Add New Exercise</button>
             </div>
@@ -1750,10 +1751,48 @@
 
         // Exercise List Management
         function showExerciseList() {
+            renderRecentExercises();
             renderExerciseList();
             renderTagFilters();
             document.getElementById('exercise-list-modal').classList.add('active');
             haptic('light');
+        }
+
+        function renderRecentExercises() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (sessions.length === 0) {
+                document.getElementById('recent-exercises-container').innerHTML = '';
+                return;
+            }
+
+            // Get unique exercises from most recent sessions
+            const recentExerciseIds = new Set();
+            const recentExercises = [];
+
+            sessions.slice().reverse().forEach(session => {
+                if (session.exerciseId && !recentExerciseIds.has(session.exerciseId) && recentExercises.length < 5) {
+                    recentExerciseIds.add(session.exerciseId);
+                    const entry = getLibraryEntryById(session.exerciseId);
+                    if (entry) {
+                        recentExercises.push(entry);
+                    }
+                }
+            });
+
+            if (recentExercises.length === 0) {
+                document.getElementById('recent-exercises-container').innerHTML = '';
+                return;
+            }
+
+            const container = document.getElementById('recent-exercises-container');
+            container.innerHTML = `
+                <div style="font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px;">⚡ Recent Exercises</div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                    ${recentExercises.map(ex =>
+                        `<button class="pill" style="cursor: pointer; padding: 6px 12px; background: var(--ios-blue); color: white;" onclick="selectExerciseFromList('${ex.id}'); event.stopPropagation();">${ex.name}</button>`
+                    ).join('')}
+                </div>
+            `;
         }
 
         function closeExerciseList() {
@@ -1841,6 +1880,20 @@
             updateDisplay();
             closeExerciseList();
             haptic('success');
+
+            // Announce last session info if available
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const lastSession = sessions.filter(s => s.exerciseId === exerciseId).pop();
+            if (lastSession) {
+                const daysSince = Math.floor((Date.now() - new Date(lastSession.date).getTime()) / (1000 * 60 * 60 * 24));
+                if (daysSince === 0) {
+                    speak('Last session: today');
+                } else if (daysSince === 1) {
+                    speak('Last session: yesterday');
+                } else if (daysSince < 7) {
+                    speak(`Last session: ${daysSince} days ago`);
+                }
+            }
         }
 
         function showAddExerciseModal() {
