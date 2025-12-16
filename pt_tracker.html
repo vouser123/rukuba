@@ -853,7 +853,10 @@
                     <div class="history-heading">Recent sessions</div>
                     <div class="history-list" id="session-history-list"></div>
                 </div>
-                <button class="control-btn btn-primary" onclick="exportForPT()" style="width: 100%; margin-top: 12px;">Export Report for PT</button>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="control-btn btn-secondary" onclick="exportWeeklySummary()" style="flex: 1;">📊 Weekly Summary</button>
+                    <button class="control-btn btn-primary" onclick="exportForPT()" style="flex: 1;">Full Report</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2651,6 +2654,118 @@
                 document.body.appendChild(textarea);
                 textarea.select();
                 alert('Report generated! Copy this text and share with your PT.');
+            });
+        }
+
+        // Weekly Summary for PT - Quick Overview
+        function exportWeeklySummary() {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const now = new Date();
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
+
+            if (weekSessions.length === 0) {
+                alert('No sessions this week yet.');
+                return;
+            }
+
+            let summary = `PT WEEKLY SUMMARY\n`;
+            summary += `Week of ${startOfWeek.toLocaleDateString()}\n`;
+            summary += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+
+            summary += `${'='.repeat(40)}\n`;
+            summary += `OVERVIEW\n`;
+            summary += `${'='.repeat(40)}\n`;
+            summary += `Total sessions this week: ${weekSessions.length}\n`;
+
+            // Count unique exercises
+            const uniqueExercises = new Set(weekSessions.map(s => s.exerciseId));
+            summary += `Exercises performed: ${uniqueExercises.size}\n`;
+
+            // Total work
+            const totalSets = weekSessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+            const totalReps = weekSessions.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+            summary += `Total sets: ${totalSets}\n`;
+            summary += `Total reps: ${totalReps}\n\n`;
+
+            // Group by exercise
+            summary += `${'='.repeat(40)}\n`;
+            summary += `EXERCISES THIS WEEK\n`;
+            summary += `${'='.repeat(40)}\n`;
+
+            const exerciseGroups = {};
+            weekSessions.forEach(session => {
+                const exName = session.exerciseName;
+                if (!exerciseGroups[exName]) {
+                    exerciseGroups[exName] = {
+                        sessions: [],
+                        totalSets: 0,
+                        totalReps: 0
+                    };
+                }
+                exerciseGroups[exName].sessions.push(session);
+                exerciseGroups[exName].totalSets += session.sets.length;
+                exerciseGroups[exName].totalReps += session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            });
+
+            Object.keys(exerciseGroups).sort().forEach(exName => {
+                const group = exerciseGroups[exName];
+                summary += `\n${exName}\n`;
+                summary += `  Sessions: ${group.sessions.length}× this week\n`;
+                summary += `  Total: ${group.totalSets} sets, ${group.totalReps} reps\n`;
+
+                // Show dates
+                const dates = group.sessions.map(s => new Date(s.date).toLocaleDateString());
+                summary += `  Dates: ${dates.join(', ')}\n`;
+
+                // Show notes if any
+                const notes = group.sessions.filter(s => s.notes).map(s => s.notes);
+                if (notes.length > 0) {
+                    summary += `  Notes: ${notes.join(' | ')}\n`;
+                }
+            });
+
+            summary += `\n${'='.repeat(40)}\n`;
+            summary += `BODY PARTS WORKED\n`;
+            summary += `${'='.repeat(40)}\n`;
+
+            // Count body parts
+            const bodyParts = {};
+            weekSessions.forEach(session => {
+                const exercise = getLibraryEntryById(session.exerciseId);
+                if (exercise && exercise.tags) {
+                    exercise.tags.forEach(tag => {
+                        bodyParts[tag] = (bodyParts[tag] || 0) + 1;
+                    });
+                }
+            });
+
+            if (Object.keys(bodyParts).length > 0) {
+                Object.keys(bodyParts).sort((a, b) => bodyParts[b] - bodyParts[a]).forEach(part => {
+                    summary += `  ${part}: ${bodyParts[part]}× this week\n`;
+                });
+            } else {
+                summary += `  (No body part tags set)\n`;
+            }
+
+            summary += `\n${'='.repeat(40)}\n`;
+            summary += `END OF WEEKLY SUMMARY\n`;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(summary).then(() => {
+                speak('Summary copied');
+                haptic('success');
+                alert('Weekly summary copied! Share with your PT.');
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = summary;
+                textarea.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; font-family: monospace; font-size: 12px; padding: 20px;';
+                document.body.appendChild(textarea);
+                textarea.select();
+                alert('Weekly summary generated! Copy and share with your PT.');
             });
         }
 
