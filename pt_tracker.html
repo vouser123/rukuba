@@ -75,8 +75,8 @@
         }
 
         .counter-display {
-            width: 200px;
-            height: 200px;
+            width: min(320px, 85vw);
+            height: min(320px, 85vw);
             border-radius: 50%;
             background: white;
             display: flex;
@@ -115,6 +115,14 @@
             font-size: 17px;
             color: var(--ios-gray);
             margin-bottom: 30px;
+        }
+
+        .remaining-info {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1c1c1e;
+            text-align: center;
+            margin-bottom: 12px;
         }
 
         .progress-bar-container {
@@ -418,6 +426,104 @@
             background: rgba(0, 0, 0, 0.05);
         }
 
+        .history-section {
+            margin-bottom: 16px;
+        }
+
+        .history-heading {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1c1c1e;
+            margin-bottom: 8px;
+        }
+
+        .history-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            padding: 12px;
+        }
+
+        .history-item {
+            padding: 10px 8px;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-meta {
+            font-size: 12px;
+            color: var(--ios-gray);
+            margin-top: 4px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--ios-blue);
+            margin-right: 6px;
+        }
+
+        .pocket-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 4000;
+        }
+
+        .pocket-overlay.active {
+            display: flex;
+        }
+
+        .pocket-pad {
+            width: min(360px, 95vw);
+            height: min(360px, 70vh);
+            border-radius: 28px;
+            background: white;
+            color: var(--ios-blue);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 56px;
+            font-weight: 800;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .pocket-meta {
+            color: #3a3a3c;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .pocket-close {
+            margin-top: 18px;
+            background: rgba(0,0,0,0.75);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            max-width: 320px;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -432,10 +538,11 @@
     <!-- Counter View -->
     <div class="counter-view" id="counter-view">
         <div class="set-info" id="set-info">Set 1 of 3</div>
+        <div class="remaining-info" id="remaining-info">Reps left: 10 · Sets left: 3</div>
 
         <!-- Counter Mode -->
         <div id="counter-mode">
-            <div class="counter-display" id="counter-display" onclick="incrementCounter()">0</div>
+            <div class="counter-display" id="counter-display" onclick="incrementCounter()" aria-live="assertive">0</div>
             <div class="target-info" id="target-info">Target: 10 reps</div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
@@ -466,6 +573,7 @@
     <div class="footer">
         <button class="btn-primary" onclick="showExerciseModal()">Change Exercise</button>
         <button class="btn-secondary" onclick="showHistory()">History</button>
+        <button class="btn-success" onclick="togglePocketMode(true)">Pocket Tap</button>
     </div>
 
     <!-- Exercise Selection Modal -->
@@ -479,18 +587,43 @@
                     <option value="plank">Plank Hold</option>
                     <option value="step_ups">Step Ups</option>
                     <option value="clamshells">Clamshells</option>
+                    <option value="bridge_hold">Bridge Hold</option>
+                    <option value="pushup_amrap">Push-up AMRAP</option>
+                    <option value="walk_distance">Walk (Distance)</option>
                 </select>
                 <select class="modal-select" id="exercise-type" onchange="updateTargetLabel()">
                     <option value="reps">Rep-based</option>
                     <option value="timed">Timed Reps</option>
+                    <option value="hold">Hold</option>
+                    <option value="duration">Duration</option>
+                    <option value="amrap">AMRAP</option>
+                    <option value="distance">Distance</option>
                 </select>
                 <input type="number" class="modal-input" id="sets-input" placeholder="Number of sets" value="3">
                 <input type="number" class="modal-input" id="reps-input" placeholder="Reps per set" value="10">
-                <input type="number" class="modal-input" id="target-input" placeholder="Seconds per rep (for timed)" value="10">
+                <input type="number" class="modal-input" id="target-input" placeholder="Target (seconds or distance)" value="10">
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeExerciseModal()">Cancel</button>
                 <button class="modal-save" onclick="saveExercise()">Start</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal" id="history-modal" onclick="if(event.target === this) closeHistoryModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">History</div>
+            <div class="modal-form">
+                <div class="history-section">
+                    <div class="history-heading">Exercise revisions</div>
+                    <div class="history-list" id="exercise-history-list"></div>
+                </div>
+                <div class="history-section">
+                    <div class="history-heading">Recent sessions</div>
+                    <div class="history-list" id="session-history-list"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -505,27 +638,245 @@
         <button class="action-sheet-cancel" onclick="hideActionSheet()">Cancel</button>
     </div>
 
+    <!-- Eyes-free pocket tap overlay -->
+    <div class="pocket-overlay" id="pocket-overlay" onclick="handlePocketTap()" aria-live="assertive">
+        <div class="pocket-pad" role="button" aria-label="Pocket tap target">
+            <div id="pocket-label">Tap to count</div>
+            <div class="pocket-meta" id="pocket-meta">Reps left · Sets left</div>
+        </div>
+        <button class="pocket-close" onclick="togglePocketMode(false); event.stopPropagation();">Exit Pocket Mode</button>
+    </div>
+
     <script>
         const STORAGE_KEY = 'pt_tracker_data';
+        const LIBRARY_KEY = 'pt_exercise_library';
+        const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
 
-        let currentExercise = {
-            name: 'Goblet Squat',
-            type: 'reps',
-            sets: 3,
-            repsPerSet: 10,
-            secondsPerRep: 10, // for timed exercises
-            currentSet: 1,
-            currentRep: 0, // for counter mode OR current timed rep
-            sessionData: []
-        };
+        const ATLAS_SEED = [
+            {
+                id: 'goblet_squat',
+                name: 'Goblet Squat',
+                dosage: 'S3x10 (both)',
+                supersedes: ['ex_basic_squats_01'],
+                summary: 'Seeded from atlas_pt_min_250817.json; supersedes ex_basic_squats_01'
+            },
+            {
+                id: 'plank_hold',
+                name: 'Plank Hold',
+                dosage: 'S3x1',
+                hold_seconds: 30,
+                supersedes: [],
+                summary: 'Seeded hold duration from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'step_ups',
+                name: 'Step Ups',
+                dosage: 'S3x10 (side)',
+                supersedes: ['ex_basic_squats_01'],
+                summary: 'Seeded from atlas_pt_min_250817.json; supersedes ex_basic_squats_01'
+            },
+            {
+                id: 'clamshells',
+                name: 'Clamshells',
+                dosage: 'S3x15 (side)',
+                supersedes: [],
+                summary: 'Seeded from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'bridge_hold',
+                name: 'Bridge Hold',
+                dosage: 'S3x1',
+                hold_seconds: 30,
+                supersedes: [],
+                summary: 'Seeded bridge hold parameters from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'bike_intervals',
+                name: 'Bike Intervals',
+                dosage: 'S4x1',
+                duration_seconds: 300,
+                supersedes: [],
+                summary: 'Seeded duration pattern from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'pushup_amrap',
+                name: 'Push-up AMRAP',
+                dosage: 'AMRAP',
+                amrap_window_sec: 60,
+                supersedes: [],
+                summary: 'Seeded AMRAP window from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'walk_distance',
+                name: 'Walk (distance)',
+                dosage: 'S1x400',
+                distance_meters: 400,
+                supersedes: [],
+                summary: 'Seeded distance goal from atlas_pt_min_250817.json'
+            }
+        ];
+
+        function parseAtlasDosage(dosage = '') {
+            const match = /S(\d+)x(\d+)/i.exec(dosage);
+            const sets = match ? parseInt(match[1], 10) : 3;
+            const repsPerSet = match ? parseInt(match[2], 10) : 10;
+            const isSide = /(side)/i.test(dosage);
+            const isBoth = /(both)/i.test(dosage);
+
+            return { sets, repsPerSet, side: isSide ? 'side' : isBoth ? 'both' : null };
+        }
+
+        function atlasSeedToSpec(entry) {
+            const base = parseAtlasDosage(entry.dosage || '');
+            const spec = {
+                type: 'reps',
+                sets: entry.sets_override || base.sets || 3,
+                repsPerSet: base.repsPerSet || 10,
+                secondsPerRep: 0
+            };
+
+            if (entry.hold_seconds) {
+                spec.type = 'hold';
+                spec.repsPerSet = base.repsPerSet || 1;
+                spec.secondsPerRep = entry.hold_seconds;
+            } else if (entry.duration_seconds) {
+                spec.type = 'duration';
+                spec.repsPerSet = base.repsPerSet || 1;
+                spec.secondsPerRep = entry.duration_seconds;
+            } else if (entry.amrap_window_sec) {
+                spec.type = 'amrap';
+                spec.repsPerSet = 0;
+                spec.secondsPerRep = entry.amrap_window_sec;
+            } else if (entry.distance_meters) {
+                spec.type = 'distance';
+                spec.repsPerSet = entry.distance_meters;
+                spec.secondsPerRep = 0;
+            }
+
+            return spec;
+        }
+
+        const DEFAULT_LIBRARY = ATLAS_SEED.map(entry => {
+            const spec = atlasSeedToSpec(entry);
+            return {
+                id: entry.id,
+                name: entry.name,
+                supersedes: entry.supersedes || [],
+                atlasUrl: ATLAS_REFERENCE_URL,
+                current: spec,
+                history: [
+                    {
+                        timestamp: new Date().toISOString(),
+                        summary: entry.summary || 'Seeded from atlas_pt_min_250817.json',
+                        previous: null,
+                        next: spec,
+                        supersedes: entry.supersedes || []
+                    }
+                ]
+            };
+        });
+        let exerciseLibrary = loadExerciseLibrary();
+        let currentExercise = toSessionExercise(exerciseLibrary[0]);
 
         let timerInterval = null;
-        let timerSecondsRemaining = 0; // counts DOWN
+        let timerSecondsRemaining = Math.max(currentExercise.secondsPerRep || 0, 1); // counts DOWN
         let timerRunning = false;
         let actionSheetCallback = null;
+        let pocketMode = false;
+
+        const TIMER_TYPES = ['timed', 'hold', 'duration'];
+        const COUNTER_TYPES = ['reps', 'amrap', 'distance'];
 
         // Audio for timer
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function loadExerciseLibrary() {
+            const stored = localStorage.getItem(LIBRARY_KEY);
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length) {
+                        return parsed;
+                    }
+                } catch (e) {
+                    console.warn('Unable to parse exercise library; reseeding defaults');
+                }
+            }
+            localStorage.setItem(LIBRARY_KEY, JSON.stringify(DEFAULT_LIBRARY));
+            return JSON.parse(localStorage.getItem(LIBRARY_KEY));
+        }
+
+        function persistExerciseLibrary() {
+            localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+        }
+
+        function toSessionExercise(entry) {
+            const spec = entry?.current || {};
+            return {
+                id: entry.id,
+                name: entry.name,
+                type: spec.type || 'reps',
+                sets: spec.sets || 3,
+                repsPerSet: spec.repsPerSet || 10,
+                secondsPerRep: spec.secondsPerRep ?? 10,
+                currentSet: 1,
+                currentRep: 0,
+                sessionData: []
+            };
+        }
+
+        function getLibraryEntryById(id) {
+            return exerciseLibrary.find(ex => ex.id === id) || exerciseLibrary[0];
+        }
+
+        function recordRevision(entry, nextSpec, reason = 'Updated dosage') {
+            const previous = { ...(entry.current || {}) };
+            const changes = [];
+
+            if ((previous.sets ?? null) !== nextSpec.sets) changes.push(`sets ${previous.sets ?? '—'} → ${nextSpec.sets}`);
+            if ((previous.repsPerSet ?? null) !== nextSpec.repsPerSet) changes.push(`reps ${previous.repsPerSet ?? '—'} → ${nextSpec.repsPerSet}`);
+            if ((previous.secondsPerRep ?? null) !== nextSpec.secondsPerRep) changes.push(`seconds ${previous.secondsPerRep ?? '—'} → ${nextSpec.secondsPerRep}`);
+            if ((previous.type ?? '') !== nextSpec.type) changes.push(`type ${previous.type || 'reps'} → ${nextSpec.type}`);
+
+            entry.history = entry.history || [];
+            entry.history.push({
+                timestamp: new Date().toISOString(),
+                summary: changes.length ? changes.join(', ') : reason,
+                previous,
+                next: nextSpec,
+                supersedes: entry.supersedes || []
+            });
+
+            entry.current = nextSpec;
+            persistExerciseLibrary();
+        }
+
+        function populateExerciseSelect() {
+            const select = document.getElementById('exercise-select');
+            const selectedValue = currentExercise?.id;
+            select.innerHTML = '';
+
+            exerciseLibrary.forEach(entry => {
+                const opt = document.createElement('option');
+                opt.value = entry.id;
+                opt.textContent = entry.name;
+                if (entry.id === selectedValue) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+
+        function applyLibraryEntryToForm(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            const spec = entry.current || {};
+
+            document.getElementById('exercise-type').value = spec.type || 'reps';
+            document.getElementById('sets-input').value = spec.sets || 3;
+            document.getElementById('reps-input').value = spec.repsPerSet || 10;
+            document.getElementById('target-input').value = spec.secondsPerRep ?? 10;
+            updateTargetLabel();
+        }
 
         function playBeep(frequency = 800, duration = 200) {
             const oscillator = audioContext.createOscillator();
@@ -574,6 +925,71 @@
             }
         }
 
+        const isTimerType = (type) => TIMER_TYPES.includes(type);
+
+        function togglePocketMode(enabled) {
+            pocketMode = enabled;
+            const overlay = document.getElementById('pocket-overlay');
+            if (enabled) {
+                overlay.classList.add('active');
+                haptic('medium');
+            } else {
+                overlay.classList.remove('active');
+                haptic('light');
+            }
+            updatePocketOverlay();
+        }
+
+        function handlePocketTap() {
+            if (!pocketMode) return;
+
+            if (COUNTER_TYPES.includes(currentExercise.type)) {
+                incrementCounter();
+            } else if (isTimerType(currentExercise.type)) {
+                if (!timerRunning) {
+                    startTimer();
+                } else {
+                    stopTimer();
+                }
+            }
+            updatePocketOverlay();
+        }
+
+        function updatePocketOverlay() {
+            const overlay = document.getElementById('pocket-overlay');
+            if (!overlay.classList.contains('active')) return;
+
+            const setsLeft = Math.max(currentExercise.sets - currentExercise.currentSet, 0);
+            const repsLeft = Math.max((currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
+            const label = COUNTER_TYPES.includes(currentExercise.type)
+                ? `${currentExercise.currentRep}`
+                : `${formatSeconds(timerSecondsRemaining)}`;
+
+            document.getElementById('pocket-label').textContent = label;
+
+            const metaPieces = [
+                `Sets left: ${setsLeft}`
+            ];
+
+            if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
+                metaPieces.push(`Reps left: ${repsLeft}`);
+            }
+
+            if (currentExercise.type === 'amrap' && currentExercise.secondsPerRep) {
+                metaPieces.push(`AMRAP ${currentExercise.secondsPerRep}s window`);
+            }
+
+            if (currentExercise.type === 'distance') {
+                metaPieces.push(`Distance goal: ${currentExercise.repsPerSet}`);
+            }
+
+            if (isTimerType(currentExercise.type)) {
+                metaPieces.push(timerRunning ? 'Timer running' : 'Timer paused');
+            }
+
+            document.getElementById('pocket-meta').textContent = metaPieces.join(' · ');
+        }
+
         // iOS-style Action Sheet
         function showActionSheet(message, onConfirm) {
             document.getElementById('action-sheet-message').textContent = message;
@@ -613,13 +1029,13 @@
 
         // Counter Functions
         function incrementCounter() {
-            if (currentExercise.type !== 'reps') return;
+            if (!COUNTER_TYPES.includes(currentExercise.type)) return;
 
             currentExercise.currentRep++;
             haptic('light');
 
             // Check if target reached
-            if (currentExercise.currentRep >= currentExercise.repsPerSet) {
+            if (currentExercise.repsPerSet && currentExercise.currentRep >= currentExercise.repsPerSet && currentExercise.type !== 'amrap') {
                 playCompletionSound();
                 haptic('success');
             }
@@ -627,42 +1043,75 @@
             updateDisplay();
         }
 
+        function formatSeconds(totalSeconds = 0) {
+            const minutes = Math.floor(Math.max(totalSeconds, 0) / 60);
+            const seconds = Math.max(totalSeconds % 60, 0);
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
         function updateDisplay() {
             document.getElementById('exercise-name').textContent = currentExercise.name;
             document.getElementById('set-info').textContent = `Set ${currentExercise.currentSet} of ${currentExercise.sets}`;
 
-            if (currentExercise.type === 'reps') {
-                // Rep-based exercise
+            const setsLeft = Math.max(currentExercise.sets - currentExercise.currentSet, 0);
+            const repsLeft = Math.max((currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
+
+            let remainingLabel = `Sets left: ${setsLeft}`;
+            if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
+                remainingLabel += ` · Reps left: ${repsLeft}`;
+            }
+            if (currentExercise.type === 'amrap' && currentExercise.secondsPerRep) {
+                remainingLabel += ` · ${currentExercise.secondsPerRep}s AMRAP window`;
+            }
+            if (isTimerType(currentExercise.type)) {
+                remainingLabel += ` · Time: ${formatSeconds(timerSecondsRemaining)}`;
+            }
+            document.getElementById('remaining-info').textContent = remainingLabel;
+
+            if (COUNTER_TYPES.includes(currentExercise.type)) {
                 document.getElementById('counter-mode').classList.remove('hidden');
                 document.getElementById('timer-mode').classList.add('hidden');
                 document.getElementById('main-controls').classList.remove('hidden');
 
                 document.getElementById('counter-display').textContent = currentExercise.currentRep;
-                document.getElementById('target-info').textContent = `Target: ${currentExercise.repsPerSet} reps`;
 
-                const progress = Math.min((currentExercise.currentRep / currentExercise.repsPerSet) * 100, 100);
+                let targetText = 'Target: ';
+                if (currentExercise.type === 'amrap') {
+                    targetText += currentExercise.secondsPerRep ? `${currentExercise.secondsPerRep}s AMRAP window` : 'AMRAP';
+                } else if (currentExercise.type === 'distance') {
+                    targetText += `${currentExercise.repsPerSet || 0} distance units`;
+                } else {
+                    targetText += `${currentExercise.repsPerSet} reps`;
+                }
+                document.getElementById('target-info').textContent = targetText;
+
+                const progress = currentExercise.repsPerSet
+                    ? Math.min((currentExercise.currentRep / currentExercise.repsPerSet) * 100, 100)
+                    : Math.min((currentExercise.currentSet / currentExercise.sets) * 100, 100);
                 document.getElementById('progress-bar').style.width = progress + '%';
             } else {
-                // Timed exercise (multiple timed reps)
                 document.getElementById('counter-mode').classList.add('hidden');
                 document.getElementById('timer-mode').classList.remove('hidden');
                 document.getElementById('main-controls').classList.remove('hidden');
 
-                // Show current rep
-                document.getElementById('timer-rep-info').textContent = `Rep ${currentExercise.currentRep + 1} of ${currentExercise.repsPerSet}`;
+                const repLabel = currentExercise.type === 'hold' || currentExercise.type === 'duration'
+                    ? `Set ${currentExercise.currentSet} timer`
+                    : `Rep ${currentExercise.currentRep + 1} of ${currentExercise.repsPerSet}`;
+                document.getElementById('timer-rep-info').textContent = repLabel;
 
-                // Display countdown timer
-                const minutes = Math.floor(timerSecondsRemaining / 60);
-                const seconds = timerSecondsRemaining % 60;
-                const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                const display = formatSeconds(timerSecondsRemaining);
                 document.getElementById('timer-display').textContent = display;
-                document.getElementById('timer-target').textContent = `Target: ${currentExercise.secondsPerRep} seconds`;
 
-                // Progress bar (counts down)
-                const progress = Math.max(0, (timerSecondsRemaining / currentExercise.secondsPerRep) * 100);
+                const timerLabel = currentExercise.type === 'duration'
+                    ? `Target: ${currentExercise.secondsPerRep || 0}s total`
+                    : `Target: ${currentExercise.secondsPerRep || 0} seconds`;
+                document.getElementById('timer-target').textContent = timerLabel;
+
+                const progress = currentExercise.secondsPerRep
+                    ? Math.max(0, (timerSecondsRemaining / currentExercise.secondsPerRep) * 100)
+                    : 0;
                 document.getElementById('timer-progress-bar').style.width = progress + '%';
 
-                // Color changes for timer countdown
                 const timerDisplay = document.getElementById('timer-display');
                 timerDisplay.classList.remove('warning', 'danger');
                 if (timerSecondsRemaining <= 5 && timerSecondsRemaining > 0) {
@@ -671,7 +1120,6 @@
                     timerDisplay.classList.add('warning');
                 }
 
-                // Update button visibility
                 if (timerRunning) {
                     document.getElementById('timer-start-btn').classList.add('hidden');
                     document.getElementById('timer-stop-btn').classList.remove('hidden');
@@ -686,14 +1134,18 @@
                     document.getElementById('timer-reset-btn').classList.remove('hidden');
                 }
             }
+
+            updatePocketOverlay();
         }
 
         function startTimer() {
-            if (timerInterval || currentExercise.type !== 'timed') return;
+            if (timerInterval || !isTimerType(currentExercise.type)) return;
+
+            const targetSeconds = Math.max(currentExercise.secondsPerRep || 0, 1);
 
             // Initialize timer if starting fresh
             if (timerSecondsRemaining === 0) {
-                timerSecondsRemaining = currentExercise.secondsPerRep;
+                timerSecondsRemaining = targetSeconds;
             }
 
             timerRunning = true;
@@ -715,11 +1167,16 @@
                     playCompletionSound();
                     haptic('success');
 
-                    // Auto-advance to next rep
                     currentExercise.currentRep++;
 
+                    // Auto-complete holds/durations when rep target is reached
+                    if (currentExercise.type !== 'timed' && currentExercise.repsPerSet && currentExercise.currentRep >= currentExercise.repsPerSet) {
+                        updateDisplay();
+                        return;
+                    }
+
                     // Reset timer for next rep
-                    timerSecondsRemaining = currentExercise.secondsPerRep;
+                    timerSecondsRemaining = targetSeconds;
                     updateDisplay();
                 }
             }, 1000);
@@ -737,9 +1194,15 @@
             updateDisplay();
         }
 
+        function seedTimerSeconds() {
+            timerSecondsRemaining = isTimerType(currentExercise.type)
+                ? Math.max(currentExercise.secondsPerRep || 0, 1)
+                : 0;
+        }
+
         function resetTimer() {
             stopTimer();
-            timerSecondsRemaining = currentExercise.secondsPerRep;
+            seedTimerSeconds();
             haptic('medium');
             updateDisplay();
         }
@@ -766,7 +1229,7 @@
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
                 currentExercise.currentRep = 0;
-                timerSecondsRemaining = currentExercise.secondsPerRep;
+                seedTimerSeconds();
                 stopTimer();
                 updateDisplay();
             } else {
@@ -787,7 +1250,7 @@
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
                 currentExercise.currentRep = 0;
-                timerSecondsRemaining = currentExercise.secondsPerRep;
+                seedTimerSeconds();
                 stopTimer();
                 updateDisplay();
             } else {
@@ -799,7 +1262,7 @@
             if (currentExercise.currentSet > 1) {
                 currentExercise.currentSet--;
                 currentExercise.currentRep = 0;
-                timerSecondsRemaining = currentExercise.secondsPerRep;
+                seedTimerSeconds();
                 stopTimer();
                 haptic('light');
                 updateDisplay();
@@ -809,9 +1272,16 @@
         function saveSession() {
             const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             sessions.push({
+                exerciseId: currentExercise.id,
                 exerciseName: currentExercise.name,
                 exerciseType: currentExercise.type,
                 date: new Date().toISOString(),
+                exerciseSpec: {
+                    sets: currentExercise.sets,
+                    repsPerSet: currentExercise.repsPerSet,
+                    secondsPerRep: currentExercise.secondsPerRep,
+                    type: currentExercise.type
+                },
                 sets: currentExercise.sessionData
             });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
@@ -822,16 +1292,17 @@
             currentExercise.currentSet = 1;
             currentExercise.currentRep = 0;
             currentExercise.sessionData = [];
-            timerSecondsRemaining = currentExercise.secondsPerRep;
+            seedTimerSeconds();
             stopTimer();
             updateDisplay();
         }
 
         // Modal Functions
         function showExerciseModal() {
+            populateExerciseSelect();
+            applyLibraryEntryToForm(currentExercise.id);
             document.getElementById('exercise-modal').classList.add('active');
             haptic('light');
-            updateTargetLabel();
         }
 
         function closeExerciseModal() {
@@ -843,64 +1314,78 @@
             const type = document.getElementById('exercise-type').value;
             const targetInput = document.getElementById('target-input');
 
-            if (type === 'timed') {
-                targetInput.placeholder = 'Seconds per rep (for timed)';
-                targetInput.parentElement.querySelector('#reps-input').classList.remove('hidden');
-            } else {
-                targetInput.placeholder = 'Target (not used for rep-based)';
-                targetInput.value = '';
-            }
+            const placeholders = {
+                timed: 'Seconds per rep (timed reps)',
+                hold: 'Seconds to hold',
+                duration: 'Seconds per set (duration)',
+                amrap: 'AMRAP window (seconds, optional)',
+                distance: 'Distance goal (steps/meters)',
+                reps: 'Target (seconds optional)'
+            };
+
+            targetInput.placeholder = placeholders[type] || 'Target (seconds or distance)';
+            targetInput.disabled = type === 'reps';
         }
 
         function updateExerciseType() {
             const select = document.getElementById('exercise-select');
-            const typeSelect = document.getElementById('exercise-type');
-            const targetInput = document.getElementById('target-input');
-            const repsInput = document.getElementById('reps-input');
-
-            // Auto-set type based on exercise
-            if (select.value === 'plank') {
-                typeSelect.value = 'timed';
-                targetInput.value = 30;
-                repsInput.value = 3;
-            } else {
-                typeSelect.value = 'reps';
-                targetInput.value = '';
-                repsInput.value = 10;
-            }
-            updateTargetLabel();
+            applyLibraryEntryToForm(select.value);
         }
 
         function saveExercise() {
             const select = document.getElementById('exercise-select');
             const exerciseName = select.options[select.selectedIndex].text;
+            const exerciseId = select.value;
             const type = document.getElementById('exercise-type').value;
             const sets = parseInt(document.getElementById('sets-input').value);
             const reps = parseInt(document.getElementById('reps-input').value);
             const seconds = parseInt(document.getElementById('target-input').value);
 
-            if (!sets || !reps) {
-                alert('Please enter valid numbers for sets and reps.');
+            if (!sets) {
+                alert('Please enter a valid number for sets.');
                 return;
             }
 
-            if (type === 'timed' && !seconds) {
-                alert('Please enter seconds per rep for timed exercises.');
+            if (COUNTER_TYPES.includes(type) && type !== 'amrap' && (!reps && reps !== 0)) {
+                alert('Please enter a valid number for reps/distance.');
                 return;
             }
 
-            currentExercise = {
-                name: exerciseName,
+            if (type === 'distance' && (!reps || reps <= 0)) {
+                alert('Please enter a distance goal.');
+                return;
+            }
+
+            if (isTimerType(type) && (!seconds || seconds <= 0)) {
+                alert('Please enter seconds for the timer-based exercise.');
+                return;
+            }
+
+            const entry = getLibraryEntryById(exerciseId);
+            const nextSpec = {
                 type: type,
                 sets: sets,
                 repsPerSet: reps,
-                secondsPerRep: seconds || 10,
-                currentSet: 1,
-                currentRep: 0,
-                sessionData: []
+                secondsPerRep: (isTimerType(type) || type === 'amrap') ? (seconds || 0) : 0
             };
 
-            timerSecondsRemaining = currentExercise.secondsPerRep;
+            const prevSpec = entry.current || {};
+            if (
+                prevSpec.type !== nextSpec.type ||
+                prevSpec.sets !== nextSpec.sets ||
+                prevSpec.repsPerSet !== nextSpec.repsPerSet ||
+                (prevSpec.secondsPerRep ?? null) !== (nextSpec.secondsPerRep ?? null)
+            ) {
+                recordRevision(entry, nextSpec, 'Manual exercise update');
+            } else {
+                entry.current = nextSpec;
+                persistExerciseLibrary();
+            }
+
+            exerciseLibrary = loadExerciseLibrary();
+            currentExercise = toSessionExercise({ ...entry, name: exerciseName, id: exerciseId });
+
+            seedTimerSeconds();
             stopTimer();
 
             haptic('success');
@@ -909,14 +1394,76 @@
         }
 
         function showHistory() {
+            renderHistory();
+            document.getElementById('history-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function describeSpec(spec) {
+            if (!spec) return 'No spec available';
+            const parts = [
+                `${spec.sets || 0} sets`,
+                spec.type === 'timed' ? `${spec.repsPerSet || 0} reps × ${spec.secondsPerRep || 0}s` : `${spec.repsPerSet || 0} reps`
+            ];
+            return parts.join(' · ');
+        }
+
+        function renderHistory() {
             const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if (sessions.length === 0) {
-                showActionSheet('No workout history yet. Complete your first exercise!', () => {});
-                return;
+            const exerciseHistoryList = document.getElementById('exercise-history-list');
+            const sessionHistoryList = document.getElementById('session-history-list');
+            const exerciseEntry = getLibraryEntryById(currentExercise.id);
+
+            if (!exerciseEntry.history || exerciseEntry.history.length === 0) {
+                exerciseHistoryList.innerHTML = '<div class="history-item">No revisions logged yet.</div>';
+            } else {
+                exerciseHistoryList.innerHTML = exerciseEntry.history
+                    .slice()
+                    .reverse()
+                    .map(revision => {
+                        const supersedesLabel = revision.supersedes && revision.supersedes.length
+                            ? `<span class="pill">Supersedes ${revision.supersedes.join(', ')}</span>`
+                            : '';
+                        return `
+                            <div class="history-item">
+                                <div>${revision.summary}</div>
+                                ${supersedesLabel}
+                                <div class="history-meta">${new Date(revision.timestamp).toLocaleString()} · ${describeSpec(revision.next)}</div>
+                            </div>
+                        `;
+                    })
+                    .join('');
             }
 
-            // TODO: Build a proper history view
-            alert(`You have ${sessions.length} completed sessions!`);
+            const relevantSessions = sessions
+                .filter(s => (s.exerciseId && s.exerciseId === currentExercise.id) || s.exerciseName === currentExercise.name)
+                .slice()
+                .reverse();
+
+            if (relevantSessions.length === 0) {
+                sessionHistoryList.innerHTML = '<div class="history-item">No sessions tracked yet.</div>';
+            } else {
+                sessionHistoryList.innerHTML = relevantSessions
+                    .slice(0, 10)
+                    .map(session => {
+                        const totalReps = (session.sets || []).reduce((sum, set) => sum + (set.reps || 0), 0);
+                        const sessionLabel = session.exerciseType === 'timed'
+                            ? `${session.sets?.length || 0} sets · ${session.exerciseType} · ${totalReps} reps`
+                            : `${session.sets?.length || 0} sets · ${totalReps} reps`;
+                        return `
+                            <div class="history-item">
+                                <div>${session.exerciseName}</div>
+                                <div class="history-meta">${new Date(session.date).toLocaleString()} · ${sessionLabel}</div>
+                            </div>
+                        `;
+                    })
+                    .join('');
+            }
         }
 
         // Initialize
