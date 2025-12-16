@@ -566,6 +566,7 @@
 
         <div class="controls" id="main-controls">
             <button class="control-btn btn-secondary" onclick="previousSet()">Previous</button>
+            <button class="control-btn btn-primary" onclick="skipSet()">Skip Set</button>
             <button class="control-btn btn-success" onclick="completeSet()">Complete Set</button>
         </div>
     </div>
@@ -655,64 +656,64 @@
         const ATLAS_SEED = [
             {
                 id: 'goblet_squat',
-                name: 'Goblet Squat',
+                name: 'Goblet Squat (Example)',
                 dosage: 'S3x10 (both)',
                 supersedes: ['ex_basic_squats_01'],
-                summary: 'Seeded from atlas_pt_min_250817.json; supersedes ex_basic_squats_01'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'plank_hold',
-                name: 'Plank Hold',
+                name: 'Plank Hold (Example)',
                 dosage: 'S3x1',
                 hold_seconds: 30,
                 supersedes: [],
-                summary: 'Seeded hold duration from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'step_ups',
-                name: 'Step Ups',
+                name: 'Step Ups (Example)',
                 dosage: 'S3x10 (side)',
                 supersedes: ['ex_basic_squats_01'],
-                summary: 'Seeded from atlas_pt_min_250817.json; supersedes ex_basic_squats_01'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'clamshells',
-                name: 'Clamshells',
+                name: 'Clamshells (Example)',
                 dosage: 'S3x15 (side)',
                 supersedes: [],
-                summary: 'Seeded from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'bridge_hold',
-                name: 'Bridge Hold',
+                name: 'Bridge Hold (Example)',
                 dosage: 'S3x1',
                 hold_seconds: 30,
                 supersedes: [],
-                summary: 'Seeded bridge hold parameters from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'bike_intervals',
-                name: 'Bike Intervals',
+                name: 'Bike Intervals (Example)',
                 dosage: 'S4x1',
                 duration_seconds: 300,
                 supersedes: [],
-                summary: 'Seeded duration pattern from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'pushup_amrap',
-                name: 'Push-up AMRAP',
+                name: 'Push-up AMRAP (Example)',
                 dosage: 'AMRAP',
                 amrap_window_sec: 60,
                 supersedes: [],
-                summary: 'Seeded AMRAP window from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             },
             {
                 id: 'walk_distance',
-                name: 'Walk (distance)',
+                name: 'Walk (Example)',
                 dosage: 'S1x400',
                 distance_meters: 400,
                 supersedes: [],
-                summary: 'Seeded distance goal from atlas_pt_min_250817.json'
+                summary: 'Example exercise - edit or delete as needed'
             }
         ];
 
@@ -1255,6 +1256,33 @@
                 updateDisplay();
             } else {
                 saveSession();
+            }
+        }
+
+        function skipSet() {
+            // Log set as complete with target reps (assumes you did it manually)
+            const targetReps = currentExercise.repsPerSet || 0;
+
+            currentExercise.sessionData.push({
+                set: currentExercise.currentSet,
+                reps: targetReps,
+                type: currentExercise.type,
+                timestamp: new Date().toISOString(),
+                skipped: true // Mark that this was manually logged
+            });
+
+            haptic('medium');
+
+            if (currentExercise.currentSet < currentExercise.sets) {
+                currentExercise.currentSet++;
+                currentExercise.currentRep = 0;
+                seedTimerSeconds();
+                stopTimer();
+                updateDisplay();
+            } else {
+                showActionSheet('Exercise complete! Save this session?', () => {
+                    saveSession();
+                });
             }
         }
 
