@@ -624,7 +624,10 @@
                 <div id="tag-filter-container" style="margin-bottom: 12px;"></div>
                 <div id="recent-exercises-container" style="margin-bottom: 12px;"></div>
                 <div class="history-list" id="exercise-list-content"></div>
-                <button class="control-btn btn-success" onclick="showAddExerciseModal()" style="width: 100%; margin-top: 12px;">+ Add New Exercise</button>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="control-btn btn-success" onclick="showAddExerciseModal()" style="flex: 1;">+ Add New</button>
+                    <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
+                </div>
             </div>
         </div>
     </div>
@@ -658,6 +661,31 @@
                 </div>
                 <div id="side-options-container" style="margin: 12px 0;"></div>
                 <input type="text" class="modal-input" id="supersedes-input" placeholder="Supersedes (e.g., ex_basic_squats_01)">
+
+                <!-- ATLAS: Muscles & Regions -->
+                <textarea class="modal-input" id="primary-muscles" placeholder="Primary muscles (e.g., quadriceps, gluteus maximus)" style="min-height: 50px; resize: vertical;"></textarea>
+                <textarea class="modal-input" id="anatomic-regions" placeholder="Anatomic regions (e.g., knee, hip, lower back)" style="min-height: 50px; resize: vertical;"></textarea>
+
+                <!-- Equipment & Modifiers -->
+                <select class="modal-select" id="equipment-select" multiple style="min-height: 80px;">
+                    <option value="none">No equipment</option>
+                    <option value="band">Resistance band</option>
+                    <option value="weights">Weights/dumbbells</option>
+                    <option value="ball">Exercise ball</option>
+                    <option value="step">Step/platform</option>
+                    <option value="wall">Wall</option>
+                    <option value="chair">Chair</option>
+                    <option value="foam_roller">Foam roller</option>
+                    <option value="mat">Mat</option>
+                </select>
+                <div style="font-size: 12px; color: var(--ios-gray); margin-top: 4px; margin-bottom: 8px;">Hold Ctrl/Cmd to select multiple</div>
+
+                <select class="modal-select" id="difficulty-select">
+                    <option value="">Difficulty (optional)</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                </select>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeAddExerciseModal()">Cancel</button>
@@ -1390,6 +1418,9 @@
             haptic('success');
             speak(`Set ${currentExercise.currentSet} complete`);
 
+            // Check for progress
+            detectProgress(currentExercise.currentSet, reps);
+
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
                 currentExercise.currentRep = 0;
@@ -1505,6 +1536,9 @@
             haptic('success');
             speak(`Set ${currentExercise.currentSet} logged: ${reps} reps`);
 
+            // Check for progress
+            detectProgress(currentExercise.currentSet, reps);
+
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
                 currentExercise.currentRep = 0;
@@ -1514,6 +1548,33 @@
             } else {
                 speak('All sets complete');
                 showSessionNotesModal();
+            }
+        }
+
+        // Smart Progress Detection
+        function detectProgress(setNumber, reps) {
+            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const previousSessions = sessions.filter(s => s.exerciseId === currentExercise.id);
+
+            if (previousSessions.length === 0) return; // First time doing this exercise
+
+            const lastSession = previousSessions[previousSessions.length - 1];
+            const lastSetReps = lastSession.sets && lastSession.sets[setNumber - 1]?.reps;
+
+            if (!lastSetReps) return; // No comparison data
+
+            const diff = reps - lastSetReps;
+
+            if (diff > 0) {
+                setTimeout(() => {
+                    speak(`${diff} more rep${diff > 1 ? 's' : ''} than last time!`);
+                    haptic('success');
+                }, 1500);
+            } else if (diff < 0 && Math.abs(diff) > 2) {
+                // Only mention if significantly fewer (more than 2 reps)
+                setTimeout(() => {
+                    speak(`${Math.abs(diff)} fewer reps than last time`);
+                }, 1500);
             }
         }
 
@@ -1825,13 +1886,98 @@
             const filtered = exerciseLibrary.filter(ex => {
                 const matchesSearch = !searchTerm || ex.name.toLowerCase().includes(searchTerm);
                 const matchesTags = filterTags.length === 0 || (ex.tags && filterTags.some(tag => ex.tags.includes(tag)));
-                return matchesSearch && matchesTags;
+                const notArchived = !ex.archived;
+                return matchesSearch && matchesTags && notArchived;
             });
             renderExerciseList(filtered);
         }
 
+        function toggleFavorite(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            entry.favorite = !entry.favorite;
+            persistExerciseLibrary();
+            exerciseLibrary = loadExerciseLibrary();
+            renderExerciseList();
+            haptic('light');
+        }
+
+        function archiveExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            showActionSheet(`Archive "${entry.name}"? You can restore it later from archived exercises.`, () => {
+                entry.archived = true;
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                renderExerciseList();
+                haptic('success');
+            });
+        }
+
+        let viewingArchived = false;
+
+        function showArchivedExercises() {
+            viewingArchived = !viewingArchived;
+            const btn = document.getElementById('archived-btn');
+
+            if (viewingArchived) {
+                const archived = exerciseLibrary.filter(ex => ex.archived);
+                btn.textContent = '← Back';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-primary');
+                renderArchivedList(archived);
+            } else {
+                btn.textContent = '📦 Archived';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+                renderExerciseList();
+            }
+        }
+
+        function renderArchivedList(archivedExercises) {
+            const container = document.getElementById('exercise-list-content');
+
+            if (archivedExercises.length === 0) {
+                container.innerHTML = '<div class="history-item">No archived exercises.</div>';
+                return;
+            }
+
+            container.innerHTML = archivedExercises.map(ex => {
+                const spec = ex.current || {};
+                return `
+                    <div class="history-item">
+                        <div>${ex.name}</div>
+                        <div class="history-meta">${describeSpec(spec)}</div>
+                        <div style="margin-top: 8px; display: flex; gap: 8px;">
+                            <button class="control-btn btn-success" onclick="unarchiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Restore</button>
+                            <button class="control-btn btn-danger" onclick="permanentlyDeleteExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Delete Forever</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function unarchiveExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            entry.archived = false;
+            persistExerciseLibrary();
+            exerciseLibrary = loadExerciseLibrary();
+            haptic('success');
+            speak('Exercise restored');
+            showArchivedExercises(); // Refresh archived view
+        }
+
+        function permanentlyDeleteExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            showActionSheet(`PERMANENTLY delete "${entry.name}"? This cannot be undone!`, () => {
+                exerciseLibrary = exerciseLibrary.filter(ex => ex.id !== exerciseId);
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                haptic('success');
+                showArchivedExercises(); // Refresh archived view
+            });
+        }
+
         function renderExerciseList(filteredLibrary = null) {
-            const list = filteredLibrary || exerciseLibrary;
+            let list = filteredLibrary || exerciseLibrary.filter(ex => !ex.archived);
             const container = document.getElementById('exercise-list-content');
 
             if (list.length === 0) {
@@ -1839,7 +1985,23 @@
                 return;
             }
 
+            // Sort: favorites first, then by last used, then alphabetically
             const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            list = list.slice().sort((a, b) => {
+                // Favorites first
+                if (a.favorite && !b.favorite) return -1;
+                if (!a.favorite && b.favorite) return 1;
+
+                // Then by most recently used
+                const aSession = sessions.filter(s => s.exerciseId === a.id).pop();
+                const bSession = sessions.filter(s => s.exerciseId === b.id).pop();
+                const aDate = aSession ? new Date(aSession.date).getTime() : 0;
+                const bDate = bSession ? new Date(bSession.date).getTime() : 0;
+                if (aDate !== bDate) return bDate - aDate;
+
+                // Then alphabetically
+                return a.name.localeCompare(b.name);
+            });
 
             container.innerHTML = list.map(ex => {
                 const spec = ex.current || {};
@@ -1863,9 +2025,10 @@
                         <div class="history-meta">${describeSpec(spec)}</div>
                         ${statsHtml}
                         <div style="margin-top: 8px; display: flex; gap: 8px;">
+                            <button class="control-btn ${ex.favorite ? 'btn-primary' : 'btn-secondary'}" onclick="toggleFavorite('${ex.id}'); event.stopPropagation();" style="flex: 0 0 auto; padding: 8px 12px; font-size: 18px;">${ex.favorite ? '⭐' : '☆'}</button>
                             <button class="control-btn btn-secondary" onclick="showExerciseDetailsModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
                             <button class="control-btn btn-secondary" onclick="editExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Edit</button>
-                            <button class="control-btn btn-danger" onclick="deleteExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Delete</button>
+                            <button class="control-btn btn-danger" onclick="archiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Archive</button>
                         </div>
                     </div>
                 `;
@@ -1908,6 +2071,10 @@
             document.getElementById('new-seconds').value = '';
             document.getElementById('bilateral-checkbox').checked = false;
             document.getElementById('supersedes-input').value = '';
+            document.getElementById('primary-muscles').value = '';
+            document.getElementById('anatomic-regions').value = '';
+            document.getElementById('equipment-select').selectedIndex = -1;
+            document.getElementById('difficulty-select').value = '';
             renderTagSelector();
             renderSideOptionsSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
@@ -1980,6 +2147,13 @@
             const isBilateral = document.getElementById('bilateral-checkbox').checked;
             const supersedesValue = document.getElementById('supersedes-input').value.trim();
 
+            // ATLAS fields
+            const primaryMuscles = document.getElementById('primary-muscles').value.trim();
+            const anatomicRegions = document.getElementById('anatomic-regions').value.trim();
+            const equipmentSelect = document.getElementById('equipment-select');
+            const equipment = Array.from(equipmentSelect.selectedOptions).map(opt => opt.value);
+            const difficulty = document.getElementById('difficulty-select').value;
+
             if (!name) {
                 alert('Please enter an exercise name.');
                 return;
@@ -2007,6 +2181,11 @@
                 entry.bilateral = isBilateral;
                 entry.sideOptions = isBilateral ? [] : selectedSideOptions;
                 entry.supersedes = supersedes;
+                entry.primaryMuscles = primaryMuscles;
+                entry.anatomicRegions = anatomicRegions;
+                entry.equipment = equipment;
+                entry.difficulty = difficulty;
+                entry.favorite = entry.favorite || false; // Preserve favorite status
                 recordRevision(entry, spec, 'Manual edit');
             } else {
                 // Add new
@@ -2018,6 +2197,12 @@
                     bilateral: isBilateral,
                     sideOptions: isBilateral ? [] : selectedSideOptions,
                     supersedes: supersedes,
+                    primaryMuscles: primaryMuscles,
+                    anatomicRegions: anatomicRegions,
+                    equipment: equipment,
+                    difficulty: difficulty,
+                    favorite: false,
+                    archived: false,
                     current: spec,
                     history: [{
                         timestamp: new Date().toISOString(),
@@ -2050,6 +2235,16 @@
             document.getElementById('new-seconds').value = spec.secondsPerRep || '';
             document.getElementById('bilateral-checkbox').checked = entry.bilateral || false;
             document.getElementById('supersedes-input').value = (entry.supersedes || []).join(', ');
+            document.getElementById('primary-muscles').value = entry.primaryMuscles || '';
+            document.getElementById('anatomic-regions').value = entry.anatomicRegions || '';
+            document.getElementById('difficulty-select').value = entry.difficulty || '';
+
+            // Set equipment multi-select
+            const equipmentSelect = document.getElementById('equipment-select');
+            Array.from(equipmentSelect.options).forEach(opt => {
+                opt.selected = (entry.equipment || []).includes(opt.value);
+            });
+
             selectedTags = entry.tags || [];
             selectedSideOptions = entry.sideOptions || [];
             renderTagSelector();
