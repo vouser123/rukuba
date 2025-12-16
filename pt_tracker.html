@@ -17,8 +17,9 @@
             --ios-green: #34C759;
             --ios-orange: #FF9500;
             --ios-gray: #8E8E93;
-            --ios-background: #F2F2F7;
-        }
+        --ios-background: #F2F2F7;
+            --ios-surface: rgba(255, 255, 255, 0.95);
+    }
 
         * {
             margin: 0;
@@ -75,8 +76,8 @@
         }
 
         .counter-display {
-            width: 200px;
-            height: 200px;
+            width: min(320px, 85vw);
+            height: min(320px, 85vw);
             border-radius: 50%;
             background: white;
             display: flex;
@@ -115,6 +116,14 @@
             font-size: 17px;
             color: var(--ios-gray);
             margin-bottom: 30px;
+        }
+
+        .remaining-info {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1c1c1e;
+            text-align: center;
+            margin-bottom: 12px;
         }
 
         .progress-bar-container {
@@ -195,6 +204,7 @@
             padding-bottom: max(12px, env(safe-area-inset-bottom));
             border-top: 0.5px solid rgba(0, 0, 0, 0.1);
             display: flex;
+            flex-wrap: wrap;
             gap: 12px;
             z-index: 999;
         }
@@ -418,6 +428,202 @@
             background: rgba(0, 0, 0, 0.05);
         }
 
+        .history-section {
+            margin-bottom: 16px;
+        }
+
+        .history-heading {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1c1c1e;
+            margin-bottom: 8px;
+        }
+
+        .history-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            padding: 12px;
+        }
+
+        .history-item {
+            padding: 10px 8px;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-meta {
+            font-size: 12px;
+            color: var(--ios-gray);
+            margin-top: 4px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--ios-blue);
+            margin-right: 6px;
+        }
+
+        .pocket-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 4000;
+        }
+
+        .pocket-overlay.active {
+            display: flex;
+        }
+
+        .pocket-pad {
+            width: min(360px, 95vw);
+            height: min(360px, 70vh);
+            border-radius: 28px;
+            background: white;
+            color: var(--ios-blue);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 56px;
+            font-weight: 800;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .library-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .pill-button {
+            border: none;
+            background: rgba(0,0,0,0.05);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .library-card {
+            background: white;
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .library-card.archived {
+            opacity: 0.65;
+        }
+
+        .library-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .library-name {
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .favorite {
+            color: var(--ios-orange);
+        }
+
+        .tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .ios-card {
+            background: white;
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--ios-gray);
+            margin: 10px 0 6px;
+            font-weight: 600;
+        }
+
+        .event-item {
+            border-bottom: 0.5px solid rgba(0,0,0,0.06);
+            padding: 10px 0;
+        }
+
+        .event-item:last-child {
+            border-bottom: none;
+        }
+
+        .event-severity {
+            font-weight: 700;
+            color: var(--ios-red);
+        }
+
+        .event-timestamp {
+            font-size: 12px;
+            color: var(--ios-gray);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--ios-gray);
+            padding: 12px 0;
+        }
+
+        .pocket-meta {
+            color: #3a3a3c;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .pocket-close {
+            margin-top: 18px;
+            background: rgba(0,0,0,0.75);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            max-width: 320px;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -432,10 +638,11 @@
     <!-- Counter View -->
     <div class="counter-view" id="counter-view">
         <div class="set-info" id="set-info">Set 1 of 3</div>
+        <div class="remaining-info" id="remaining-info">Reps left: 10 · Sets left: 3</div>
 
         <!-- Counter Mode -->
         <div id="counter-mode">
-            <div class="counter-display" id="counter-display" onclick="incrementCounter()">0</div>
+            <div class="counter-display" id="counter-display" onclick="incrementCounter()" aria-live="assertive">0</div>
             <div class="target-info" id="target-info">Target: 10 reps</div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
@@ -464,8 +671,11 @@
     </div>
 
     <div class="footer">
-        <button class="btn-primary" onclick="showExerciseModal()">Change Exercise</button>
+        <button class="btn-primary" onclick="showExerciseModal()">Change</button>
+        <button class="btn-secondary" onclick="showLibraryModal()">Library</button>
         <button class="btn-secondary" onclick="showHistory()">History</button>
+        <button class="btn-secondary" onclick="showEventModal()">Events</button>
+        <button class="btn-success" onclick="togglePocketMode(true)">Pocket Tap</button>
     </div>
 
     <!-- Exercise Selection Modal -->
@@ -479,18 +689,137 @@
                     <option value="plank">Plank Hold</option>
                     <option value="step_ups">Step Ups</option>
                     <option value="clamshells">Clamshells</option>
+                    <option value="bridge_hold">Bridge Hold</option>
+                    <option value="pushup_amrap">Push-up AMRAP</option>
+                    <option value="walk_distance">Walk (Distance)</option>
                 </select>
                 <select class="modal-select" id="exercise-type" onchange="updateTargetLabel()">
                     <option value="reps">Rep-based</option>
                     <option value="timed">Timed Reps</option>
+                    <option value="hold">Hold</option>
+                    <option value="duration">Duration</option>
+                    <option value="amrap">AMRAP</option>
+                    <option value="distance">Distance</option>
                 </select>
                 <input type="number" class="modal-input" id="sets-input" placeholder="Number of sets" value="3">
                 <input type="number" class="modal-input" id="reps-input" placeholder="Reps per set" value="10">
-                <input type="number" class="modal-input" id="target-input" placeholder="Seconds per rep (for timed)" value="10">
+                <input type="number" class="modal-input" id="target-input" placeholder="Target (seconds or distance)" value="10">
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeExerciseModal()">Cancel</button>
                 <button class="modal-save" onclick="saveExercise()">Start</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal" id="history-modal" onclick="if(event.target === this) closeHistoryModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">History</div>
+            <div class="modal-form">
+                <div class="history-section">
+                    <div class="history-heading">Exercise revisions</div>
+                    <div class="history-list" id="exercise-history-list"></div>
+                </div>
+                <div class="history-section">
+                    <div class="history-heading">Recent sessions</div>
+                    <div class="history-list" id="session-history-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise Library Modal -->
+    <div class="modal" id="library-modal" onclick="if(event.target === this) closeLibraryModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Exercise Library</div>
+            <div class="modal-form">
+                <div class="library-controls">
+                    <input type="text" class="modal-input" id="library-search" placeholder="Search or filter" oninput="renderLibrary()">
+                    <button class="pill-button" onclick="toggleShowArchived()" id="archive-toggle">Show archived</button>
+                </div>
+                <div class="library-controls">
+                    <button class="pill-button" onclick="applyFavoriteFilter('all')" id="fav-all">All</button>
+                    <button class="pill-button" onclick="applyFavoriteFilter('favorites')" id="fav-fav">★ Favorites</button>
+                    <button class="pill-button" onclick="applyFavoriteFilter('recent')" id="fav-recent">Recent</button>
+                </div>
+                <div id="library-list"></div>
+
+                <div class="subtitle">Add or edit</div>
+                <div class="ios-card" id="library-editor">
+                    <input type="hidden" id="edit-exercise-id" value="">
+                    <input type="text" class="modal-input" id="new-exercise-name" placeholder="Exercise name" oninput="suggestForExercise()">
+                    <div class="form-row">
+                        <input type="text" class="modal-input" id="new-dosage" placeholder="Dosage (e.g., S3x12 side)" oninput="suggestForExercise()">
+                        <select class="modal-select" id="new-type" onchange="updateNewTargetLabel()">
+                            <option value="reps">Reps</option>
+                            <option value="timed">Timed reps</option>
+                            <option value="hold">Hold</option>
+                            <option value="duration">Duration</option>
+                            <option value="amrap">AMRAP</option>
+                            <option value="distance">Distance</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <input type="number" class="modal-input" id="new-sets" placeholder="Sets" value="3">
+                        <input type="number" class="modal-input" id="new-reps" placeholder="Reps or distance" value="10">
+                        <input type="number" class="modal-input" id="new-target" placeholder="Seconds (hold/duration/AMRAP)" value="10">
+                    </div>
+                    <div class="form-row">
+                        <input type="text" class="modal-input" id="new-tags" placeholder="Tags (comma separated)">
+                        <input type="text" class="modal-input" id="new-muscles" placeholder="Muscles (comma separated)">
+                    </div>
+                    <div class="form-row">
+                        <input type="text" class="modal-input" id="new-regions" placeholder="Regions (comma separated)">
+                        <input type="text" class="modal-input" id="new-equipment" placeholder="Equipment (comma separated)">
+                    </div>
+                    <textarea class="modal-input" id="new-tips" placeholder="Cues / tips" rows="2"></textarea>
+                    <div class="modal-buttons">
+                        <button class="modal-cancel" onclick="resetLibraryEditor()">Clear</button>
+                        <button class="modal-save" onclick="saveLibraryEntry()">Save to library</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Functional Event Logger -->
+    <div class="modal" id="event-modal" onclick="if(event.target === this) closeEventModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Functional Events</div>
+            <div class="modal-form">
+                <div class="ios-card" style="margin-bottom:12px;">
+                    <div class="form-row">
+                        <select class="modal-select" id="event-class">
+                            <option value="pain">Pain flare</option>
+                            <option value="breakthrough">Breakthrough</option>
+                            <option value="fatigue">Fatigue</option>
+                            <option value="mobility">Mobility win</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <input type="text" class="modal-input" id="event-location" placeholder="Body location (e.g., left knee)">
+                    </div>
+                    <label class="subtitle" for="event-severity">Severity / intensity</label>
+                    <input type="range" id="event-severity" min="1" max="10" value="4" oninput="updateSeverityLabel()">
+                    <div id="severity-label" class="history-meta" style="margin:6px 0;">Severity: 4</div>
+                    <div class="form-row">
+                        <input type="text" class="modal-input" id="event-triggers" placeholder="Triggers (comma separated)">
+                        <input type="text" class="modal-input" id="event-nature" placeholder="Nature (sharp, dull, etc.)">
+                    </div>
+                    <textarea class="modal-input" id="event-notes" placeholder="Notes" rows="2"></textarea>
+                    <label class="subtitle">Link exercises</label>
+                    <div id="event-exercises" class="tag-row"></div>
+                    <div class="modal-buttons" style="margin-top:12px;">
+                        <button class="modal-cancel" onclick="closeEventModal()">Close</button>
+                        <button class="modal-save" onclick="saveEventLog()">Log event</button>
+                    </div>
+                </div>
+
+                <div class="subtitle">Timeline</div>
+                <div class="ios-card" id="event-timeline"></div>
             </div>
         </div>
     </div>
@@ -505,27 +834,508 @@
         <button class="action-sheet-cancel" onclick="hideActionSheet()">Cancel</button>
     </div>
 
+    <!-- Eyes-free pocket tap overlay -->
+    <div class="pocket-overlay" id="pocket-overlay" onclick="handlePocketTap()" aria-live="assertive">
+        <div class="pocket-pad" role="button" aria-label="Pocket tap target">
+            <div id="pocket-label">Tap to count</div>
+            <div class="pocket-meta" id="pocket-meta">Reps left · Sets left</div>
+        </div>
+        <button class="pocket-close" onclick="togglePocketMode(false); event.stopPropagation();">Exit Pocket Mode</button>
+    </div>
+
     <script>
         const STORAGE_KEY = 'pt_tracker_data';
+        const LIBRARY_KEY = 'pt_exercise_library';
+        const EVENT_KEY = 'pt_event_log';
+        const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
 
-        let currentExercise = {
-            name: 'Goblet Squat',
-            type: 'reps',
-            sets: 3,
-            repsPerSet: 10,
-            secondsPerRep: 10, // for timed exercises
-            currentSet: 1,
-            currentRep: 0, // for counter mode OR current timed rep
-            sessionData: []
-        };
+        const ATLAS_SEED = [
+            {
+                id: 'goblet_squat',
+                name: 'Goblet Squat',
+                dosage: 'S3x10 (both)',
+                supersedes: ['ex_basic_squats_01'],
+                summary: 'Seeded from atlas_pt_min_250817.json; supersedes ex_basic_squats_01'
+            },
+            {
+                id: 'plank_hold',
+                name: 'Plank Hold',
+                dosage: 'S3x1',
+                hold_seconds: 30,
+                supersedes: [],
+                summary: 'Seeded hold duration from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'step_ups',
+                name: 'Step Ups',
+                dosage: 'S3x10 (side)',
+                supersedes: ['ex_basic_squats_01'],
+                summary: 'Seeded from atlas_pt_min_250817.json; supersedes ex_basic_squats_01'
+            },
+            {
+                id: 'clamshells',
+                name: 'Clamshells',
+                dosage: 'S3x15 (side)',
+                supersedes: [],
+                summary: 'Seeded from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'bridge_hold',
+                name: 'Bridge Hold',
+                dosage: 'S3x1',
+                hold_seconds: 30,
+                supersedes: [],
+                summary: 'Seeded bridge hold parameters from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'bike_intervals',
+                name: 'Bike Intervals',
+                dosage: 'S4x1',
+                duration_seconds: 300,
+                supersedes: [],
+                summary: 'Seeded duration pattern from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'pushup_amrap',
+                name: 'Push-up AMRAP',
+                dosage: 'AMRAP',
+                amrap_window_sec: 60,
+                supersedes: [],
+                summary: 'Seeded AMRAP window from atlas_pt_min_250817.json'
+            },
+            {
+                id: 'walk_distance',
+                name: 'Walk (distance)',
+                dosage: 'S1x400',
+                distance_meters: 400,
+                supersedes: [],
+                summary: 'Seeded distance goal from atlas_pt_min_250817.json'
+            }
+        ];
+
+        function parseAtlasDosage(dosage = '') {
+            const match = /S(\d+)x(\d+)/i.exec(dosage);
+            const sets = match ? parseInt(match[1], 10) : 3;
+            const repsPerSet = match ? parseInt(match[2], 10) : 10;
+            const isSide = /(side)/i.test(dosage);
+            const isBoth = /(both)/i.test(dosage);
+
+            return { sets, repsPerSet, side: isSide ? 'side' : isBoth ? 'both' : null };
+        }
+
+        function atlasSeedToSpec(entry) {
+            const base = parseAtlasDosage(entry.dosage || '');
+            const spec = {
+                type: 'reps',
+                sets: entry.sets_override || base.sets || 3,
+                repsPerSet: base.repsPerSet || 10,
+                secondsPerRep: 0
+            };
+
+            if (entry.hold_seconds) {
+                spec.type = 'hold';
+                spec.repsPerSet = base.repsPerSet || 1;
+                spec.secondsPerRep = entry.hold_seconds;
+            } else if (entry.duration_seconds) {
+                spec.type = 'duration';
+                spec.repsPerSet = base.repsPerSet || 1;
+                spec.secondsPerRep = entry.duration_seconds;
+            } else if (entry.amrap_window_sec) {
+                spec.type = 'amrap';
+                spec.repsPerSet = 0;
+                spec.secondsPerRep = entry.amrap_window_sec;
+            } else if (entry.distance_meters) {
+                spec.type = 'distance';
+                spec.repsPerSet = entry.distance_meters;
+                spec.secondsPerRep = 0;
+            }
+
+            return spec;
+        }
+
+        const DEFAULT_LIBRARY = ATLAS_SEED.map(entry => {
+            const spec = atlasSeedToSpec(entry);
+            return {
+                id: entry.id,
+                name: entry.name,
+                supersedes: entry.supersedes || [],
+                atlasUrl: ATLAS_REFERENCE_URL,
+                tags: [],
+                muscles: [],
+                regions: [],
+                equipment: [],
+                tips: '',
+                favorite: false,
+                archived: false,
+                updatedAt: new Date().toISOString(),
+                current: spec,
+                history: [
+                    {
+                        timestamp: new Date().toISOString(),
+                        summary: entry.summary || 'Seeded from atlas_pt_min_250817.json',
+                        previous: null,
+                        next: spec,
+                        supersedes: entry.supersedes || []
+                    }
+                ]
+            };
+        });
+        let exerciseLibrary = loadExerciseLibrary();
+        let currentExercise = toSessionExercise(exerciseLibrary[0]);
 
         let timerInterval = null;
-        let timerSecondsRemaining = 0; // counts DOWN
+        let timerSecondsRemaining = Math.max(currentExercise.secondsPerRep || 0, 1); // counts DOWN
         let timerRunning = false;
         let actionSheetCallback = null;
+        let pocketMode = false;
+        let showArchived = false;
+        let favoriteFilter = 'all';
+        let longPressTimeout = null;
+
+        let eventLog = loadEventLog();
+
+        const TIMER_TYPES = ['timed', 'hold', 'duration'];
+        const COUNTER_TYPES = ['reps', 'amrap', 'distance'];
 
         // Audio for timer
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function loadExerciseLibrary() {
+            const stored = localStorage.getItem(LIBRARY_KEY);
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length) {
+                        return parsed.map(entry => ({
+                            favorite: false,
+                            tags: [],
+                            muscles: [],
+                            regions: [],
+                            equipment: [],
+                            tips: '',
+                            archived: false,
+                            updatedAt: entry.updatedAt || entry.history?.[entry.history.length - 1]?.timestamp || new Date().toISOString(),
+                            ...entry
+                        }));
+                    }
+                } catch (e) {
+                    console.warn('Unable to parse exercise library; reseeding defaults');
+                }
+            }
+            localStorage.setItem(LIBRARY_KEY, JSON.stringify(DEFAULT_LIBRARY));
+            return JSON.parse(localStorage.getItem(LIBRARY_KEY));
+        }
+
+        function persistExerciseLibrary() {
+            localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+        }
+
+        function loadEventLog() {
+            const stored = localStorage.getItem(EVENT_KEY);
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch (e) {
+                    console.warn('Unable to parse event log; reseeding empty');
+                }
+            }
+            localStorage.setItem(EVENT_KEY, JSON.stringify([]));
+            return [];
+        }
+
+        function persistEventLog() {
+            localStorage.setItem(EVENT_KEY, JSON.stringify(eventLog));
+        }
+
+        function toSessionExercise(entry) {
+            const spec = entry?.current || {};
+            return {
+                id: entry.id,
+                name: entry.name,
+                type: spec.type || 'reps',
+                sets: spec.sets || 3,
+                repsPerSet: spec.repsPerSet || 10,
+                secondsPerRep: spec.secondsPerRep ?? 10,
+                currentSet: 1,
+                currentRep: 0,
+                sessionData: []
+            };
+        }
+
+        function parseListInput(value = '') {
+            return value.split(',').map(v => v.trim()).filter(Boolean);
+        }
+
+        function suggestAttributes(name = '', dosage = '') {
+            const lower = name.toLowerCase();
+            const muscles = [];
+            const regions = [];
+            const equipment = [];
+            const tags = [];
+            const tips = [];
+
+            if (lower.includes('squat')) {
+                muscles.push('quads', 'glutes');
+                regions.push('knee', 'hip');
+                tips.push('Sit back and keep knees tracking over toes');
+            }
+            if (lower.includes('plank')) {
+                muscles.push('core');
+                regions.push('lumbar');
+                tips.push('Maintain neutral spine, avoid sagging');
+            }
+            if (lower.includes('bridge')) {
+                muscles.push('glutes', 'hamstrings');
+                regions.push('hip');
+                tips.push('Squeeze at the top, ribs down');
+            }
+            if (/step|stairs/.test(lower)) {
+                regions.push('knee');
+                muscles.push('quads');
+                equipment.push('step');
+            }
+            if (/bike|cycle/.test(lower)) {
+                equipment.push('bike');
+                tags.push('cardio');
+            }
+            if (/walk|distance/.test(lower)) {
+                tags.push('gait');
+                regions.push('hip', 'knee');
+            }
+            if (/amrap/i.test(dosage)) {
+                tags.push('amrap');
+            }
+            if (/hold|duration/i.test(dosage)) {
+                tags.push('endurance');
+            }
+
+            return { muscles, regions, equipment, tags, tips: tips.join('. ') };
+        }
+
+        function getLibraryEntryById(id) {
+            const active = exerciseLibrary.find(ex => ex.id === id);
+            if (active) return active;
+            return exerciseLibrary.find(ex => !ex.archived) || exerciseLibrary[0];
+        }
+
+        function recordRevision(entry, nextSpec, reason = 'Updated dosage') {
+            const previous = { ...(entry.current || {}) };
+            const changes = [];
+
+            if ((previous.sets ?? null) !== nextSpec.sets) changes.push(`sets ${previous.sets ?? '—'} → ${nextSpec.sets}`);
+            if ((previous.repsPerSet ?? null) !== nextSpec.repsPerSet) changes.push(`reps ${previous.repsPerSet ?? '—'} → ${nextSpec.repsPerSet}`);
+            if ((previous.secondsPerRep ?? null) !== nextSpec.secondsPerRep) changes.push(`seconds ${previous.secondsPerRep ?? '—'} → ${nextSpec.secondsPerRep}`);
+            if ((previous.type ?? '') !== nextSpec.type) changes.push(`type ${previous.type || 'reps'} → ${nextSpec.type}`);
+
+            entry.history = entry.history || [];
+            entry.history.push({
+                timestamp: new Date().toISOString(),
+                summary: changes.length ? changes.join(', ') : reason,
+                previous,
+                next: nextSpec,
+                supersedes: entry.supersedes || []
+            });
+
+            entry.current = nextSpec;
+            entry.updatedAt = new Date().toISOString();
+            persistExerciseLibrary();
+        }
+
+        function toggleFavorite(id) {
+            const entry = getLibraryEntryById(id);
+            if (!entry) return;
+            entry.favorite = !entry.favorite;
+            entry.updatedAt = new Date().toISOString();
+            persistExerciseLibrary();
+            renderLibrary();
+            populateExerciseSelect();
+            renderEventExercises();
+        }
+
+        function toggleArchive(id) {
+            const entry = getLibraryEntryById(id);
+            if (!entry) return;
+            entry.archived = !entry.archived;
+            entry.updatedAt = new Date().toISOString();
+            persistExerciseLibrary();
+            renderLibrary();
+            populateExerciseSelect();
+            renderEventExercises();
+        }
+
+        function populateEditorFromEntry(entry) {
+            document.getElementById('edit-exercise-id').value = entry.id;
+            document.getElementById('new-exercise-name').value = entry.name;
+            document.getElementById('new-dosage').value = entry.dosage || '';
+            document.getElementById('new-type').value = entry.current?.type || 'reps';
+            document.getElementById('new-sets').value = entry.current?.sets || 3;
+            document.getElementById('new-reps').value = entry.current?.repsPerSet || 10;
+            document.getElementById('new-target').value = entry.current?.secondsPerRep || 0;
+            document.getElementById('new-tags').value = (entry.tags || []).join(', ');
+            document.getElementById('new-muscles').value = (entry.muscles || []).join(', ');
+            document.getElementById('new-regions').value = (entry.regions || []).join(', ');
+            document.getElementById('new-equipment').value = (entry.equipment || []).join(', ');
+            document.getElementById('new-tips').value = entry.tips || '';
+        }
+
+        function populateExerciseSelect() {
+            const select = document.getElementById('exercise-select');
+            const selectedValue = currentExercise?.id;
+            select.innerHTML = '';
+
+            exerciseLibrary
+                .filter(entry => !entry.archived)
+                .forEach(entry => {
+                    const opt = document.createElement('option');
+                    opt.value = entry.id;
+                    opt.textContent = entry.name;
+                    if (entry.id === selectedValue) {
+                        opt.selected = true;
+                    }
+                    select.appendChild(opt);
+                });
+        }
+
+        function toggleShowArchived() {
+            showArchived = !showArchived;
+            document.getElementById('archive-toggle').textContent = showArchived ? 'Show active only' : 'Show archived';
+            renderLibrary();
+        }
+
+        function applyFavoriteFilter(mode) {
+            favoriteFilter = mode;
+            ['fav-all', 'fav-fav', 'fav-recent'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.background = 'rgba(0,0,0,0.05)';
+            });
+            const activeId = mode === 'favorites' ? 'fav-fav' : mode === 'recent' ? 'fav-recent' : 'fav-all';
+            const activeEl = document.getElementById(activeId);
+            if (activeEl) activeEl.style.background = 'rgba(0, 122, 255, 0.12)';
+            renderLibrary();
+        }
+
+        function describeEntry(entry) {
+            const spec = entry.current || {};
+            const typeLabel = spec.type === 'amrap'
+                ? `${spec.secondsPerRep || 0}s AMRAP`
+                : spec.type === 'distance'
+                    ? `${spec.repsPerSet || 0} distance units`
+                    : spec.type === 'duration'
+                        ? `${spec.secondsPerRep || 0}s per set`
+                        : spec.type === 'hold'
+                            ? `${spec.secondsPerRep || 0}s holds`
+                            : `${spec.repsPerSet || 0} reps`;
+            return `${spec.sets || 0} sets · ${typeLabel}`;
+        }
+
+        function renderLibrary() {
+            const list = document.getElementById('library-list');
+            const term = (document.getElementById('library-search').value || '').toLowerCase();
+            if (!list) return;
+
+            let entries = exerciseLibrary.slice();
+            if (!showArchived) entries = entries.filter(e => !e.archived);
+            if (favoriteFilter === 'favorites') entries = entries.filter(e => e.favorite);
+            if (favoriteFilter === 'recent') entries = entries.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)).slice(0, 8);
+
+            entries = entries.filter(e => {
+                if (!term) return true;
+                return [e.name, e.tags?.join(' '), e.muscles?.join(' '), e.regions?.join(' ')]
+                    .join(' ')
+                    .toLowerCase()
+                    .includes(term);
+            });
+
+            if (entries.length === 0) {
+                list.innerHTML = '<div class="empty-state">No exercises match. Try adding one below.</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            entries.forEach(entry => {
+                const card = document.createElement('div');
+                card.className = `library-card ${entry.archived ? 'archived' : ''}`;
+                card.dataset.id = entry.id;
+
+                card.innerHTML = `
+                    <div class="library-meta">
+                        <div class="library-name">${entry.name} ${entry.favorite ? '★' : ''}</div>
+                        <div class="history-meta">${new Date(entry.updatedAt || entry.history?.[0]?.timestamp || Date.now()).toLocaleDateString()}</div>
+                    </div>
+                    <div class="history-meta">${describeEntry(entry)}</div>
+                    <div class="tag-row">
+                        ${(entry.tags || []).map(tag => `<span class="pill">${tag}</span>`).join('')}
+                        ${(entry.muscles || []).map(tag => `<span class="pill">${tag}</span>`).join('')}
+                        ${(entry.regions || []).map(tag => `<span class="pill">${tag}</span>`).join('')}
+                    </div>
+                    <div class="history-meta" style="margin-top:8px;">${entry.tips || ''}</div>
+                    <div class="library-controls" style="margin-top:10px;">
+                        <button class="pill-button" onclick="startFromLibrary('${entry.id}')">Load</button>
+                        <button class="pill-button" onclick="toggleFavorite('${entry.id}')">${entry.favorite ? 'Unfavorite' : 'Favorite'}</button>
+                        <button class="pill-button" onclick="toggleArchive('${entry.id}')">${entry.archived ? 'Restore' : 'Archive'}</button>
+                    </div>
+                `;
+
+                attachLibraryGestures(card, entry);
+                list.appendChild(card);
+            });
+        }
+
+        function attachLibraryGestures(card, entry) {
+            let startX = 0;
+            let startY = 0;
+            let startTime = 0;
+
+            const start = (evt) => {
+                const point = evt.touches ? evt.touches[0] : evt;
+                startX = point.clientX;
+                startY = point.clientY;
+                startTime = Date.now();
+                longPressTimeout = setTimeout(() => {
+                    populateEditorFromEntry(entry);
+                    haptic('medium');
+                }, 550);
+            };
+
+            const end = (evt) => {
+                if (longPressTimeout) clearTimeout(longPressTimeout);
+                const point = evt.changedTouches ? evt.changedTouches[0] : evt;
+                const deltaX = point.clientX - startX;
+                const deltaY = point.clientY - startY;
+                const duration = Date.now() - startTime;
+
+                if (duration < 250 && Math.abs(deltaX) > 60 && Math.abs(deltaY) < 40) {
+                    if (deltaX > 0) {
+                        toggleFavorite(entry.id);
+                    } else {
+                        toggleArchive(entry.id);
+                    }
+                }
+            };
+
+            const cancel = () => {
+                if (longPressTimeout) clearTimeout(longPressTimeout);
+            };
+
+            card.addEventListener('touchstart', start);
+            card.addEventListener('mousedown', start);
+            card.addEventListener('touchend', end);
+            card.addEventListener('mouseup', end);
+            card.addEventListener('mouseleave', cancel);
+            card.addEventListener('touchcancel', cancel);
+        }
+
+        function applyLibraryEntryToForm(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            const spec = entry.current || {};
+
+            document.getElementById('exercise-type').value = spec.type || 'reps';
+            document.getElementById('sets-input').value = spec.sets || 3;
+            document.getElementById('reps-input').value = spec.repsPerSet || 10;
+            document.getElementById('target-input').value = spec.secondsPerRep ?? 10;
+            updateTargetLabel();
+        }
 
         function playBeep(frequency = 800, duration = 200) {
             const oscillator = audioContext.createOscillator();
@@ -574,6 +1384,71 @@
             }
         }
 
+        const isTimerType = (type) => TIMER_TYPES.includes(type);
+
+        function togglePocketMode(enabled) {
+            pocketMode = enabled;
+            const overlay = document.getElementById('pocket-overlay');
+            if (enabled) {
+                overlay.classList.add('active');
+                haptic('medium');
+            } else {
+                overlay.classList.remove('active');
+                haptic('light');
+            }
+            updatePocketOverlay();
+        }
+
+        function handlePocketTap() {
+            if (!pocketMode) return;
+
+            if (COUNTER_TYPES.includes(currentExercise.type)) {
+                incrementCounter();
+            } else if (isTimerType(currentExercise.type)) {
+                if (!timerRunning) {
+                    startTimer();
+                } else {
+                    stopTimer();
+                }
+            }
+            updatePocketOverlay();
+        }
+
+        function updatePocketOverlay() {
+            const overlay = document.getElementById('pocket-overlay');
+            if (!overlay.classList.contains('active')) return;
+
+            const setsLeft = Math.max(currentExercise.sets - currentExercise.currentSet, 0);
+            const repsLeft = Math.max((currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
+            const label = COUNTER_TYPES.includes(currentExercise.type)
+                ? `${currentExercise.currentRep}`
+                : `${formatSeconds(timerSecondsRemaining)}`;
+
+            document.getElementById('pocket-label').textContent = label;
+
+            const metaPieces = [
+                `Sets left: ${setsLeft}`
+            ];
+
+            if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
+                metaPieces.push(`Reps left: ${repsLeft}`);
+            }
+
+            if (currentExercise.type === 'amrap' && currentExercise.secondsPerRep) {
+                metaPieces.push(`AMRAP ${currentExercise.secondsPerRep}s window`);
+            }
+
+            if (currentExercise.type === 'distance') {
+                metaPieces.push(`Distance goal: ${currentExercise.repsPerSet}`);
+            }
+
+            if (isTimerType(currentExercise.type)) {
+                metaPieces.push(timerRunning ? 'Timer running' : 'Timer paused');
+            }
+
+            document.getElementById('pocket-meta').textContent = metaPieces.join(' · ');
+        }
+
         // iOS-style Action Sheet
         function showActionSheet(message, onConfirm) {
             document.getElementById('action-sheet-message').textContent = message;
@@ -613,13 +1488,13 @@
 
         // Counter Functions
         function incrementCounter() {
-            if (currentExercise.type !== 'reps') return;
+            if (!COUNTER_TYPES.includes(currentExercise.type)) return;
 
             currentExercise.currentRep++;
             haptic('light');
 
             // Check if target reached
-            if (currentExercise.currentRep >= currentExercise.repsPerSet) {
+            if (currentExercise.repsPerSet && currentExercise.currentRep >= currentExercise.repsPerSet && currentExercise.type !== 'amrap') {
                 playCompletionSound();
                 haptic('success');
             }
@@ -627,42 +1502,75 @@
             updateDisplay();
         }
 
+        function formatSeconds(totalSeconds = 0) {
+            const minutes = Math.floor(Math.max(totalSeconds, 0) / 60);
+            const seconds = Math.max(totalSeconds % 60, 0);
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
         function updateDisplay() {
             document.getElementById('exercise-name').textContent = currentExercise.name;
             document.getElementById('set-info').textContent = `Set ${currentExercise.currentSet} of ${currentExercise.sets}`;
 
-            if (currentExercise.type === 'reps') {
-                // Rep-based exercise
+            const setsLeft = Math.max(currentExercise.sets - currentExercise.currentSet, 0);
+            const repsLeft = Math.max((currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
+
+            let remainingLabel = `Sets left: ${setsLeft}`;
+            if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
+                remainingLabel += ` · Reps left: ${repsLeft}`;
+            }
+            if (currentExercise.type === 'amrap' && currentExercise.secondsPerRep) {
+                remainingLabel += ` · ${currentExercise.secondsPerRep}s AMRAP window`;
+            }
+            if (isTimerType(currentExercise.type)) {
+                remainingLabel += ` · Time: ${formatSeconds(timerSecondsRemaining)}`;
+            }
+            document.getElementById('remaining-info').textContent = remainingLabel;
+
+            if (COUNTER_TYPES.includes(currentExercise.type)) {
                 document.getElementById('counter-mode').classList.remove('hidden');
                 document.getElementById('timer-mode').classList.add('hidden');
                 document.getElementById('main-controls').classList.remove('hidden');
 
                 document.getElementById('counter-display').textContent = currentExercise.currentRep;
-                document.getElementById('target-info').textContent = `Target: ${currentExercise.repsPerSet} reps`;
 
-                const progress = Math.min((currentExercise.currentRep / currentExercise.repsPerSet) * 100, 100);
+                let targetText = 'Target: ';
+                if (currentExercise.type === 'amrap') {
+                    targetText += currentExercise.secondsPerRep ? `${currentExercise.secondsPerRep}s AMRAP window` : 'AMRAP';
+                } else if (currentExercise.type === 'distance') {
+                    targetText += `${currentExercise.repsPerSet || 0} distance units`;
+                } else {
+                    targetText += `${currentExercise.repsPerSet} reps`;
+                }
+                document.getElementById('target-info').textContent = targetText;
+
+                const progress = currentExercise.repsPerSet
+                    ? Math.min((currentExercise.currentRep / currentExercise.repsPerSet) * 100, 100)
+                    : Math.min((currentExercise.currentSet / currentExercise.sets) * 100, 100);
                 document.getElementById('progress-bar').style.width = progress + '%';
             } else {
-                // Timed exercise (multiple timed reps)
                 document.getElementById('counter-mode').classList.add('hidden');
                 document.getElementById('timer-mode').classList.remove('hidden');
                 document.getElementById('main-controls').classList.remove('hidden');
 
-                // Show current rep
-                document.getElementById('timer-rep-info').textContent = `Rep ${currentExercise.currentRep + 1} of ${currentExercise.repsPerSet}`;
+                const repLabel = currentExercise.type === 'hold' || currentExercise.type === 'duration'
+                    ? `Set ${currentExercise.currentSet} timer`
+                    : `Rep ${currentExercise.currentRep + 1} of ${currentExercise.repsPerSet}`;
+                document.getElementById('timer-rep-info').textContent = repLabel;
 
-                // Display countdown timer
-                const minutes = Math.floor(timerSecondsRemaining / 60);
-                const seconds = timerSecondsRemaining % 60;
-                const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                const display = formatSeconds(timerSecondsRemaining);
                 document.getElementById('timer-display').textContent = display;
-                document.getElementById('timer-target').textContent = `Target: ${currentExercise.secondsPerRep} seconds`;
 
-                // Progress bar (counts down)
-                const progress = Math.max(0, (timerSecondsRemaining / currentExercise.secondsPerRep) * 100);
+                const timerLabel = currentExercise.type === 'duration'
+                    ? `Target: ${currentExercise.secondsPerRep || 0}s total`
+                    : `Target: ${currentExercise.secondsPerRep || 0} seconds`;
+                document.getElementById('timer-target').textContent = timerLabel;
+
+                const progress = currentExercise.secondsPerRep
+                    ? Math.max(0, (timerSecondsRemaining / currentExercise.secondsPerRep) * 100)
+                    : 0;
                 document.getElementById('timer-progress-bar').style.width = progress + '%';
 
-                // Color changes for timer countdown
                 const timerDisplay = document.getElementById('timer-display');
                 timerDisplay.classList.remove('warning', 'danger');
                 if (timerSecondsRemaining <= 5 && timerSecondsRemaining > 0) {
@@ -671,7 +1579,6 @@
                     timerDisplay.classList.add('warning');
                 }
 
-                // Update button visibility
                 if (timerRunning) {
                     document.getElementById('timer-start-btn').classList.add('hidden');
                     document.getElementById('timer-stop-btn').classList.remove('hidden');
@@ -686,14 +1593,18 @@
                     document.getElementById('timer-reset-btn').classList.remove('hidden');
                 }
             }
+
+            updatePocketOverlay();
         }
 
         function startTimer() {
-            if (timerInterval || currentExercise.type !== 'timed') return;
+            if (timerInterval || !isTimerType(currentExercise.type)) return;
+
+            const targetSeconds = Math.max(currentExercise.secondsPerRep || 0, 1);
 
             // Initialize timer if starting fresh
             if (timerSecondsRemaining === 0) {
-                timerSecondsRemaining = currentExercise.secondsPerRep;
+                timerSecondsRemaining = targetSeconds;
             }
 
             timerRunning = true;
@@ -715,11 +1626,16 @@
                     playCompletionSound();
                     haptic('success');
 
-                    // Auto-advance to next rep
                     currentExercise.currentRep++;
 
+                    // Auto-complete holds/durations when rep target is reached
+                    if (currentExercise.type !== 'timed' && currentExercise.repsPerSet && currentExercise.currentRep >= currentExercise.repsPerSet) {
+                        updateDisplay();
+                        return;
+                    }
+
                     // Reset timer for next rep
-                    timerSecondsRemaining = currentExercise.secondsPerRep;
+                    timerSecondsRemaining = targetSeconds;
                     updateDisplay();
                 }
             }, 1000);
@@ -737,9 +1653,15 @@
             updateDisplay();
         }
 
+        function seedTimerSeconds() {
+            timerSecondsRemaining = isTimerType(currentExercise.type)
+                ? Math.max(currentExercise.secondsPerRep || 0, 1)
+                : 0;
+        }
+
         function resetTimer() {
             stopTimer();
-            timerSecondsRemaining = currentExercise.secondsPerRep;
+            seedTimerSeconds();
             haptic('medium');
             updateDisplay();
         }
@@ -766,7 +1688,7 @@
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
                 currentExercise.currentRep = 0;
-                timerSecondsRemaining = currentExercise.secondsPerRep;
+                seedTimerSeconds();
                 stopTimer();
                 updateDisplay();
             } else {
@@ -787,7 +1709,7 @@
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
                 currentExercise.currentRep = 0;
-                timerSecondsRemaining = currentExercise.secondsPerRep;
+                seedTimerSeconds();
                 stopTimer();
                 updateDisplay();
             } else {
@@ -799,7 +1721,7 @@
             if (currentExercise.currentSet > 1) {
                 currentExercise.currentSet--;
                 currentExercise.currentRep = 0;
-                timerSecondsRemaining = currentExercise.secondsPerRep;
+                seedTimerSeconds();
                 stopTimer();
                 haptic('light');
                 updateDisplay();
@@ -809,9 +1731,16 @@
         function saveSession() {
             const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             sessions.push({
+                exerciseId: currentExercise.id,
                 exerciseName: currentExercise.name,
                 exerciseType: currentExercise.type,
                 date: new Date().toISOString(),
+                exerciseSpec: {
+                    sets: currentExercise.sets,
+                    repsPerSet: currentExercise.repsPerSet,
+                    secondsPerRep: currentExercise.secondsPerRep,
+                    type: currentExercise.type
+                },
                 sets: currentExercise.sessionData
             });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
@@ -822,16 +1751,17 @@
             currentExercise.currentSet = 1;
             currentExercise.currentRep = 0;
             currentExercise.sessionData = [];
-            timerSecondsRemaining = currentExercise.secondsPerRep;
+            seedTimerSeconds();
             stopTimer();
             updateDisplay();
         }
 
         // Modal Functions
         function showExerciseModal() {
+            populateExerciseSelect();
+            applyLibraryEntryToForm(currentExercise.id);
             document.getElementById('exercise-modal').classList.add('active');
             haptic('light');
-            updateTargetLabel();
         }
 
         function closeExerciseModal() {
@@ -839,68 +1769,286 @@
             haptic('light');
         }
 
+        function showLibraryModal() {
+            renderLibrary();
+            applyFavoriteFilter(favoriteFilter);
+            document.getElementById('library-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeLibraryModal() {
+            document.getElementById('library-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function showEventModal() {
+            renderEventExercises();
+            renderEventTimeline();
+            document.getElementById('event-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeEventModal() {
+            document.getElementById('event-modal').classList.remove('active');
+            haptic('light');
+        }
+
         function updateTargetLabel() {
             const type = document.getElementById('exercise-type').value;
             const targetInput = document.getElementById('target-input');
 
-            if (type === 'timed') {
-                targetInput.placeholder = 'Seconds per rep (for timed)';
-                targetInput.parentElement.querySelector('#reps-input').classList.remove('hidden');
-            } else {
-                targetInput.placeholder = 'Target (not used for rep-based)';
-                targetInput.value = '';
+            const placeholders = {
+                timed: 'Seconds per rep (timed reps)',
+                hold: 'Seconds to hold',
+                duration: 'Seconds per set (duration)',
+                amrap: 'AMRAP window (seconds, optional)',
+                distance: 'Distance goal (steps/meters)',
+                reps: 'Target (seconds optional)'
+            };
+
+            targetInput.placeholder = placeholders[type] || 'Target (seconds or distance)';
+            targetInput.disabled = type === 'reps';
+        }
+
+        function updateNewTargetLabel() {
+            const type = document.getElementById('new-type').value;
+            const targetInput = document.getElementById('new-target');
+            const placeholders = {
+                timed: 'Seconds per rep (timed reps)',
+                hold: 'Seconds to hold',
+                duration: 'Seconds per set (duration)',
+                amrap: 'AMRAP window (seconds)',
+                distance: 'Distance goal',
+                reps: 'Seconds (optional)'
+            };
+            targetInput.placeholder = placeholders[type] || 'Target';
+        }
+
+        function resetLibraryEditor() {
+            document.getElementById('edit-exercise-id').value = '';
+            ['new-exercise-name','new-dosage','new-sets','new-reps','new-target','new-tags','new-muscles','new-regions','new-equipment','new-tips']
+                .forEach(id => document.getElementById(id).value = '');
+            document.getElementById('new-type').value = 'reps';
+            document.getElementById('new-sets').value = 3;
+            document.getElementById('new-reps').value = 10;
+            document.getElementById('new-target').value = 10;
+        }
+
+        function suggestForExercise() {
+            const name = document.getElementById('new-exercise-name').value || '';
+            const dosage = document.getElementById('new-dosage').value || '';
+            const suggestion = suggestAttributes(name, dosage);
+
+            if (!document.getElementById('new-tags').value) document.getElementById('new-tags').value = suggestion.tags.join(', ');
+            if (!document.getElementById('new-muscles').value) document.getElementById('new-muscles').value = suggestion.muscles.join(', ');
+            if (!document.getElementById('new-regions').value) document.getElementById('new-regions').value = suggestion.regions.join(', ');
+            if (!document.getElementById('new-equipment').value) document.getElementById('new-equipment').value = suggestion.equipment.join(', ');
+            if (!document.getElementById('new-tips').value) document.getElementById('new-tips').value = suggestion.tips;
+        }
+
+        function saveLibraryEntry() {
+            const id = document.getElementById('edit-exercise-id').value || `custom_${Date.now()}`;
+            const name = document.getElementById('new-exercise-name').value.trim();
+            if (!name) {
+                alert('Please name the exercise');
+                return;
             }
+
+            const type = document.getElementById('new-type').value;
+            const sets = parseInt(document.getElementById('new-sets').value, 10) || 1;
+            const reps = parseInt(document.getElementById('new-reps').value, 10) || 0;
+            const seconds = parseInt(document.getElementById('new-target').value, 10) || 0;
+
+            const nextSpec = {
+                type,
+                sets,
+                repsPerSet: reps,
+                secondsPerRep: (isTimerType(type) || type === 'amrap') ? seconds : 0
+            };
+
+            let entry = exerciseLibrary.find(ex => ex.id === id);
+            const payload = {
+                id,
+                name,
+                dosage: document.getElementById('new-dosage').value,
+                supersedes: entry?.supersedes || [],
+                atlasUrl: entry?.atlasUrl || null,
+                tags: parseListInput(document.getElementById('new-tags').value),
+                muscles: parseListInput(document.getElementById('new-muscles').value),
+                regions: parseListInput(document.getElementById('new-regions').value),
+                equipment: parseListInput(document.getElementById('new-equipment').value),
+                tips: document.getElementById('new-tips').value,
+                favorite: entry?.favorite || false,
+                archived: entry?.archived || false,
+                current: nextSpec,
+                updatedAt: new Date().toISOString()
+            };
+
+            if (entry) {
+                recordRevision(entry, nextSpec, 'Edited in library');
+                Object.assign(entry, payload);
+            } else {
+                entry = { ...payload, history: [{ timestamp: new Date().toISOString(), summary: 'Added to library', previous: null, next: nextSpec, supersedes: [] }] };
+                exerciseLibrary.push(entry);
+            }
+
+            persistExerciseLibrary();
+            renderLibrary();
+            populateExerciseSelect();
+            renderEventExercises();
+            resetLibraryEditor();
+        }
+
+        function startFromLibrary(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            if (!entry) return;
+            currentExercise = toSessionExercise(entry);
+            seedTimerSeconds();
+            stopTimer();
+            updateDisplay();
+            closeLibraryModal();
+        }
+
+        function renderEventExercises() {
+            const container = document.getElementById('event-exercises');
+            container.innerHTML = '';
+            exerciseLibrary
+                .filter(ex => !ex.archived)
+                .forEach(entry => {
+                    const label = document.createElement('label');
+                    label.className = 'pill';
+                    label.style.cursor = 'pointer';
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.value = entry.id;
+                    input.style.marginRight = '6px';
+                    label.appendChild(input);
+                    label.appendChild(document.createTextNode(entry.name));
+                    container.appendChild(label);
+                });
+        }
+
+        function updateSeverityLabel() {
+            const severity = document.getElementById('event-severity').value;
+            document.getElementById('severity-label').textContent = `Severity: ${severity}`;
+        }
+
+        function saveEventLog() {
+            const severity = parseInt(document.getElementById('event-severity').value, 10) || 0;
+            const selectedExercises = Array.from(document.querySelectorAll('#event-exercises input:checked')).map(input => input.value);
+
+            const payload = {
+                id: `FE_${new Date().toISOString()}`,
+                timestamp: new Date().toISOString(),
+                class: document.getElementById('event-class').value,
+                location: document.getElementById('event-location').value,
+                severity,
+                triggers: parseListInput(document.getElementById('event-triggers').value),
+                nature: document.getElementById('event-nature').value,
+                notes: document.getElementById('event-notes').value,
+                exercises: selectedExercises
+            };
+
+            eventLog.push(payload);
+            eventLog.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            persistEventLog();
+            renderEventTimeline();
+            Array.from(document.querySelectorAll('#event-exercises input')).forEach(input => input.checked = false);
+            document.getElementById('event-notes').value = '';
+            document.getElementById('event-triggers').value = '';
+            document.getElementById('event-location').value = '';
+            document.getElementById('event-nature').value = '';
+            document.getElementById('event-severity').value = 4;
+            updateSeverityLabel();
+            haptic('success');
+        }
+
+        function renderEventTimeline() {
+            const container = document.getElementById('event-timeline');
+            if (!container) return;
+
+            if (!eventLog.length) {
+                container.innerHTML = '<div class="empty-state">No events logged yet.</div>';
+                return;
+            }
+
+            container.innerHTML = eventLog
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                .map(event => {
+                    const linkedNames = event.exercises?.map(id => getLibraryEntryById(id)?.name || id).join(', ');
+                    return `
+                        <div class="event-item">
+                            <div><span class="pill">${event.class}</span> <span class="event-severity">${event.severity || 0}/10</span></div>
+                            <div class="history-meta">${event.location || 'Unspecified'} · ${event.triggers?.join(', ') || 'No triggers logged'}</div>
+                            <div class="history-meta">Linked: ${linkedNames || 'None'}</div>
+                            <div class="history-meta">${event.nature || ''}</div>
+                            <div>${event.notes || ''}</div>
+                            <div class="event-timestamp">${new Date(event.timestamp).toLocaleString()}</div>
+                        </div>
+                    `;
+                })
+                .join('');
         }
 
         function updateExerciseType() {
             const select = document.getElementById('exercise-select');
-            const typeSelect = document.getElementById('exercise-type');
-            const targetInput = document.getElementById('target-input');
-            const repsInput = document.getElementById('reps-input');
-
-            // Auto-set type based on exercise
-            if (select.value === 'plank') {
-                typeSelect.value = 'timed';
-                targetInput.value = 30;
-                repsInput.value = 3;
-            } else {
-                typeSelect.value = 'reps';
-                targetInput.value = '';
-                repsInput.value = 10;
-            }
-            updateTargetLabel();
+            applyLibraryEntryToForm(select.value);
         }
 
         function saveExercise() {
             const select = document.getElementById('exercise-select');
             const exerciseName = select.options[select.selectedIndex].text;
+            const exerciseId = select.value;
             const type = document.getElementById('exercise-type').value;
             const sets = parseInt(document.getElementById('sets-input').value);
             const reps = parseInt(document.getElementById('reps-input').value);
             const seconds = parseInt(document.getElementById('target-input').value);
 
-            if (!sets || !reps) {
-                alert('Please enter valid numbers for sets and reps.');
+            if (!sets) {
+                alert('Please enter a valid number for sets.');
                 return;
             }
 
-            if (type === 'timed' && !seconds) {
-                alert('Please enter seconds per rep for timed exercises.');
+            if (COUNTER_TYPES.includes(type) && type !== 'amrap' && (!reps && reps !== 0)) {
+                alert('Please enter a valid number for reps/distance.');
                 return;
             }
 
-            currentExercise = {
-                name: exerciseName,
+            if (type === 'distance' && (!reps || reps <= 0)) {
+                alert('Please enter a distance goal.');
+                return;
+            }
+
+            if (isTimerType(type) && (!seconds || seconds <= 0)) {
+                alert('Please enter seconds for the timer-based exercise.');
+                return;
+            }
+
+            const entry = getLibraryEntryById(exerciseId);
+            const nextSpec = {
                 type: type,
                 sets: sets,
                 repsPerSet: reps,
-                secondsPerRep: seconds || 10,
-                currentSet: 1,
-                currentRep: 0,
-                sessionData: []
+                secondsPerRep: (isTimerType(type) || type === 'amrap') ? (seconds || 0) : 0
             };
 
-            timerSecondsRemaining = currentExercise.secondsPerRep;
+            const prevSpec = entry.current || {};
+            if (
+                prevSpec.type !== nextSpec.type ||
+                prevSpec.sets !== nextSpec.sets ||
+                prevSpec.repsPerSet !== nextSpec.repsPerSet ||
+                (prevSpec.secondsPerRep ?? null) !== (nextSpec.secondsPerRep ?? null)
+            ) {
+                recordRevision(entry, nextSpec, 'Manual exercise update');
+            } else {
+                entry.current = nextSpec;
+                persistExerciseLibrary();
+            }
+
+            exerciseLibrary = loadExerciseLibrary();
+            currentExercise = toSessionExercise({ ...entry, name: exerciseName, id: exerciseId });
+
+            seedTimerSeconds();
             stopTimer();
 
             haptic('success');
@@ -909,18 +2057,83 @@
         }
 
         function showHistory() {
+            renderHistory();
+            document.getElementById('history-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').classList.remove('active');
+            haptic('light');
+        }
+
+        function describeSpec(spec) {
+            if (!spec) return 'No spec available';
+            const parts = [
+                `${spec.sets || 0} sets`,
+                spec.type === 'timed' ? `${spec.repsPerSet || 0} reps × ${spec.secondsPerRep || 0}s` : `${spec.repsPerSet || 0} reps`
+            ];
+            return parts.join(' · ');
+        }
+
+        function renderHistory() {
             const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if (sessions.length === 0) {
-                showActionSheet('No workout history yet. Complete your first exercise!', () => {});
-                return;
+            const exerciseHistoryList = document.getElementById('exercise-history-list');
+            const sessionHistoryList = document.getElementById('session-history-list');
+            const exerciseEntry = getLibraryEntryById(currentExercise.id);
+
+            if (!exerciseEntry.history || exerciseEntry.history.length === 0) {
+                exerciseHistoryList.innerHTML = '<div class="history-item">No revisions logged yet.</div>';
+            } else {
+                exerciseHistoryList.innerHTML = exerciseEntry.history
+                    .slice()
+                    .reverse()
+                    .map(revision => {
+                        const supersedesLabel = revision.supersedes && revision.supersedes.length
+                            ? `<span class="pill">Supersedes ${revision.supersedes.join(', ')}</span>`
+                            : '';
+                        return `
+                            <div class="history-item">
+                                <div>${revision.summary}</div>
+                                ${supersedesLabel}
+                                <div class="history-meta">${new Date(revision.timestamp).toLocaleString()} · ${describeSpec(revision.next)}</div>
+                            </div>
+                        `;
+                    })
+                    .join('');
             }
 
-            // TODO: Build a proper history view
-            alert(`You have ${sessions.length} completed sessions!`);
+            const relevantSessions = sessions
+                .filter(s => (s.exerciseId && s.exerciseId === currentExercise.id) || s.exerciseName === currentExercise.name)
+                .slice()
+                .reverse();
+
+            if (relevantSessions.length === 0) {
+                sessionHistoryList.innerHTML = '<div class="history-item">No sessions tracked yet.</div>';
+            } else {
+                sessionHistoryList.innerHTML = relevantSessions
+                    .slice(0, 10)
+                    .map(session => {
+                        const totalReps = (session.sets || []).reduce((sum, set) => sum + (set.reps || 0), 0);
+                        const sessionLabel = session.exerciseType === 'timed'
+                            ? `${session.sets?.length || 0} sets · ${session.exerciseType} · ${totalReps} reps`
+                            : `${session.sets?.length || 0} sets · ${totalReps} reps`;
+                        return `
+                            <div class="history-item">
+                                <div>${session.exerciseName}</div>
+                                <div class="history-meta">${new Date(session.date).toLocaleString()} · ${sessionLabel}</div>
+                            </div>
+                        `;
+                    })
+                    .join('');
+            }
         }
 
         // Initialize
         updateDisplay();
+        applyFavoriteFilter('all');
+        renderEventExercises();
+        renderEventTimeline();
     </script>
 </body>
 </html>
