@@ -2116,16 +2116,43 @@
                 const hasDetails = ex.details && (ex.details.description || ex.details.executionTips);
                 const detailsIndicator = hasDetails ? ' 📋' : '';
 
-                // Calculate quick stats
+                // Calculate quick stats and adherence
                 const exerciseSessions = sessions.filter(s => s.exerciseId === ex.id || s.exerciseName === ex.name);
                 const totalSessions = exerciseSessions.length;
                 const lastSession = exerciseSessions.length ? new Date(exerciseSessions[exerciseSessions.length - 1].date) : null;
-                const statsHtml = totalSessions > 0
-                    ? `<div style="font-size: 11px; color: #999; margin-top: 2px;">Last: ${lastSession.toLocaleDateString()} · ${totalSessions} session${totalSessions > 1 ? 's' : ''}</div>`
-                    : '';
+
+                // PT Adherence indicators
+                let adherenceColor = '#999';
+                let adherenceText = '';
+                let adherenceIcon = '';
+
+                if (lastSession) {
+                    const daysSince = Math.floor((Date.now() - lastSession.getTime()) / (1000 * 60 * 60 * 24));
+                    if (daysSince === 0) {
+                        adherenceText = 'Done today ✓';
+                        adherenceColor = '#34C759';
+                    } else if (daysSince <= 3) {
+                        adherenceText = `${daysSince} day${daysSince > 1 ? 's' : ''} ago`;
+                        adherenceColor = '#34C759';
+                    } else if (daysSince <= 7) {
+                        adherenceText = `${daysSince} days ago`;
+                        adherenceColor = '#FF9500';
+                        adherenceIcon = '⚠️ ';
+                    } else {
+                        adherenceText = `${daysSince} days ago`;
+                        adherenceColor = '#FF3B30';
+                        adherenceIcon = '❗ ';
+                    }
+                } else {
+                    adherenceText = 'Never done';
+                    adherenceColor = '#8E8E93';
+                    adherenceIcon = '○ ';
+                }
+
+                const statsHtml = `<div style="font-size: 12px; color: ${adherenceColor}; margin-top: 4px; font-weight: 600;">${adherenceIcon}${adherenceText}${totalSessions > 0 ? ` · ${totalSessions} session${totalSessions > 1 ? 's' : ''} total` : ''}</div>`;
 
                 return `
-                    <div class="history-item" style="cursor: pointer;">
+                    <div class="history-item" style="cursor: pointer; border-left: 4px solid ${adherenceColor};">
                         <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}</div>
                         ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
                         <div class="history-meta">${describeSpec(spec)}</div>
