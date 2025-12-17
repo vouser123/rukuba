@@ -686,6 +686,7 @@
                 <div class="history-list" id="exercise-list-content"></div>
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
                     <button class="control-btn btn-success" onclick="showAddExerciseModal()" style="flex: 1;">+ Add New</button>
+                    <button class="control-btn btn-primary" onclick="showLibraryBrowser()" style="flex: 1;">📚 Browse Library</button>
                     <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
                 </div>
             </div>
@@ -713,14 +714,31 @@
                 <div id="tag-selector-container" style="margin: 12px 0;"></div>
 
                 <!-- ATLAS Features -->
-                <div style="margin: 12px 0;">
-                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer;">
+                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ios-blue);">
+                        🔄 Side Tracking
+                    </div>
+                    <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">
+                        <strong>Check bilateral</strong> if both sides work together (squats, wall sits)<br>
+                        <strong>Select left/right</strong> if sides work separately (clams, single leg raises)
+                    </div>
+                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer; background: white; padding: 8px; border-radius: 6px;">
                         <input type="checkbox" id="bilateral-checkbox" style="margin-right: 8px;">
-                        <span>Bilateral (both sides together)</span>
+                        <span>✓ Bilateral (both sides work together)</span>
                     </label>
+                    <div id="side-options-container" style="margin-top: 12px;"></div>
                 </div>
-                <div id="side-options-container" style="margin: 12px 0;"></div>
-                <input type="text" class="modal-input" id="supersedes-input" placeholder="Supersedes (e.g., ex_basic_squats_01)">
+
+                <!-- Supersedes Section -->
+                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ios-blue);">
+                        🔄 Supersedes (Replaces Previous Exercises)
+                    </div>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">
+                        Select exercises that this new/updated version replaces
+                    </div>
+                    <div id="supersedes-selector-container"></div>
+                </div>
 
                 <!-- ATLAS: Muscles & Regions -->
                 <textarea class="modal-input" id="primary-muscles" placeholder="Primary muscles (e.g., quadriceps, gluteus maximus)" style="min-height: 50px; resize: vertical;"></textarea>
@@ -780,6 +798,25 @@
                 </div>
                 <input type="number" class="modal-input" id="log-set-reps" placeholder="Reps performed" min="0">
                 <div id="log-set-side-selector" style="margin: 12px 0;"></div>
+
+                <!-- Weight/Resistance Tracking (Optional) -->
+                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Optional Tracking:</div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <input type="number" class="modal-input" id="log-set-weight" placeholder="Weight (lbs)" min="0" step="0.5" style="flex: 1; margin: 0;">
+                        <select class="modal-select" id="log-set-weight-unit" style="flex: 0 0 auto; width: 80px; margin: 0;">
+                            <option value="lbs">lbs</option>
+                            <option value="kg">kg</option>
+                        </select>
+                    </div>
+                    <select class="modal-select" id="log-set-resistance" style="margin: 0;">
+                        <option value="">Resistance Band (optional)</option>
+                        <option value="light">Light</option>
+                        <option value="medium">Medium</option>
+                        <option value="heavy">Heavy</option>
+                        <option value="extra-heavy">Extra Heavy</option>
+                    </select>
+                </div>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeLogSetModal()">Cancel</button>
@@ -793,7 +830,20 @@
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title" id="exercise-details-title">Exercise Details</div>
-            <div class="modal-form">
+            <div class="modal-form" style="max-height: 500px; overflow-y: auto;">
+                <!-- Professional Guidance Section (for imported exercises) -->
+                <div id="professional-guidance-section" style="display: none; margin-bottom: 16px;">
+                    <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ios-blue);">
+                            📚 Professional Guidance
+                        </div>
+                        <div id="professional-guidance-content"></div>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 16px 0;">
+                </div>
+
+                <!-- User's Personal Notes -->
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 8px;">Your Personal Notes:</div>
                 <textarea class="modal-input" id="exercise-description" placeholder="Description (what is this exercise?)" style="min-height: 60px; resize: vertical;"></textarea>
                 <textarea class="modal-input" id="exercise-tips" placeholder="Execution tips (form, alignment, cues)" style="min-height: 80px; resize: vertical;"></textarea>
                 <textarea class="modal-input" id="exercise-feel" placeholder="Where to feel (target muscles)" style="min-height: 50px; resize: vertical;"></textarea>
@@ -890,6 +940,39 @@
                     </div>
                 </div>
                 <div id="body-part-details" style="margin-top: 12px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise Library Browser Modal -->
+    <div class="modal" id="library-browser-modal" onclick="if(event.target === this) closeLibraryBrowser()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Exercise Library</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); text-align: center; margin-bottom: 12px;">
+                    Professional PT exercises with detailed guidance
+                </div>
+                <input type="text" class="modal-input" id="library-search" placeholder="Search exercises..." oninput="filterLibraryExercises()">
+                <div class="history-list" id="library-exercises-list" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeLibraryBrowser()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise Detail View Modal -->
+    <div class="modal" id="exercise-detail-modal" onclick="if(event.target === this) closeExerciseDetail()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="exercise-detail-title">Exercise Details</div>
+            <div class="modal-form">
+                <div id="exercise-detail-content" style="max-height: 500px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeExerciseDetail()">Back</button>
+                <button class="modal-save" id="import-exercise-btn" onclick="importSeedExercise()">Import to My Exercises</button>
             </div>
         </div>
     </div>
@@ -1059,6 +1142,7 @@
         let selectedTags = [];
         let filterTags = [];
         let selectedSideOptions = [];
+        let selectedSupersedes = [];
 
         const SIDE_OPTIONS_AVAILABLE = ['left', 'right', 'both'];
 
@@ -1098,11 +1182,23 @@
 
         function toSessionExercise(entry) {
             const spec = entry?.current || {};
+            const isBilateral = entry.bilateral === true;
+            const sideOptions = entry.sideOptions || [];
+
+            // For sided exercises, multiply sets by number of sides
+            // E.g., 3 sets with ['left', 'right'] = 6 total sets (3 per side)
+            const baseSets = spec.sets || 3;
+            const effectiveSides = (!isBilateral && sideOptions.length > 0) ? sideOptions.length : 1;
+            const totalSets = baseSets * effectiveSides;
+
             return {
                 id: entry.id,
                 name: entry.name,
                 type: spec.type || 'reps',
-                sets: spec.sets || 3,
+                sets: totalSets,
+                baseSets: baseSets, // Original sets per side
+                sideOptions: sideOptions,
+                bilateral: isBilateral,
                 repsPerSet: spec.repsPerSet || 10,
                 secondsPerRep: spec.secondsPerRep ?? 10,
                 currentSet: 1,
@@ -1345,12 +1441,39 @@
 
         function updateDisplay() {
             document.getElementById('exercise-name').textContent = currentExercise.name;
-            document.getElementById('set-info').textContent = `Set ${currentExercise.currentSet} of ${currentExercise.sets}`;
+
+            // For sided exercises, show per-side progress
+            const hasSides = currentExercise.sideOptions && currentExercise.sideOptions.length > 0 && !currentExercise.bilateral;
+            let setInfoText = `Set ${currentExercise.currentSet} of ${currentExercise.sets}`;
+
+            if (hasSides && currentExercise.baseSets) {
+                setInfoText += ` (${currentExercise.baseSets} per side)`;
+            }
+            document.getElementById('set-info').textContent = setInfoText;
 
             const setsLeft = Math.max(currentExercise.sets - currentExercise.currentSet, 0);
             const repsLeft = Math.max((currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
 
             let remainingLabel = `Sets left: ${setsLeft}`;
+
+            // For sided exercises, show per-side breakdown
+            if (hasSides && currentExercise.sideOptions) {
+                const sideProgress = {};
+                currentExercise.sideOptions.forEach(side => sideProgress[side] = 0);
+
+                // Count completed sets per side
+                currentExercise.sessionData.forEach(set => {
+                    if (set.side && sideProgress[set.side] !== undefined) {
+                        sideProgress[set.side]++;
+                    }
+                });
+
+                const sideLabels = currentExercise.sideOptions.map(side =>
+                    `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
+                ).join(' · ');
+                remainingLabel = `${sideLabels}`;
+            }
+
             if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
                 remainingLabel += ` · Reps left: ${repsLeft}`;
             }
@@ -1572,18 +1695,53 @@
         function showLogSetModal() {
             const targetReps = currentExercise.repsPerSet || 0;
             document.getElementById('log-set-title').textContent = `Log Set ${currentExercise.currentSet}`;
-            document.getElementById('log-set-subtitle').textContent = `Target: ${targetReps} reps · Enter actual reps performed`;
-            document.getElementById('log-set-reps').value = targetReps;
 
             // Show side selector for unilateral exercises
             const entry = getLibraryEntryById(currentExercise.id);
             const isBilateral = entry.bilateral === true;
             const sideOptions = entry.sideOptions || [];
 
+            // For sided exercises, show which sides need more sets
+            let subtitleText = `Target: ${targetReps} reps · Enter actual reps performed`;
+            if (sideOptions.length > 0 && !isBilateral && currentExercise.baseSets) {
+                // Count completed sets per side
+                const sideProgress = {};
+                sideOptions.forEach(side => sideProgress[side] = 0);
+                currentExercise.sessionData.forEach(set => {
+                    if (set.side && sideProgress[set.side] !== undefined) {
+                        sideProgress[set.side]++;
+                    }
+                });
+
+                // Find which side needs more sets (for smart default selection)
+                let suggestedSide = sideOptions[0];
+                for (const side of sideOptions) {
+                    if (sideProgress[side] < currentExercise.baseSets) {
+                        suggestedSide = side;
+                        break;
+                    }
+                }
+
+                const progressText = sideOptions.map(side =>
+                    `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
+                ).join(', ');
+                subtitleText = `${progressText} · Enter reps for selected side`;
+                logSetSide = suggestedSide;
+            } else {
+                logSetSide = sideOptions[0] || 'both';
+            }
+
+            document.getElementById('log-set-subtitle').textContent = subtitleText;
+            document.getElementById('log-set-reps').value = targetReps;
+
+            // Clear weight/resistance fields
+            document.getElementById('log-set-weight').value = '';
+            document.getElementById('log-set-weight-unit').value = 'lbs';
+            document.getElementById('log-set-resistance').value = '';
+
             const sideContainer = document.getElementById('log-set-side-selector');
             if (sideOptions.length > 0 && !isBilateral) {
-                logSetSide = sideOptions[0] || 'left';
-                sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side:</div>' +
+                sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Select side for this set:</div>' +
                     sideOptions.map(side => {
                         return `<span class="pill" style="cursor: pointer; background: ${logSetSide === side ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === side ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${side}')">${side}</span>`;
                     }).join(' ');
@@ -1636,6 +1794,20 @@
             // Add side if applicable
             if (logSetSide && logSetSide !== 'both') {
                 setData.side = logSetSide;
+            }
+
+            // Add weight tracking if provided
+            const weight = parseFloat(document.getElementById('log-set-weight').value);
+            if (!isNaN(weight) && weight > 0) {
+                const unit = document.getElementById('log-set-weight-unit').value;
+                setData.weight = weight;
+                setData.weightUnit = unit;
+            }
+
+            // Add resistance band tracking if provided
+            const resistance = document.getElementById('log-set-resistance').value;
+            if (resistance) {
+                setData.resistance = resistance;
             }
 
             currentExercise.sessionData.push(setData);
@@ -1898,11 +2070,13 @@
                             ? `${session.sets?.length || 0} sets · ${session.exerciseType} · ${totalReps} reps`
                             : `${session.sets?.length || 0} sets · ${totalReps} reps`;
 
-                        // Show side info for unilateral exercises
+                        // Show side info for unilateral exercises and weight/resistance
                         const setDetails = (session.sets || []).map((set, idx) => {
                             const sideLabel = set.side ? ` (${set.side})` : '';
                             const manualLabel = set.manualLog ? ' 📝' : '';
-                            return `Set ${idx + 1}: ${set.reps}${sideLabel}${manualLabel}`;
+                            const weightLabel = set.weight ? ` ${set.weight}${set.weightUnit || 'lbs'}` : '';
+                            const resistanceLabel = set.resistance ? ` [${set.resistance}]` : '';
+                            return `Set ${idx + 1}: ${set.reps}${sideLabel}${weightLabel}${resistanceLabel}${manualLabel}`;
                         }).join(' · ');
 
                         const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: #555;">"${session.notes}"</div>` : '';
@@ -2199,6 +2373,7 @@
             editingExerciseId = null;
             selectedTags = [];
             selectedSideOptions = [];
+            selectedSupersedes = [];
             document.getElementById('add-exercise-title').textContent = 'Add Exercise';
             document.getElementById('new-exercise-name').value = '';
             document.getElementById('new-exercise-type').value = 'reps';
@@ -2206,13 +2381,13 @@
             document.getElementById('new-reps').value = '10';
             document.getElementById('new-seconds').value = '';
             document.getElementById('bilateral-checkbox').checked = false;
-            document.getElementById('supersedes-input').value = '';
             document.getElementById('primary-muscles').value = '';
             document.getElementById('anatomic-regions').value = '';
             document.getElementById('equipment-select').selectedIndex = -1;
             document.getElementById('difficulty-select').value = '';
             renderTagSelector();
             renderSideOptionsSelector();
+            renderSupersedesSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
             haptic('light');
         }
@@ -2245,16 +2420,35 @@
             const isBilateral = document.getElementById('bilateral-checkbox').checked;
 
             if (isBilateral) {
-                container.innerHTML = '';
+                container.innerHTML = '<div style="font-size: 13px; color: var(--ios-gray); font-style: italic;">Side tracking disabled (bilateral exercise)</div>';
                 selectedSideOptions = [];
                 return;
             }
 
-            container.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side options (for unilateral):</div>' +
-                SIDE_OPTIONS_AVAILABLE.map(side => {
-                    const active = selectedSideOptions.includes(side);
-                    return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleSideOption('${side}')">${side}</span>`;
-                }).join(' ');
+            const hasSelection = selectedSideOptions.length > 0;
+            let helpText;
+            if (selectedSideOptions.length === 2 && selectedSideOptions.includes('left') && selectedSideOptions.includes('right')) {
+                helpText = '✓ Will log left and right separately (e.g., clams)';
+            } else if (selectedSideOptions.length === 1) {
+                helpText = `✓ Will ask which ${selectedSideOptions[0]} side when logging`;
+            } else if (selectedSideOptions.length === 3) {
+                helpText = '✓ Will ask which side (left/right/both)';
+            } else {
+                helpText = '⚠️ Tap which sides - select BOTH for exercises like clams';
+            }
+
+            container.innerHTML = `
+                <div style="background: white; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Tap which sides this exercise uses:</div>
+                    <div style="font-size: 12px; color: ${hasSelection ? 'var(--ios-green)' : 'var(--ios-orange)'}; margin-bottom: 8px;">${helpText}</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${SIDE_OPTIONS_AVAILABLE.map(side => {
+                            const active = selectedSideOptions.includes(side);
+                            return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'}; padding: 8px 16px; font-weight: 600;" onclick="toggleSideOption('${side}')">${side}</span>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
         }
 
         function toggleSideOption(side) {
@@ -2264,6 +2458,50 @@
                 selectedSideOptions.push(side);
             }
             renderSideOptionsSelector();
+        }
+
+        function renderSupersedesSelector() {
+            const container = document.getElementById('supersedes-selector-container');
+
+            // Get all exercises except the one being edited
+            const availableExercises = exerciseLibrary.filter(ex => {
+                // Don't show archived exercises
+                if (ex.archived) return false;
+                // Don't show the exercise being edited
+                if (editingExerciseId && ex.id === editingExerciseId) return false;
+                return true;
+            });
+
+            if (availableExercises.length === 0) {
+                container.innerHTML = '<div style="font-size: 13px; color: var(--ios-gray); font-style: italic;">No other exercises available</div>';
+                return;
+            }
+
+            const hasSelection = selectedSupersedes.length > 0;
+            const helpText = hasSelection
+                ? `✓ Replaces ${selectedSupersedes.length} exercise${selectedSupersedes.length > 1 ? 's' : ''}`
+                : 'No exercises selected';
+
+            container.innerHTML = `
+                <div style="background: white; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 12px; color: ${hasSelection ? 'var(--ios-green)' : 'var(--ios-gray)'}; margin-bottom: 8px;">${helpText}</div>
+                    <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                        ${availableExercises.map(ex => {
+                            const active = selectedSupersedes.includes(ex.id);
+                            return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'}; padding: 6px 12px; font-size: 13px;" onclick="toggleSupersedes('${ex.id}')">${ex.name}${active ? ' ✓' : ''}</span>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleSupersedes(exerciseId) {
+            if (selectedSupersedes.includes(exerciseId)) {
+                selectedSupersedes = selectedSupersedes.filter(id => id !== exerciseId);
+            } else {
+                selectedSupersedes.push(exerciseId);
+            }
+            renderSupersedesSelector();
         }
 
         // Update bilateral checkbox listener
@@ -2281,7 +2519,6 @@
             const reps = parseInt(document.getElementById('new-reps').value);
             const seconds = parseInt(document.getElementById('new-seconds').value);
             const isBilateral = document.getElementById('bilateral-checkbox').checked;
-            const supersedesValue = document.getElementById('supersedes-input').value.trim();
 
             // ATLAS fields
             const primaryMuscles = document.getElementById('primary-muscles').value.trim();
@@ -2307,7 +2544,8 @@
                 secondsPerRep: seconds || 0
             };
 
-            const supersedes = supersedesValue ? supersedesValue.split(',').map(s => s.trim()).filter(Boolean) : [];
+            // Use selectedSupersedes array (exercise IDs)
+            const supersedes = selectedSupersedes;
 
             if (editingExerciseId) {
                 // Edit existing
@@ -2370,7 +2608,6 @@
             document.getElementById('new-reps').value = spec.repsPerSet || 10;
             document.getElementById('new-seconds').value = spec.secondsPerRep || '';
             document.getElementById('bilateral-checkbox').checked = entry.bilateral || false;
-            document.getElementById('supersedes-input').value = (entry.supersedes || []).join(', ');
             document.getElementById('primary-muscles').value = entry.primaryMuscles || '';
             document.getElementById('anatomic-regions').value = entry.anatomicRegions || '';
             document.getElementById('difficulty-select').value = entry.difficulty || '';
@@ -2383,8 +2620,10 @@
 
             selectedTags = entry.tags || [];
             selectedSideOptions = entry.sideOptions || [];
+            selectedSupersedes = entry.supersedes || [];
             renderTagSelector();
             renderSideOptionsSelector();
+            renderSupersedesSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
             haptic('light');
         }
@@ -2415,6 +2654,77 @@
             document.getElementById('exercise-not-feel').value = details.shouldNotFeel || '';
             document.getElementById('exercise-modifications').value = details.modifications || '';
             document.getElementById('exercise-rest-seconds').value = details.restSeconds || '';
+
+            // Display professional guidance if available (from imported exercises)
+            const guidanceSection = document.getElementById('professional-guidance-section');
+            const guidanceContent = document.getElementById('professional-guidance-content');
+
+            if (entry.guidance && (entry.guidance.external_cues?.length > 0 || entry.guidance.motor_cues?.length > 0 || entry.guidance.compensation_warnings?.length > 0 || entry.guidance.safety_flags?.length > 0)) {
+                let html = '';
+
+                // Show description if available
+                if (entry.description) {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Description</div>
+                            <div style="font-size: 13px; color: var(--ios-gray);">${entry.description}</div>
+                        </div>
+                    `;
+                }
+
+                // External cues
+                if (entry.guidance.external_cues && entry.guidance.external_cues.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">👀 External Cues</div>
+                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                                ${entry.guidance.external_cues.map(cue => `<li style="margin-bottom: 4px;">${cue}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Motor cues
+                if (entry.guidance.motor_cues && entry.guidance.motor_cues.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">💪 Motor Cues</div>
+                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                                ${entry.guidance.motor_cues.map(cue => `<li style="margin-bottom: 4px;">${cue}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Compensation warnings
+                if (entry.guidance.compensation_warnings && entry.guidance.compensation_warnings.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--ios-orange);">⚠️ Compensation Warnings</div>
+                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                                ${entry.guidance.compensation_warnings.map(warning => `<li style="margin-bottom: 4px;">${warning}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Safety flags
+                if (entry.guidance.safety_flags && entry.guidance.safety_flags.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 0;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--ios-red);">🛑 Safety Flags</div>
+                            <ul style="font-size: 12px; color: var(--ios-red); margin: 0; padding-left: 20px;">
+                                ${entry.guidance.safety_flags.map(flag => `<li style="margin-bottom: 4px;">${flag}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                guidanceContent.innerHTML = html;
+                guidanceSection.style.display = 'block';
+            } else {
+                guidanceSection.style.display = 'none';
+            }
 
             document.getElementById('exercise-details-modal').classList.add('active');
             haptic('light');
@@ -3001,6 +3311,262 @@
             closeQuickSwitcher();
             haptic('success');
             speak(`Switched to ${entry.name}`);
+        }
+
+        // Exercise Library Browser Functions
+        let seedExercises = [];
+        let selectedSeedExercise = null;
+
+        async function loadExerciseSeedData() {
+            try {
+                const response = await fetch('exercise_guidance_seed.json');
+                const data = await response.json();
+                seedExercises = data.exercises || [];
+                return seedExercises;
+            } catch (error) {
+                console.error('Failed to load exercise seed data:', error);
+                seedExercises = [];
+                return [];
+            }
+        }
+
+        async function showLibraryBrowser() {
+            if (seedExercises.length === 0) {
+                await loadExerciseSeedData();
+            }
+
+            renderLibraryExercises(seedExercises);
+            document.getElementById('library-browser-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function renderLibraryExercises(exercises) {
+            const container = document.getElementById('library-exercises-list');
+
+            if (exercises.length === 0) {
+                container.innerHTML = '<div class="history-item">No exercises found in library</div>';
+                return;
+            }
+
+            container.innerHTML = exercises.map(ex => {
+                const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
+                const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
+                const equipmentLabel = ex.equipment.required.length > 0
+                    ? ex.equipment.required.join(', ')
+                    : 'No equipment';
+
+                return `
+                    <div class="history-item" style="cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
+                        <div style="font-weight: 600; margin-bottom: 4px;">${ex.canonical_name}</div>
+                        <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${ex.description.substring(0, 100)}${ex.description.length > 100 ? '...' : ''}</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                            <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
+                            <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
+                            <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${ex.primary_muscles.length} muscles</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterLibraryExercises() {
+            const searchTerm = document.getElementById('library-search').value.toLowerCase();
+            const filtered = seedExercises.filter(ex =>
+                ex.canonical_name.toLowerCase().includes(searchTerm) ||
+                ex.description.toLowerCase().includes(searchTerm) ||
+                ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm)) ||
+                ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm))
+            );
+            renderLibraryExercises(filtered);
+        }
+
+        function showExerciseDetail(exerciseId) {
+            selectedSeedExercise = seedExercises.find(ex => ex.exercise_id === exerciseId);
+            if (!selectedSeedExercise) return;
+
+            const ex = selectedSeedExercise;
+            document.getElementById('exercise-detail-title').textContent = ex.canonical_name;
+
+            const detailContent = `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Description</div>
+                    <div style="font-size: 14px; color: var(--ios-gray);">${ex.description}</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Pattern</div>
+                    <div style="font-size: 14px;">
+                        <span class="pill" style="background: ${ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)'}; color: white;">
+                            ${ex.pattern === 'side' ? '🔄 Sided Exercise (work left and right separately)' : '✓ Bilateral Exercise (both sides together)'}
+                        </span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Primary Muscles</div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        ${ex.primary_muscles.map(m => `<span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 13px;">${m}</span>`).join('')}
+                    </div>
+                </div>
+
+                ${ex.secondary_muscles.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Secondary Muscles</div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        ${ex.secondary_muscles.map(m => `<span class="pill" style="background: rgba(0,122,255,0.05); color: var(--ios-gray); font-size: 12px;">${m}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${ex.equipment.required.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Equipment Required</div>
+                    <div style="font-size: 14px; color: var(--ios-gray);">${ex.equipment.required.join(', ')}</div>
+                </div>
+                ` : ''}
+
+                ${ex.equipment.optional.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Optional Equipment</div>
+                    <div style="font-size: 14px; color: var(--ios-gray);">${ex.equipment.optional.join(', ')}</div>
+                </div>
+                ` : ''}
+
+                ${ex.guidance.external_cues.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">👀 External Cues</div>
+                    <ul style="font-size: 13px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                        ${ex.guidance.external_cues.map(cue => `<li style="margin-bottom: 6px;">${cue}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${ex.guidance.motor_cues.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">💪 Motor Cues</div>
+                    <ul style="font-size: 13px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                        ${ex.guidance.motor_cues.map(cue => `<li style="margin-bottom: 6px;">${cue}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${ex.guidance.compensation_warnings.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: var(--ios-orange);">⚠️ Compensation Warnings</div>
+                    <ul style="font-size: 13px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                        ${ex.guidance.compensation_warnings.map(warning => `<li style="margin-bottom: 6px;">${warning}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${ex.guidance.safety_flags.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: var(--ios-red);">🛑 Safety Flags</div>
+                    <ul style="font-size: 13px; color: var(--ios-red); margin: 0; padding-left: 20px;">
+                        ${ex.guidance.safety_flags.map(flag => `<li style="margin-bottom: 6px;">${flag}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+            `;
+
+            document.getElementById('exercise-detail-content').innerHTML = detailContent;
+            document.getElementById('library-browser-modal').classList.remove('active');
+            document.getElementById('exercise-detail-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function closeExerciseDetail() {
+            document.getElementById('exercise-detail-modal').classList.remove('active');
+            document.getElementById('library-browser-modal').classList.add('active');
+            haptic('light');
+        }
+
+        function importSeedExercise() {
+            if (!selectedSeedExercise) return;
+
+            const ex = selectedSeedExercise;
+
+            // Check if already imported
+            if (exerciseLibrary.find(e => e.id === ex.exercise_id)) {
+                alert('This exercise is already in your library!');
+                return;
+            }
+
+            // Convert seed format to library format
+            const defaultSets = 3;
+            const defaultReps = 10;
+            const isHold = ex.pattern_modifiers && ex.pattern_modifiers.includes('hold_seconds');
+
+            // Auto-populate side tracking based on pattern field
+            const isBilateral = ex.pattern === 'both';
+            const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
+
+            // Convert tags.functional to simple tags array for compatibility
+            const simpleTags = ex.tags.functional || [];
+
+            // Extract equipment names from structured format
+            const equipmentList = ex.equipment.required || [];
+
+            const newExercise = {
+                id: ex.exercise_id,
+                name: ex.canonical_name,
+                description: ex.description,
+                pt_category: ex.pt_category,
+                primary_muscles: ex.primary_muscles,
+                secondary_muscles: ex.secondary_muscles,
+                pattern: ex.pattern,
+                pattern_modifiers: ex.pattern_modifiers,
+                equipment: equipmentList,
+                equipmentOptional: ex.equipment.optional || [],
+                guidance: ex.guidance,
+                tags: simpleTags,
+                bilateral: isBilateral,
+                sideOptions: sideOptions,
+                primaryMuscles: ex.primary_muscles.join(', '),
+                anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
+                difficulty: '',
+                supersedes: [],
+                atlasUrl: '',
+                current: {
+                    type: isHold ? 'hold' : 'reps',
+                    sets: defaultSets,
+                    repsPerSet: defaultReps,
+                    secondsPerRep: isHold ? 30 : 0
+                },
+                history: [
+                    {
+                        timestamp: new Date().toISOString(),
+                        summary: `Imported from exercise library`,
+                        previous: {},
+                        next: {
+                            type: isHold ? 'hold' : 'reps',
+                            sets: defaultSets,
+                            repsPerSet: defaultReps,
+                            secondsPerRep: isHold ? 30 : 0
+                        },
+                        supersedes: []
+                    }
+                ],
+                favorite: false,
+                archived: false
+            };
+
+            exerciseLibrary.push(newExercise);
+            persistExerciseLibrary();
+
+            closeExerciseDetail();
+            closeLibraryBrowser();
+
+            const patternMsg = ex.pattern === 'side'
+                ? '🔄 Side tracking enabled: Will log left and right separately'
+                : '✓ Bilateral exercise: Both sides work together';
+            alert(`"${ex.canonical_name}" imported successfully!\n\n${patternMsg}`);
+            haptic('success');
+        }
+
+        function closeLibraryBrowser() {
+            document.getElementById('library-browser-modal').classList.remove('active');
+            haptic('light');
         }
 
         // Initialize
