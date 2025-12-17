@@ -1,4 +1,5 @@
 # Agent instructions for this repo
+
 This repo contains two unrelated browser apps:
 
 1. A packing-list PWA in `/packing`
@@ -12,7 +13,7 @@ You are a coding assistant. Follow these rules:
 - Treat JSON schemas in `/pt/schema` as authoritative contracts for data shape.
 - Do not invent new field names when existing schema fields or vocab terms are available.
 
-## Repo Layout (Intended)
+## Layout
 
 - `/packing`
   - Contains the existing packing-list PWA.
@@ -37,48 +38,48 @@ You are a coding assistant. Follow these rules:
     - `tags.format`
     - `tags.heatmap`
 
-- `/pt/pwa/` (may be generated or refactored)
-  - `index.html` – shell of the PWA.
-  - `app.js` – main JavaScript for the PWA.
-  - `manifest.webmanifest` – PWA manifest.
-  - `service-worker.js` – offline caching logic.
-  - `components/` – modular UI components.
-  - `storage/` – helpers for browser storage access.
+## Data model guidance (PT app)
 
-## Data model guidance
+- `exercise_guidance_seed.json`:
+  - Defines what each exercise is and how it is normally performed.
+  - Contains no patient-specific dosage values (sets/reps/seconds for a specific day).
+  - Uses these key fields (see schema for full details):
+    - `exercise_id`
+    - `canonical_name`
+    - `pt_category`
+    - `description`
+    - `primary_muscles`
+    - `secondary_muscles`
+    - `pattern`
+    - `pattern_modifiers`
+    - `equipment`
+    - `form_parameters_required`
+    - `tags`
+    - `guidance`
+    - `lifecycle`
+    - `added_date`
+    - `updated_date`
 
-- Exercise file:
-  - Defines *what* each exercise is and how it is normally performed.
-  - Contains **no patient-specific dosage values** (like today’s sets/reps).
-  - `pattern` and `pattern_modifiers` describe the structure of dosage, not the actual numbers.
+- Future program/session files:
+  - Will define dosage instances (sets, reps, seconds, distance, weight).
+  - Will provide values for `form_parameters`.
 
-- Program/session layer (future files):
-  - Will define **dosage instances**:
-    - sets, reps, seconds, distance, weight, etc.
-  - Will provide values for `form_parameters` (e.g., which surface, band resistance).
+## Coding constraints
 
-## Coding style and constraints
-
-- Use plain JavaScript and browser APIs for the PWA (no heavy frameworks unless explicitly requested).
-- Keep files small and modular:
-  - Separate UI components from data loading and storage logic.
-- Always favor clarity and maintainability over cleverness.
-- When in doubt about data shape, inspect:
-  - `exercise_guidance_seed.json`
-  - `schema/exercise_file.schema.json`
-  - `docs/vocabularies.md`
+- Use plain JavaScript and browser APIs unless explicitly asked otherwise.
+- Keep files small and modular: separate UI from data loading and storage logic.
+- When unsure about data shape, inspect:
+  - `/pt/exercise_guidance_seed.json`
+  - `/pt/schema/exercise_file.schema.json`
+  - `/pt/docs/vocabularies.md`
 
 ## Safety and robustness
 
-- Validate data loaded from JSON against the schema where practical.
-- Handle missing or extra fields gracefully:
-  - log a warning in the console,
-  - fall back to safe defaults (e.g., skip unknown tags rather than crashing).
-- The app should continue to work offline after initial load.
+- Handle missing or unexpected fields gracefully; log warnings instead of crashing.
+- The PT app should continue to function offline after the first load.
 
-## What NOT to do
+## Do not
 
 - Do not send data to external servers or APIs.
-- Do not assume multiple users or accounts; this app is for a single user.
-- Do not remove fields from the exercise JSON schema without explicit instructions.
-- Do not modify the semantics of existing fields (e.g., changing what `pattern` or `pt_category` means).
+- Do not assume multiple users or accounts; this is for a single user.
+- Do not change the meaning of existing fields without explicit instructions.
