@@ -1,24 +1,49 @@
 # Agent instructions for this repo
 
-This repo contains a small personal physical therapy (PT) tracking PWA. It is used by a single user (the patient) to track home exercise programs prescribed by their physical therapist.
+This repo contains two unrelated browser apps:
+
+1. A packing-list PWA in `/packing`
+2. A physical therapy (PT) tracking PWA in `/pt`
 
 You are a coding assistant. Follow these rules:
 
 - Do NOT introduce a backend or database.
-- Store all user data in browser storage only (IndexedDB or localStorage).
-- Treat `exercise_guidance_seed.json` as the canonical source of exercise definitions.
-- Treat JSON schemas in `/schema` as authoritative contracts for data shape.
+- Store all PT user data in browser storage only (IndexedDB or localStorage).
+- For the PT app, treat `/pt/exercise_guidance_seed.json` as the canonical source of exercise definitions.
+- Treat JSON schemas in `/pt/schema` as authoritative contracts for data shape.
 - Do not invent new field names when existing schema fields or vocab terms are available.
 
-## Repo layout (intended)
+## Layout
 
-- `exercise_guidance_seed.json`
-  - Contains the master list of exercise definitions.
-  - Structure should validate against `schema/exercise_file.schema.json`.
+- `/packing`
+  - Contains the existing packing-list PWA.
+  - `packing/index.html` is the entry point for the packing app UI.
 
-- `schema/exercise_file.schema.json`
-  - JSON Schema describing the exercise file structure.
-  - Fields include:
+- `/pt`
+  - `pt/index.html` (or the main HTML file) should be treated as the entry point for the PT PWA.
+  - `pt/exercise_guidance_seed.json` contains the exercise definitions.
+  - PT-related JS/TS files should live under `/pt` (e.g., `/pt/app.js`, `/pt/components/...`).
+
+- `/pt/schema`
+  - `exercise_file.schema.json` describes the structure of the exercise file used by the PT app.
+
+- `/pt/docs`
+  - `vocabularies.md` describes controlled vocabularies for:
+    - `pt_category`
+    - `pattern`
+    - `pattern_modifiers`
+    - `form_parameters`
+    - equipment examples
+    - `tags.functional`
+    - `tags.format`
+    - `tags.heatmap`
+
+## Data model guidance (PT app)
+
+- `exercise_guidance_seed.json`:
+  - Defines what each exercise is and how it is normally performed.
+  - Contains no patient-specific dosage values (sets/reps/seconds for a specific day).
+  - Uses these key fields (see schema for full details):
     - `exercise_id`
     - `canonical_name`
     - `pt_category`
@@ -35,60 +60,26 @@ You are a coding assistant. Follow these rules:
     - `added_date`
     - `updated_date`
 
-- `docs/vocabularies.md`
-  - Describes controlled vocabularies for:
-    - `pt_category`
-    - `pattern`
-    - `pattern_modifiers`
-    - `form_parameters`
-    - `equipment` examples
-    - `tags.functional`
-    - `tags.format`
-    - `tags.heatmap`
-  - When adding or editing exercises, pick values from these vocab lists whenever possible instead of inventing new spellings.
+- Future program/session files:
+  - Will define dosage instances (sets, reps, seconds, distance, weight).
+  - Will provide values for `form_parameters`.
 
-- `pwa/` (may be generated or refactored)
-  - `index.html` – shell of the PWA.
-  - `app.js` – main JavaScript for the PWA.
-  - `manifest.webmanifest` – PWA manifest.
-  - `service-worker.js` – offline caching logic.
-  - `components/` – modular UI components.
-  - `storage/` – helpers for browser storage access.
+## Coding constraints
 
-## Data model guidance
-
-- Exercise file:
-  - Defines *what* each exercise is and how it is normally performed.
-  - Contains **no patient-specific dosage values** (like today’s sets/reps).
-  - `pattern` and `pattern_modifiers` describe the structure of dosage, not the actual numbers.
-
-- Program/session layer (future files):
-  - Will define **dosage instances**:
-    - sets, reps, seconds, distance, weight, etc.
-  - Will provide values for `form_parameters` (e.g., which surface, band resistance).
-
-## Coding style and constraints
-
-- Use plain JavaScript and browser APIs for the PWA (no heavy frameworks unless explicitly requested).
-- Keep files small and modular:
-  - Separate UI components from data loading and storage logic.
-- Always favor clarity and maintainability over cleverness.
-- When in doubt about data shape, inspect:
-  - `exercise_guidance_seed.json`
-  - `schema/exercise_file.schema.json`
-  - `docs/vocabularies.md`
+- Use plain JavaScript and browser APIs unless explicitly asked otherwise.
+- Keep files small and modular: separate UI from data loading and storage logic.
+- When unsure about data shape, inspect:
+  - `/pt/exercise_guidance_seed.json`
+  - `/pt/schema/exercise_file.schema.json`
+  - `/pt/docs/vocabularies.md`
 
 ## Safety and robustness
 
-- Validate data loaded from JSON against the schema where practical.
-- Handle missing or extra fields gracefully:
-  - log a warning in the console,
-  - fall back to safe defaults (e.g., skip unknown tags rather than crashing).
-- The app should continue to work offline after initial load.
+- Handle missing or unexpected fields gracefully; log warnings instead of crashing.
+- The PT app should continue to function offline after the first load.
 
-## What NOT to do
+## Do not
 
 - Do not send data to external servers or APIs.
-- Do not assume multiple users or accounts; this app is for a single user.
-- Do not remove fields from the exercise JSON schema without explicit instructions.
-- Do not modify the semantics of existing fields (e.g., changing what `pattern` or `pt_category` means).
+- Do not assume multiple users or accounts; this is for a single user.
+- Do not change the meaning of existing fields without explicit instructions.
