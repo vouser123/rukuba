@@ -728,7 +728,17 @@
                     </label>
                     <div id="side-options-container" style="margin-top: 12px;"></div>
                 </div>
-                <input type="text" class="modal-input" id="supersedes-input" placeholder="Supersedes (e.g., ex_basic_squats_01)">
+
+                <!-- Supersedes Section -->
+                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ios-blue);">
+                        🔄 Supersedes (Replaces Previous Exercises)
+                    </div>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">
+                        Select exercises that this new/updated version replaces
+                    </div>
+                    <div id="supersedes-selector-container"></div>
+                </div>
 
                 <!-- ATLAS: Muscles & Regions -->
                 <textarea class="modal-input" id="primary-muscles" placeholder="Primary muscles (e.g., quadriceps, gluteus maximus)" style="min-height: 50px; resize: vertical;"></textarea>
@@ -1132,6 +1142,7 @@
         let selectedTags = [];
         let filterTags = [];
         let selectedSideOptions = [];
+        let selectedSupersedes = [];
 
         const SIDE_OPTIONS_AVAILABLE = ['left', 'right', 'both'];
 
@@ -2293,6 +2304,7 @@
             editingExerciseId = null;
             selectedTags = [];
             selectedSideOptions = [];
+            selectedSupersedes = [];
             document.getElementById('add-exercise-title').textContent = 'Add Exercise';
             document.getElementById('new-exercise-name').value = '';
             document.getElementById('new-exercise-type').value = 'reps';
@@ -2300,13 +2312,13 @@
             document.getElementById('new-reps').value = '10';
             document.getElementById('new-seconds').value = '';
             document.getElementById('bilateral-checkbox').checked = false;
-            document.getElementById('supersedes-input').value = '';
             document.getElementById('primary-muscles').value = '';
             document.getElementById('anatomic-regions').value = '';
             document.getElementById('equipment-select').selectedIndex = -1;
             document.getElementById('difficulty-select').value = '';
             renderTagSelector();
             renderSideOptionsSelector();
+            renderSupersedesSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
             haptic('light');
         }
@@ -2379,6 +2391,50 @@
             renderSideOptionsSelector();
         }
 
+        function renderSupersedesSelector() {
+            const container = document.getElementById('supersedes-selector-container');
+
+            // Get all exercises except the one being edited
+            const availableExercises = exerciseLibrary.filter(ex => {
+                // Don't show archived exercises
+                if (ex.archived) return false;
+                // Don't show the exercise being edited
+                if (editingExerciseId && ex.id === editingExerciseId) return false;
+                return true;
+            });
+
+            if (availableExercises.length === 0) {
+                container.innerHTML = '<div style="font-size: 13px; color: var(--ios-gray); font-style: italic;">No other exercises available</div>';
+                return;
+            }
+
+            const hasSelection = selectedSupersedes.length > 0;
+            const helpText = hasSelection
+                ? `✓ Replaces ${selectedSupersedes.length} exercise${selectedSupersedes.length > 1 ? 's' : ''}`
+                : 'No exercises selected';
+
+            container.innerHTML = `
+                <div style="background: white; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 12px; color: ${hasSelection ? 'var(--ios-green)' : 'var(--ios-gray)'}; margin-bottom: 8px;">${helpText}</div>
+                    <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                        ${availableExercises.map(ex => {
+                            const active = selectedSupersedes.includes(ex.id);
+                            return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'}; padding: 6px 12px; font-size: 13px;" onclick="toggleSupersedes('${ex.id}')">${ex.name}${active ? ' ✓' : ''}</span>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleSupersedes(exerciseId) {
+            if (selectedSupersedes.includes(exerciseId)) {
+                selectedSupersedes = selectedSupersedes.filter(id => id !== exerciseId);
+            } else {
+                selectedSupersedes.push(exerciseId);
+            }
+            renderSupersedesSelector();
+        }
+
         // Update bilateral checkbox listener
         document.addEventListener('DOMContentLoaded', () => {
             const bilateralCheckbox = document.getElementById('bilateral-checkbox');
@@ -2394,7 +2450,6 @@
             const reps = parseInt(document.getElementById('new-reps').value);
             const seconds = parseInt(document.getElementById('new-seconds').value);
             const isBilateral = document.getElementById('bilateral-checkbox').checked;
-            const supersedesValue = document.getElementById('supersedes-input').value.trim();
 
             // ATLAS fields
             const primaryMuscles = document.getElementById('primary-muscles').value.trim();
@@ -2420,7 +2475,8 @@
                 secondsPerRep: seconds || 0
             };
 
-            const supersedes = supersedesValue ? supersedesValue.split(',').map(s => s.trim()).filter(Boolean) : [];
+            // Use selectedSupersedes array (exercise IDs)
+            const supersedes = selectedSupersedes;
 
             if (editingExerciseId) {
                 // Edit existing
@@ -2483,7 +2539,6 @@
             document.getElementById('new-reps').value = spec.repsPerSet || 10;
             document.getElementById('new-seconds').value = spec.secondsPerRep || '';
             document.getElementById('bilateral-checkbox').checked = entry.bilateral || false;
-            document.getElementById('supersedes-input').value = (entry.supersedes || []).join(', ');
             document.getElementById('primary-muscles').value = entry.primaryMuscles || '';
             document.getElementById('anatomic-regions').value = entry.anatomicRegions || '';
             document.getElementById('difficulty-select').value = entry.difficulty || '';
@@ -2496,8 +2551,10 @@
 
             selectedTags = entry.tags || [];
             selectedSideOptions = entry.sideOptions || [];
+            selectedSupersedes = entry.supersedes || [];
             renderTagSelector();
             renderSideOptionsSelector();
+            renderSupersedesSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
             haptic('light');
         }
