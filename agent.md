@@ -1,53 +1,43 @@
 # Agent instructions for this repo
+This repo contains two unrelated browser apps:
 
-This repo contains a small personal physical therapy (PT) tracking PWA. It is used by a single user (the patient) to track home exercise programs prescribed by their physical therapist.
+1. A packing-list PWA in `/packing`
+2. A physical therapy (PT) tracking PWA in `/pt`
 
 You are a coding assistant. Follow these rules:
 
 - Do NOT introduce a backend or database.
-- Store all user data in browser storage only (IndexedDB or localStorage).
-- Treat `exercise_guidance_seed.json` as the canonical source of exercise definitions.
-- Treat JSON schemas in `/schema` as authoritative contracts for data shape.
+- Store all PT user data in browser storage only (IndexedDB or localStorage).
+- For the PT app, treat `/pt/exercise_guidance_seed.json` as the canonical source of exercise definitions.
+- Treat JSON schemas in `/pt/schema` as authoritative contracts for data shape.
 - Do not invent new field names when existing schema fields or vocab terms are available.
 
-## Repo layout (intended)
+## Repo Layout (Intended)
 
-- `exercise_guidance_seed.json`
-  - Contains the master list of exercise definitions.
-  - Structure should validate against `schema/exercise_file.schema.json`.
+- `/packing`
+  - Contains the existing packing-list PWA.
+  - `packing/index.html` is the entry point for the packing app UI.
 
-- `schema/exercise_file.schema.json`
-  - JSON Schema describing the exercise file structure.
-  - Fields include:
-    - `exercise_id`
-    - `canonical_name`
-    - `pt_category`
-    - `description`
-    - `primary_muscles`
-    - `secondary_muscles`
-    - `pattern`
-    - `pattern_modifiers`
-    - `equipment`
-    - `form_parameters_required`
-    - `tags`
-    - `guidance`
-    - `lifecycle`
-    - `added_date`
-    - `updated_date`
+- `/pt`
+  - `pt/index.html` (or the main HTML file) should be treated as the entry point for the PT PWA.
+  - `pt/exercise_guidance_seed.json` contains the exercise definitions.
+  - PT-related JS/TS files should live under `/pt` (e.g., `/pt/app.js`, `/pt/components/...`).
 
-- `docs/vocabularies.md`
-  - Describes controlled vocabularies for:
+- `/pt/schema`
+  - `exercise_file.schema.json` describes the structure of the exercise file used by the PT app.
+
+- `/pt/docs`
+  - `vocabularies.md` describes controlled vocabularies for:
     - `pt_category`
     - `pattern`
     - `pattern_modifiers`
     - `form_parameters`
-    - `equipment` examples
+    - equipment examples
     - `tags.functional`
     - `tags.format`
     - `tags.heatmap`
-  - When adding or editing exercises, pick values from these vocab lists whenever possible instead of inventing new spellings.
 
-- `pwa/` (may be generated or refactored)
+- `/pt/pwa/` (may be generated or refactored)
   - `index.html` – shell of the PWA.
   - `app.js` – main JavaScript for the PWA.
   - `manifest.webmanifest` – PWA manifest.
