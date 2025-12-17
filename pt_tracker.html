@@ -801,7 +801,20 @@
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title" id="exercise-details-title">Exercise Details</div>
-            <div class="modal-form">
+            <div class="modal-form" style="max-height: 500px; overflow-y: auto;">
+                <!-- Professional Guidance Section (for imported exercises) -->
+                <div id="professional-guidance-section" style="display: none; margin-bottom: 16px;">
+                    <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ios-blue);">
+                            📚 Professional Guidance
+                        </div>
+                        <div id="professional-guidance-content"></div>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 16px 0;">
+                </div>
+
+                <!-- User's Personal Notes -->
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 8px;">Your Personal Notes:</div>
                 <textarea class="modal-input" id="exercise-description" placeholder="Description (what is this exercise?)" style="min-height: 60px; resize: vertical;"></textarea>
                 <textarea class="modal-input" id="exercise-tips" placeholder="Execution tips (form, alignment, cues)" style="min-height: 80px; resize: vertical;"></textarea>
                 <textarea class="modal-input" id="exercise-feel" placeholder="Where to feel (target muscles)" style="min-height: 50px; resize: vertical;"></textarea>
@@ -2475,6 +2488,77 @@
             document.getElementById('exercise-not-feel').value = details.shouldNotFeel || '';
             document.getElementById('exercise-modifications').value = details.modifications || '';
             document.getElementById('exercise-rest-seconds').value = details.restSeconds || '';
+
+            // Display professional guidance if available (from imported exercises)
+            const guidanceSection = document.getElementById('professional-guidance-section');
+            const guidanceContent = document.getElementById('professional-guidance-content');
+
+            if (entry.guidance && (entry.guidance.external_cues?.length > 0 || entry.guidance.motor_cues?.length > 0 || entry.guidance.compensation_warnings?.length > 0 || entry.guidance.safety_flags?.length > 0)) {
+                let html = '';
+
+                // Show description if available
+                if (entry.description) {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Description</div>
+                            <div style="font-size: 13px; color: var(--ios-gray);">${entry.description}</div>
+                        </div>
+                    `;
+                }
+
+                // External cues
+                if (entry.guidance.external_cues && entry.guidance.external_cues.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">👀 External Cues</div>
+                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                                ${entry.guidance.external_cues.map(cue => `<li style="margin-bottom: 4px;">${cue}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Motor cues
+                if (entry.guidance.motor_cues && entry.guidance.motor_cues.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">💪 Motor Cues</div>
+                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                                ${entry.guidance.motor_cues.map(cue => `<li style="margin-bottom: 4px;">${cue}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Compensation warnings
+                if (entry.guidance.compensation_warnings && entry.guidance.compensation_warnings.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--ios-orange);">⚠️ Compensation Warnings</div>
+                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                                ${entry.guidance.compensation_warnings.map(warning => `<li style="margin-bottom: 4px;">${warning}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Safety flags
+                if (entry.guidance.safety_flags && entry.guidance.safety_flags.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 0;">
+                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--ios-red);">🛑 Safety Flags</div>
+                            <ul style="font-size: 12px; color: var(--ios-red); margin: 0; padding-left: 20px;">
+                                ${entry.guidance.safety_flags.map(flag => `<li style="margin-bottom: 4px;">${flag}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                guidanceContent.innerHTML = html;
+                guidanceSection.style.display = 'block';
+            } else {
+                guidanceSection.style.display = 'none';
+            }
 
             document.getElementById('exercise-details-modal').classList.add('active');
             haptic('light');
