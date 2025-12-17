@@ -999,6 +999,7 @@
     <script>
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
+        const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
 
         const ATLAS_SEED = [
@@ -1125,10 +1126,25 @@
             };
         });
         let exerciseLibrary = loadExerciseLibrary();
-        let currentExercise = toSessionExercise(exerciseLibrary[0]);
+
+        function getInitialExercise() {
+            // Only restore last used exercise if it exists
+            const lastExerciseId = localStorage.getItem(LAST_EXERCISE_KEY);
+            if (lastExerciseId) {
+                const lastExercise = exerciseLibrary.find(ex => ex.id === lastExerciseId && !ex.archived);
+                if (lastExercise) {
+                    return toSessionExercise(lastExercise);
+                }
+            }
+
+            // Don't auto-select any exercise - let user choose
+            return null;
+        }
+
+        let currentExercise = getInitialExercise();
 
         let timerInterval = null;
-        let timerSecondsRemaining = Math.max(currentExercise.secondsPerRep || 0, 1); // counts DOWN
+        let timerSecondsRemaining = currentExercise ? Math.max(currentExercise.secondsPerRep || 0, 1) : 0; // counts DOWN
         let timerRunning = false;
         let actionSheetCallback = null;
         let pocketMode = false;
@@ -1440,6 +1456,17 @@
         }
 
         function updateDisplay() {
+            // Handle no exercise selected
+            if (!currentExercise) {
+                document.getElementById('exercise-name').textContent = 'No Exercise Selected';
+                document.getElementById('set-info').textContent = 'Tap "Exercises" below to choose';
+                document.getElementById('remaining-info').textContent = '';
+                document.getElementById('counter-mode').classList.add('hidden');
+                document.getElementById('timer-mode').classList.add('hidden');
+                document.getElementById('main-controls').classList.add('hidden');
+                return;
+            }
+
             document.getElementById('exercise-name').textContent = currentExercise.name;
 
             // For sided exercises, show per-side progress
@@ -1999,6 +2026,9 @@
             exerciseLibrary = loadExerciseLibrary();
             currentExercise = toSessionExercise({ ...entry, name: exerciseName, id: exerciseId });
 
+            // Remember this exercise for next session
+            localStorage.setItem(LAST_EXERCISE_KEY, exerciseId);
+
             seedTimerSeconds();
             stopTimer();
 
@@ -2008,6 +2038,10 @@
         }
 
         function showHistory() {
+            if (!currentExercise) {
+                alert('Please select an exercise first');
+                return;
+            }
             renderHistory();
             document.getElementById('history-modal').classList.add('active');
             haptic('light');
@@ -2348,6 +2382,10 @@
         function selectExerciseFromList(exerciseId) {
             const entry = getLibraryEntryById(exerciseId);
             currentExercise = toSessionExercise(entry);
+
+            // Remember this exercise for next session
+            localStorage.setItem(LAST_EXERCISE_KEY, exerciseId);
+
             seedTimerSeconds();
             stopTimer();
             updateDisplay();
@@ -2643,6 +2681,10 @@
         let editingDetailsExerciseId = null;
 
         function showExerciseDetailsModal(exerciseId = null) {
+            if (!exerciseId && !currentExercise) {
+                alert('Please select an exercise first');
+                return;
+            }
             editingDetailsExerciseId = exerciseId || currentExercise.id;
             const entry = getLibraryEntryById(editingDetailsExerciseId);
             const details = entry.details || {};
@@ -3266,6 +3308,12 @@
 
         // Quick Exercise Switcher
         function showQuickSwitcher() {
+            // If no exercise selected, go straight to exercise list
+            if (!currentExercise) {
+                showExerciseList();
+                return;
+            }
+
             const container = document.getElementById('quick-switcher-list');
             const activeExercises = exerciseLibrary.filter(ex => !ex.archived && (ex.favorite || ex.id === currentExercise.id));
 
@@ -3305,6 +3353,10 @@
 
             const entry = getLibraryEntryById(exerciseId);
             currentExercise = toSessionExercise(entry);
+
+            // Remember this exercise for next session
+            localStorage.setItem(LAST_EXERCISE_KEY, exerciseId);
+
             seedTimerSeconds();
             stopTimer();
             updateDisplay();
