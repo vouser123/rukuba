@@ -1182,11 +1182,23 @@
 
         function toSessionExercise(entry) {
             const spec = entry?.current || {};
+            const isBilateral = entry.bilateral === true;
+            const sideOptions = entry.sideOptions || [];
+
+            // For sided exercises, multiply sets by number of sides
+            // E.g., 3 sets with ['left', 'right'] = 6 total sets (3 per side)
+            const baseSets = spec.sets || 3;
+            const effectiveSides = (!isBilateral && sideOptions.length > 0) ? sideOptions.length : 1;
+            const totalSets = baseSets * effectiveSides;
+
             return {
                 id: entry.id,
                 name: entry.name,
                 type: spec.type || 'reps',
-                sets: spec.sets || 3,
+                sets: totalSets,
+                baseSets: baseSets, // Original sets per side
+                sideOptions: sideOptions,
+                bilateral: isBilateral,
                 repsPerSet: spec.repsPerSet || 10,
                 secondsPerRep: spec.secondsPerRep ?? 10,
                 currentSet: 1,
@@ -1429,12 +1441,39 @@
 
         function updateDisplay() {
             document.getElementById('exercise-name').textContent = currentExercise.name;
-            document.getElementById('set-info').textContent = `Set ${currentExercise.currentSet} of ${currentExercise.sets}`;
+
+            // For sided exercises, show per-side progress
+            const hasSides = currentExercise.sideOptions && currentExercise.sideOptions.length > 0 && !currentExercise.bilateral;
+            let setInfoText = `Set ${currentExercise.currentSet} of ${currentExercise.sets}`;
+
+            if (hasSides && currentExercise.baseSets) {
+                setInfoText += ` (${currentExercise.baseSets} per side)`;
+            }
+            document.getElementById('set-info').textContent = setInfoText;
 
             const setsLeft = Math.max(currentExercise.sets - currentExercise.currentSet, 0);
             const repsLeft = Math.max((currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
 
             let remainingLabel = `Sets left: ${setsLeft}`;
+
+            // For sided exercises, show per-side breakdown
+            if (hasSides && currentExercise.sideOptions) {
+                const sideProgress = {};
+                currentExercise.sideOptions.forEach(side => sideProgress[side] = 0);
+
+                // Count completed sets per side
+                currentExercise.sessionData.forEach(set => {
+                    if (set.side && sideProgress[set.side] !== undefined) {
+                        sideProgress[set.side]++;
+                    }
+                });
+
+                const sideLabels = currentExercise.sideOptions.map(side =>
+                    `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
+                ).join(' · ');
+                remainingLabel = `${sideLabels}`;
+            }
+
             if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
                 remainingLabel += ` · Reps left: ${repsLeft}`;
             }
@@ -1656,7 +1695,43 @@
         function showLogSetModal() {
             const targetReps = currentExercise.repsPerSet || 0;
             document.getElementById('log-set-title').textContent = `Log Set ${currentExercise.currentSet}`;
-            document.getElementById('log-set-subtitle').textContent = `Target: ${targetReps} reps · Enter actual reps performed`;
+
+            // Show side selector for unilateral exercises
+            const entry = getLibraryEntryById(currentExercise.id);
+            const isBilateral = entry.bilateral === true;
+            const sideOptions = entry.sideOptions || [];
+
+            // For sided exercises, show which sides need more sets
+            let subtitleText = `Target: ${targetReps} reps · Enter actual reps performed`;
+            if (sideOptions.length > 0 && !isBilateral && currentExercise.baseSets) {
+                // Count completed sets per side
+                const sideProgress = {};
+                sideOptions.forEach(side => sideProgress[side] = 0);
+                currentExercise.sessionData.forEach(set => {
+                    if (set.side && sideProgress[set.side] !== undefined) {
+                        sideProgress[set.side]++;
+                    }
+                });
+
+                // Find which side needs more sets (for smart default selection)
+                let suggestedSide = sideOptions[0];
+                for (const side of sideOptions) {
+                    if (sideProgress[side] < currentExercise.baseSets) {
+                        suggestedSide = side;
+                        break;
+                    }
+                }
+
+                const progressText = sideOptions.map(side =>
+                    `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
+                ).join(', ');
+                subtitleText = `${progressText} · Enter reps for selected side`;
+                logSetSide = suggestedSide;
+            } else {
+                logSetSide = sideOptions[0] || 'both';
+            }
+
+            document.getElementById('log-set-subtitle').textContent = subtitleText;
             document.getElementById('log-set-reps').value = targetReps;
 
             // Clear weight/resistance fields
@@ -1664,15 +1739,9 @@
             document.getElementById('log-set-weight-unit').value = 'lbs';
             document.getElementById('log-set-resistance').value = '';
 
-            // Show side selector for unilateral exercises
-            const entry = getLibraryEntryById(currentExercise.id);
-            const isBilateral = entry.bilateral === true;
-            const sideOptions = entry.sideOptions || [];
-
             const sideContainer = document.getElementById('log-set-side-selector');
             if (sideOptions.length > 0 && !isBilateral) {
-                logSetSide = sideOptions[0] || 'left';
-                sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side:</div>' +
+                sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Select side for this set:</div>' +
                     sideOptions.map(side => {
                         return `<span class="pill" style="cursor: pointer; background: ${logSetSide === side ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === side ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${side}')">${side}</span>`;
                     }).join(' ');
