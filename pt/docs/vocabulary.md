@@ -23,6 +23,7 @@
 - surface
 - band_resistance
 - band_position
+- strap_position
 - slope
 - alternating
 - distance
@@ -35,6 +36,7 @@
 - small_ball_9in
 - foam_pad
 - miniband
+- long band
 - ankle_weights
 - dumbbell_pair
 - wall
