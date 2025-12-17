@@ -713,13 +713,20 @@
                 <div id="tag-selector-container" style="margin: 12px 0;"></div>
 
                 <!-- ATLAS Features -->
-                <div style="margin: 12px 0;">
-                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer;">
+                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ios-blue);">
+                        🔄 Side Tracking
+                    </div>
+                    <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">
+                        <strong>Check bilateral</strong> if both sides work together (squats, wall sits)<br>
+                        <strong>Select left/right</strong> if sides work separately (clams, single leg raises)
+                    </div>
+                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer; background: white; padding: 8px; border-radius: 6px;">
                         <input type="checkbox" id="bilateral-checkbox" style="margin-right: 8px;">
-                        <span>Bilateral (both sides together)</span>
+                        <span>✓ Bilateral (both sides work together)</span>
                     </label>
+                    <div id="side-options-container" style="margin-top: 12px;"></div>
                 </div>
-                <div id="side-options-container" style="margin: 12px 0;"></div>
                 <input type="text" class="modal-input" id="supersedes-input" placeholder="Supersedes (e.g., ex_basic_squats_01)">
 
                 <!-- ATLAS: Muscles & Regions -->
@@ -2245,16 +2252,35 @@
             const isBilateral = document.getElementById('bilateral-checkbox').checked;
 
             if (isBilateral) {
-                container.innerHTML = '';
+                container.innerHTML = '<div style="font-size: 13px; color: var(--ios-gray); font-style: italic;">Side tracking disabled (bilateral exercise)</div>';
                 selectedSideOptions = [];
                 return;
             }
 
-            container.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side options (for unilateral):</div>' +
-                SIDE_OPTIONS_AVAILABLE.map(side => {
-                    const active = selectedSideOptions.includes(side);
-                    return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleSideOption('${side}')">${side}</span>`;
-                }).join(' ');
+            const hasSelection = selectedSideOptions.length > 0;
+            let helpText;
+            if (selectedSideOptions.length === 2 && selectedSideOptions.includes('left') && selectedSideOptions.includes('right')) {
+                helpText = '✓ Will log left and right separately (e.g., clams)';
+            } else if (selectedSideOptions.length === 1) {
+                helpText = `✓ Will ask which ${selectedSideOptions[0]} side when logging`;
+            } else if (selectedSideOptions.length === 3) {
+                helpText = '✓ Will ask which side (left/right/both)';
+            } else {
+                helpText = '⚠️ Tap which sides - select BOTH for exercises like clams';
+            }
+
+            container.innerHTML = `
+                <div style="background: white; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Tap which sides this exercise uses:</div>
+                    <div style="font-size: 12px; color: ${hasSelection ? 'var(--ios-green)' : 'var(--ios-orange)'}; margin-bottom: 8px;">${helpText}</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${SIDE_OPTIONS_AVAILABLE.map(side => {
+                            const active = selectedSideOptions.includes(side);
+                            return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'}; padding: 8px 16px; font-weight: 600;" onclick="toggleSideOption('${side}')">${side}</span>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
         }
 
         function toggleSideOption(side) {
