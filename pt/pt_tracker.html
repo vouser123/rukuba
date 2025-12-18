@@ -626,6 +626,12 @@
         </div>
     </div>
 
+    <!-- Quick Start Shortcuts -->
+    <div id="quick-start-container" style="padding: 12px 15px; background: var(--bg-primary); border-bottom: 1px solid var(--border-color); display: none;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Quick Start</div>
+        <div id="quick-start-exercises" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+    </div>
+
     <!-- Counter View -->
     <div class="counter-view" id="counter-view">
         <div class="set-info" id="set-info">Set 1 of 3</div>
@@ -722,8 +728,9 @@
                     <button class="control-btn btn-primary" onclick="showLibraryBrowser()" style="flex: 1;">📚 Browse Library</button>
                     <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
                 </div>
-                <div style="margin-top: 12px;">
-                    <button class="control-btn btn-secondary" onclick="showDataBackup()" style="width: 100%;">💾 Data / Backup</button>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="control-btn btn-secondary" onclick="showDataBackup()" style="flex: 1;">💾 Data / Backup</button>
+                    <button class="control-btn btn-secondary" onclick="archiveExamples()" style="flex: 1;" id="archive-examples-btn">🗑️ Archive Examples</button>
                 </div>
             </div>
         </div>
@@ -1030,7 +1037,13 @@
                 <button class="control-btn btn-primary" onclick="exportAllData()" style="width: 100%; margin-bottom: 12px; font-weight: 600;">💾 Export All Data</button>
                 <div style="font-size: 12px; color: var(--ios-gray); margin: -8px 0 16px 0; text-align: center;">Single file with library, history, and version</div>
                 <button class="control-btn btn-secondary" onclick="exportExerciseLibrary()" style="width: 100%; margin-bottom: 12px;">📚 Export Exercise Library</button>
-                <button class="control-btn btn-secondary" onclick="exportExerciseHistory()" style="width: 100%;">📊 Export Exercise History</button>
+                <button class="control-btn btn-secondary" onclick="exportExerciseHistory()" style="width: 100%; margin-bottom: 20px;">📊 Export Exercise History</button>
+
+                <div style="border-top: 1px solid var(--ios-separator); padding-top: 16px; margin-top: 4px;">
+                    <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Restore from backup file</div>
+                    <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="handleImportFile(event)">
+                    <button class="control-btn btn-secondary" onclick="document.getElementById('import-file-input').click()" style="width: 100%;">📥 Import Data</button>
+                </div>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeDataBackup()">Close</button>
@@ -2299,6 +2312,62 @@
             stopTimer();
             updateDisplay();
             updateStreakDisplay(); // Refresh streak after completing session
+            updateQuickStartShortcuts(); // Update shortcuts based on usage
+        }
+
+        function updateQuickStartShortcuts() {
+            const sessions = loadHistory();
+            const container = document.getElementById('quick-start-container');
+            const exercisesContainer = document.getElementById('quick-start-exercises');
+
+            if (sessions.length === 0 || exerciseLibrary.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            // Count exercise usage in last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const usageCount = {};
+            sessions.forEach(session => {
+                const sessionDate = new Date(session.date);
+                if (sessionDate >= thirtyDaysAgo) {
+                    usageCount[session.exerciseId] = (usageCount[session.exerciseId] || 0) + 1;
+                }
+            });
+
+            // Sort by usage and get top 5
+            const sortedExercises = Object.entries(usageCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([id]) => id);
+
+            if (sortedExercises.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            // Render shortcuts
+            exercisesContainer.innerHTML = sortedExercises.map(id => {
+                const entry = getLibraryEntryById(id);
+                if (!entry || entry.archived) return '';
+                return `<button class="pill" style="cursor: pointer; padding: 8px 14px; background: var(--ios-blue); color: white; font-weight: 500;" onclick="quickStartExercise('${id}')">${entry.name}</button>`;
+            }).filter(Boolean).join('');
+
+            container.style.display = exercisesContainer.innerHTML ? 'block' : 'none';
+        }
+
+        function quickStartExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            if (!entry) return;
+
+            currentExercise = toSessionExercise(entry);
+            localStorage.setItem(LAST_EXERCISE_KEY, exerciseId);
+            seedTimerSeconds();
+            updateDisplay();
+            haptic('medium');
+            speak(`Starting ${entry.name}`);
         }
 
         // Modal Functions
@@ -2495,6 +2564,14 @@
             renderRecentExercises();
             renderExerciseList();
             renderTagFilters();
+
+            // Show/hide Archive Examples button
+            const examples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
+            const archiveBtn = document.getElementById('archive-examples-btn');
+            if (archiveBtn) {
+                archiveBtn.style.display = examples.length > 0 ? 'block' : 'none';
+            }
+
             document.getElementById('exercise-list-modal').classList.add('active');
             haptic('medium');
         }
@@ -2634,6 +2711,88 @@
             URL.revokeObjectURL(url);
         }
 
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    // Detect file type and import accordingly
+                    if (data.pt_data_version !== undefined && data.pt_exercise_library !== undefined) {
+                        // All-data export format
+                        importAllData(data);
+                    } else if (Array.isArray(data)) {
+                        // Individual export format (library or history)
+                        // Try to detect which one based on structure
+                        if (data.length > 0 && data[0].exerciseId !== undefined) {
+                            // History format
+                            importHistory(data);
+                        } else {
+                            // Library format
+                            importLibrary(data);
+                        }
+                    } else {
+                        alert('Unrecognized file format. Please use a valid PT Tracker export file.');
+                    }
+                } catch (e) {
+                    console.error('Failed to import file:', e);
+                    alert('Unable to read file. Make sure it\'s a valid JSON export.');
+                }
+
+                // Reset file input
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function importAllData(data) {
+            const message = `Import all data?\n\nThis will REPLACE:\n• Exercise library (${data.pt_exercise_library?.length || 0} exercises)\n• Exercise history (${data.pt_tracker_data?.length || 0} sessions)\n\nCurrent data will be overwritten. Continue?`;
+
+            showActionSheet(message, () => {
+                if (data.pt_exercise_library) {
+                    localStorage.setItem(LIBRARY_KEY, JSON.stringify(data.pt_exercise_library));
+                }
+                if (data.pt_tracker_data) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data.pt_tracker_data));
+                }
+                if (data.pt_data_version) {
+                    localStorage.setItem(PT_VERSION_KEY, data.pt_data_version);
+                }
+
+                // Reload library and update display
+                exerciseLibrary = loadExerciseLibrary();
+                closeDataBackup();
+                alert('Data imported successfully! Reload the page to see all changes.');
+                haptic('success');
+            });
+        }
+
+        function importLibrary(data) {
+            const message = `Import exercise library?\n\nThis will REPLACE your current library with ${data.length} exercises.\n\nCurrent library will be overwritten. Continue?`;
+
+            showActionSheet(message, () => {
+                localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
+                exerciseLibrary = loadExerciseLibrary();
+                closeDataBackup();
+                alert('Exercise library imported successfully!');
+                haptic('success');
+            });
+        }
+
+        function importHistory(data) {
+            const message = `Import exercise history?\n\nThis will REPLACE your current history with ${data.length} sessions.\n\nCurrent history will be overwritten. Continue?`;
+
+            showActionSheet(message, () => {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                closeDataBackup();
+                alert('Exercise history imported successfully!');
+                haptic('success');
+            });
+        }
+
         function renderTagFilters() {
             const container = document.getElementById('tag-filter-container');
             container.innerHTML = AVAILABLE_TAGS.map(tag => {
@@ -2744,6 +2903,34 @@
                 exerciseLibrary = loadExerciseLibrary();
                 haptic('success');
                 showArchivedExercises(); // Refresh archived view
+            });
+        }
+
+        function archiveExamples() {
+            const examples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
+
+            if (examples.length === 0) {
+                alert('No example exercises found to archive.');
+                return;
+            }
+
+            const message = `Archive ${examples.length} example exercise${examples.length !== 1 ? 's' : ''}?\n\n${examples.map(ex => ex.name).join('\n')}\n\nYou can restore them from the Archived section later.`;
+
+            showActionSheet(message, () => {
+                examples.forEach(ex => {
+                    ex.archived = true;
+                });
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                filterExercises(); // Refresh the list
+                haptic('success');
+                alert(`${examples.length} example${examples.length !== 1 ? 's' : ''} archived successfully!`);
+
+                // Hide the button if no more examples
+                const remainingExamples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
+                if (remainingExamples.length === 0) {
+                    document.getElementById('archive-examples-btn').style.display = 'none';
+                }
             });
         }
 
@@ -4210,6 +4397,7 @@
         // Initialize
         updateDisplay();
         updateStreakDisplay();
+        updateQuickStartShortcuts();
         setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
 
         // Register Service Worker for offline support
