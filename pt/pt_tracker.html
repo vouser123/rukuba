@@ -1000,6 +1000,22 @@
         </div>
     </div>
 
+    <!-- Exercise Progress Modal -->
+    <div class="modal" id="exercise-progress-modal" onclick="if(event.target === this) closeExerciseProgress()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="progress-modal-title">Exercise Progress</div>
+            <div class="modal-form" style="max-height: 500px; overflow-y: auto;">
+                <div id="progress-summary" style="margin-bottom: 16px;"></div>
+                <div id="progress-chart" style="margin-bottom: 16px;"></div>
+                <div id="progress-sessions" style="margin-bottom: 16px;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeExerciseProgress()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Exercise Library Browser Modal -->
     <div class="modal" id="library-browser-modal" onclick="if(event.target === this) closeLibraryBrowser()">
         <div class="modal-content">
@@ -2570,6 +2586,154 @@
             });
         }
 
+        // Exercise Progress Tracking Functions
+        function showExerciseProgress(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            if (!entry) return;
+
+            const sessions = loadHistory();
+            const exerciseSessions = sessions.filter(s => s.exerciseId === exerciseId || s.exerciseName === entry.name);
+
+            if (exerciseSessions.length === 0) {
+                alert('No sessions recorded yet for this exercise.');
+                return;
+            }
+
+            document.getElementById('progress-modal-title').textContent = `${entry.name} - Progress`;
+            renderProgressSummary(entry, exerciseSessions);
+            renderProgressChart(exerciseSessions);
+            renderProgressSessions(exerciseSessions);
+
+            document.getElementById('exercise-progress-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeExerciseProgress() {
+            document.getElementById('exercise-progress-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function renderProgressSummary(entry, sessions) {
+            const container = document.getElementById('progress-summary');
+
+            const totalSessions = sessions.length;
+            const allSets = sessions.flatMap(s => s.sets);
+            const totalSets = allSets.length;
+            const totalReps = allSets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            const avgRepsPerSet = (totalReps / totalSets).toFixed(1);
+
+            // First vs last comparison
+            const firstSession = sessions[0];
+            const lastSession = sessions[sessions.length - 1];
+            const firstAvgReps = firstSession.sets.reduce((sum, set) => sum + (set.reps || 0), 0) / firstSession.sets.length;
+            const lastAvgReps = lastSession.sets.reduce((sum, set) => sum + (set.reps || 0), 0) / lastSession.sets.length;
+            const improvement = ((lastAvgReps - firstAvgReps) / firstAvgReps * 100).toFixed(1);
+            const improvementColor = improvement >= 0 ? 'var(--ios-green)' : 'var(--ios-red)';
+
+            // Frequency
+            const firstDate = new Date(firstSession.date);
+            const lastDate = new Date(lastSession.date);
+            const daySpan = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24)) || 1;
+            const sessionsPerWeek = ((totalSessions / daySpan) * 7).toFixed(1);
+
+            container.innerHTML = `
+                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Summary</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">Total Sessions</div>
+                            <div style="font-size: 20px; font-weight: 700;">${totalSessions}</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">Frequency</div>
+                            <div style="font-size: 20px; font-weight: 700;">${sessionsPerWeek}×<span style="font-size: 14px;">/week</span></div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">Total Volume</div>
+                            <div style="font-size: 20px; font-weight: 700;">${totalReps}<span style="font-size: 14px;"> reps</span></div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">Avg per Set</div>
+                            <div style="font-size: 20px; font-weight: 700;">${avgRepsPerSet}<span style="font-size: 14px;"> reps</span></div>
+                        </div>
+                    </div>
+                    ${totalSessions > 1 ? `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                            <div style="color: var(--text-secondary); font-size: 11px; margin-bottom: 4px;">Progress (first → most recent)</div>
+                            <div style="font-size: 18px; font-weight: 700; color: ${improvementColor};">
+                                ${firstAvgReps.toFixed(1)} → ${lastAvgReps.toFixed(1)} reps
+                                <span style="font-size: 14px; margin-left: 8px;">(${improvement > 0 ? '+' : ''}${improvement}%)</span>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderProgressChart(sessions) {
+            const container = document.getElementById('progress-chart');
+
+            // Simple text-based chart showing trend
+            const last10 = sessions.slice(-10);
+            const maxReps = Math.max(...last10.map(s => s.sets.reduce((sum, set) => sum + (set.reps || 0), 0) / s.sets.length));
+
+            const chartHtml = `
+                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Recent Trend (Last ${last10.length} Sessions)</div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        ${last10.map((session, idx) => {
+                            const avgReps = session.sets.reduce((sum, set) => sum + (set.reps || 0), 0) / session.sets.length;
+                            const barWidth = (avgReps / maxReps * 100).toFixed(1);
+                            const date = new Date(session.date).toLocaleDateString();
+                            return `
+                                <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                                    <div style="width: 70px; color: var(--text-secondary); flex-shrink: 0;">${date}</div>
+                                    <div style="flex: 1; background: rgba(0,122,255,0.1); border-radius: 4px; height: 24px; position: relative;">
+                                        <div style="background: var(--ios-blue); border-radius: 4px; height: 100%; width: ${barWidth}%; transition: width 0.3s;"></div>
+                                        <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-weight: 600; color: var(--text-primary);">${avgReps.toFixed(1)}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = chartHtml;
+        }
+
+        function renderProgressSessions(sessions) {
+            const container = document.getElementById('progress-sessions');
+
+            const sessionsHtml = `
+                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Session History</div>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${sessions.slice().reverse().map((session, idx) => {
+                            const date = new Date(session.date);
+                            const totalReps = session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+                            const avgReps = (totalReps / session.sets.length).toFixed(1);
+
+                            return `
+                                <div style="padding: 8px; border-bottom: 1px solid var(--border-color); ${idx === 0 ? 'background: rgba(0,122,255,0.05);' : ''}">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                        <div style="font-weight: 600; font-size: 13px;">${date.toLocaleDateString()}</div>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">
+                                        ${session.sets.length} sets × ${avgReps} avg reps = ${totalReps} total reps
+                                    </div>
+                                    ${session.notes ? `<div style="font-size: 11px; color: var(--ios-gray); margin-top: 4px; font-style: italic;">"${session.notes}"</div>` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = sessionsHtml;
+        }
+
         // Modal Functions
         function showExerciseModal() {
             populateExerciseSelect();
@@ -3209,8 +3373,9 @@
                         ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
                         <div class="history-meta">${describeSpec(spec)}</div>
                         ${statsHtml}
-                        <div style="margin-top: 8px; display: flex; gap: 8px;">
+                        <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
                             <button class="control-btn ${ex.favorite ? 'btn-primary' : 'btn-secondary'}" onclick="toggleFavorite('${ex.id}'); event.stopPropagation();" style="flex: 0 0 auto; padding: 8px 12px; font-size: 18px;">${ex.favorite ? '⭐' : '☆'}</button>
+                            ${totalSessions > 0 ? `<button class="control-btn btn-success" onclick="showExerciseProgress('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">📊 Progress</button>` : ''}
                             <button class="control-btn btn-secondary" onclick="showExerciseDetailsModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
                             <button class="control-btn btn-secondary" onclick="editExerciseFromList('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Edit</button>
                             <button class="control-btn btn-danger" onclick="archiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Archive</button>
