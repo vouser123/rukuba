@@ -626,6 +626,21 @@
         </div>
     </div>
 
+    <!-- Quick Start Shortcuts -->
+    <div id="quick-start-container" style="padding: 12px 15px; background: var(--bg-primary); border-bottom: 1px solid var(--border-color); display: none;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Quick Start</div>
+        <div id="quick-start-exercises" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+    </div>
+
+    <!-- Session Plan -->
+    <div id="session-plan-container" style="padding: 12px 15px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: none;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Today's Session</div>
+            <button onclick="endSessionEarly()" style="background: transparent; border: none; color: var(--ios-red); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 8px;">End Session</button>
+        </div>
+        <div id="session-plan-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+    </div>
+
     <!-- Counter View -->
     <div class="counter-view" id="counter-view">
         <div class="set-info" id="set-info">Set 1 of 3</div>
@@ -721,6 +736,13 @@
                     <button class="control-btn btn-success" onclick="showAddExerciseModal()" style="flex: 1;">+ Add New</button>
                     <button class="control-btn btn-primary" onclick="showLibraryBrowser()" style="flex: 1;">📚 Browse Library</button>
                     <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="control-btn btn-primary" onclick="showPlanSessionModal()" style="flex: 1;">📅 Plan Session</button>
+                    <button class="control-btn btn-secondary" onclick="showDataBackup()" style="flex: 1;">💾 Data / Backup</button>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button class="control-btn btn-secondary" onclick="archiveExamples()" style="flex: 1;" id="archive-examples-btn">🗑️ Archive Examples</button>
                 </div>
             </div>
         </div>
@@ -987,11 +1009,18 @@
                 <div style="font-size: 13px; color: var(--ios-gray); text-align: center; margin-bottom: 12px;">
                     Professional PT exercises with detailed guidance
                 </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 8px 12px; background: rgba(0,122,255,0.05); border-radius: 8px;">
+                    <label style="font-size: 14px; font-weight: 500; cursor: pointer;" for="show-new-toggle">
+                        Show only new
+                    </label>
+                    <input type="checkbox" id="show-new-toggle" checked onchange="toggleShowOnlyNew()" style="width: 20px; height: 20px; cursor: pointer;">
+                </div>
                 <input type="text" class="modal-input" id="library-search" placeholder="Search exercises..." oninput="filterLibraryExercises()">
                 <div class="history-list" id="library-exercises-list" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeLibraryBrowser()">Close</button>
+                <button class="modal-save" id="bulk-import-btn" onclick="bulkImportExercises()" style="display: none;">Import Selected</button>
             </div>
         </div>
     </div>
@@ -1007,6 +1036,46 @@
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeExerciseDetail()">Back</button>
                 <button class="modal-save" id="import-exercise-btn" onclick="importSeedExercise()">Import to My Exercises</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data / Backup Modal -->
+    <div class="modal" id="data-backup-modal" onclick="if(event.target === this) closeDataBackup()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Data / Backup</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 16px;">Export your data to save a backup or commit to GitHub.</div>
+                <button class="control-btn btn-primary" onclick="exportAllData()" style="width: 100%; margin-bottom: 12px; font-weight: 600;">💾 Export All Data</button>
+                <div style="font-size: 12px; color: var(--ios-gray); margin: -8px 0 16px 0; text-align: center;">Single file with library, history, and version</div>
+                <button class="control-btn btn-secondary" onclick="exportExerciseLibrary()" style="width: 100%; margin-bottom: 12px;">📚 Export Exercise Library</button>
+                <button class="control-btn btn-secondary" onclick="exportExerciseHistory()" style="width: 100%; margin-bottom: 20px;">📊 Export Exercise History</button>
+
+                <div style="border-top: 1px solid var(--ios-separator); padding-top: 16px; margin-top: 4px;">
+                    <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Restore from backup file</div>
+                    <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="handleImportFile(event)">
+                    <button class="control-btn btn-secondary" onclick="document.getElementById('import-file-input').click()" style="width: 100%;">📥 Import Data</button>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeDataBackup()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Session Modal -->
+    <div class="modal" id="plan-session-modal" onclick="if(event.target === this) closePlanSessionModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Plan Today's Session</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Select exercises for today's workout. Tap to add/remove.</div>
+                <div id="plan-session-list" class="history-list" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closePlanSessionModal()">Cancel</button>
+                <button class="modal-save" id="start-session-btn" onclick="startPlannedSession()">Start Session</button>
             </div>
         </div>
     </div>
@@ -1034,7 +1103,34 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
+        const PT_VERSION_KEY = 'pt_data_version';
+        const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
+
+        /**
+         * SESSION ID TRACKING
+         * -------------------
+         * Each history entry includes a sessionId to group exercises performed in the same workout session.
+         *
+         * Current strategy: Generate a random sessionId once per app load.
+         * - All exercises completed before closing/refreshing the app share the same sessionId
+         * - Different app launches = different sessionIds, even on the same day
+         * - Format: 8-character random alphanumeric string (e.g., "a3f9k2m1")
+         *
+         * Future: This enables session-based UI features like:
+         * - "Today's Workout" view grouping exercises by session
+         * - Session history browser
+         * - Session planning (which exercises in what order)
+         */
+        function generateSessionId() {
+            return Math.random().toString(36).substring(2, 10);
+        }
+
+        let currentSessionId = generateSessionId();
+
+        // Session planning
+        let sessionPlan = []; // Array of exercise IDs planned for today
+        let sessionPlanCompleted = new Set(); // IDs of completed exercises
 
         function reloadApp() {
             try {
@@ -1218,25 +1314,106 @@
             }
         }
 
+        /**
+         * FIRST-RUN DETECTION & DATA LOADING
+         * -----------------------------------
+         * TRUE FIRST RUN is detected when ALL of these are missing:
+         *   - PT_VERSION_KEY
+         *   - LIBRARY_KEY
+         *   - STORAGE_KEY
+         *
+         * On true first run:
+         *   - Seed default exercises into LIBRARY_KEY
+         *   - Set PT_VERSION_KEY to prevent future reseeding
+         *
+         * Once PT_VERSION_KEY exists, we NEVER auto-reseed defaults.
+         * This prevents data loss on PWA updates/reinstalls.
+         *
+         * Parse errors are handled gracefully:
+         *   - Log warning to console
+         *   - Return empty array (in memory only)
+         *   - DO NOT overwrite stored data
+         */
         function loadExerciseLibrary() {
-            const stored = localStorage.getItem(LIBRARY_KEY);
-            if (stored) {
+            const version = localStorage.getItem(PT_VERSION_KEY);
+            const storedLibrary = localStorage.getItem(LIBRARY_KEY);
+            const storedHistory = localStorage.getItem(STORAGE_KEY);
+
+            // True first run: no version, no library, no history
+            const isFirstRun = !version && !storedLibrary && !storedHistory;
+
+            if (isFirstRun) {
+                console.log('First run detected - seeding default exercises');
+                localStorage.setItem(LIBRARY_KEY, JSON.stringify(DEFAULT_LIBRARY));
+                localStorage.setItem(PT_VERSION_KEY, PT_DATA_VERSION);
+                return DEFAULT_LIBRARY;
+            }
+
+            // Not first run: load existing library
+            if (storedLibrary) {
                 try {
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length) {
-                        return parsed;
+                    const parsed = JSON.parse(storedLibrary);
+                    if (Array.isArray(parsed)) {
+                        return parsed.length > 0 ? parsed : [];
                     }
                 } catch (e) {
-                    console.warn('Unable to parse exercise library; reseeding defaults');
+                    console.error('Failed to parse exercise library:', e);
+                    console.warn('Returning empty library - stored data preserved');
+                    return [];
                 }
             }
-            localStorage.setItem(LIBRARY_KEY, JSON.stringify(DEFAULT_LIBRARY));
-            return JSON.parse(localStorage.getItem(LIBRARY_KEY));
+
+            // No stored library but not first run (user deleted library)
+            return [];
         }
 
         function persistExerciseLibrary() {
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
         }
+
+        // Safe history loading with error handling
+        function loadHistory() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) return [];
+
+            try {
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                console.error('Failed to parse exercise history:', e);
+                console.warn('Returning empty history - stored data preserved');
+                return [];
+            }
+        }
+
+        /**
+         * DATA LOSS PREVENTION - TEST CHECKLIST
+         * --------------------------------------
+         * To verify the version guard prevents data loss:
+         *
+         * ✓ TEST 1: True first run
+         *   - Clear all localStorage (DevTools → Application → Clear Site Data)
+         *   - Reload app
+         *   - EXPECT: Default exercises seeded, PT_VERSION_KEY set to "1"
+         *   - VERIFY: localStorage has pt_data_version="1", pt_exercise_library with defaults
+         *
+         * ✓ TEST 2: Update with existing data
+         *   - Add custom exercises, complete some workouts
+         *   - Note your custom data
+         *   - Reload app (simulates PWA update)
+         *   - EXPECT: All custom exercises and history preserved
+         *   - VERIFY: No re-seeding, PT_VERSION_KEY still "1"
+         *
+         * ✓ TEST 3: Corrupted JSON
+         *   - In DevTools → Application → localStorage, manually corrupt pt_exercise_library
+         *     (e.g., change JSON to invalid syntax like `[{broken`)
+         *   - Reload app
+         *   - EXPECT: Console shows error "Failed to parse exercise library"
+         *   - EXPECT: Console shows warning "Returning empty library - stored data preserved"
+         *   - EXPECT: App shows blank exercise list (safe in-memory fallback)
+         *   - VERIFY: Corrupted data still in localStorage (not overwritten)
+         *   - FIX: Restore valid JSON or clear localStorage to reset
+         */
 
         /**
          * EXERCISE OBJECT STRUCTURE
@@ -1423,21 +1600,90 @@
          * TODO: Add Pocket mode support for "Log This Rep" when timer paused
          * TODO: Consider voice-only interaction mode (no screen needed)
          */
+        // Pocket Mode long-press detection for timer logging
+        let pocketPressTimer = null;
+        let pocketLongPressTriggered = false;
+
         function togglePocketMode(enabled) {
             pocketMode = enabled;
             const overlay = document.getElementById('pocket-overlay');
             if (enabled) {
                 overlay.classList.add('active');
                 haptic('medium');
+                setupPocketLongPress();
             } else {
                 overlay.classList.remove('active');
                 haptic('medium');
+                cleanupPocketLongPress();
             }
             updatePocketOverlay();
         }
 
+        function setupPocketLongPress() {
+            const overlay = document.getElementById('pocket-overlay');
+            overlay.addEventListener('touchstart', handlePocketPressStart, { passive: true });
+            overlay.addEventListener('touchend', handlePocketPressEnd, { passive: true });
+            overlay.addEventListener('touchcancel', handlePocketPressCancel, { passive: true });
+        }
+
+        function cleanupPocketLongPress() {
+            const overlay = document.getElementById('pocket-overlay');
+            overlay.removeEventListener('touchstart', handlePocketPressStart);
+            overlay.removeEventListener('touchend', handlePocketPressEnd);
+            overlay.removeEventListener('touchcancel', handlePocketPressCancel);
+            if (pocketPressTimer) {
+                clearTimeout(pocketPressTimer);
+                pocketPressTimer = null;
+            }
+        }
+
+        function handlePocketPressStart(e) {
+            // Ignore if tapping the X button
+            if (e.target.closest('.pocket-close')) return;
+
+            pocketLongPressTriggered = false;
+
+            // Only enable long-press for timer exercises
+            if (!isTimerType(currentExercise.type)) return;
+
+            // Start long-press timer (700ms for deliberate action)
+            pocketPressTimer = setTimeout(() => {
+                pocketLongPressTriggered = true;
+                handlePocketLongPress();
+            }, 700);
+        }
+
+        function handlePocketPressEnd(e) {
+            if (pocketPressTimer) {
+                clearTimeout(pocketPressTimer);
+                pocketPressTimer = null;
+            }
+        }
+
+        function handlePocketPressCancel(e) {
+            if (pocketPressTimer) {
+                clearTimeout(pocketPressTimer);
+                pocketPressTimer = null;
+            }
+            pocketLongPressTriggered = false;
+        }
+
+        function handlePocketLongPress() {
+            // Log timer and advance to next rep
+            if (isTimerType(currentExercise.type) && timerRunning) {
+                logPartialTimerRep();
+                updatePocketOverlay();
+            }
+        }
+
         function handlePocketTap() {
             if (!pocketMode) return;
+
+            // If long-press was triggered, don't also handle tap
+            if (pocketLongPressTriggered) {
+                pocketLongPressTriggered = false;
+                return;
+            }
 
             if (COUNTER_TYPES.includes(currentExercise.type)) {
                 incrementCounter();
@@ -2030,7 +2276,7 @@
 
         // Smart Progress Detection
         function detectProgress(setNumber, reps) {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const previousSessions = sessions.filter(s => s.exerciseId === currentExercise.id);
 
             if (previousSessions.length === 0) return; // First time doing this exercise
@@ -2078,8 +2324,9 @@
         }
 
         function saveSessionWithNotes(notes) {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             sessions.push({
+                sessionId: currentSessionId,
                 exerciseId: currentExercise.id,
                 exerciseName: currentExercise.name,
                 exerciseType: currentExercise.type,
@@ -2098,6 +2345,23 @@
             haptic('success');
             closeSessionNotesModal();
 
+            // Mark exercise as completed in session plan
+            if (sessionPlan.includes(currentExercise.id)) {
+                sessionPlanCompleted.add(currentExercise.id);
+                updateSessionPlanDisplay();
+
+                // Auto-advance to next exercise in plan
+                const nextExercise = getNextPlannedExercise();
+                if (nextExercise) {
+                    currentExercise = toSessionExercise(nextExercise);
+                    localStorage.setItem(LAST_EXERCISE_KEY, nextExercise.id);
+                    seedTimerSeconds();
+                    updateDisplay();
+                    speak(`Next: ${nextExercise.name}`);
+                    return;
+                }
+            }
+
             // Reset for new session
             currentExercise.currentSet = 1;
             currentExercise.currentRep = 0;
@@ -2106,6 +2370,204 @@
             stopTimer();
             updateDisplay();
             updateStreakDisplay(); // Refresh streak after completing session
+            updateQuickStartShortcuts(); // Update shortcuts based on usage
+        }
+
+        function updateQuickStartShortcuts() {
+            const sessions = loadHistory();
+            const container = document.getElementById('quick-start-container');
+            const exercisesContainer = document.getElementById('quick-start-exercises');
+
+            if (sessions.length === 0 || exerciseLibrary.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            // Count exercise usage in last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const usageCount = {};
+            sessions.forEach(session => {
+                const sessionDate = new Date(session.date);
+                if (sessionDate >= thirtyDaysAgo) {
+                    usageCount[session.exerciseId] = (usageCount[session.exerciseId] || 0) + 1;
+                }
+            });
+
+            // Sort by usage and get top 5
+            const sortedExercises = Object.entries(usageCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([id]) => id);
+
+            if (sortedExercises.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            // Render shortcuts
+            exercisesContainer.innerHTML = sortedExercises.map(id => {
+                const entry = getLibraryEntryById(id);
+                if (!entry || entry.archived) return '';
+                return `<button class="pill" style="cursor: pointer; padding: 8px 14px; background: var(--ios-blue); color: white; font-weight: 500;" onclick="quickStartExercise('${id}')">${entry.name}</button>`;
+            }).filter(Boolean).join('');
+
+            container.style.display = exercisesContainer.innerHTML ? 'block' : 'none';
+        }
+
+        function quickStartExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            if (!entry) return;
+
+            currentExercise = toSessionExercise(entry);
+            localStorage.setItem(LAST_EXERCISE_KEY, exerciseId);
+            seedTimerSeconds();
+            updateDisplay();
+            haptic('medium');
+            speak(`Starting ${entry.name}`);
+        }
+
+        // Session Planning Functions
+        function showPlanSessionModal() {
+            closeExerciseList();
+            renderPlanSessionList();
+            document.getElementById('plan-session-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closePlanSessionModal() {
+            document.getElementById('plan-session-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function renderPlanSessionList() {
+            const container = document.getElementById('plan-session-list');
+            const activeExercises = exerciseLibrary.filter(ex => !ex.archived);
+
+            if (activeExercises.length === 0) {
+                container.innerHTML = '<div class="history-item">No exercises available. Add some first!</div>';
+                return;
+            }
+
+            container.innerHTML = activeExercises.map(ex => {
+                const spec = ex.current || {};
+                const isSelected = sessionPlan.includes(ex.id);
+                return `
+                    <div class="history-item" onclick="toggleExerciseInPlan('${ex.id}')" style="cursor: pointer; background: ${isSelected ? 'rgba(0,122,255,0.1)' : 'transparent'}; border: 2px solid ${isSelected ? 'var(--ios-blue)' : 'transparent'};">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600;">${ex.name}</div>
+                                <div class="history-meta">${describeSpec(spec)}</div>
+                            </div>
+                            <div style="font-size: 20px; margin-left: 12px;">${isSelected ? '✓' : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update button state
+            const btn = document.getElementById('start-session-btn');
+            btn.disabled = sessionPlan.length === 0;
+            btn.style.opacity = sessionPlan.length === 0 ? '0.5' : '1';
+        }
+
+        function toggleExerciseInPlan(exerciseId) {
+            const index = sessionPlan.indexOf(exerciseId);
+            if (index > -1) {
+                sessionPlan.splice(index, 1);
+            } else {
+                sessionPlan.push(exerciseId);
+            }
+            renderPlanSessionList();
+            haptic('light');
+        }
+
+        function startPlannedSession() {
+            if (sessionPlan.length === 0) return;
+
+            sessionPlanCompleted.clear();
+            closePlanSessionModal();
+
+            // Start with first exercise in plan
+            const firstExercise = getLibraryEntryById(sessionPlan[0]);
+            if (firstExercise) {
+                currentExercise = toSessionExercise(firstExercise);
+                localStorage.setItem(LAST_EXERCISE_KEY, firstExercise.id);
+                seedTimerSeconds();
+                updateDisplay();
+                updateSessionPlanDisplay();
+                speak(`Starting session: ${firstExercise.name}`);
+                haptic('success');
+            }
+        }
+
+        function updateSessionPlanDisplay() {
+            const container = document.getElementById('session-plan-container');
+            const listContainer = document.getElementById('session-plan-list');
+
+            if (sessionPlan.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            const planItems = sessionPlan.map(id => {
+                const entry = getLibraryEntryById(id);
+                if (!entry) return '';
+
+                const isCompleted = sessionPlanCompleted.has(id);
+                const isCurrent = currentExercise && currentExercise.id === id;
+
+                return `
+                    <div onclick="switchToPlannedExercise('${id}')" style="padding: 8px 12px; border-radius: 8px; background: ${isCurrent ? 'var(--ios-blue)' : isCompleted ? 'var(--ios-green)' : 'var(--bg-primary)'}; color: ${isCurrent || isCompleted ? 'white' : 'var(--text-primary)'}; cursor: pointer; display: flex; align-items: center; gap: 8px; ${isCompleted ? 'opacity: 0.7;' : ''}">
+                        <div style="font-size: 16px;">${isCompleted ? '✓' : isCurrent ? '▶' : '○'}</div>
+                        <div style="flex: 1; font-size: 14px; font-weight: ${isCurrent ? '600' : '500'};">${entry.name}</div>
+                    </div>
+                `;
+            }).filter(Boolean).join('');
+
+            listContainer.innerHTML = planItems;
+            container.style.display = 'block';
+        }
+
+        function switchToPlannedExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            if (!entry) return;
+
+            // Save current progress if switching mid-exercise
+            if (currentExercise && currentExercise.sessionData.length > 0) {
+                if (!confirm('Switch exercises? Current progress will be lost.')) {
+                    return;
+                }
+            }
+
+            currentExercise = toSessionExercise(entry);
+            localStorage.setItem(LAST_EXERCISE_KEY, exerciseId);
+            seedTimerSeconds();
+            updateDisplay();
+            updateSessionPlanDisplay();
+            haptic('medium');
+            speak(`Switched to ${entry.name}`);
+        }
+
+        function getNextPlannedExercise() {
+            const remaining = sessionPlan.filter(id => !sessionPlanCompleted.has(id));
+            if (remaining.length === 0) return null;
+            return getLibraryEntryById(remaining[0]);
+        }
+
+        function endSessionEarly() {
+            const completed = sessionPlanCompleted.size;
+            const total = sessionPlan.length;
+            const message = `End session early?\n\nCompleted: ${completed}/${total} exercises\n\nSession plan will be cleared.`;
+
+            showActionSheet(message, () => {
+                sessionPlan = [];
+                sessionPlanCompleted.clear();
+                updateSessionPlanDisplay();
+                haptic('medium');
+                speak('Session ended');
+            });
         }
 
         // Modal Functions
@@ -2232,7 +2694,7 @@
         }
 
         function renderHistory() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const exerciseHistoryList = document.getElementById('exercise-history-list');
             const sessionHistoryList = document.getElementById('session-history-list');
             const exerciseEntry = getLibraryEntryById(currentExercise.id);
@@ -2302,12 +2764,20 @@
             renderRecentExercises();
             renderExerciseList();
             renderTagFilters();
+
+            // Show/hide Archive Examples button
+            const examples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
+            const archiveBtn = document.getElementById('archive-examples-btn');
+            if (archiveBtn) {
+                archiveBtn.style.display = examples.length > 0 ? 'block' : 'none';
+            }
+
             document.getElementById('exercise-list-modal').classList.add('active');
             haptic('medium');
         }
 
         function renderRecentExercises() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             if (sessions.length === 0) {
                 document.getElementById('recent-exercises-container').innerHTML = '';
                 return;
@@ -2348,6 +2818,179 @@
             document.getElementById('exercise-search').value = '';
             filterTags = [];
             haptic('medium');
+        }
+
+        // DATA EXPORT FUNCTIONS
+        function showDataBackup() {
+            document.getElementById('data-backup-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeDataBackup() {
+            document.getElementById('data-backup-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function exportExerciseLibrary() {
+            const stored = localStorage.getItem(LIBRARY_KEY);
+            if (!stored) {
+                alert('No exercise library data found.');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(stored);
+                const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const filename = `pt_exercise_library-${dateStamp}.json`;
+                downloadJSON(parsed, filename);
+                haptic('success');
+            } catch (e) {
+                console.error('Failed to export exercise library:', e);
+                alert('Unable to export exercise library. Data may be corrupt.');
+            }
+        }
+
+        function exportExerciseHistory() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) {
+                alert('No exercise history data found.');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(stored);
+                const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const filename = `pt_exercise_history-${dateStamp}.json`;
+                downloadJSON(parsed, filename);
+                haptic('success');
+            } catch (e) {
+                console.error('Failed to export exercise history:', e);
+                alert('Unable to export exercise history. Data may be corrupt.');
+            }
+        }
+
+        function exportAllData() {
+            const library = localStorage.getItem(LIBRARY_KEY);
+            const history = localStorage.getItem(STORAGE_KEY);
+            const version = localStorage.getItem(PT_VERSION_KEY);
+
+            if (!library && !history) {
+                alert('No data found to export.');
+                return;
+            }
+
+            try {
+                const allData = {
+                    pt_data_version: version || PT_DATA_VERSION,
+                    pt_exercise_library: library ? JSON.parse(library) : [],
+                    pt_tracker_data: history ? JSON.parse(history) : [],
+                    exported_at: new Date().toISOString()
+                };
+
+                const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const filename = `pt_all_data-${dateStamp}.json`;
+                downloadJSON(allData, filename);
+                haptic('success');
+            } catch (e) {
+                console.error('Failed to export all data:', e);
+                alert('Unable to export data. One or more data sources may be corrupt.');
+            }
+        }
+
+        // Mobile Safari compatible download helper
+        function downloadJSON(data, filename) {
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    // Detect file type and import accordingly
+                    if (data.pt_data_version !== undefined && data.pt_exercise_library !== undefined) {
+                        // All-data export format
+                        importAllData(data);
+                    } else if (Array.isArray(data)) {
+                        // Individual export format (library or history)
+                        // Try to detect which one based on structure
+                        if (data.length > 0 && data[0].exerciseId !== undefined) {
+                            // History format
+                            importHistory(data);
+                        } else {
+                            // Library format
+                            importLibrary(data);
+                        }
+                    } else {
+                        alert('Unrecognized file format. Please use a valid PT Tracker export file.');
+                    }
+                } catch (e) {
+                    console.error('Failed to import file:', e);
+                    alert('Unable to read file. Make sure it\'s a valid JSON export.');
+                }
+
+                // Reset file input
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function importAllData(data) {
+            const message = `Import all data?\n\nThis will REPLACE:\n• Exercise library (${data.pt_exercise_library?.length || 0} exercises)\n• Exercise history (${data.pt_tracker_data?.length || 0} sessions)\n\nCurrent data will be overwritten. Continue?`;
+
+            showActionSheet(message, () => {
+                if (data.pt_exercise_library) {
+                    localStorage.setItem(LIBRARY_KEY, JSON.stringify(data.pt_exercise_library));
+                }
+                if (data.pt_tracker_data) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data.pt_tracker_data));
+                }
+                if (data.pt_data_version) {
+                    localStorage.setItem(PT_VERSION_KEY, data.pt_data_version);
+                }
+
+                // Reload library and update display
+                exerciseLibrary = loadExerciseLibrary();
+                closeDataBackup();
+                alert('Data imported successfully! Reload the page to see all changes.');
+                haptic('success');
+            });
+        }
+
+        function importLibrary(data) {
+            const message = `Import exercise library?\n\nThis will REPLACE your current library with ${data.length} exercises.\n\nCurrent library will be overwritten. Continue?`;
+
+            showActionSheet(message, () => {
+                localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
+                exerciseLibrary = loadExerciseLibrary();
+                closeDataBackup();
+                alert('Exercise library imported successfully!');
+                haptic('success');
+            });
+        }
+
+        function importHistory(data) {
+            const message = `Import exercise history?\n\nThis will REPLACE your current history with ${data.length} sessions.\n\nCurrent history will be overwritten. Continue?`;
+
+            showActionSheet(message, () => {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                closeDataBackup();
+                alert('Exercise history imported successfully!');
+                haptic('success');
+            });
         }
 
         function renderTagFilters() {
@@ -2463,6 +3106,34 @@
             });
         }
 
+        function archiveExamples() {
+            const examples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
+
+            if (examples.length === 0) {
+                alert('No example exercises found to archive.');
+                return;
+            }
+
+            const message = `Archive ${examples.length} example exercise${examples.length !== 1 ? 's' : ''}?\n\n${examples.map(ex => ex.name).join('\n')}\n\nYou can restore them from the Archived section later.`;
+
+            showActionSheet(message, () => {
+                examples.forEach(ex => {
+                    ex.archived = true;
+                });
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                filterExercises(); // Refresh the list
+                haptic('success');
+                alert(`${examples.length} example${examples.length !== 1 ? 's' : ''} archived successfully!`);
+
+                // Hide the button if no more examples
+                const remainingExamples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
+                if (remainingExamples.length === 0) {
+                    document.getElementById('archive-examples-btn').style.display = 'none';
+                }
+            });
+        }
+
         function renderExerciseList(filteredLibrary = null) {
             let list = filteredLibrary || exerciseLibrary.filter(ex => !ex.archived);
             const container = document.getElementById('exercise-list-content');
@@ -2473,7 +3144,7 @@
             }
 
             // Sort: favorites first, then by last used, then alphabetically
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             list = list.slice().sort((a, b) => {
                 // Favorites first
                 if (a.favorite && !b.favorite) return -1;
@@ -2563,7 +3234,7 @@
             haptic('success');
 
             // Announce last session info if available
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const lastSession = sessions.filter(s => s.exerciseId === exerciseId).pop();
             if (lastSession) {
                 const daysSince = Math.floor((Date.now() - new Date(lastSession.date).getTime()) / (1000 * 60 * 60 * 24));
@@ -3083,7 +3754,7 @@
 
         // PT Export Function
         function exportForPT() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const entry = getLibraryEntryById(currentExercise.id);
             const exerciseSessions = sessions.filter(s => s.exerciseId === currentExercise.id || s.exerciseName === currentExercise.name);
 
@@ -3181,7 +3852,7 @@
 
         // Weekly Summary for PT - Quick Overview
         function exportWeeklySummary() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const now = new Date();
             const startOfWeek = new Date(now);
             startOfWeek.setDate(now.getDate() - now.getDay());
@@ -3293,7 +3964,7 @@
 
         // PT-Appropriate Progress Tracking (Weekly Sessions, not daily streaks)
         function calculateWeeklyProgress() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             if (sessions.length === 0) return { thisWeek: 0, lastWeek: 0, totalWeeks: 0 };
 
             const now = new Date();
@@ -3383,7 +4054,7 @@
         }
 
         function showBodyHeatmap() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const diagram = document.getElementById('body-diagram');
 
             // Clear previous overlays
@@ -3538,6 +4209,8 @@
         // Exercise Library Browser Functions
         let seedExercises = [];
         let selectedSeedExercise = null;
+        let showOnlyNewExercises = true;  // Default: filter out already-imported
+        let selectedExercisesForImport = new Set();  // Track checked exercises
 
         async function loadExerciseSeedData() {
             try {
@@ -3557,34 +4230,92 @@
                 await loadExerciseSeedData();
             }
 
-            renderLibraryExercises(seedExercises);
+            selectedExercisesForImport.clear();
+            document.getElementById('bulk-import-btn').style.display = 'none';
+            renderLibraryExercises();
             document.getElementById('library-browser-modal').classList.add('active');
             haptic('medium');
         }
 
-        function renderLibraryExercises(exercises) {
-            const container = document.getElementById('library-exercises-list');
+        function toggleShowOnlyNew() {
+            showOnlyNewExercises = document.getElementById('show-new-toggle').checked;
+            selectedExercisesForImport.clear();
+            document.getElementById('bulk-import-btn').style.display = 'none';
+            renderLibraryExercises();
+        }
 
-            if (exercises.length === 0) {
-                container.innerHTML = '<div class="history-item">No exercises found in library</div>';
+        function toggleExerciseSelection(exerciseId, event) {
+            event.stopPropagation();
+            if (selectedExercisesForImport.has(exerciseId)) {
+                selectedExercisesForImport.delete(exerciseId);
+            } else {
+                selectedExercisesForImport.add(exerciseId);
+            }
+
+            // Show/hide import button based on selection
+            const importBtn = document.getElementById('bulk-import-btn');
+            importBtn.style.display = selectedExercisesForImport.size > 0 ? 'block' : 'none';
+
+            // Update checkbox state
+            const checkbox = document.getElementById(`ex-check-${exerciseId}`);
+            if (checkbox) checkbox.checked = selectedExercisesForImport.has(exerciseId);
+        }
+
+        function renderLibraryExercises() {
+            const container = document.getElementById('library-exercises-list');
+            const searchTerm = document.getElementById('library-search').value.toLowerCase();
+
+            // Filter exercises based on search and "show only new" toggle
+            let filtered = seedExercises.filter(ex =>
+                ex.canonical_name.toLowerCase().includes(searchTerm) ||
+                ex.description.toLowerCase().includes(searchTerm) ||
+                ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm)) ||
+                ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm))
+            );
+
+            // Apply "show only new" filter
+            if (showOnlyNewExercises) {
+                filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.exercise_id));
+            }
+
+            if (filtered.length === 0) {
+                const message = showOnlyNewExercises
+                    ? 'No new exercises found. Uncheck "Show only new" to see all.'
+                    : 'No exercises found in library';
+                container.innerHTML = `<div class="history-item">${message}</div>`;
                 return;
             }
 
-            container.innerHTML = exercises.map(ex => {
+            container.innerHTML = filtered.map(ex => {
                 const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
                 const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
                 const equipmentLabel = ex.equipment.required.length > 0
                     ? ex.equipment.required.join(', ')
                     : 'No equipment';
 
+                const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
+                const isChecked = selectedExercisesForImport.has(ex.exercise_id);
+                const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
+
                 return `
-                    <div class="history-item" style="cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
-                        <div style="font-weight: 600; margin-bottom: 4px;">${ex.canonical_name}</div>
-                        <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${ex.description.substring(0, 100)}${ex.description.length > 100 ? '...' : ''}</div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                            <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
-                            <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
-                            <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${ex.primary_muscles.length} muscles</span>
+                    <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
+                        <input type="checkbox"
+                               id="ex-check-${ex.exercise_id}"
+                               ${isChecked ? 'checked' : ''}
+                               ${checkboxDisabled ? 'disabled' : ''}
+                               onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
+                               style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
+                        <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
+                            <div style="font-weight: 600; margin-bottom: 4px;">
+                                ${ex.canonical_name}
+                                ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
+                            </div>
+                            <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${ex.description.substring(0, 100)}${ex.description.length > 100 ? '...' : ''}</div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
+                                <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
+                                <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${ex.primary_muscles.length} muscles</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -3592,14 +4323,7 @@
         }
 
         function filterLibraryExercises() {
-            const searchTerm = document.getElementById('library-search').value.toLowerCase();
-            const filtered = seedExercises.filter(ex =>
-                ex.canonical_name.toLowerCase().includes(searchTerm) ||
-                ex.description.toLowerCase().includes(searchTerm) ||
-                ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm)) ||
-                ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm))
-            );
-            renderLibraryExercises(filtered);
+            renderLibraryExercises();
         }
 
         function showExerciseDetail(exerciseId) {
@@ -3786,6 +4510,85 @@
             haptic('success');
         }
 
+        function bulkImportExercises() {
+            if (selectedExercisesForImport.size === 0) {
+                alert('No exercises selected');
+                return;
+            }
+
+            let importedCount = 0;
+            const defaultSets = 3;
+            const defaultReps = 10;
+
+            selectedExercisesForImport.forEach(exerciseId => {
+                const ex = seedExercises.find(e => e.exercise_id === exerciseId);
+                if (!ex) return;
+
+                // Skip if already imported
+                if (exerciseLibrary.find(e => e.id === ex.exercise_id)) return;
+
+                const isHold = ex.pattern_modifiers && ex.pattern_modifiers.includes('hold_seconds');
+                const isBilateral = ex.pattern === 'both';
+                const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
+                const simpleTags = ex.tags.functional || [];
+                const equipmentList = ex.equipment.required || [];
+
+                const newExercise = {
+                    id: ex.exercise_id,
+                    name: ex.canonical_name,
+                    description: ex.description,
+                    pt_category: ex.pt_category,
+                    primary_muscles: ex.primary_muscles,
+                    secondary_muscles: ex.secondary_muscles,
+                    pattern: ex.pattern,
+                    pattern_modifiers: ex.pattern_modifiers,
+                    equipment: equipmentList,
+                    equipmentOptional: ex.equipment.optional || [],
+                    guidance: ex.guidance,
+                    tags: simpleTags,
+                    bilateral: isBilateral,
+                    sideOptions: sideOptions,
+                    primaryMuscles: ex.primary_muscles.join(', '),
+                    anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
+                    difficulty: '',
+                    supersedes: [],
+                    atlasUrl: '',
+                    current: {
+                        type: isHold ? 'hold' : 'reps',
+                        sets: defaultSets,
+                        repsPerSet: defaultReps,
+                        secondsPerRep: isHold ? 30 : 0
+                    },
+                    history: [
+                        {
+                            timestamp: new Date().toISOString(),
+                            summary: `Imported from exercise library`,
+                            previous: {},
+                            next: {
+                                type: isHold ? 'hold' : 'reps',
+                                sets: defaultSets,
+                                repsPerSet: defaultReps,
+                                secondsPerRep: isHold ? 30 : 0
+                            },
+                            supersedes: []
+                        }
+                    ],
+                    favorite: false,
+                    archived: false
+                };
+
+                exerciseLibrary.push(newExercise);
+                importedCount++;
+            });
+
+            persistExerciseLibrary();
+            selectedExercisesForImport.clear();
+            closeLibraryBrowser();
+
+            alert(`Successfully imported ${importedCount} exercise${importedCount !== 1 ? 's' : ''}`);
+            haptic('success');
+        }
+
         function closeLibraryBrowser() {
             document.getElementById('library-browser-modal').classList.remove('active');
             haptic('medium');
@@ -3794,6 +4597,7 @@
         // Initialize
         updateDisplay();
         updateStreakDisplay();
+        updateQuickStartShortcuts();
         setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
 
         // Register Service Worker for offline support
