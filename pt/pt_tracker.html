@@ -1027,6 +1027,7 @@
             <div class="modal-title">Weekly Stats</div>
             <div class="modal-form" style="max-height: 500px; overflow-y: auto;">
                 <div id="weekly-overview"></div>
+                <div id="weekly-volume-chart"></div>
                 <div id="weekly-exercises"></div>
                 <div id="weekly-adherence"></div>
             </div>
@@ -2716,6 +2717,7 @@
             const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
 
             renderWeeklyOverview(weekSessions, startOfWeek);
+            renderWeeklyVolumeChart(sessions);
             renderWeeklyExercises(weekSessions);
             renderWeeklyAdherence(sessions);
 
@@ -2761,6 +2763,65 @@
                             <div style="color: var(--text-secondary); font-size: 11px;">Exercises</div>
                             <div style="font-size: 24px; font-weight: 700;">${uniqueExercises}</div>
                         </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWeeklyVolumeChart(allSessions) {
+            const container = document.getElementById('weekly-volume-chart');
+
+            // Calculate volume for past 8 weeks
+            const weeks = [];
+            for (let i = 7; i >= 0; i--) {
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay() - (i * 7));
+                weekStart.setHours(0, 0, 0, 0);
+
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 7);
+
+                const weekSessions = allSessions.filter(s => {
+                    const sessionDate = new Date(s.date);
+                    return sessionDate >= weekStart && sessionDate < weekEnd;
+                });
+
+                const totalReps = weekSessions.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+                const totalSets = weekSessions.reduce((sum, s) => sum + s.sets.length, 0);
+
+                weeks.push({
+                    label: i === 0 ? 'This week' : `${i}w ago`,
+                    date: weekStart.toLocaleDateString([], {month: 'short', day: 'numeric'}),
+                    reps: totalReps,
+                    sets: totalSets,
+                    sessions: weekSessions.length
+                });
+            }
+
+            const maxReps = Math.max(...weeks.map(w => w.reps), 1);
+
+            container.innerHTML = `
+                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Volume Trend (8 Weeks)</div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        ${weeks.map(week => {
+                            const barWidth = (week.reps / maxReps * 100).toFixed(1);
+                            const color = week.reps > 0 ? 'var(--ios-blue)' : 'var(--ios-gray)';
+                            return `
+                                <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                                    <div style="width: 60px; color: var(--text-secondary); flex-shrink: 0; font-size: 11px;">${week.date}</div>
+                                    <div style="flex: 1; background: rgba(0,122,255,0.1); border-radius: 4px; height: 28px; position: relative;">
+                                        <div style="background: ${color}; border-radius: 4px; height: 100%; width: ${barWidth}%; transition: width 0.3s;"></div>
+                                        <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-weight: 600; color: var(--text-primary); font-size: 11px;">
+                                            ${week.reps > 0 ? `${week.reps} reps` : '—'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); font-size: 11px; color: var(--text-secondary); text-align: center;">
+                        Total weekly volume helps PTs monitor training load progression
                     </div>
                 </div>
             `;
