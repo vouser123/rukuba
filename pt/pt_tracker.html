@@ -722,6 +722,9 @@
                     <button class="control-btn btn-primary" onclick="showLibraryBrowser()" style="flex: 1;">📚 Browse Library</button>
                     <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
                 </div>
+                <div style="margin-top: 12px;">
+                    <button class="control-btn btn-secondary" onclick="showDataBackup()" style="width: 100%;">💾 Data / Backup</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1010,6 +1013,22 @@
         </div>
     </div>
 
+    <!-- Data / Backup Modal -->
+    <div class="modal" id="data-backup-modal" onclick="if(event.target === this) closeDataBackup()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Data / Backup</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 16px;">Export your data to save a backup or commit to GitHub.</div>
+                <button class="control-btn btn-primary" onclick="exportExerciseLibrary()" style="width: 100%; margin-bottom: 12px;">📚 Export Exercise Library</button>
+                <button class="control-btn btn-primary" onclick="exportExerciseHistory()" style="width: 100%;">📊 Export Exercise History</button>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeDataBackup()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- iOS Action Sheet -->
     <div class="action-sheet-backdrop" id="action-sheet-backdrop" onclick="hideActionSheet()"></div>
     <div class="action-sheet" id="action-sheet">
@@ -1033,7 +1052,30 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
+        const PT_VERSION_KEY = 'pt_data_version';
+        const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
+
+        /**
+         * SESSION ID TRACKING
+         * -------------------
+         * Each history entry includes a sessionId to group exercises performed in the same workout session.
+         *
+         * Current strategy: Generate a random sessionId once per app load.
+         * - All exercises completed before closing/refreshing the app share the same sessionId
+         * - Different app launches = different sessionIds, even on the same day
+         * - Format: 8-character random alphanumeric string (e.g., "a3f9k2m1")
+         *
+         * Future: This enables session-based UI features like:
+         * - "Today's Workout" view grouping exercises by session
+         * - Session history browser
+         * - Session planning (which exercises in what order)
+         */
+        function generateSessionId() {
+            return Math.random().toString(36).substring(2, 10);
+        }
+
+        let currentSessionId = generateSessionId();
 
         const ATLAS_SEED = [
             {
@@ -1209,24 +1251,76 @@
             }
         }
 
+        /**
+         * FIRST-RUN DETECTION & DATA LOADING
+         * -----------------------------------
+         * TRUE FIRST RUN is detected when ALL of these are missing:
+         *   - PT_VERSION_KEY
+         *   - LIBRARY_KEY
+         *   - STORAGE_KEY
+         *
+         * On true first run:
+         *   - Seed default exercises into LIBRARY_KEY
+         *   - Set PT_VERSION_KEY to prevent future reseeding
+         *
+         * Once PT_VERSION_KEY exists, we NEVER auto-reseed defaults.
+         * This prevents data loss on PWA updates/reinstalls.
+         *
+         * Parse errors are handled gracefully:
+         *   - Log warning to console
+         *   - Return empty array (in memory only)
+         *   - DO NOT overwrite stored data
+         */
         function loadExerciseLibrary() {
-            const stored = localStorage.getItem(LIBRARY_KEY);
-            if (stored) {
+            const version = localStorage.getItem(PT_VERSION_KEY);
+            const storedLibrary = localStorage.getItem(LIBRARY_KEY);
+            const storedHistory = localStorage.getItem(STORAGE_KEY);
+
+            // True first run: no version, no library, no history
+            const isFirstRun = !version && !storedLibrary && !storedHistory;
+
+            if (isFirstRun) {
+                console.log('First run detected - seeding default exercises');
+                localStorage.setItem(LIBRARY_KEY, JSON.stringify(DEFAULT_LIBRARY));
+                localStorage.setItem(PT_VERSION_KEY, PT_DATA_VERSION);
+                return DEFAULT_LIBRARY;
+            }
+
+            // Not first run: load existing library
+            if (storedLibrary) {
                 try {
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length) {
-                        return parsed;
+                    const parsed = JSON.parse(storedLibrary);
+                    if (Array.isArray(parsed)) {
+                        return parsed.length > 0 ? parsed : [];
                     }
                 } catch (e) {
-                    console.warn('Unable to parse exercise library; reseeding defaults');
+                    console.error('Failed to parse exercise library:', e);
+                    console.warn('Returning empty library - stored data preserved');
+                    return [];
                 }
             }
-            localStorage.setItem(LIBRARY_KEY, JSON.stringify(DEFAULT_LIBRARY));
-            return JSON.parse(localStorage.getItem(LIBRARY_KEY));
+
+            // No stored library but not first run (user deleted library)
+            return [];
         }
 
         function persistExerciseLibrary() {
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+        }
+
+        // Safe history loading with error handling
+        function loadHistory() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) return [];
+
+            try {
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                console.error('Failed to parse exercise history:', e);
+                console.warn('Returning empty history - stored data preserved');
+                return [];
+            }
         }
 
         /**
@@ -1414,21 +1508,90 @@
          * TODO: Add Pocket mode support for "Log This Rep" when timer paused
          * TODO: Consider voice-only interaction mode (no screen needed)
          */
+        // Pocket Mode long-press detection for timer logging
+        let pocketPressTimer = null;
+        let pocketLongPressTriggered = false;
+
         function togglePocketMode(enabled) {
             pocketMode = enabled;
             const overlay = document.getElementById('pocket-overlay');
             if (enabled) {
                 overlay.classList.add('active');
                 haptic('medium');
+                setupPocketLongPress();
             } else {
                 overlay.classList.remove('active');
                 haptic('medium');
+                cleanupPocketLongPress();
             }
             updatePocketOverlay();
         }
 
+        function setupPocketLongPress() {
+            const overlay = document.getElementById('pocket-overlay');
+            overlay.addEventListener('touchstart', handlePocketPressStart, { passive: true });
+            overlay.addEventListener('touchend', handlePocketPressEnd, { passive: true });
+            overlay.addEventListener('touchcancel', handlePocketPressCancel, { passive: true });
+        }
+
+        function cleanupPocketLongPress() {
+            const overlay = document.getElementById('pocket-overlay');
+            overlay.removeEventListener('touchstart', handlePocketPressStart);
+            overlay.removeEventListener('touchend', handlePocketPressEnd);
+            overlay.removeEventListener('touchcancel', handlePocketPressCancel);
+            if (pocketPressTimer) {
+                clearTimeout(pocketPressTimer);
+                pocketPressTimer = null;
+            }
+        }
+
+        function handlePocketPressStart(e) {
+            // Ignore if tapping the X button
+            if (e.target.closest('.pocket-close')) return;
+
+            pocketLongPressTriggered = false;
+
+            // Only enable long-press for timer exercises
+            if (!isTimerType(currentExercise.type)) return;
+
+            // Start long-press timer (700ms for deliberate action)
+            pocketPressTimer = setTimeout(() => {
+                pocketLongPressTriggered = true;
+                handlePocketLongPress();
+            }, 700);
+        }
+
+        function handlePocketPressEnd(e) {
+            if (pocketPressTimer) {
+                clearTimeout(pocketPressTimer);
+                pocketPressTimer = null;
+            }
+        }
+
+        function handlePocketPressCancel(e) {
+            if (pocketPressTimer) {
+                clearTimeout(pocketPressTimer);
+                pocketPressTimer = null;
+            }
+            pocketLongPressTriggered = false;
+        }
+
+        function handlePocketLongPress() {
+            // Log timer and advance to next rep
+            if (isTimerType(currentExercise.type) && timerRunning) {
+                logPartialTimerRep();
+                updatePocketOverlay();
+            }
+        }
+
         function handlePocketTap() {
             if (!pocketMode) return;
+
+            // If long-press was triggered, don't also handle tap
+            if (pocketLongPressTriggered) {
+                pocketLongPressTriggered = false;
+                return;
+            }
 
             if (COUNTER_TYPES.includes(currentExercise.type)) {
                 incrementCounter();
@@ -2021,7 +2184,7 @@
 
         // Smart Progress Detection
         function detectProgress(setNumber, reps) {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const previousSessions = sessions.filter(s => s.exerciseId === currentExercise.id);
 
             if (previousSessions.length === 0) return; // First time doing this exercise
@@ -2069,8 +2232,9 @@
         }
 
         function saveSessionWithNotes(notes) {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             sessions.push({
+                sessionId: currentSessionId,
                 exerciseId: currentExercise.id,
                 exerciseName: currentExercise.name,
                 exerciseType: currentExercise.type,
@@ -2223,7 +2387,7 @@
         }
 
         function renderHistory() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const exerciseHistoryList = document.getElementById('exercise-history-list');
             const sessionHistoryList = document.getElementById('session-history-list');
             const exerciseEntry = getLibraryEntryById(currentExercise.id);
@@ -2298,7 +2462,7 @@
         }
 
         function renderRecentExercises() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             if (sessions.length === 0) {
                 document.getElementById('recent-exercises-container').innerHTML = '';
                 return;
@@ -2339,6 +2503,69 @@
             document.getElementById('exercise-search').value = '';
             filterTags = [];
             haptic('medium');
+        }
+
+        // DATA EXPORT FUNCTIONS
+        function showDataBackup() {
+            document.getElementById('data-backup-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeDataBackup() {
+            document.getElementById('data-backup-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function exportExerciseLibrary() {
+            const stored = localStorage.getItem(LIBRARY_KEY);
+            if (!stored) {
+                alert('No exercise library data found.');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(stored);
+                const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const filename = `pt_exercise_library-${dateStamp}.json`;
+                downloadJSON(parsed, filename);
+                haptic('success');
+            } catch (e) {
+                console.error('Failed to export exercise library:', e);
+                alert('Unable to export exercise library. Data may be corrupt.');
+            }
+        }
+
+        function exportExerciseHistory() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) {
+                alert('No exercise history data found.');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(stored);
+                const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const filename = `pt_exercise_history-${dateStamp}.json`;
+                downloadJSON(parsed, filename);
+                haptic('success');
+            } catch (e) {
+                console.error('Failed to export exercise history:', e);
+                alert('Unable to export exercise history. Data may be corrupt.');
+            }
+        }
+
+        // Mobile Safari compatible download helper
+        function downloadJSON(data, filename) {
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function renderTagFilters() {
@@ -2464,7 +2691,7 @@
             }
 
             // Sort: favorites first, then by last used, then alphabetically
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             list = list.slice().sort((a, b) => {
                 // Favorites first
                 if (a.favorite && !b.favorite) return -1;
@@ -2554,7 +2781,7 @@
             haptic('success');
 
             // Announce last session info if available
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const lastSession = sessions.filter(s => s.exerciseId === exerciseId).pop();
             if (lastSession) {
                 const daysSince = Math.floor((Date.now() - new Date(lastSession.date).getTime()) / (1000 * 60 * 60 * 24));
@@ -3074,7 +3301,7 @@
 
         // PT Export Function
         function exportForPT() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const entry = getLibraryEntryById(currentExercise.id);
             const exerciseSessions = sessions.filter(s => s.exerciseId === currentExercise.id || s.exerciseName === currentExercise.name);
 
@@ -3172,7 +3399,7 @@
 
         // Weekly Summary for PT - Quick Overview
         function exportWeeklySummary() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const now = new Date();
             const startOfWeek = new Date(now);
             startOfWeek.setDate(now.getDate() - now.getDay());
@@ -3284,7 +3511,7 @@
 
         // PT-Appropriate Progress Tracking (Weekly Sessions, not daily streaks)
         function calculateWeeklyProgress() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             if (sessions.length === 0) return { thisWeek: 0, lastWeek: 0, totalWeeks: 0 };
 
             const now = new Date();
@@ -3374,7 +3601,7 @@
         }
 
         function showBodyHeatmap() {
-            const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const sessions = loadHistory();
             const diagram = document.getElementById('body-diagram');
 
             // Clear previous overlays
