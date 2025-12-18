@@ -487,8 +487,8 @@
         }
 
         .pocket-pad {
-            width: min(360px, 95vw);
-            height: min(360px, 70vh);
+            width: min(420px, 95vw);
+            height: min(500px, 80vh);
             border-radius: 28px;
             background: white;
             color: var(--ios-blue);
@@ -511,17 +511,22 @@
         }
 
         .pocket-close {
-            margin-top: 18px;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 44px;
+            height: 44px;
             background: rgba(0,0,0,0.75);
             color: white;
             border: none;
-            border-radius: 12px;
-            padding: 12px 20px;
-            font-size: 16px;
-            font-weight: 700;
+            border-radius: 22px;
+            font-size: 20px;
+            font-weight: 600;
             cursor: pointer;
-            width: 100%;
-            max-width: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 4001;
         }
 
         .hidden {
@@ -621,8 +626,12 @@
             </div>
             <div class="controls" style="margin-bottom: 20px;">
                 <button class="control-btn btn-primary" id="timer-start-btn" onclick="startTimer()">Start Timer</button>
-                <button class="control-btn btn-danger hidden" id="timer-stop-btn" onclick="stopTimer()">Stop</button>
+                <button class="control-btn btn-danger hidden" id="timer-stop-btn" onclick="stopTimer()">Pause</button>
                 <button class="control-btn btn-secondary hidden" id="timer-reset-btn" onclick="resetTimer()">Reset</button>
+            </div>
+            <!-- Log partial rep (only shown when paused) -->
+            <div class="controls" id="timer-log-controls" style="margin-bottom: 10px; display: none;">
+                <button class="control-btn btn-warning" onclick="logPartialTimerRep()" style="font-size: 13px; padding: 8px;">⏱️ Log This Time & Next Rep</button>
             </div>
         </div>
 
@@ -989,11 +998,11 @@
 
     <!-- Eyes-free pocket tap overlay -->
     <div class="pocket-overlay" id="pocket-overlay" onclick="handlePocketTap()" aria-live="assertive">
+        <button class="pocket-close" onclick="togglePocketMode(false); event.stopPropagation();" aria-label="Exit Pocket Mode">✕</button>
         <div class="pocket-pad" role="button" aria-label="Pocket tap target">
             <div id="pocket-label">Tap to count</div>
             <div class="pocket-meta" id="pocket-meta">Reps left · Sets left</div>
         </div>
-        <button class="pocket-close" onclick="togglePocketMode(false); event.stopPropagation();">Exit Pocket Mode</button>
     </div>
 
     <script>
@@ -1196,6 +1205,34 @@
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
         }
 
+        /**
+         * EXERCISE OBJECT STRUCTURE
+         * -------------------------
+         * This app represents exercises in two forms:
+         *
+         * 1. Library Entry (persisted in localStorage):
+         *    - id: unique identifier
+         *    - name: exercise name
+         *    - current: { type, sets, repsPerSet, secondsPerRep }
+         *    - bilateral: true/false (both sides work together)
+         *    - sideOptions: ['left', 'right'] (for sided exercises)
+         *    - tags: body parts (knee, hip, etc.)
+         *    - equipment: array of equipment types
+         *    - guidance: { external_cues, motor_cues, compensation_warnings, safety_flags }
+         *    - history: array of revisions tracking dosage changes
+         *    - details: { description, executionTips, shouldFeel, shouldNotFeel, etc. }
+         *    - favorite, archived: boolean flags
+         *
+         * 2. Session Exercise (runtime state):
+         *    Converted from library entry by toSessionExercise()
+         *    - All library fields PLUS:
+         *    - currentSet, currentRep: live progress tracking
+         *    - sessionData: array of logged sets [{set, reps, timestamp, side?, weight?, resistance?}]
+         *
+         * TODO: Define what a "session" is (one workout? one day? when does it end?)
+         * TODO: Add program-layer integration (how exercises fit into rehab programs)
+         * TODO: Schema-driven fields (lifecycle, progression parameters, etc.)
+         */
         function toSessionExercise(entry) {
             const spec = entry?.current || {};
             const isBilateral = entry.bilateral === true;
@@ -1219,7 +1256,7 @@
                 secondsPerRep: spec.secondsPerRep ?? 10,
                 currentSet: 1,
                 currentRep: 0,
-                sessionData: []
+                sessionData: [] // Populated during execution
             };
         }
 
@@ -1300,24 +1337,24 @@
             setTimeout(() => playBeep(1400, 200), 400);
         }
 
-        // Haptic feedback helper
+        // Haptic feedback helper (stronger vibrations for better feedback)
         function haptic(style = 'light') {
             if ('vibrate' in navigator) {
                 switch(style) {
                     case 'light':
-                        navigator.vibrate(10);
-                        break;
-                    case 'medium':
-                        navigator.vibrate(20);
-                        break;
-                    case 'heavy':
                         navigator.vibrate(30);
                         break;
+                    case 'medium':
+                        navigator.vibrate(50);
+                        break;
+                    case 'heavy':
+                        navigator.vibrate(80);
+                        break;
                     case 'success':
-                        navigator.vibrate([10, 50, 10]);
+                        navigator.vibrate([30, 50, 30]);
                         break;
                     case 'error':
-                        navigator.vibrate([20, 100, 20]);
+                        navigator.vibrate([50, 100, 50]);
                         break;
                 }
             }
@@ -1325,6 +1362,34 @@
 
         const isTimerType = (type) => TIMER_TYPES.includes(type);
 
+        /**
+         * POCKET MODE BEHAVIOR
+         * --------------------
+         * Eyes-free fullscreen overlay for use when phone is in pocket/armband.
+         *
+         * HOW IT WORKS:
+         *
+         * For REP-BASED exercises (reps, amrap, distance):
+         *   - Large tap area displays current rep count
+         *   - Each tap increments the counter
+         *   - Audio and haptic feedback confirm each tap
+         *   - When target reps reached, set auto-completes
+         *
+         * For TIME-BASED exercises (timed, hold, duration):
+         *   - Large tap area displays countdown timer
+         *   - First tap starts the timer
+         *   - Second tap pauses the timer
+         *   - Timer auto-advances to next rep when complete
+         *   - Can log partial reps (if paused) via "Log This Time" button (not in Pocket mode)
+         *
+         * INTERACTION:
+         *   - Tap anywhere on white pad to count/start-pause
+         *   - Small X button in top-left to exit (positioned away from tap area)
+         *   - All existing audio/haptic cues preserved
+         *
+         * TODO: Add Pocket mode support for "Log This Rep" when timer paused
+         * TODO: Consider voice-only interaction mode (no screen needed)
+         */
         function togglePocketMode(enabled) {
             pocketMode = enabled;
             const overlay = document.getElementById('pocket-overlay');
@@ -1333,7 +1398,7 @@
                 haptic('medium');
             } else {
                 overlay.classList.remove('active');
-                haptic('light');
+                haptic('medium');
             }
             updatePocketOverlay();
         }
@@ -1401,7 +1466,7 @@
                 sheet.classList.add('active');
             }, 10);
 
-            haptic('light');
+            haptic('medium');
         }
 
         function hideActionSheet() {
@@ -1414,7 +1479,7 @@
             }, 300);
 
             actionSheetCallback = null;
-            haptic('light');
+            haptic('medium');
         }
 
         function confirmActionSheet() {
@@ -1430,7 +1495,7 @@
             if (!COUNTER_TYPES.includes(currentExercise.type)) return;
 
             currentExercise.currentRep++;
-            haptic('light');
+            haptic('medium');
 
             const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
 
@@ -1564,18 +1629,24 @@
                     timerDisplay.classList.add('warning');
                 }
 
+                const logControls = document.getElementById('timer-log-controls');
                 if (timerRunning) {
                     document.getElementById('timer-start-btn').classList.add('hidden');
                     document.getElementById('timer-stop-btn').classList.remove('hidden');
                     document.getElementById('timer-reset-btn').classList.add('hidden');
+                    logControls.style.display = 'none';
                 } else if (timerSecondsRemaining === 0 || timerSecondsRemaining === currentExercise.secondsPerRep) {
                     document.getElementById('timer-start-btn').classList.remove('hidden');
                     document.getElementById('timer-stop-btn').classList.add('hidden');
                     document.getElementById('timer-reset-btn').classList.add('hidden');
+                    logControls.style.display = 'none';
                 } else {
+                    // Timer is paused mid-rep
                     document.getElementById('timer-start-btn').classList.remove('hidden');
                     document.getElementById('timer-stop-btn').classList.add('hidden');
                     document.getElementById('timer-reset-btn').classList.remove('hidden');
+                    // Show "Log This Time & Next Rep" button when paused
+                    logControls.style.display = 'flex';
                 }
             }
 
@@ -1593,7 +1664,8 @@
             }
 
             timerRunning = true;
-            haptic('medium');
+            playBeep(400, 100); // Audio feedback for resume
+            haptic('heavy'); // Stronger haptic for resume
 
             timerInterval = setInterval(() => {
                 timerSecondsRemaining--;
@@ -1602,7 +1674,7 @@
                 // Countdown beeps
                 if (timerSecondsRemaining <= 3 && timerSecondsRemaining > 0) {
                     playBeep(600, 100);
-                    haptic('light');
+                    haptic('medium');
                 }
 
                 // Timer complete
@@ -1639,7 +1711,8 @@
                 timerInterval = null;
             }
             timerRunning = false;
-            haptic('light');
+            playBeep(300, 100); // Audio feedback for pause
+            haptic('heavy'); // Stronger haptic for pause
             updateDisplay();
         }
 
@@ -1652,8 +1725,44 @@
         function resetTimer() {
             stopTimer();
             seedTimerSeconds();
-            haptic('medium');
+            haptic('heavy');
             updateDisplay();
+        }
+
+        // Log the current partial timer value and advance to next rep
+        function logPartialTimerRep() {
+            const achievedSeconds = Math.max(currentExercise.secondsPerRep || 0, 1) - timerSecondsRemaining;
+
+            // Record this rep with the actual time achieved (not target)
+            currentExercise.sessionData.push({
+                set: currentExercise.currentSet,
+                reps: 1,
+                secondsAchieved: achievedSeconds,
+                secondsTarget: currentExercise.secondsPerRep || 0,
+                type: currentExercise.type,
+                timestamp: new Date().toISOString(),
+                partialRep: true
+            });
+
+            playBeep(500, 150);
+            haptic('success');
+            speak(`Logged ${achievedSeconds} seconds`);
+
+            currentExercise.currentRep++;
+
+            const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
+            if (repsLeft === 0) {
+                speak('Set complete');
+                seedTimerSeconds();
+                updateDisplay();
+            } else {
+                if (repsLeft === 1) speak('Last rep');
+                else speak(`${repsLeft} reps left`);
+
+                // Reset timer for next rep
+                seedTimerSeconds();
+                updateDisplay();
+            }
         }
 
         function completeSet() {
@@ -1698,6 +1807,34 @@
             }
         }
 
+        /**
+         * EXERCISE EXECUTION DATA TRACKING
+         * ---------------------------------
+         * When performing an exercise, this app currently tracks:
+         *
+         * currentExercise.sessionData[] contains:
+         *   - set: which set number (1-based)
+         *   - reps: how many reps completed
+         *   - type: exercise type (reps, timed, hold, etc.)
+         *   - timestamp: ISO datetime of completion
+         *   - side: (optional) which side for unilateral exercises ('left', 'right', 'both')
+         *   - weight: (optional) weight used in lbs/kg
+         *   - weightUnit: (optional) 'lbs' or 'kg'
+         *   - resistance: (optional) resistance band level ('light', 'medium', 'heavy')
+         *   - secondsAchieved: (optional) actual time held (for partial timer reps)
+         *   - secondsTarget: (optional) target time (for partial timer reps)
+         *   - partialRep: (optional) true if logged early via "Log This Time"
+         *   - manualLog: (optional) true if logged via "Log Set" modal
+         *
+         * At session completion (all sets done):
+         *   - sessionData is saved to localStorage under STORAGE_KEY
+         *   - Includes: exerciseId, exerciseName, date, sets[], notes
+         *
+         * TODO: Define "session" concept - when does it start/end? How to group exercises?
+         * TODO: Add session planning (which exercises in what order for today)
+         * TODO: Track adherence to program-level dosage prescriptions
+         * TODO: Progressive overload tracking (weight/resistance over time)
+         */
         function finishSet() {
             currentExercise.sessionData.push({
                 set: currentExercise.currentSet,
@@ -1778,7 +1915,7 @@
             }
 
             document.getElementById('log-set-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
 
             // Auto-focus the input
             setTimeout(() => {
@@ -1799,7 +1936,7 @@
 
         function closeLogSetModal() {
             document.getElementById('log-set-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function saveLoggedSet() {
@@ -1891,7 +2028,7 @@
                 currentExercise.currentRep = 0;
                 seedTimerSeconds();
                 stopTimer();
-                haptic('light');
+                haptic('medium');
                 updateDisplay();
             }
         }
@@ -1899,12 +2036,12 @@
         function showSessionNotesModal() {
             document.getElementById('session-notes').value = '';
             document.getElementById('session-notes-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function closeSessionNotesModal() {
             document.getElementById('session-notes-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function saveSessionWithNotes(notes) {
@@ -1943,12 +2080,12 @@
             populateExerciseSelect();
             applyLibraryEntryToForm(currentExercise.id);
             document.getElementById('exercise-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function closeExerciseModal() {
             document.getElementById('exercise-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function updateTargetLabel() {
@@ -2044,12 +2181,12 @@
             }
             renderHistory();
             document.getElementById('history-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function closeHistoryModal() {
             document.getElementById('history-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function describeSpec(spec) {
@@ -2133,7 +2270,7 @@
             renderExerciseList();
             renderTagFilters();
             document.getElementById('exercise-list-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function renderRecentExercises() {
@@ -2177,7 +2314,7 @@
             document.getElementById('exercise-list-modal').classList.remove('active');
             document.getElementById('exercise-search').value = '';
             filterTags = [];
-            haptic('light');
+            haptic('medium');
         }
 
         function renderTagFilters() {
@@ -2215,7 +2352,7 @@
             persistExerciseLibrary();
             exerciseLibrary = loadExerciseLibrary();
             renderExerciseList();
-            haptic('light');
+            haptic('medium');
         }
 
         function archiveExercise(exerciseId) {
@@ -2427,12 +2564,12 @@
             renderSideOptionsSelector();
             renderSupersedesSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function closeAddExerciseModal() {
             document.getElementById('add-exercise-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function renderTagSelector() {
@@ -2663,7 +2800,7 @@
             renderSideOptionsSelector();
             renderSupersedesSelector();
             document.getElementById('add-exercise-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function deleteExerciseFromList(exerciseId) {
@@ -2769,12 +2906,12 @@
             }
 
             document.getElementById('exercise-details-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function closeExerciseDetailsModal() {
             document.getElementById('exercise-details-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function saveExerciseDetails() {
@@ -2807,7 +2944,7 @@
             document.getElementById('rest-countdown').textContent = restSecondsRemaining;
             document.getElementById('rest-progress-bar').style.width = '100%';
             document.getElementById('rest-timer-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
 
             restTimerInterval = setInterval(() => {
                 restSecondsRemaining--;
@@ -2818,7 +2955,7 @@
                 // Countdown beeps
                 if (restSecondsRemaining <= 3 && restSecondsRemaining > 0) {
                     playBeep(500, 100);
-                    haptic('light');
+                    haptic('medium');
                 }
 
                 if (restSecondsRemaining <= 0) {
@@ -2838,7 +2975,7 @@
                 restTimerInterval = null;
             }
             document.getElementById('rest-timer-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function skipRest() {
@@ -3238,12 +3375,12 @@
 
             document.getElementById('body-heatmap-modal').classList.add('active');
             document.getElementById('body-part-details').innerHTML = '';
-            haptic('light');
+            haptic('medium');
         }
 
         function closeBodyHeatmap() {
             document.getElementById('body-heatmap-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function showBodyPartDetails(bodyPart, sessions) {
@@ -3303,7 +3440,7 @@
                 `;
             }
 
-            haptic('light');
+            haptic('medium');
         }
 
         // Quick Exercise Switcher
@@ -3334,12 +3471,12 @@
             }).join('');
 
             document.getElementById('quick-switcher-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function closeQuickSwitcher() {
             document.getElementById('quick-switcher-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function quickSwitchTo(exerciseId) {
@@ -3389,7 +3526,7 @@
 
             renderLibraryExercises(seedExercises);
             document.getElementById('library-browser-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function renderLibraryExercises(exercises) {
@@ -3524,13 +3661,13 @@
             document.getElementById('exercise-detail-content').innerHTML = detailContent;
             document.getElementById('library-browser-modal').classList.remove('active');
             document.getElementById('exercise-detail-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function closeExerciseDetail() {
             document.getElementById('exercise-detail-modal').classList.remove('active');
             document.getElementById('library-browser-modal').classList.add('active');
-            haptic('light');
+            haptic('medium');
         }
 
         function importSeedExercise() {
@@ -3618,7 +3755,7 @@
 
         function closeLibraryBrowser() {
             document.getElementById('library-browser-modal').classList.remove('active');
-            haptic('light');
+            haptic('medium');
         }
 
         // Initialize
