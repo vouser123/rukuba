@@ -622,7 +622,10 @@
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="exercise-name" id="exercise-name" onclick="showQuickSwitcher()" style="cursor: pointer;">Goblet Squat ▾</div>
-            <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
+            <div style="display: flex; gap: 4px;">
+                <button onclick="showWeeklyStats()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📊</button>
+                <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
+            </div>
         </div>
     </div>
 
@@ -996,6 +999,22 @@
                     </div>
                 </div>
                 <div id="body-part-details" style="margin-top: 12px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Stats Modal -->
+    <div class="modal" id="weekly-stats-modal" onclick="if(event.target === this) closeWeeklyStats()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Weekly Stats</div>
+            <div class="modal-form" style="max-height: 500px; overflow-y: auto;">
+                <div id="weekly-overview"></div>
+                <div id="weekly-exercises"></div>
+                <div id="weekly-adherence"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeWeeklyStats()">Close</button>
             </div>
         </div>
     </div>
@@ -2584,6 +2603,167 @@
                 haptic('medium');
                 speak('Session ended');
             });
+        }
+
+        // Weekly Stats Functions
+        function showWeeklyStats() {
+            const sessions = loadHistory();
+            const now = new Date();
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
+
+            renderWeeklyOverview(weekSessions, startOfWeek);
+            renderWeeklyExercises(weekSessions);
+            renderWeeklyAdherence(sessions);
+
+            document.getElementById('weekly-stats-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeWeeklyStats() {
+            document.getElementById('weekly-stats-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function renderWeeklyOverview(weekSessions, startOfWeek) {
+            const container = document.getElementById('weekly-overview');
+
+            const totalSessions = weekSessions.length;
+            const uniqueExercises = new Set(weekSessions.map(s => s.exerciseId)).size;
+            const totalSets = weekSessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+            const totalReps = weekSessions.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+
+            // Days trained this week
+            const daysWithSessions = new Set(weekSessions.map(s => new Date(s.date).toDateString())).size;
+
+            container.innerHTML = `
+                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">
+                        This Week (${startOfWeek.toLocaleDateString()})
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px;">
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">Sessions</div>
+                            <div style="font-size: 24px; font-weight: 700;">${totalSessions}</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">Days Trained</div>
+                            <div style="font-size: 24px; font-weight: 700;">${daysWithSessions}<span style="font-size: 14px;">/7</span></div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">Total Volume</div>
+                            <div style="font-size: 24px; font-weight: 700;">${totalReps}<span style="font-size: 14px;"> reps</span></div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">Exercises</div>
+                            <div style="font-size: 24px; font-weight: 700;">${uniqueExercises}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWeeklyExercises(weekSessions) {
+            const container = document.getElementById('weekly-exercises');
+
+            if (weekSessions.length === 0) {
+                container.innerHTML = `
+                    <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center; color: var(--text-secondary);">
+                        No sessions this week yet. Start training!
+                    </div>
+                `;
+                return;
+            }
+
+            // Group by exercise
+            const exerciseGroups = {};
+            weekSessions.forEach(session => {
+                const exId = session.exerciseId;
+                if (!exerciseGroups[exId]) {
+                    exerciseGroups[exId] = {
+                        name: session.exerciseName,
+                        sessions: [],
+                        totalReps: 0,
+                        totalSets: 0
+                    };
+                }
+                exerciseGroups[exId].sessions.push(session);
+                exerciseGroups[exId].totalSets += session.sets.length;
+                exerciseGroups[exId].totalReps += session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            });
+
+            const sortedExercises = Object.entries(exerciseGroups).sort((a, b) => b[1].sessions.length - a[1].sessions.length);
+
+            container.innerHTML = `
+                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Exercises This Week</div>
+                    ${sortedExercises.map(([exId, group]) => `
+                        <div style="padding: 8px; border-bottom: 1px solid var(--border-color); cursor: pointer;" onclick="showExerciseProgress('${exId}')">
+                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${group.name}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                ${group.sessions.length}× sessions · ${group.totalSets} sets · ${group.totalReps} reps
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderWeeklyAdherence(allSessions) {
+            const container = document.getElementById('weekly-adherence');
+
+            // Last 4 weeks
+            const weeks = [];
+            for (let i = 0; i < 4; i++) {
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay() - (i * 7));
+                weekStart.setHours(0, 0, 0, 0);
+
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 7);
+
+                const weekSessions = allSessions.filter(s => {
+                    const sessionDate = new Date(s.date);
+                    return sessionDate >= weekStart && sessionDate < weekEnd;
+                });
+
+                const daysWithSessions = new Set(weekSessions.map(s => new Date(s.date).toDateString())).size;
+
+                weeks.push({
+                    label: i === 0 ? 'This week' : `${i} week${i > 1 ? 's' : ''} ago`,
+                    sessions: weekSessions.length,
+                    days: daysWithSessions
+                });
+            }
+
+            weeks.reverse();
+
+            container.innerHTML = `
+                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px;">
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Adherence Trend</div>
+                    ${weeks.map(week => {
+                        const barWidth = (week.days / 7 * 100).toFixed(1);
+                        const color = week.days >= 3 ? 'var(--ios-green)' : week.days >= 1 ? 'var(--ios-orange)' : 'var(--ios-gray)';
+                        return `
+                            <div style="margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 12px;">
+                                    <div style="color: var(--text-secondary);">${week.label}</div>
+                                    <div style="font-weight: 600;">${week.days} day${week.days !== 1 ? 's' : ''} · ${week.sessions} sessions</div>
+                                </div>
+                                <div style="background: rgba(0,122,255,0.1); border-radius: 4px; height: 20px; position: relative;">
+                                    <div style="background: ${color}; border-radius: 4px; height: 100%; width: ${barWidth}%; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); text-align: center;">
+                        Aim for 3-5 training days per week for best results
+                    </div>
+                </div>
+            `;
         }
 
         // Exercise Progress Tracking Functions
