@@ -632,6 +632,15 @@
         <div id="quick-start-exercises" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
     </div>
 
+    <!-- Session Plan -->
+    <div id="session-plan-container" style="padding: 12px 15px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: none;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Today's Session</div>
+            <button onclick="endSessionEarly()" style="background: transparent; border: none; color: var(--ios-red); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 8px;">End Session</button>
+        </div>
+        <div id="session-plan-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+    </div>
+
     <!-- Counter View -->
     <div class="counter-view" id="counter-view">
         <div class="set-info" id="set-info">Set 1 of 3</div>
@@ -729,7 +738,10 @@
                     <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="control-btn btn-primary" onclick="showPlanSessionModal()" style="flex: 1;">📅 Plan Session</button>
                     <button class="control-btn btn-secondary" onclick="showDataBackup()" style="flex: 1;">💾 Data / Backup</button>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
                     <button class="control-btn btn-secondary" onclick="archiveExamples()" style="flex: 1;" id="archive-examples-btn">🗑️ Archive Examples</button>
                 </div>
             </div>
@@ -1052,6 +1064,22 @@
         </div>
     </div>
 
+    <!-- Plan Session Modal -->
+    <div class="modal" id="plan-session-modal" onclick="if(event.target === this) closePlanSessionModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Plan Today's Session</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Select exercises for today's workout. Tap to add/remove.</div>
+                <div id="plan-session-list" class="history-list" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closePlanSessionModal()">Cancel</button>
+                <button class="modal-save" id="start-session-btn" onclick="startPlannedSession()">Start Session</button>
+            </div>
+        </div>
+    </div>
+
     <!-- iOS Action Sheet -->
     <div class="action-sheet-backdrop" id="action-sheet-backdrop" onclick="hideActionSheet()"></div>
     <div class="action-sheet" id="action-sheet">
@@ -1099,6 +1127,10 @@
         }
 
         let currentSessionId = generateSessionId();
+
+        // Session planning
+        let sessionPlan = []; // Array of exercise IDs planned for today
+        let sessionPlanCompleted = new Set(); // IDs of completed exercises
 
         function reloadApp() {
             try {
@@ -2313,6 +2345,23 @@
             haptic('success');
             closeSessionNotesModal();
 
+            // Mark exercise as completed in session plan
+            if (sessionPlan.includes(currentExercise.id)) {
+                sessionPlanCompleted.add(currentExercise.id);
+                updateSessionPlanDisplay();
+
+                // Auto-advance to next exercise in plan
+                const nextExercise = getNextPlannedExercise();
+                if (nextExercise) {
+                    currentExercise = toSessionExercise(nextExercise);
+                    localStorage.setItem(LAST_EXERCISE_KEY, nextExercise.id);
+                    seedTimerSeconds();
+                    updateDisplay();
+                    speak(`Next: ${nextExercise.name}`);
+                    return;
+                }
+            }
+
             // Reset for new session
             currentExercise.currentSet = 1;
             currentExercise.currentRep = 0;
@@ -2377,6 +2426,148 @@
             updateDisplay();
             haptic('medium');
             speak(`Starting ${entry.name}`);
+        }
+
+        // Session Planning Functions
+        function showPlanSessionModal() {
+            closeExerciseList();
+            renderPlanSessionList();
+            document.getElementById('plan-session-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closePlanSessionModal() {
+            document.getElementById('plan-session-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function renderPlanSessionList() {
+            const container = document.getElementById('plan-session-list');
+            const activeExercises = exerciseLibrary.filter(ex => !ex.archived);
+
+            if (activeExercises.length === 0) {
+                container.innerHTML = '<div class="history-item">No exercises available. Add some first!</div>';
+                return;
+            }
+
+            container.innerHTML = activeExercises.map(ex => {
+                const spec = ex.current || {};
+                const isSelected = sessionPlan.includes(ex.id);
+                return `
+                    <div class="history-item" onclick="toggleExerciseInPlan('${ex.id}')" style="cursor: pointer; background: ${isSelected ? 'rgba(0,122,255,0.1)' : 'transparent'}; border: 2px solid ${isSelected ? 'var(--ios-blue)' : 'transparent'};">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600;">${ex.name}</div>
+                                <div class="history-meta">${describeSpec(spec)}</div>
+                            </div>
+                            <div style="font-size: 20px; margin-left: 12px;">${isSelected ? '✓' : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update button state
+            const btn = document.getElementById('start-session-btn');
+            btn.disabled = sessionPlan.length === 0;
+            btn.style.opacity = sessionPlan.length === 0 ? '0.5' : '1';
+        }
+
+        function toggleExerciseInPlan(exerciseId) {
+            const index = sessionPlan.indexOf(exerciseId);
+            if (index > -1) {
+                sessionPlan.splice(index, 1);
+            } else {
+                sessionPlan.push(exerciseId);
+            }
+            renderPlanSessionList();
+            haptic('light');
+        }
+
+        function startPlannedSession() {
+            if (sessionPlan.length === 0) return;
+
+            sessionPlanCompleted.clear();
+            closePlanSessionModal();
+
+            // Start with first exercise in plan
+            const firstExercise = getLibraryEntryById(sessionPlan[0]);
+            if (firstExercise) {
+                currentExercise = toSessionExercise(firstExercise);
+                localStorage.setItem(LAST_EXERCISE_KEY, firstExercise.id);
+                seedTimerSeconds();
+                updateDisplay();
+                updateSessionPlanDisplay();
+                speak(`Starting session: ${firstExercise.name}`);
+                haptic('success');
+            }
+        }
+
+        function updateSessionPlanDisplay() {
+            const container = document.getElementById('session-plan-container');
+            const listContainer = document.getElementById('session-plan-list');
+
+            if (sessionPlan.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            const planItems = sessionPlan.map(id => {
+                const entry = getLibraryEntryById(id);
+                if (!entry) return '';
+
+                const isCompleted = sessionPlanCompleted.has(id);
+                const isCurrent = currentExercise && currentExercise.id === id;
+
+                return `
+                    <div onclick="switchToPlannedExercise('${id}')" style="padding: 8px 12px; border-radius: 8px; background: ${isCurrent ? 'var(--ios-blue)' : isCompleted ? 'var(--ios-green)' : 'var(--bg-primary)'}; color: ${isCurrent || isCompleted ? 'white' : 'var(--text-primary)'}; cursor: pointer; display: flex; align-items: center; gap: 8px; ${isCompleted ? 'opacity: 0.7;' : ''}">
+                        <div style="font-size: 16px;">${isCompleted ? '✓' : isCurrent ? '▶' : '○'}</div>
+                        <div style="flex: 1; font-size: 14px; font-weight: ${isCurrent ? '600' : '500'};">${entry.name}</div>
+                    </div>
+                `;
+            }).filter(Boolean).join('');
+
+            listContainer.innerHTML = planItems;
+            container.style.display = 'block';
+        }
+
+        function switchToPlannedExercise(exerciseId) {
+            const entry = getLibraryEntryById(exerciseId);
+            if (!entry) return;
+
+            // Save current progress if switching mid-exercise
+            if (currentExercise && currentExercise.sessionData.length > 0) {
+                if (!confirm('Switch exercises? Current progress will be lost.')) {
+                    return;
+                }
+            }
+
+            currentExercise = toSessionExercise(entry);
+            localStorage.setItem(LAST_EXERCISE_KEY, exerciseId);
+            seedTimerSeconds();
+            updateDisplay();
+            updateSessionPlanDisplay();
+            haptic('medium');
+            speak(`Switched to ${entry.name}`);
+        }
+
+        function getNextPlannedExercise() {
+            const remaining = sessionPlan.filter(id => !sessionPlanCompleted.has(id));
+            if (remaining.length === 0) return null;
+            return getLibraryEntryById(remaining[0]);
+        }
+
+        function endSessionEarly() {
+            const completed = sessionPlanCompleted.size;
+            const total = sessionPlan.length;
+            const message = `End session early?\n\nCompleted: ${completed}/${total} exercises\n\nSession plan will be cleared.`;
+
+            showActionSheet(message, () => {
+                sessionPlan = [];
+                sessionPlanCompleted.clear();
+                updateSessionPlanDisplay();
+                haptic('medium');
+                speak('Session ended');
+            });
         }
 
         // Modal Functions
