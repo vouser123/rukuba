@@ -1003,6 +1003,23 @@
         </div>
     </div>
 
+    <!-- All Sessions Modal (grouped by workout session) -->
+    <div class="modal" id="all-sessions-modal" onclick="if(event.target === this) closeAllSessions()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Complete Workout Sessions</div>
+            <div class="modal-form" style="max-height: 500px; overflow-y: auto;">
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px; text-align: center;">
+                    All exercises grouped by workout session
+                </div>
+                <div id="all-sessions-list"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeAllSessions()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Weekly Stats Modal -->
     <div class="modal" id="weekly-stats-modal" onclick="if(event.target === this) closeWeeklyStats()">
         <div class="modal-content">
@@ -1015,6 +1032,7 @@
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeWeeklyStats()">Close</button>
+                <button class="modal-save" onclick="showAllSessions()">View All Sessions</button>
             </div>
         </div>
     </div>
@@ -2603,6 +2621,88 @@
                 haptic('medium');
                 speak('Session ended');
             });
+        }
+
+        // All Sessions Functions
+        function showAllSessions() {
+            closeWeeklyStats();
+            const sessions = loadHistory();
+
+            // Group by sessionId
+            const sessionGroups = {};
+            sessions.forEach(session => {
+                const sid = session.sessionId || 'unknown';
+                if (!sessionGroups[sid]) {
+                    sessionGroups[sid] = [];
+                }
+                sessionGroups[sid].push(session);
+            });
+
+            // Sort session groups by date (most recent first)
+            const sortedGroups = Object.entries(sessionGroups).sort((a, b) => {
+                const aDate = new Date(a[1][0].date);
+                const bDate = new Date(b[1][0].date);
+                return bDate - aDate;
+            });
+
+            const container = document.getElementById('all-sessions-list');
+
+            if (sortedGroups.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No sessions recorded yet.</div>';
+            } else {
+                container.innerHTML = sortedGroups.map(([sessionId, exercises]) => {
+                    const sessionDate = new Date(exercises[0].date);
+                    const totalExercises = exercises.length;
+                    const totalSets = exercises.reduce((sum, ex) => sum + (ex.sets?.length || 0), 0);
+                    const totalReps = exercises.reduce((sum, ex) => sum + ex.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+
+                    // Check if this is today's session
+                    const isToday = sessionDate.toDateString() === new Date().toDateString();
+
+                    return `
+                        <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 12px; ${isToday ? 'border: 2px solid var(--ios-blue);' : ''}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 15px;">
+                                        ${sessionDate.toLocaleDateString()}
+                                        ${isToday ? '<span style="color: var(--ios-blue); margin-left: 8px;">• Today</span>' : ''}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                                        ${sessionDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                    </div>
+                                </div>
+                                <div style="text-align: right; font-size: 12px; color: var(--text-secondary);">
+                                    <div>${totalExercises} exercise${totalExercises !== 1 ? 's' : ''}</div>
+                                    <div>${totalSets} sets · ${totalReps} reps</div>
+                                </div>
+                            </div>
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 8px;">
+                                ${exercises.map(ex => {
+                                    const exTotalReps = ex.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+                                    const avgReps = (exTotalReps / ex.sets.length).toFixed(1);
+                                    return `
+                                        <div style="padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer;" onclick="showExerciseProgress('${ex.exerciseId}')">
+                                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 2px;">${ex.exerciseName}</div>
+                                            <div style="font-size: 11px; color: var(--text-secondary);">
+                                                ${ex.sets.length} sets × ${avgReps} avg = ${exTotalReps} total reps
+                                            </div>
+                                            ${ex.notes ? `<div style="font-size: 11px; color: var(--ios-gray); margin-top: 2px; font-style: italic;">"${ex.notes}"</div>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('all-sessions-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeAllSessions() {
+            document.getElementById('all-sessions-modal').classList.remove('active');
+            haptic('medium');
         }
 
         // Weekly Stats Functions
