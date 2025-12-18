@@ -989,11 +989,18 @@
                 <div style="font-size: 13px; color: var(--ios-gray); text-align: center; margin-bottom: 12px;">
                     Professional PT exercises with detailed guidance
                 </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 8px 12px; background: rgba(0,122,255,0.05); border-radius: 8px;">
+                    <label style="font-size: 14px; font-weight: 500; cursor: pointer;" for="show-new-toggle">
+                        Show only new
+                    </label>
+                    <input type="checkbox" id="show-new-toggle" checked onchange="toggleShowOnlyNew()" style="width: 20px; height: 20px; cursor: pointer;">
+                </div>
                 <input type="text" class="modal-input" id="library-search" placeholder="Search exercises..." oninput="filterLibraryExercises()">
                 <div class="history-list" id="library-exercises-list" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeLibraryBrowser()">Close</button>
+                <button class="modal-save" id="bulk-import-btn" onclick="bulkImportExercises()" style="display: none;">Import Selected</button>
             </div>
         </div>
     </div>
@@ -1020,8 +1027,10 @@
             <div class="modal-title">Data / Backup</div>
             <div class="modal-form">
                 <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 16px;">Export your data to save a backup or commit to GitHub.</div>
-                <button class="control-btn btn-primary" onclick="exportExerciseLibrary()" style="width: 100%; margin-bottom: 12px;">📚 Export Exercise Library</button>
-                <button class="control-btn btn-primary" onclick="exportExerciseHistory()" style="width: 100%;">📊 Export Exercise History</button>
+                <button class="control-btn btn-primary" onclick="exportAllData()" style="width: 100%; margin-bottom: 12px; font-weight: 600;">💾 Export All Data</button>
+                <div style="font-size: 12px; color: var(--ios-gray); margin: -8px 0 16px 0; text-align: center;">Single file with library, history, and version</div>
+                <button class="control-btn btn-secondary" onclick="exportExerciseLibrary()" style="width: 100%; margin-bottom: 12px;">📚 Export Exercise Library</button>
+                <button class="control-btn btn-secondary" onclick="exportExerciseHistory()" style="width: 100%;">📊 Export Exercise History</button>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeDataBackup()">Close</button>
@@ -1322,6 +1331,35 @@
                 return [];
             }
         }
+
+        /**
+         * DATA LOSS PREVENTION - TEST CHECKLIST
+         * --------------------------------------
+         * To verify the version guard prevents data loss:
+         *
+         * ✓ TEST 1: True first run
+         *   - Clear all localStorage (DevTools → Application → Clear Site Data)
+         *   - Reload app
+         *   - EXPECT: Default exercises seeded, PT_VERSION_KEY set to "1"
+         *   - VERIFY: localStorage has pt_data_version="1", pt_exercise_library with defaults
+         *
+         * ✓ TEST 2: Update with existing data
+         *   - Add custom exercises, complete some workouts
+         *   - Note your custom data
+         *   - Reload app (simulates PWA update)
+         *   - EXPECT: All custom exercises and history preserved
+         *   - VERIFY: No re-seeding, PT_VERSION_KEY still "1"
+         *
+         * ✓ TEST 3: Corrupted JSON
+         *   - In DevTools → Application → localStorage, manually corrupt pt_exercise_library
+         *     (e.g., change JSON to invalid syntax like `[{broken`)
+         *   - Reload app
+         *   - EXPECT: Console shows error "Failed to parse exercise library"
+         *   - EXPECT: Console shows warning "Returning empty library - stored data preserved"
+         *   - EXPECT: App shows blank exercise list (safe in-memory fallback)
+         *   - VERIFY: Corrupted data still in localStorage (not overwritten)
+         *   - FIX: Restore valid JSON or clear localStorage to reset
+         */
 
         /**
          * EXERCISE OBJECT STRUCTURE
@@ -2554,6 +2592,34 @@
             }
         }
 
+        function exportAllData() {
+            const library = localStorage.getItem(LIBRARY_KEY);
+            const history = localStorage.getItem(STORAGE_KEY);
+            const version = localStorage.getItem(PT_VERSION_KEY);
+
+            if (!library && !history) {
+                alert('No data found to export.');
+                return;
+            }
+
+            try {
+                const allData = {
+                    pt_data_version: version || PT_DATA_VERSION,
+                    pt_exercise_library: library ? JSON.parse(library) : [],
+                    pt_tracker_data: history ? JSON.parse(history) : [],
+                    exported_at: new Date().toISOString()
+                };
+
+                const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const filename = `pt_all_data-${dateStamp}.json`;
+                downloadJSON(allData, filename);
+                haptic('success');
+            } catch (e) {
+                console.error('Failed to export all data:', e);
+                alert('Unable to export data. One or more data sources may be corrupt.');
+            }
+        }
+
         // Mobile Safari compatible download helper
         function downloadJSON(data, filename) {
             const json = JSON.stringify(data, null, 2);
@@ -3756,6 +3822,8 @@
         // Exercise Library Browser Functions
         let seedExercises = [];
         let selectedSeedExercise = null;
+        let showOnlyNewExercises = true;  // Default: filter out already-imported
+        let selectedExercisesForImport = new Set();  // Track checked exercises
 
         async function loadExerciseSeedData() {
             try {
@@ -3775,34 +3843,92 @@
                 await loadExerciseSeedData();
             }
 
-            renderLibraryExercises(seedExercises);
+            selectedExercisesForImport.clear();
+            document.getElementById('bulk-import-btn').style.display = 'none';
+            renderLibraryExercises();
             document.getElementById('library-browser-modal').classList.add('active');
             haptic('medium');
         }
 
-        function renderLibraryExercises(exercises) {
-            const container = document.getElementById('library-exercises-list');
+        function toggleShowOnlyNew() {
+            showOnlyNewExercises = document.getElementById('show-new-toggle').checked;
+            selectedExercisesForImport.clear();
+            document.getElementById('bulk-import-btn').style.display = 'none';
+            renderLibraryExercises();
+        }
 
-            if (exercises.length === 0) {
-                container.innerHTML = '<div class="history-item">No exercises found in library</div>';
+        function toggleExerciseSelection(exerciseId, event) {
+            event.stopPropagation();
+            if (selectedExercisesForImport.has(exerciseId)) {
+                selectedExercisesForImport.delete(exerciseId);
+            } else {
+                selectedExercisesForImport.add(exerciseId);
+            }
+
+            // Show/hide import button based on selection
+            const importBtn = document.getElementById('bulk-import-btn');
+            importBtn.style.display = selectedExercisesForImport.size > 0 ? 'block' : 'none';
+
+            // Update checkbox state
+            const checkbox = document.getElementById(`ex-check-${exerciseId}`);
+            if (checkbox) checkbox.checked = selectedExercisesForImport.has(exerciseId);
+        }
+
+        function renderLibraryExercises() {
+            const container = document.getElementById('library-exercises-list');
+            const searchTerm = document.getElementById('library-search').value.toLowerCase();
+
+            // Filter exercises based on search and "show only new" toggle
+            let filtered = seedExercises.filter(ex =>
+                ex.canonical_name.toLowerCase().includes(searchTerm) ||
+                ex.description.toLowerCase().includes(searchTerm) ||
+                ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm)) ||
+                ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm))
+            );
+
+            // Apply "show only new" filter
+            if (showOnlyNewExercises) {
+                filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.exercise_id));
+            }
+
+            if (filtered.length === 0) {
+                const message = showOnlyNewExercises
+                    ? 'No new exercises found. Uncheck "Show only new" to see all.'
+                    : 'No exercises found in library';
+                container.innerHTML = `<div class="history-item">${message}</div>`;
                 return;
             }
 
-            container.innerHTML = exercises.map(ex => {
+            container.innerHTML = filtered.map(ex => {
                 const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
                 const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
                 const equipmentLabel = ex.equipment.required.length > 0
                     ? ex.equipment.required.join(', ')
                     : 'No equipment';
 
+                const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
+                const isChecked = selectedExercisesForImport.has(ex.exercise_id);
+                const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
+
                 return `
-                    <div class="history-item" style="cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
-                        <div style="font-weight: 600; margin-bottom: 4px;">${ex.canonical_name}</div>
-                        <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${ex.description.substring(0, 100)}${ex.description.length > 100 ? '...' : ''}</div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                            <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
-                            <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
-                            <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${ex.primary_muscles.length} muscles</span>
+                    <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
+                        <input type="checkbox"
+                               id="ex-check-${ex.exercise_id}"
+                               ${isChecked ? 'checked' : ''}
+                               ${checkboxDisabled ? 'disabled' : ''}
+                               onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
+                               style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
+                        <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
+                            <div style="font-weight: 600; margin-bottom: 4px;">
+                                ${ex.canonical_name}
+                                ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
+                            </div>
+                            <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${ex.description.substring(0, 100)}${ex.description.length > 100 ? '...' : ''}</div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
+                                <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
+                                <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${ex.primary_muscles.length} muscles</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -3810,14 +3936,7 @@
         }
 
         function filterLibraryExercises() {
-            const searchTerm = document.getElementById('library-search').value.toLowerCase();
-            const filtered = seedExercises.filter(ex =>
-                ex.canonical_name.toLowerCase().includes(searchTerm) ||
-                ex.description.toLowerCase().includes(searchTerm) ||
-                ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm)) ||
-                ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm))
-            );
-            renderLibraryExercises(filtered);
+            renderLibraryExercises();
         }
 
         function showExerciseDetail(exerciseId) {
@@ -4001,6 +4120,85 @@
                 ? '🔄 Side tracking enabled: Will log left and right separately'
                 : '✓ Bilateral exercise: Both sides work together';
             alert(`"${ex.canonical_name}" imported successfully!\n\n${patternMsg}`);
+            haptic('success');
+        }
+
+        function bulkImportExercises() {
+            if (selectedExercisesForImport.size === 0) {
+                alert('No exercises selected');
+                return;
+            }
+
+            let importedCount = 0;
+            const defaultSets = 3;
+            const defaultReps = 10;
+
+            selectedExercisesForImport.forEach(exerciseId => {
+                const ex = seedExercises.find(e => e.exercise_id === exerciseId);
+                if (!ex) return;
+
+                // Skip if already imported
+                if (exerciseLibrary.find(e => e.id === ex.exercise_id)) return;
+
+                const isHold = ex.pattern_modifiers && ex.pattern_modifiers.includes('hold_seconds');
+                const isBilateral = ex.pattern === 'both';
+                const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
+                const simpleTags = ex.tags.functional || [];
+                const equipmentList = ex.equipment.required || [];
+
+                const newExercise = {
+                    id: ex.exercise_id,
+                    name: ex.canonical_name,
+                    description: ex.description,
+                    pt_category: ex.pt_category,
+                    primary_muscles: ex.primary_muscles,
+                    secondary_muscles: ex.secondary_muscles,
+                    pattern: ex.pattern,
+                    pattern_modifiers: ex.pattern_modifiers,
+                    equipment: equipmentList,
+                    equipmentOptional: ex.equipment.optional || [],
+                    guidance: ex.guidance,
+                    tags: simpleTags,
+                    bilateral: isBilateral,
+                    sideOptions: sideOptions,
+                    primaryMuscles: ex.primary_muscles.join(', '),
+                    anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
+                    difficulty: '',
+                    supersedes: [],
+                    atlasUrl: '',
+                    current: {
+                        type: isHold ? 'hold' : 'reps',
+                        sets: defaultSets,
+                        repsPerSet: defaultReps,
+                        secondsPerRep: isHold ? 30 : 0
+                    },
+                    history: [
+                        {
+                            timestamp: new Date().toISOString(),
+                            summary: `Imported from exercise library`,
+                            previous: {},
+                            next: {
+                                type: isHold ? 'hold' : 'reps',
+                                sets: defaultSets,
+                                repsPerSet: defaultReps,
+                                secondsPerRep: isHold ? 30 : 0
+                            },
+                            supersedes: []
+                        }
+                    ],
+                    favorite: false,
+                    archived: false
+                };
+
+                exerciseLibrary.push(newExercise);
+                importedCount++;
+            });
+
+            persistExerciseLibrary();
+            selectedExercisesForImport.clear();
+            closeLibraryBrowser();
+
+            alert(`Successfully imported ${importedCount} exercise${importedCount !== 1 ? 's' : ''}`);
             haptic('success');
         }
 
