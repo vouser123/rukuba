@@ -8,7 +8,8 @@
     <meta name="apple-mobile-web-app-title" content="PT Tracker">
     <link rel="manifest" href="manifest-pt.json">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23007AFF' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white'>💪</text></svg>">
-    <meta name="theme-color" content="#007AFF">
+    <meta name="theme-color" content="#007AFF" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
     <title>PT Exercise Tracker</title>
     <style>
         :root {
@@ -18,6 +19,28 @@
             --ios-orange: #FF9500;
             --ios-gray: #8E8E93;
             --ios-background: #F2F2F7;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F2F2F7;
+            --text-primary: #000000;
+            --text-secondary: #3a3a3c;
+            --border-color: rgba(0,0,0,0.1);
+            --modal-bg: #FFFFFF;
+            --input-bg: #FFFFFF;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ios-background: #000000;
+                --bg-primary: #1c1c1e;
+                --bg-secondary: #2c2c2e;
+                --text-primary: #FFFFFF;
+                --text-secondary: #98989d;
+                --border-color: rgba(255,255,255,0.15);
+                --modal-bg: #1c1c1e;
+                --input-bg: #2c2c2e;
+                --shadow: rgba(0,0,0,0.5);
+            }
         }
 
         * {
@@ -30,7 +53,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             background: var(--ios-background);
-            color: #000;
+            color: var(--text-primary);
             touch-action: manipulation;
             user-select: none;
             overflow-x: hidden;
@@ -38,9 +61,9 @@
 
         /* Header */
         .header {
-            background: white;
+            background: var(--bg-primary);
             padding: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow);
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -48,7 +71,7 @@
 
         .header h1 {
             font-size: 20px;
-            color: #2c3e50;
+            color: var(--text-primary);
             margin-bottom: 5px;
         }
 
@@ -78,7 +101,7 @@
             width: min(320px, 85vw);
             height: min(320px, 85vw);
             border-radius: 50%;
-            background: white;
+            background: var(--bg-primary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -120,7 +143,7 @@
         .remaining-info {
             font-size: 18px;
             font-weight: 600;
-            color: #1c1c1e;
+            color: var(--text-primary);
             text-align: center;
             margin-bottom: 12px;
         }
@@ -174,7 +197,7 @@
         }
 
         .btn-secondary {
-            background: white;
+            background: var(--bg-primary);
             color: var(--ios-blue);
             box-shadow: 0 1px 4px rgba(0,0,0,0.1);
         }
@@ -197,7 +220,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--modal-bg);
             backdrop-filter: blur(20px);
             padding: 12px;
             padding-bottom: max(12px, env(safe-area-inset-bottom));
@@ -247,14 +270,14 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--ios-background);
+            background: var(--modal-bg);
             border-radius: 20px 20px 0 0;
             padding: 0;
             max-height: 90vh;
             overflow-y: auto;
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 -2px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 -2px 20px var(--shadow);
         }
 
         .modal.active .modal-content {
@@ -264,7 +287,7 @@
         .modal-drag-handle {
             width: 36px;
             height: 5px;
-            background: rgba(0,0,0,0.2);
+            background: var(--border-color);
             border-radius: 3px;
             margin: 12px auto 8px;
         }
@@ -290,8 +313,9 @@
             font-size: 17px;
             margin-bottom: 12px;
             font-family: inherit;
-            background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: var(--input-bg);
+            color: var(--text-primary);
+            box-shadow: 0 1px 3px var(--shadow);
         }
 
         .modal-input:focus, .modal-select:focus {
@@ -327,9 +351,9 @@
         }
 
         .modal-cancel {
-            background: white;
+            background: var(--bg-primary);
             color: var(--ios-blue);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px var(--shadow);
         }
 
         /* iOS Action Sheet */
@@ -368,7 +392,7 @@
         }
 
         .action-sheet-content {
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--modal-bg);
             backdrop-filter: blur(20px);
             border-radius: 14px;
             overflow: hidden;
@@ -380,7 +404,7 @@
             text-align: center;
             color: var(--ios-gray);
             font-size: 13px;
-            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+            border-bottom: 0.5px solid var(--border-color);
         }
 
         .action-sheet-button {
@@ -390,7 +414,7 @@
             border: none;
             font-size: 20px;
             cursor: pointer;
-            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+            border-bottom: 0.5px solid var(--border-color);
             color: var(--ios-blue);
             transition: background 0.2s;
         }
@@ -409,7 +433,7 @@
         }
 
         .action-sheet-cancel {
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--modal-bg);
             backdrop-filter: blur(20px);
             border-radius: 14px;
             width: 100%;
@@ -433,12 +457,12 @@
         .history-heading {
             font-size: 15px;
             font-weight: 700;
-            color: #1c1c1e;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
 
         .history-list {
-            background: white;
+            background: var(--bg-primary);
             border-radius: 12px;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
             padding: 12px;
@@ -446,7 +470,7 @@
 
         .history-item {
             padding: 10px 8px;
-            border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+            border-bottom: 0.5px solid var(--border-color);
         }
 
         .history-item:last-child {
@@ -490,7 +514,7 @@
             width: min(420px, 95vw);
             height: min(500px, 80vh);
             border-radius: 28px;
-            background: white;
+            background: var(--bg-primary);
             color: var(--ios-blue);
             display: flex;
             flex-direction: column;
@@ -731,7 +755,7 @@
                         <strong>Check bilateral</strong> if both sides work together (squats, wall sits)<br>
                         <strong>Select left/right</strong> if sides work separately (clams, single leg raises)
                     </div>
-                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer; background: white; padding: 8px; border-radius: 6px;">
+                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer; background: var(--bg-primary); padding: 8px; border-radius: 6px;">
                         <input type="checkbox" id="bilateral-checkbox" style="margin-right: 8px;">
                         <span>✓ Bilateral (both sides work together)</span>
                     </label>
@@ -2250,12 +2274,12 @@
                             return `Set ${idx + 1}: ${set.reps}${sideLabel}${weightLabel}${resistanceLabel}${manualLabel}`;
                         }).join(' · ');
 
-                        const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: #555;">"${session.notes}"</div>` : '';
+                        const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: var(--text-secondary);">"${session.notes}"</div>` : '';
                         return `
                             <div class="history-item">
                                 <div>${session.exerciseName}</div>
                                 <div class="history-meta">${new Date(session.date).toLocaleString()} · ${sessionLabel}</div>
-                                <div style="font-size: 12px; color: #888; margin-top: 4px;">${setDetails}</div>
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${setDetails}</div>
                                 ${notesHtml}
                             </div>
                         `;
@@ -2301,7 +2325,7 @@
 
             const container = document.getElementById('recent-exercises-container');
             container.innerHTML = `
-                <div style="font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px;">⚡ Recent Exercises</div>
+                <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">⚡ Recent Exercises</div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
                     ${recentExercises.map(ex =>
                         `<button class="pill" style="cursor: pointer; padding: 6px 12px; background: var(--ios-blue); color: white;" onclick="selectExerciseFromList('${ex.id}'); event.stopPropagation();">${ex.name}</button>`
@@ -2613,7 +2637,7 @@
             }
 
             container.innerHTML = `
-                <div style="background: white; padding: 8px; border-radius: 6px;">
+                <div style="background: var(--bg-primary); padding: 8px; border-radius: 6px;">
                     <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Tap which sides this exercise uses:</div>
                     <div style="font-size: 12px; color: ${hasSelection ? 'var(--ios-green)' : 'var(--ios-orange)'}; margin-bottom: 8px;">${helpText}</div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -2658,7 +2682,7 @@
                 : 'No exercises selected';
 
             container.innerHTML = `
-                <div style="background: white; padding: 8px; border-radius: 6px;">
+                <div style="background: var(--bg-primary); padding: 8px; border-radius: 6px;">
                     <div style="font-size: 12px; color: ${hasSelection ? 'var(--ios-green)' : 'var(--ios-gray)'}; margin-bottom: 8px;">${helpText}</div>
                     <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
                         ${availableExercises.map(ex => {
@@ -3431,7 +3455,7 @@
                                 ${relevantExercises.map(ex => `
                                     <div style="font-size: 14px; padding: 4px 0;">
                                         ${ex.name} <span class="pill">${ex.count}× this week</span>
-                                        <div style="font-size: 11px; color: #888;">Last: ${ex.lastDate.toLocaleDateString()}</div>
+                                        <div style="font-size: 11px; color: var(--text-secondary);">Last: ${ex.lastDate.toLocaleDateString()}</div>
                                     </div>
                                 `).join('')}
                             </div>
