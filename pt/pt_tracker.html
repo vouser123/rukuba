@@ -949,6 +949,7 @@
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
                     <button class="control-btn btn-secondary" onclick="exportWeeklySummary()" style="flex: 1;">📊 Weekly Summary</button>
                     <button class="control-btn btn-primary" onclick="exportForPT()" style="flex: 1;">Full Report</button>
+                    <button class="control-btn btn-secondary" onclick="reloadApp()" style="flex: 1;">Reload app (use after updates)</button>
                 </div>
             </div>
         </div>
@@ -1098,6 +1099,14 @@
         }
 
         let currentSessionId = generateSessionId();
+
+        function reloadApp() {
+            try {
+                window.location.reload();
+            } catch (e) {
+                console.warn('Reload failed, you can close and reopen the app manually.', e);
+            }
+        }
 
         const ATLAS_SEED = [
             {
