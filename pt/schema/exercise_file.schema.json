@@ -50,7 +50,7 @@
           "minItems": 1
         },
         "secondary_muscles": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Meaningful stabilizers/synergists; may be rendered as lighter heat-map shading.",
           "items": {
             "type": "string"
@@ -60,14 +60,22 @@
         "pattern": {
           "type": "string",
           "description": "Base dosage pattern for the exercise, independent of program-specific values.",
-          "enum": ["side", "both", "side-measure"]
+          "enum": [
+            "side",
+            "both",
+            "side-measure"
+          ]
         },
         "pattern_modifiers": {
-          "type": "array",
-          "description": "Pattern-level modifiers indicating structural dosage changes.",
+          "type": ["array", "null"],
+          "description": "Pattern-level modifiers indicating structural dosage changes (e.g., duration vs reps). Values are flags; actual numbers live in the program layer.",
           "items": {
             "type": "string",
-            "enum": ["duration_seconds", "hold_seconds", "AMRAP"]
+            "enum": [
+              "duration_seconds",
+              "hold_seconds",
+              "AMRAP"
+            ]
           },
           "uniqueItems": true
         },
@@ -76,7 +84,7 @@
         },
         "form_parameters_required": {
           "type": ["array", "null"],
-          "description": "Form parameters that MUST be specified in the program layer, or null if none.",
+          "description": "Form parameters that MUST be specified in the program layer.",
           "items": {
             "type": "string",
             "enum": [
@@ -87,7 +95,8 @@
               "slope",
               "alternating",
               "distance",
-              "weight"
+              "weight",
+			  "strap_position"
             ]
           },
           "uniqueItems": true
@@ -131,14 +140,13 @@
       ],
       "additionalProperties": false
     },
-
     "equipment": {
       "type": "object",
       "description": "Equipment characteristics for this exercise.",
       "properties": {
         "required": {
           "type": ["array", "null"],
-          "description": "Equipment intrinsic to the exercise.",
+          "description": "Equipment intrinsic to the exercise (cannot be removed without changing exercise definition).",
           "items": {
             "type": "string"
           },
@@ -156,13 +164,13 @@
       "required": ["required", "optional"],
       "additionalProperties": false
     },
-
     "tags": {
       "type": "object",
       "description": "Tag groups for functional grouping, format/position, and visualization/heat-map mapping.",
       "properties": {
         "functional": {
           "type": ["array", "null"],
+          "description": "Functional group tags (e.g., balance, hip_strength, SIJ_control).",
           "items": {
             "type": "string"
           },
@@ -170,6 +178,7 @@
         },
         "format": {
           "type": ["array", "null"],
+          "description": "Execution format tags (e.g., standing, supine, sidelying, seated, dynamic_control, static_hold, single_leg).",
           "items": {
             "type": "string"
           },
@@ -177,6 +186,7 @@
         },
         "heatmap": {
           "type": ["array", "null"],
+          "description": "Optional body-region tags used for heat-map visualization.",
           "items": {
             "type": "string"
           },
@@ -186,31 +196,34 @@
       "required": ["functional", "format", "heatmap"],
       "additionalProperties": false
     },
-
     "guidance": {
       "type": "object",
       "description": "Guidance broken into external cues, motor cues, compensation warnings, and safety flags.",
       "properties": {
         "external_cues": {
           "type": ["array", "null"],
+          "description": "Visible or tactile cues (what to look at or contact).",
           "items": {
             "type": "string"
           }
         },
         "motor_cues": {
           "type": ["array", "null"],
+          "description": "How to move; internal and external movement cues.",
           "items": {
             "type": "string"
           }
         },
         "compensation_warnings": {
           "type": ["array", "null"],
+          "description": "Common compensation patterns to watch for and correct.",
           "items": {
             "type": "string"
           }
         },
         "safety_flags": {
           "type": ["array", "null"],
+          "description": "Stop/modify conditions.",
           "items": {
             "type": "string"
           }
@@ -224,7 +237,6 @@
       ],
       "additionalProperties": false
     },
-
     "lifecycle": {
       "type": "object",
       "description": "Lifecycle state for this exercise definition.",
