@@ -60,22 +60,14 @@
         "pattern": {
           "type": "string",
           "description": "Base dosage pattern for the exercise, independent of program-specific values.",
-          "enum": [
-            "side",
-            "both",
-            "side-measure"
-          ]
+          "enum": ["side", "both", "side-measure"]
         },
         "pattern_modifiers": {
           "type": "array",
-          "description": "Pattern-level modifiers indicating structural dosage changes (e.g., duration vs reps). Values are flags; actual numbers live in the program layer.",
+          "description": "Pattern-level modifiers indicating structural dosage changes.",
           "items": {
             "type": "string",
-            "enum": [
-              "duration_seconds",
-              "hold_seconds",
-              "AMRAP"
-            ]
+            "enum": ["duration_seconds", "hold_seconds", "AMRAP"]
           },
           "uniqueItems": true
         },
@@ -83,8 +75,8 @@
           "$ref": "#/$defs/equipment"
         },
         "form_parameters_required": {
-          "type": "array",
-          "description": "Form parameters that MUST be specified in the program layer.",
+          "type": ["array", "null"],
+          "description": "Form parameters that MUST be specified in the program layer, or null if none.",
           "items": {
             "type": "string",
             "enum": [
@@ -139,20 +131,21 @@
       ],
       "additionalProperties": false
     },
+
     "equipment": {
       "type": "object",
       "description": "Equipment characteristics for this exercise.",
       "properties": {
         "required": {
-          "type": "array",
-          "description": "Equipment intrinsic to the exercise (cannot be removed without changing exercise definition).",
+          "type": ["array", "null"],
+          "description": "Equipment intrinsic to the exercise.",
           "items": {
             "type": "string"
           },
           "uniqueItems": true
         },
         "optional": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Equipment used for comfort or modification.",
           "items": {
             "type": "string"
@@ -163,29 +156,27 @@
       "required": ["required", "optional"],
       "additionalProperties": false
     },
+
     "tags": {
       "type": "object",
       "description": "Tag groups for functional grouping, format/position, and visualization/heat-map mapping.",
       "properties": {
         "functional": {
-          "type": "array",
-          "description": "Functional group tags (e.g., balance, hip_strength, SIJ_control).",
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           },
           "uniqueItems": true
         },
         "format": {
-          "type": "array",
-          "description": "Execution format tags (e.g., standing, supine, sidelying, seated, dynamic_control, static_hold, single_leg).",
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           },
           "uniqueItems": true
         },
         "heatmap": {
-          "type": "array",
-          "description": "Optional body-region tags used for heat-map visualization.",
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           },
@@ -195,34 +186,31 @@
       "required": ["functional", "format", "heatmap"],
       "additionalProperties": false
     },
+
     "guidance": {
       "type": "object",
       "description": "Guidance broken into external cues, motor cues, compensation warnings, and safety flags.",
       "properties": {
         "external_cues": {
-          "type": "array",
-          "description": "Visible or tactile cues (what to look at or contact).",
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           }
         },
         "motor_cues": {
-          "type": "array",
-          "description": "How to move; internal and external movement cues.",
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           }
         },
         "compensation_warnings": {
-          "type": "array",
-          "description": "Common compensation patterns to watch for and correct.",
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           }
         },
         "safety_flags": {
-          "type": "array",
-          "description": "Stop/modify conditions.",
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           }
@@ -236,6 +224,7 @@
       ],
       "additionalProperties": false
     },
+
     "lifecycle": {
       "type": "object",
       "description": "Lifecycle state for this exercise definition.",
