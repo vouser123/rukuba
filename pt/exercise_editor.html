@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>PT Exercise Editor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-red: #FF3B30;
+            --ios-orange: #FF9500;
+            --ios-gray: #8E8E93;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F2F2F7;
+            --text-primary: #000000;
+            --text-secondary: #3C3C43;
+            --border-color: #C6C6C8;
+            --input-bg: #FFFFFF;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #000000;
+                --bg-secondary: #1C1C1E;
+                --text-primary: #FFFFFF;
+                --text-secondary: #EBEBF5;
+                --border-color: #38383A;
+                --input-bg: #1C1C1E;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: var(--bg-secondary);
+            padding: 16px 0;
+            z-index: 100;
+            margin-bottom: 16px;
+        }
+
+        h1 { font-size: 28px; margin-bottom: 8px; }
+
+        .button {
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        .button:active { opacity: 0.7; }
+        .button-secondary { background: var(--ios-gray); }
+        .button-success { background: var(--ios-green); }
+        .button-danger { background: var(--ios-red); }
+
+        .card {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .exercise-list-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .exercise-list-item:active { background: var(--bg-secondary); }
+
+        .input, .textarea, .select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 16px;
+            margin: 8px 0;
+        }
+
+        .textarea { min-height: 100px; resize: vertical; font-family: inherit; }
+
+        .label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 12px 0 4px 0;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--ios-gray);
+            margin: 4px 0 8px 0;
+        }
+
+        .array-item {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+            align-items: center;
+        }
+
+        .array-item input { flex: 1; margin: 0; }
+
+        .remove-btn {
+            background: var(--ios-red);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .add-btn {
+            background: var(--ios-green);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 8px 0;
+        }
+
+        .intent-toggle {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .intent-option {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .intent-option.active {
+            border-color: var(--ios-blue);
+            background: rgba(0, 122, 255, 0.1);
+            font-weight: 600;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 16px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--ios-blue);
+        }
+
+        .validation-errors {
+            background: rgba(255, 59, 48, 0.1);
+            border: 2px solid var(--ios-red);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+
+        .error-item {
+            padding: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .error-item:active { background: rgba(255, 59, 48, 0.2); }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            padding: 12px 16px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 8px;
+        }
+
+        .bottom-bar .button { margin: 0; }
+
+        .hidden { display: none; }
+
+        .enum-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .enum-option {
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .enum-option.selected {
+            border-color: var(--ios-blue);
+            background: rgba(0, 122, 255, 0.1);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PT Exercise Editor</h1>
+        <div style="font-size: 14px; color: var(--text-secondary);">Schema-driven exercise management</div>
+    </div>
+
+    <div id="list-view">
+        <div class="card">
+            <button class="button button-success" onclick="createNewExercise()">+ Create New Exercise</button>
+            <button class="button button-secondary" onclick="showExportDialog()">📤 Export All Data</button>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size: 20px; margin-bottom: 12px;">Exercises</h2>
+            <div id="exercise-list"></div>
+        </div>
+    </div>
+
+    <div id="editor-view" class="hidden">
+        <button class="button button-secondary" onclick="backToList()">← Back to List</button>
+        <div id="editor-form"></div>
+        <div style="height: 100px;"></div>
+    </div>
+
+    <div id="export-dialog" class="hidden">
+        <div class="card">
+            <h2 style="font-size: 20px; margin-bottom: 12px;">Export Data</h2>
+            <div id="validation-results"></div>
+            <button class="button button-success" onclick="downloadExport()" id="download-btn">📥 Download JSON</button>
+            <button class="button button-secondary" onclick="hideExportDialog()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // ULID generation (Crockford Base32)
+        function generateULID() {
+            const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+            const timestamp = Date.now();
+            const randomness = new Uint8Array(10);
+            crypto.getRandomValues(randomness);
+
+            let ulid = '';
+
+            // Timestamp (10 chars)
+            let ts = timestamp;
+            for (let i = 9; i >= 0; i--) {
+                ulid = ENCODING[ts % 32] + ulid;
+                ts = Math.floor(ts / 32);
+            }
+
+            // Randomness (16 chars)
+            for (let i = 0; i < 16; i++) {
+                const byte = i < 10 ? randomness[i] : randomness[i - 10];
+                ulid += ENCODING[byte % 32];
+            }
+
+            return ulid;
+        }
+
+        // State
+        let schema = null;
+        let baselineExercises = [];
+        let drafts = {};
+        let currentExerciseId = null;
+        let exportData = null;
+
+        // Load schema and data
+        async function init() {
+            try {
+                const [schemaResp, seedResp] = await Promise.all([
+                    fetch('./schema/exercise_file.schema.json'),
+                    fetch('./exercise_guidance_seed.json')
+                ]);
+
+                schema = await schemaResp.json();
+                const seedData = await seedResp.json();
+                baselineExercises = seedData.exercises || [];
+
+                // Load drafts from localStorage
+                const stored = localStorage.getItem('pt_exercise_drafts');
+                if (stored) {
+                    try {
+                        drafts = JSON.parse(stored);
+                    } catch (e) {
+                        console.error('Failed to load drafts:', e);
+                        drafts = {};
+                    }
+                }
+
+                renderExerciseList();
+            } catch (e) {
+                alert('Failed to load schema or seed data: ' + e.message);
+            }
+        }
+
+        function saveDrafts() {
+            localStorage.setItem('pt_exercise_drafts', JSON.stringify(drafts));
+        }
+
+        function renderExerciseList() {
+            const container = document.getElementById('exercise-list');
+            const allExercises = [...baselineExercises];
+
+            // Add draft exercises
+            Object.keys(drafts).forEach(id => {
+                const existing = allExercises.findIndex(ex => ex.exercise_id === id);
+                if (existing >= 0) {
+                    allExercises[existing] = { ...allExercises[existing], ...drafts[id], _isDraft: true };
+                } else {
+                    allExercises.push({ ...drafts[id], _isDraft: true });
+                }
+            });
+
+            if (allExercises.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No exercises yet. Create your first one!</div>';
+                return;
+            }
+
+            container.innerHTML = allExercises.map(ex => `
+                <div class="exercise-list-item" onclick="editExercise('${ex.exercise_id}')">
+                    <div style="font-weight: 600; font-size: 16px;">${ex.canonical_name || 'Unnamed Exercise'}</div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                        ${ex.exercise_id}
+                        ${ex._isDraft ? '<span style="color: var(--ios-orange); margin-left: 8px;">● DRAFT</span>' : ''}
+                    </div>
+                    ${ex.pt_category ? `<div style="font-size: 12px; color: var(--ios-gray); margin-top: 4px;">${ex.pt_category}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function createNewExercise() {
+            const id = generateULID();
+            const emptyExercise = createEmptyExercise(id);
+            drafts[id] = emptyExercise;
+            saveDrafts();
+            editExercise(id);
+        }
+
+        function createEmptyExercise(id) {
+            return {
+                exercise_id: id,
+                canonical_name: '',
+                pt_category: '',
+                description: '',
+                primary_muscles: [],
+                secondary_muscles: [],
+                pattern: 'both',
+                pattern_modifiers: [],
+                equipment: { required: [], optional: [] },
+                form_parameters_required: [],
+                tags: { functional: [], format: [], heatmap: [] },
+                guidance: {
+                    external_cues: [],
+                    motor_cues: [],
+                    compensation_warnings: [],
+                    safety_flags: []
+                },
+                lifecycle: {
+                    status: 'active',
+                    effective_start_date: null,
+                    effective_end_date: null
+                },
+                added_date: new Date().toISOString().split('T')[0],
+                updated_date: null
+            };
+        }
+
+        function editExercise(exerciseId) {
+            currentExerciseId = exerciseId;
+            const exercise = drafts[exerciseId] || baselineExercises.find(ex => ex.exercise_id === exerciseId);
+
+            if (!exercise) {
+                alert('Exercise not found');
+                return;
+            }
+
+            renderEditor(exercise);
+            document.getElementById('list-view').classList.add('hidden');
+            document.getElementById('editor-view').classList.remove('hidden');
+        }
+
+        function backToList() {
+            document.getElementById('editor-view').classList.add('hidden');
+            document.getElementById('list-view').classList.remove('hidden');
+            currentExerciseId = null;
+            renderExerciseList();
+        }
+
+        function renderEditor(exercise) {
+            const form = document.getElementById('editor-form');
+            const exerciseSchema = schema.$defs.exercise;
+
+            let html = '<div class="section">';
+            html += '<div class="section-title">Exercise Details</div>';
+
+            // Exercise ID (readonly)
+            html += '<div class="label">Exercise ID (Auto-generated)</div>';
+            html += `<input type="text" class="input" value="${exercise.exercise_id}" readonly disabled style="opacity: 0.6;">`;
+
+            // Canonical Name
+            html += '<div class="label">Name *</div>';
+            html += '<div class="hint">Clinically meaningful exercise name</div>';
+            html += `<input type="text" class="input" id="field_canonical_name" value="${exercise.canonical_name || ''}" onchange="updateField('canonical_name', this.value)">`;
+
+            // PT Category (enum)
+            html += '<div class="label">PT Category *</div>';
+            html += '<div class="hint">High-level PT category for scheduling and grouping</div>';
+            html += '<div class="enum-grid">';
+            exerciseSchema.properties.pt_category.enum.forEach(val => {
+                const selected = exercise.pt_category === val ? 'selected' : '';
+                html += `<div class="enum-option ${selected}" onclick="updateField('pt_category', '${val}'); this.parentElement.querySelectorAll('.enum-option').forEach(el => el.classList.remove('selected')); this.classList.add('selected');">${val.replace('_', ' ')}</div>`;
+            });
+            html += '</div>';
+
+            // Description
+            html += '<div class="label">Description *</div>';
+            html += '<div class="hint">Neutral, step-wise description of how to perform the exercise</div>';
+            html += `<textarea class="textarea" id="field_description" onchange="updateField('description', this.value)">${exercise.description || ''}</textarea>`;
+
+            html += '</div>';
+
+            // Primary Muscles (array of strings)
+            html += '<div class="section">';
+            html += '<div class="section-title">Muscles</div>';
+            html += renderArrayField('primary_muscles', 'Primary Muscles *', exercise.primary_muscles, 'Muscles intentionally targeted');
+            html += renderArrayField('secondary_muscles', 'Secondary Muscles', exercise.secondary_muscles, 'Stabilizers/synergists');
+            html += '</div>';
+
+            // Pattern (enum)
+            html += '<div class="section">';
+            html += '<div class="section-title">Pattern & Modifiers</div>';
+            html += '<div class="label">Pattern *</div>';
+            html += '<div class="hint">Base dosage pattern (side, both, side-measure)</div>';
+            html += '<div class="enum-grid">';
+            exerciseSchema.properties.pattern.enum.forEach(val => {
+                const selected = exercise.pattern === val ? 'selected' : '';
+                html += `<div class="enum-option ${selected}" onclick="updateField('pattern', '${val}'); this.parentElement.querySelectorAll('.enum-option').forEach(el => el.classList.remove('selected')); this.classList.add('selected');">${val}</div>`;
+            });
+            html += '</div>';
+
+            // Pattern Modifiers (array enum)
+            html += renderMultiSelectEnum('pattern_modifiers', 'Pattern Modifiers', exercise.pattern_modifiers,
+                exerciseSchema.properties.pattern_modifiers.items.enum, 'duration_seconds, hold_seconds, AMRAP');
+            html += '</div>';
+
+            // Equipment
+            html += '<div class="section">';
+            html += '<div class="section-title">Equipment</div>';
+            html += renderArrayField('equipment.required', 'Required Equipment', exercise.equipment?.required || [], 'Equipment intrinsic to the exercise');
+            html += renderArrayField('equipment.optional', 'Optional Equipment', exercise.equipment?.optional || [], 'Equipment for comfort/modification');
+            html += '</div>';
+
+            // Form Parameters Required
+            html += '<div class="section">';
+            html += '<div class="section-title">Form Parameters</div>';
+            html += renderMultiSelectEnum('form_parameters_required', 'Form Parameters Required', exercise.form_parameters_required,
+                exerciseSchema.properties.form_parameters_required.items.enum, 'Parameters that MUST be specified in program layer');
+            html += '</div>';
+
+            // Tags
+            html += '<div class="section">';
+            html += '<div class="section-title">Tags</div>';
+            html += renderArrayField('tags.functional', 'Functional Tags', exercise.tags?.functional || [], 'e.g., balance, hip_strength');
+            html += renderArrayField('tags.format', 'Format Tags', exercise.tags?.format || [], 'e.g., standing, supine, sidelying');
+            html += renderArrayField('tags.heatmap', 'Heatmap Tags', exercise.tags?.heatmap || [], 'Body-region tags for visualization');
+            html += '</div>';
+
+            // Guidance
+            html += '<div class="section">';
+            html += '<div class="section-title">Guidance</div>';
+            html += renderArrayField('guidance.external_cues', 'External Cues', exercise.guidance?.external_cues || [], 'Visible or tactile cues');
+            html += renderArrayField('guidance.motor_cues', 'Motor Cues', exercise.guidance?.motor_cues || [], 'How to move');
+            html += renderArrayField('guidance.compensation_warnings', 'Compensation Warnings', exercise.guidance?.compensation_warnings || [], 'Common compensation patterns');
+            html += renderArrayField('guidance.safety_flags', 'Safety Flags', exercise.guidance?.safety_flags || [], 'Stop/modify conditions');
+            html += '</div>';
+
+            // Lifecycle
+            html += '<div class="section">';
+            html += '<div class="section-title">Lifecycle</div>';
+            html += '<div class="label">Status *</div>';
+            html += '<div class="enum-grid">';
+            ['active', 'archived'].forEach(val => {
+                const selected = exercise.lifecycle?.status === val ? 'selected' : '';
+                html += `<div class="enum-option ${selected}" onclick="updateNestedField('lifecycle', 'status', '${val}'); this.parentElement.querySelectorAll('.enum-option').forEach(el => el.classList.remove('selected')); this.classList.add('selected');">${val}</div>`;
+            });
+            html += '</div>';
+
+            html += renderNullableDateField('lifecycle.effective_start_date', 'Effective Start Date', exercise.lifecycle?.effective_start_date);
+            html += renderNullableDateField('lifecycle.effective_end_date', 'Effective End Date', exercise.lifecycle?.effective_end_date);
+            html += '</div>';
+
+            // Dates
+            html += '<div class="section">';
+            html += '<div class="section-title">Metadata</div>';
+            html += renderNullableDateField('added_date', 'Added Date', exercise.added_date);
+            html += renderNullableDateField('updated_date', 'Updated Date', exercise.updated_date);
+            html += '</div>';
+
+            form.innerHTML = html;
+        }
+
+        function renderArrayField(fieldPath, label, values, hint) {
+            const containerId = 'container_' + fieldPath.replace(/\./g, '_');
+            let html = `<div class="label">${label}</div>`;
+            if (hint) html += `<div class="hint">${hint}</div>`;
+            html += `<div id="${containerId}">`;
+
+            (values || []).forEach((val, idx) => {
+                html += `<div class="array-item">
+                    <input type="text" class="input" value="${val}" onchange="updateArrayItem('${fieldPath}', ${idx}, this.value)">
+                    <button class="remove-btn" onclick="removeArrayItem('${fieldPath}', ${idx})">−</button>
+                </div>`;
+            });
+
+            html += `</div>`;
+            html += `<button class="add-btn" onclick="addArrayItem('${fieldPath}')">+ Add Item</button>`;
+            return html;
+        }
+
+        function renderMultiSelectEnum(fieldPath, label, selected, enumValues, hint) {
+            const containerId = 'container_' + fieldPath.replace(/\./g, '_');
+            let html = `<div class="label">${label}</div>`;
+            if (hint) html += `<div class="hint">${hint}</div>`;
+            html += `<div id="${containerId}" style="display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;">`;
+
+            enumValues.forEach(val => {
+                const isSelected = (selected || []).includes(val);
+                const selectedClass = isSelected ? 'selected' : '';
+                html += `<div class="enum-option ${selectedClass}" onclick="toggleEnumValue('${fieldPath}', '${val}', this)">${val}</div>`;
+            });
+
+            html += '</div>';
+            return html;
+        }
+
+        function renderNullableDateField(fieldPath, label, value) {
+            const containerId = 'container_' + fieldPath.replace(/\./g, '_');
+            const intent = value === null ? 'null' : 'set';
+
+            let html = `<div class="label">${label}</div>`;
+            html += `<div class="intent-toggle">
+                <div class="intent-option ${intent === 'null' ? 'active' : ''}" onclick="setDateIntent('${fieldPath}', 'null')">Not Set</div>
+                <div class="intent-option ${intent === 'set' ? 'active' : ''}" onclick="setDateIntent('${fieldPath}', 'set')">Set Date</div>
+            </div>`;
+            html += `<div id="${containerId}">`;
+            if (intent === 'set') {
+                html += `<input type="date" class="input" value="${value || ''}" onchange="updateField('${fieldPath}', this.value)">`;
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        function getCurrentExercise() {
+            return drafts[currentExerciseId] || baselineExercises.find(ex => ex.exercise_id === currentExerciseId);
+        }
+
+        function updateCurrentExercise(updates) {
+            const current = getCurrentExercise();
+            drafts[currentExerciseId] = { ...current, ...updates };
+            saveDrafts();
+        }
+
+        function updateField(fieldPath, value) {
+            const current = getCurrentExercise();
+            const parts = fieldPath.split('.');
+
+            if (parts.length === 1) {
+                drafts[currentExerciseId] = { ...current, [fieldPath]: value };
+            } else {
+                const updated = { ...current };
+                let obj = updated;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    obj[parts[i]] = { ...obj[parts[i]] };
+                    obj = obj[parts[i]];
+                }
+                obj[parts[parts.length - 1]] = value;
+                drafts[currentExerciseId] = updated;
+            }
+            saveDrafts();
+        }
+
+        function updateNestedField(parent, field, value) {
+            const current = getCurrentExercise();
+            drafts[currentExerciseId] = {
+                ...current,
+                [parent]: { ...current[parent], [field]: value }
+            };
+            saveDrafts();
+        }
+
+        function updateArrayItem(fieldPath, index, value) {
+            const current = getCurrentExercise();
+            const parts = fieldPath.split('.');
+            let arr;
+
+            if (parts.length === 1) {
+                arr = [...(current[fieldPath] || [])];
+            } else {
+                const parent = parts.slice(0, -1).reduce((obj, key) => obj[key], current);
+                arr = [...(parent[parts[parts.length - 1]] || [])];
+            }
+
+            arr[index] = value;
+            updateField(fieldPath, arr);
+        }
+
+        function removeArrayItem(fieldPath, index) {
+            const current = getCurrentExercise();
+            const parts = fieldPath.split('.');
+            let arr;
+
+            if (parts.length === 1) {
+                arr = [...(current[fieldPath] || [])];
+            } else {
+                const parent = parts.slice(0, -1).reduce((obj, key) => obj[key], current);
+                arr = [...(parent[parts[parts.length - 1]] || [])];
+            }
+
+            arr.splice(index, 1);
+            updateField(fieldPath, arr);
+            editExercise(currentExerciseId); // Re-render
+        }
+
+        function addArrayItem(fieldPath) {
+            const current = getCurrentExercise();
+            const parts = fieldPath.split('.');
+            let arr;
+
+            if (parts.length === 1) {
+                arr = [...(current[fieldPath] || [])];
+            } else {
+                const parent = parts.slice(0, -1).reduce((obj, key) => obj[key], current);
+                arr = [...(parent[parts[parts.length - 1]] || [])];
+            }
+
+            arr.push('');
+            updateField(fieldPath, arr);
+            editExercise(currentExerciseId); // Re-render
+        }
+
+        function toggleEnumValue(fieldPath, value, element) {
+            const current = getCurrentExercise();
+            const parts = fieldPath.split('.');
+            let arr;
+
+            if (parts.length === 1) {
+                arr = [...(current[fieldPath] || [])];
+            } else {
+                const parent = parts.slice(0, -1).reduce((obj, key) => obj[key], current);
+                arr = [...(parent[parts[parts.length - 1]] || [])];
+            }
+
+            const index = arr.indexOf(value);
+            if (index >= 0) {
+                arr.splice(index, 1);
+                element.classList.remove('selected');
+            } else {
+                arr.push(value);
+                element.classList.add('selected');
+            }
+
+            updateField(fieldPath, arr);
+        }
+
+        function setDateIntent(fieldPath, intent) {
+            if (intent === 'null') {
+                updateField(fieldPath, null);
+            } else {
+                updateField(fieldPath, new Date().toISOString().split('T')[0]);
+            }
+            editExercise(currentExerciseId); // Re-render
+        }
+
+        function showExportDialog() {
+            // Merge baseline + drafts
+            const merged = [...baselineExercises];
+
+            Object.keys(drafts).forEach(id => {
+                const existing = merged.findIndex(ex => ex.exercise_id === id);
+                if (existing >= 0) {
+                    merged[existing] = drafts[id];
+                } else {
+                    merged.push(drafts[id]);
+                }
+            });
+
+            exportData = { exercises: merged };
+
+            // Validate
+            const errors = validateExport(exportData);
+            const resultsDiv = document.getElementById('validation-results');
+
+            if (errors.length === 0) {
+                resultsDiv.innerHTML = '<div style="color: var(--ios-green); font-weight: 600; padding: 12px;">✓ Validation passed! Ready to export.</div>';
+                document.getElementById('download-btn').disabled = false;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="validation-errors">
+                        <div style="font-weight: 600; margin-bottom: 8px;">⚠️ ${errors.length} Validation Error${errors.length > 1 ? 's' : ''}</div>
+                        ${errors.map(err => `<div class="error-item" onclick="alert('${err}')">${err}</div>`).join('')}
+                    </div>
+                `;
+                document.getElementById('download-btn').disabled = true;
+            }
+
+            document.getElementById('list-view').classList.add('hidden');
+            document.getElementById('export-dialog').classList.remove('hidden');
+        }
+
+        function hideExportDialog() {
+            document.getElementById('export-dialog').classList.add('hidden');
+            document.getElementById('list-view').classList.remove('hidden');
+        }
+
+        function validateExport(data) {
+            const errors = [];
+
+            if (!data.exercises || !Array.isArray(data.exercises)) {
+                errors.push('Export data must contain exercises array');
+                return errors;
+            }
+
+            data.exercises.forEach((ex, idx) => {
+                const prefix = `Exercise ${idx + 1} (${ex.canonical_name || ex.exercise_id}): `;
+
+                // Required fields
+                if (!ex.exercise_id) errors.push(prefix + 'Missing exercise_id');
+                if (!ex.canonical_name) errors.push(prefix + 'Missing canonical_name');
+                if (!ex.pt_category) errors.push(prefix + 'Missing pt_category');
+                if (!ex.description) errors.push(prefix + 'Missing description');
+
+                // Arrays must be arrays
+                if (!Array.isArray(ex.primary_muscles)) errors.push(prefix + 'primary_muscles must be array');
+                else if (ex.primary_muscles.length === 0) errors.push(prefix + 'primary_muscles must have at least 1 item');
+
+                if (!Array.isArray(ex.secondary_muscles)) errors.push(prefix + 'secondary_muscles must be array');
+                if (!Array.isArray(ex.pattern_modifiers)) errors.push(prefix + 'pattern_modifiers must be array');
+                if (!Array.isArray(ex.form_parameters_required)) errors.push(prefix + 'form_parameters_required must be array');
+
+                // Objects must be objects
+                if (!ex.equipment || typeof ex.equipment !== 'object') {
+                    errors.push(prefix + 'equipment must be object');
+                } else {
+                    if (!Array.isArray(ex.equipment.required)) errors.push(prefix + 'equipment.required must be array');
+                    if (!Array.isArray(ex.equipment.optional)) errors.push(prefix + 'equipment.optional must be array');
+                }
+
+                if (!ex.tags || typeof ex.tags !== 'object') {
+                    errors.push(prefix + 'tags must be object');
+                } else {
+                    if (!Array.isArray(ex.tags.functional)) errors.push(prefix + 'tags.functional must be array');
+                    if (!Array.isArray(ex.tags.format)) errors.push(prefix + 'tags.format must be array');
+                    if (!Array.isArray(ex.tags.heatmap)) errors.push(prefix + 'tags.heatmap must be array');
+                }
+
+                if (!ex.guidance || typeof ex.guidance !== 'object') {
+                    errors.push(prefix + 'guidance must be object');
+                } else {
+                    if (!Array.isArray(ex.guidance.external_cues)) errors.push(prefix + 'guidance.external_cues must be array');
+                    if (!Array.isArray(ex.guidance.motor_cues)) errors.push(prefix + 'guidance.motor_cues must be array');
+                    if (!Array.isArray(ex.guidance.compensation_warnings)) errors.push(prefix + 'guidance.compensation_warnings must be array');
+                    if (!Array.isArray(ex.guidance.safety_flags)) errors.push(prefix + 'guidance.safety_flags must be array');
+                }
+
+                if (!ex.lifecycle || typeof ex.lifecycle !== 'object') {
+                    errors.push(prefix + 'lifecycle must be object');
+                } else {
+                    if (!ex.lifecycle.status) errors.push(prefix + 'lifecycle.status is required');
+                }
+
+                // Pattern enum
+                if (!['side', 'both', 'side-measure'].includes(ex.pattern)) {
+                    errors.push(prefix + 'pattern must be one of: side, both, side-measure');
+                }
+            });
+
+            return errors;
+        }
+
+        function downloadExport() {
+            if (!exportData) return;
+
+            const json = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pt_exercises_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert('Export downloaded successfully!');
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
