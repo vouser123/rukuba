@@ -5051,10 +5051,11 @@
         async function loadExerciseSeedData() {
             isLoadingSeedExercises = true;
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 7000);
-                const response = await fetch('exercise_guidance_seed.json', { signal: controller.signal });
-                clearTimeout(timeoutId);
+                const timeoutMs = 7000;
+                const response = await Promise.race([
+                    fetch('exercise_guidance_seed.json'),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), timeoutMs))
+                ]);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
