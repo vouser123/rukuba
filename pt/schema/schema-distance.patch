@@ -1,0 +1,44 @@
+diff --git a/schema/exercise_file.schema.json b/schema/exercise_file.schema.json
+--- a/schema/exercise_file.schema.json
++++ b/schema/exercise_file.schema.json
+@@
+         "pattern": {
+           "type": "string",
+           "description": "Base dosage pattern for the exercise, independent of program-specific values.",
+           "enum": [
+             "side",
+-            "both",
+-            "side-measure"
++            "both"
+           ]
+         },
+         "pattern_modifiers": {
+           "type": ["array", "null"],
+           "description": "Pattern-level modifiers indicating structural dosage changes (e.g., duration vs reps). Values are flags; actual numbers live in the program layer.",
+           "items": {
+             "type": "string",
+             "enum": [
+               "duration_seconds",
+               "hold_seconds",
+-              "AMRAP"
++              "AMRAP",
++              "distance"
+             ]
+           },
+           "uniqueItems": true
+         },
+
+diff --git a/vocabularies.md b/vocabularies.md
+--- a/vocabularies.md
++++ b/vocabularies.md
+@@
+ ## pattern
+ - side          # q sets of z reps per side
+ - both          # q sets of z reps done with both sides simultaneously
+-- side-measure  # q sets of z measured units per side
+
+ ## pattern_modifiers
+ - duration_seconds  # replaces reps with seconds (e.g., 3 x 30s)
+ - hold_seconds      # adds isometric hold time per rep (e.g., 3 x 10 reps, 5s hold)
+ - AMRAP             # as many reps as possible in a defined duration
++- distance          # replaces reps with distance (e.g., 3 x 20 ft); keep actual value/unit in program layer
