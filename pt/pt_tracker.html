@@ -5079,16 +5079,26 @@
         }
 
         async function showLibraryBrowser() {
-            document.getElementById('library-exercises-list').innerHTML = '<div class="history-item">Loading exercise library…</div>';
-            document.getElementById('library-browser-modal').classList.add('active');
-            if (seedExercises.length === 0) {
-                await loadExerciseSeedData();
-            }
+            console.log('Opening library browser...');
+            try {
+                // Show loading message immediately
+                document.getElementById('library-exercises-list').innerHTML = '<div class="history-item">Loading exercise library…</div>';
+                document.getElementById('library-browser-modal').classList.add('active');
 
-            selectedExercisesForImport.clear();
-            document.getElementById('bulk-import-btn').style.display = 'none';
-            renderLibraryExercises();
-            haptic('medium');
+                if (seedExercises.length === 0) {
+                    console.log('Loading seed data...');
+                    await loadExerciseSeedData();
+                }
+
+                console.log(`Seed exercises loaded: ${seedExercises.length}`);
+                selectedExercisesForImport.clear();
+                document.getElementById('bulk-import-btn').style.display = 'none';
+                renderLibraryExercises();
+                haptic('medium');
+            } catch (error) {
+                console.error('Error showing library browser:', error);
+                alert(`Failed to open library browser:\n${error.message}`);
+            }
         }
 
         function toggleShowOnlyNew() {
@@ -5116,69 +5126,97 @@
         }
 
         function renderLibraryExercises() {
+            console.log('Rendering library exercises...');
             const container = document.getElementById('library-exercises-list');
             const searchTerm = document.getElementById('library-search').value.toLowerCase();
 
+            // Check if still loading
             if (isLoadingSeedExercises) {
                 container.innerHTML = '<div class="history-item">Loading exercise library…</div>';
                 return;
             }
 
+            console.log(`Total seed exercises: ${seedExercises.length}`);
+            console.log(`Exercise library size: ${exerciseLibrary.length}`);
+
             // Filter exercises based on search and "show only new" toggle
-            let filtered = seedExercises.filter(ex =>
-                ex.canonical_name.toLowerCase().includes(searchTerm) ||
-                ex.description.toLowerCase().includes(searchTerm) ||
-                ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm)) ||
-                ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm))
-            );
+            let filtered = seedExercises.filter(ex => {
+                try {
+                    const matchesSearch =
+                        ex.canonical_name.toLowerCase().includes(searchTerm) ||
+                        ex.description.toLowerCase().includes(searchTerm) ||
+                        (ex.primary_muscles && ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm))) ||
+                        (ex.equipment && ex.equipment.required && ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm)));
+                    return matchesSearch;
+                } catch (error) {
+                    console.error('Error filtering exercise:', ex.exercise_id, error);
+                    return false;
+                }
+            });
 
             // Apply "show only new" filter
             if (showOnlyNewExercises) {
                 filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.exercise_id));
             }
 
+            console.log(`Filtered exercises: ${filtered.length}`);
+
             if (filtered.length === 0) {
                 const message = showOnlyNewExercises
                     ? 'No new exercises found. Uncheck "Show only new" to see all.'
                     : 'No exercises found in library';
                 container.innerHTML = `<div class="history-item">${message}</div>`;
+                console.log('No exercises to display');
                 return;
             }
 
-            container.innerHTML = filtered.map(ex => {
-                const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
-                const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
-                const equipmentLabel = ex.equipment.required.length > 0
-                    ? ex.equipment.required.join(', ')
-                    : 'No equipment';
+            try {
+                container.innerHTML = filtered.map((ex, idx) => {
+                    try {
+                        const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
+                        const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
+                        const equipmentRequired = ex.equipment && ex.equipment.required ? ex.equipment.required : [];
+                        const equipmentLabel = equipmentRequired.length > 0
+                            ? equipmentRequired.join(', ')
+                            : 'No equipment';
 
-                const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
-                const isChecked = selectedExercisesForImport.has(ex.exercise_id);
-                const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
+                        const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
+                        const isChecked = selectedExercisesForImport.has(ex.exercise_id);
+                        const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
+                        const primaryMuscles = ex.primary_muscles || [];
 
-                return `
-                    <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
-                        <input type="checkbox"
-                               id="ex-check-${ex.exercise_id}"
-                               ${isChecked ? 'checked' : ''}
-                               ${checkboxDisabled ? 'disabled' : ''}
-                               onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
-                               style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
-                        <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
-                            <div style="font-weight: 600; margin-bottom: 4px;">
-                                ${ex.canonical_name}
-                                ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
+                        return `
+                            <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
+                                <input type="checkbox"
+                                       id="ex-check-${ex.exercise_id}"
+                                       ${isChecked ? 'checked' : ''}
+                                       ${checkboxDisabled ? 'disabled' : ''}
+                                       onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
+                                       style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
+                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">
+                                        ${ex.canonical_name}
+                                        ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${(ex.description || '').substring(0, 100)}${(ex.description || '').length > 100 ? '...' : ''}</div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                        <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
+                                        <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
+                                        <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${primaryMuscles.length} muscles</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${ex.description.substring(0, 100)}${ex.description.length > 100 ? '...' : ''}</div>
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                                <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
-                                <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
-                                <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${ex.primary_muscles.length} muscles</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                        `;
+                    } catch (error) {
+                        console.error(`Error rendering exercise ${ex.exercise_id}:`, error);
+                        return `<div class="history-item" style="color: var(--ios-red);">Error rendering ${ex.exercise_id}</div>`;
+                    }
+                }).join('');
+                console.log('Library exercises rendered successfully');
+            } catch (error) {
+                console.error('Error rendering library list:', error);
+                container.innerHTML = `<div class="history-item" style="color: var(--ios-red);">Error loading exercises. Check console for details.</div>`;
+            }
         }
 
         function filterLibraryExercises() {
