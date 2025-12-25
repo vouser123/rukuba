@@ -57,6 +57,7 @@
             touch-action: manipulation;
             user-select: none;
             overflow-x: hidden;
+            padding-bottom: 100px;
         }
 
         /* Header */
@@ -2470,7 +2471,7 @@
             exercisesContainer.innerHTML = sortedExercises.map(id => {
                 const entry = getLibraryEntryById(id);
                 if (!entry || entry.archived) return '';
-                return `<button class="pill" style="cursor: pointer; padding: 8px 14px; background: var(--ios-blue); color: white; font-weight: 500;" onclick="quickStartExercise('${id}')">${entry.name}</button>`;
+                return `<button class="pill" style="cursor: pointer; padding: 8px 14px; background: var(--ios-blue); color: white; font-weight: 500; white-space: normal; word-wrap: break-word; text-align: left; line-height: 1.4;" onclick="quickStartExercise('${id}')">${entry.name}</button>`;
             }).filter(Boolean).join('');
 
             container.style.display = exercisesContainer.innerHTML ? 'block' : 'none';

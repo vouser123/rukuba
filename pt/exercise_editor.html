@@ -220,11 +220,35 @@
             background: rgba(0, 122, 255, 0.1);
             font-weight: 600;
         }
+
+        .quick-start-btn {
+            white-space: normal;
+            word-wrap: break-word;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            padding: 12px 16px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 8px;
+        }
+
+        .bottom-bar .button { margin: 0; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>PT Exercise Editor</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>PT Exercise Editor</h1>
+            <a href="./pt_tracker.html" style="background: var(--ios-gray); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;">← Back to Tracker</a>
+        </div>
         <div style="font-size: 14px; color: var(--text-secondary);">Schema-driven exercise management</div>
     </div>
 
@@ -243,7 +267,10 @@
     <div id="editor-view" class="hidden">
         <button class="button button-secondary" onclick="backToList()">← Back to List</button>
         <div id="editor-form"></div>
-        <div style="height: 100px;"></div>
+        <div style="height: 80px;"></div>
+        <div class="bottom-bar">
+            <button class="button button-success" onclick="saveAndBackToList()" style="flex: 1;">💾 Save</button>
+        </div>
     </div>
 
     <div id="export-dialog" class="hidden">
@@ -754,6 +781,12 @@
             renderExerciseList();
         }
 
+        function saveAndBackToList() {
+            // Already saved via auto-save in updateFieldByPath
+            alert('Exercise saved!');
+            backToList();
+        }
+
         function showExportDialog() {
             const merged = [...baselineExercises];
 
@@ -809,8 +842,26 @@
 
                 // Check required fields from schema
                 required.forEach(fieldName => {
-                    if (ex[fieldName] === undefined || ex[fieldName] === null || ex[fieldName] === '') {
+                    const fieldSchema = props[fieldName];
+                    const value = ex[fieldName];
+                    const types = Array.isArray(fieldSchema.type) ? fieldSchema.type : [fieldSchema.type];
+                    const isNullable = types.includes('null');
+
+                    // Field is missing entirely
+                    if (value === undefined) {
                         errors.push(prefix + `Missing required field: ${fieldName}`);
+                        return;
+                    }
+
+                    // Field is null but not nullable
+                    if (value === null && !isNullable) {
+                        errors.push(prefix + `${fieldName} cannot be null`);
+                        return;
+                    }
+
+                    // Field is empty string (but not null) - only error if not nullable
+                    if (value === '' && !isNullable) {
+                        errors.push(prefix + `${fieldName} cannot be empty`);
                     }
                 });
 
