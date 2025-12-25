@@ -1,8 +1,11 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v2';
+const CACHE_NAME = 'pt-tracker-v4';
+const seedUrl = new URL('exercise_guidance_seed.json', self.location).pathname;
+const scopeUrl = new URL('./', self.location).pathname;
 // Only cache assets, not the HTML (which might have updates)
 const urlsToCache = [
-  '/'
+  scopeUrl,
+  seedUrl
 ];
 
 // Install service worker

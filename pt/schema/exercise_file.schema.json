@@ -50,7 +50,7 @@
           "minItems": 1
         },
         "secondary_muscles": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Meaningful stabilizers/synergists; may be rendered as lighter heat-map shading.",
           "items": {
             "type": "string"
@@ -67,7 +67,7 @@
           ]
         },
         "pattern_modifiers": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Pattern-level modifiers indicating structural dosage changes (e.g., duration vs reps). Values are flags; actual numbers live in the program layer.",
           "items": {
             "type": "string",
@@ -83,7 +83,7 @@
           "$ref": "#/$defs/equipment"
         },
         "form_parameters_required": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Form parameters that MUST be specified in the program layer.",
           "items": {
             "type": "string",
@@ -95,7 +95,8 @@
               "slope",
               "alternating",
               "distance",
-              "weight"
+              "weight",
+			  "strap_position"
             ]
           },
           "uniqueItems": true
@@ -144,7 +145,7 @@
       "description": "Equipment characteristics for this exercise.",
       "properties": {
         "required": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Equipment intrinsic to the exercise (cannot be removed without changing exercise definition).",
           "items": {
             "type": "string"
@@ -152,7 +153,7 @@
           "uniqueItems": true
         },
         "optional": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Equipment used for comfort or modification.",
           "items": {
             "type": "string"
@@ -168,7 +169,7 @@
       "description": "Tag groups for functional grouping, format/position, and visualization/heat-map mapping.",
       "properties": {
         "functional": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Functional group tags (e.g., balance, hip_strength, SIJ_control).",
           "items": {
             "type": "string"
@@ -176,7 +177,7 @@
           "uniqueItems": true
         },
         "format": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Execution format tags (e.g., standing, supine, sidelying, seated, dynamic_control, static_hold, single_leg).",
           "items": {
             "type": "string"
@@ -184,7 +185,7 @@
           "uniqueItems": true
         },
         "heatmap": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Optional body-region tags used for heat-map visualization.",
           "items": {
             "type": "string"
@@ -200,28 +201,28 @@
       "description": "Guidance broken into external cues, motor cues, compensation warnings, and safety flags.",
       "properties": {
         "external_cues": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Visible or tactile cues (what to look at or contact).",
           "items": {
             "type": "string"
           }
         },
         "motor_cues": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "How to move; internal and external movement cues.",
           "items": {
             "type": "string"
           }
         },
         "compensation_warnings": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Common compensation patterns to watch for and correct.",
           "items": {
             "type": "string"
           }
         },
         "safety_flags": {
-          "type": "array",
+          "type": ["array", "null"],
           "description": "Stop/modify conditions.",
           "items": {
             "type": "string"
