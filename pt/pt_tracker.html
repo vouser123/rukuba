@@ -618,7 +618,10 @@
 <body>
     <div class="header">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-            <h1 style="margin: 0;">💪 PT Exercise Tracker</h1>
+            <div>
+                <h1 style="margin: 0; display: inline;">💪 PT Exercise Tracker</h1>
+                <span style="font-size: 11px; color: var(--ios-gray); margin-left: 6px; vertical-align: super;" id="header-version">v1.4.0</span>
+            </div>
             <div id="streak-display" style="font-size: 14px; font-weight: 600; color: var(--ios-orange);"></div>
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -1235,7 +1238,7 @@
                         <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-color);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span style="font-size: 15px; color: var(--text-primary);">App Version</span>
-                                <span style="color: var(--ios-gray); font-size: 13px;">v1.3.0</span>
+                                <span style="color: var(--ios-gray); font-size: 13px;" id="app-version-display">v1.4.0</span>
                             </div>
                         </div>
                         <button onclick="reloadApp()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
@@ -1344,6 +1347,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
+        const APP_VERSION = 'v1.4.0'; // Updated: 2025-12-26 - Alternating in pattern_modifiers, library rename
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -3664,6 +3668,7 @@
 
         function showSettings() {
             loadPreferences();
+            document.getElementById('app-version-display').textContent = APP_VERSION;
             document.getElementById('settings-modal').classList.add('active');
             haptic('medium');
         }
@@ -5545,6 +5550,7 @@
 
         // Initialize
         loadPreferences(); // Load user preferences
+        document.getElementById('header-version').textContent = APP_VERSION; // Show version in header
         updateDisplay();
         updateStreakDisplay();
         updateQuickStartShortcuts();
