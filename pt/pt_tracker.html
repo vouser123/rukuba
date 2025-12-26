@@ -1219,9 +1219,15 @@
                 </div>
 
                 <div id="dosage-seconds-container" style="margin-bottom: 16px; display: none;">
-                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Seconds (per rep)</label>
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;" id="dosage-seconds-label">Seconds (per rep)</label>
                     <input type="number" id="dosage-seconds" class="modal-input" placeholder="e.g., 30" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
                     <div style="font-size: 12px; color: var(--ios-gray); margin-top: 4px; text-align: center;">Hold exercises typically 20-30s</div>
+                </div>
+
+                <div id="dosage-distance-container" style="margin-bottom: 16px; display: none;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Distance (feet)</label>
+                    <input type="number" id="dosage-distance" class="modal-input" placeholder="e.g., 100" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-top: 4px; text-align: center;">Distance to walk/move</div>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -3376,14 +3382,29 @@
             document.getElementById('dosage-sets').value = '';
             document.getElementById('dosage-reps').value = '';
             document.getElementById('dosage-seconds').value = '';
+            document.getElementById('dosage-distance').value = '';
 
-            // Show seconds field for hold exercises
-            const isHold = exercise.pattern_modifiers && exercise.pattern_modifiers.includes('hold_seconds');
+            // Dynamically show fields based on pattern_modifiers
+            const modifiers = exercise.pattern_modifiers || [];
             const secondsContainer = document.getElementById('dosage-seconds-container');
-            if (isHold) {
+            const secondsLabel = document.getElementById('dosage-seconds-label');
+            const distanceContainer = document.getElementById('dosage-distance-container');
+
+            // Check modifiers to determine what fields to show
+            if (modifiers.includes('hold_seconds')) {
                 secondsContainer.style.display = 'block';
+                secondsLabel.textContent = 'Hold Seconds (per rep)';
+            } else if (modifiers.includes('duration_seconds')) {
+                secondsContainer.style.display = 'block';
+                secondsLabel.textContent = 'Duration (seconds)';
             } else {
                 secondsContainer.style.display = 'none';
+            }
+
+            if (modifiers.includes('distance_feet')) {
+                distanceContainer.style.display = 'block';
+            } else {
+                distanceContainer.style.display = 'none';
             }
 
             document.getElementById('dosage-prompt-modal').classList.add('active');
@@ -3400,6 +3421,7 @@
             const sets = parseInt(document.getElementById('dosage-sets').value);
             const reps = parseInt(document.getElementById('dosage-reps').value);
             const seconds = parseInt(document.getElementById('dosage-seconds').value) || 0;
+            const distance = parseInt(document.getElementById('dosage-distance').value) || 0;
 
             if (!sets || !reps || sets < 1 || reps < 1) {
                 alert('Please enter valid sets and reps');
@@ -3409,10 +3431,19 @@
             if (!pendingExerciseImport) return;
 
             const ex = pendingExerciseImport;
-            const isHold = ex.pattern_modifiers && ex.pattern_modifiers.includes('hold_seconds');
+            const modifiers = ex.pattern_modifiers || [];
 
-            if (isHold && (!seconds || seconds < 1)) {
+            // Validate required fields based on modifiers
+            if (modifiers.includes('hold_seconds') && (!seconds || seconds < 1)) {
                 alert('Please enter valid seconds for this hold exercise');
+                return;
+            }
+            if (modifiers.includes('duration_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid duration in seconds');
+                return;
+            }
+            if (modifiers.includes('distance_feet') && (!distance || distance < 1)) {
+                alert('Please enter valid distance in feet');
                 return;
             }
 
@@ -3421,6 +3452,23 @@
             const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
             const simpleTags = ex.tags.functional || [];
             const equipmentList = ex.equipment.required || [];
+
+            const dosageSpec = {
+                type: modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
+                sets: sets,
+                repsPerSet: reps,
+                secondsPerRep: seconds
+            };
+
+            // Add distance if applicable
+            if (modifiers.includes('distance_feet') && distance > 0) {
+                dosageSpec.distanceFeet = distance;
+            }
+
+            // Build dosage summary for history
+            let dosageSummary = `${sets} sets × ${reps} reps`;
+            if (seconds > 0) dosageSummary += ` × ${seconds}s`;
+            if (distance > 0) dosageSummary += ` × ${distance}ft`;
 
             const newExercise = {
                 id: ex.exercise_id,
@@ -3442,23 +3490,13 @@
                 difficulty: '',
                 supersedes: [],
                 atlasUrl: '',
-                current: {
-                    type: isHold ? 'hold' : 'reps',
-                    sets: sets,
-                    repsPerSet: reps,
-                    secondsPerRep: seconds
-                },
+                current: dosageSpec,
                 history: [
                     {
                         timestamp: new Date().toISOString(),
-                        summary: `Imported from exercise library (${sets} sets × ${reps} reps${isHold ? ` × ${seconds}s` : ''})`,
+                        summary: `Imported from exercise library (${dosageSummary})`,
                         previous: {},
-                        next: {
-                            type: isHold ? 'hold' : 'reps',
-                            sets: sets,
-                            repsPerSet: reps,
-                            secondsPerRep: seconds
-                        },
+                        next: dosageSpec,
                         supersedes: []
                     }
                 ],
@@ -3482,7 +3520,7 @@
                 const patternMsg = ex.pattern === 'side'
                     ? '🔄 Side tracking enabled: Will log left and right separately'
                     : '✓ Bilateral exercise: Both sides work together';
-                alert(`"${ex.canonical_name}" added to your program!\n\n${sets} sets × ${reps} reps${isHold ? ` × ${seconds}s` : ''}\n\n${patternMsg}`);
+                alert(`"${ex.canonical_name}" added to your program!\n\n${dosageSummary}\n\n${patternMsg}`);
                 haptic('success');
             }
         }
