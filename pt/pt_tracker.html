@@ -738,7 +738,6 @@
                 <div id="recent-exercises-container" style="margin-bottom: 12px;"></div>
                 <div class="history-list" id="exercise-list-content"></div>
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <button class="control-btn btn-success" onclick="showAddExerciseModal()" style="flex: 1;">+ Add New</button>
                     <button class="control-btn btn-primary" onclick="showLibraryBrowser()" style="flex: 1;">📚 Browse Library</button>
                     <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
                 </div>
@@ -746,88 +745,6 @@
                     <button class="control-btn btn-primary" onclick="showPlanSessionModal()" style="flex: 1;">📅 Plan Session</button>
                     <button class="control-btn btn-secondary" onclick="showDataBackup()" style="flex: 1;">💾 Data / Backup</button>
                 </div>
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                    <button class="control-btn btn-secondary" onclick="archiveExamples()" style="flex: 1;" id="archive-examples-btn">🗑️ Archive Examples</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add/Edit Exercise Modal -->
-    <div class="modal" id="add-exercise-modal" onclick="if(event.target === this) closeAddExerciseModal()">
-        <div class="modal-content">
-            <div class="modal-drag-handle"></div>
-            <div class="modal-title" id="add-exercise-title">Add Exercise</div>
-            <div class="modal-form">
-                <input type="text" class="modal-input" id="new-exercise-name" placeholder="Exercise name">
-                <select class="modal-select" id="new-exercise-type">
-                    <option value="reps">Rep-based</option>
-                    <option value="timed">Timed Reps</option>
-                    <option value="hold">Hold</option>
-                    <option value="duration">Duration</option>
-                    <option value="amrap">AMRAP</option>
-                    <option value="distance">Distance</option>
-                </select>
-                <input type="number" class="modal-input" id="new-sets" placeholder="Sets (e.g., 3)" value="3">
-                <input type="number" class="modal-input" id="new-reps" placeholder="Reps per set (e.g., 10)" value="10">
-                <input type="number" class="modal-input" id="new-seconds" placeholder="Seconds (for timed)" value="">
-                <div id="tag-selector-container" style="margin: 12px 0;"></div>
-
-                <!-- ATLAS Features -->
-                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
-                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ios-blue);">
-                        🔄 Side Tracking
-                    </div>
-                    <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">
-                        <strong>Check bilateral</strong> if both sides work together (squats, wall sits)<br>
-                        <strong>Select left/right</strong> if sides work separately (clams, single leg raises)
-                    </div>
-                    <label style="display: flex; align-items: center; font-size: 15px; cursor: pointer; background: var(--bg-primary); padding: 8px; border-radius: 6px;">
-                        <input type="checkbox" id="bilateral-checkbox" style="margin-right: 8px;">
-                        <span>✓ Bilateral (both sides work together)</span>
-                    </label>
-                    <div id="side-options-container" style="margin-top: 12px;"></div>
-                </div>
-
-                <!-- Supersedes Section -->
-                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
-                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ios-blue);">
-                        🔄 Supersedes (Replaces Previous Exercises)
-                    </div>
-                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">
-                        Select exercises that this new/updated version replaces
-                    </div>
-                    <div id="supersedes-selector-container"></div>
-                </div>
-
-                <!-- ATLAS: Muscles & Regions -->
-                <textarea class="modal-input" id="primary-muscles" placeholder="Primary muscles (e.g., quadriceps, gluteus maximus)" style="min-height: 50px; resize: vertical;"></textarea>
-                <textarea class="modal-input" id="anatomic-regions" placeholder="Anatomic regions (e.g., knee, hip, lower back)" style="min-height: 50px; resize: vertical;"></textarea>
-
-                <!-- Equipment & Modifiers -->
-                <select class="modal-select" id="equipment-select" multiple style="min-height: 80px;">
-                    <option value="none">No equipment</option>
-                    <option value="band">Resistance band</option>
-                    <option value="weights">Weights/dumbbells</option>
-                    <option value="ball">Exercise ball</option>
-                    <option value="step">Step/platform</option>
-                    <option value="wall">Wall</option>
-                    <option value="chair">Chair</option>
-                    <option value="foam_roller">Foam roller</option>
-                    <option value="mat">Mat</option>
-                </select>
-                <div style="font-size: 12px; color: var(--ios-gray); margin-top: 4px; margin-bottom: 8px;">Hold Ctrl/Cmd to select multiple</div>
-
-                <select class="modal-select" id="difficulty-select">
-                    <option value="">Difficulty (optional)</option>
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                </select>
-            </div>
-            <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeAddExerciseModal()">Cancel</button>
-                <button class="modal-save" onclick="saveNewExercise()">Save</button>
             </div>
         </div>
     </div>
@@ -1359,129 +1276,7 @@
             }
         }
 
-        const ATLAS_SEED = [
-            {
-                id: 'goblet_squat',
-                name: 'Goblet Squat (Example)',
-                dosage: 'S3x10 (both)',
-                supersedes: ['ex_basic_squats_01'],
-                summary: 'Example exercise - edit or delete as needed'
-            },
-            {
-                id: 'plank_hold',
-                name: 'Plank Hold (Example)',
-                dosage: 'S3x1',
-                hold_seconds: 30,
-                supersedes: [],
-                summary: 'Example exercise - edit or delete as needed'
-            },
-            {
-                id: 'step_ups',
-                name: 'Step Ups (Example)',
-                dosage: 'S3x10 (side)',
-                supersedes: ['ex_basic_squats_01'],
-                summary: 'Example exercise - edit or delete as needed'
-            },
-            {
-                id: 'clamshells',
-                name: 'Clamshells (Example)',
-                dosage: 'S3x15 (side)',
-                supersedes: [],
-                summary: 'Example exercise - edit or delete as needed'
-            },
-            {
-                id: 'bridge_hold',
-                name: 'Bridge Hold (Example)',
-                dosage: 'S3x1',
-                hold_seconds: 30,
-                supersedes: [],
-                summary: 'Example exercise - edit or delete as needed'
-            },
-            {
-                id: 'bike_intervals',
-                name: 'Bike Intervals (Example)',
-                dosage: 'S4x1',
-                duration_seconds: 300,
-                supersedes: [],
-                summary: 'Example exercise - edit or delete as needed'
-            },
-            {
-                id: 'pushup_amrap',
-                name: 'Push-up AMRAP (Example)',
-                dosage: 'AMRAP',
-                amrap_window_sec: 60,
-                supersedes: [],
-                summary: 'Example exercise - edit or delete as needed'
-            },
-            {
-                id: 'walk_distance',
-                name: 'Walk (Example)',
-                dosage: 'S1x400',
-                distance_meters: 400,
-                supersedes: [],
-                summary: 'Example exercise - edit or delete as needed'
-            }
-        ];
-
-        function parseAtlasDosage(dosage = '') {
-            const match = /S(\d+)x(\d+)/i.exec(dosage);
-            const sets = match ? parseInt(match[1], 10) : 3;
-            const repsPerSet = match ? parseInt(match[2], 10) : 10;
-            const isSide = /(side)/i.test(dosage);
-            const isBoth = /(both)/i.test(dosage);
-
-            return { sets, repsPerSet, side: isSide ? 'side' : isBoth ? 'both' : null };
-        }
-
-        function atlasSeedToSpec(entry) {
-            const base = parseAtlasDosage(entry.dosage || '');
-            const spec = {
-                type: 'reps',
-                sets: entry.sets_override || base.sets || 3,
-                repsPerSet: base.repsPerSet || 10,
-                secondsPerRep: 0
-            };
-
-            if (entry.hold_seconds) {
-                spec.type = 'hold';
-                spec.repsPerSet = base.repsPerSet || 1;
-                spec.secondsPerRep = entry.hold_seconds;
-            } else if (entry.duration_seconds) {
-                spec.type = 'duration';
-                spec.repsPerSet = base.repsPerSet || 1;
-                spec.secondsPerRep = entry.duration_seconds;
-            } else if (entry.amrap_window_sec) {
-                spec.type = 'amrap';
-                spec.repsPerSet = 0;
-                spec.secondsPerRep = entry.amrap_window_sec;
-            } else if (entry.distance_meters) {
-                spec.type = 'distance';
-                spec.repsPerSet = entry.distance_meters;
-                spec.secondsPerRep = 0;
-            }
-
-            return spec;
-        }
-
-        const DEFAULT_LIBRARY = ATLAS_SEED.map(entry => {
-            const spec = atlasSeedToSpec(entry);
-            return {
-                id: entry.id,
-                name: entry.name,
-                supersedes: entry.supersedes || [],
-                atlasUrl: ATLAS_REFERENCE_URL,
-                current: spec,
-                history: [
-                    {
-                        timestamp: new Date().toISOString(),
-                        summary: entry.summary || 'Seeded from atlas_pt_min_250817.json',
-                        previous: null,
-                        next: spec,
-                        supersedes: entry.supersedes || []
-                    }
-                ]
-            };
-        });
+        // Exercise library loaded from localStorage or starts empty
         let exerciseLibrary = loadExerciseLibrary();
 
         function getInitialExercise() {
@@ -1557,24 +1352,12 @@
         function loadExerciseLibrary() {
             const version = localStorage.getItem(PT_VERSION_KEY);
             const storedLibrary = localStorage.getItem(LIBRARY_KEY);
-            const storedHistory = localStorage.getItem(STORAGE_KEY);
-
-            // True first run: no version, no library, no history
-            const isFirstRun = !version && !storedLibrary && !storedHistory;
-
-            if (isFirstRun) {
-                console.log('First run detected - seeding default exercises');
-                localStorage.setItem(LIBRARY_KEY, JSON.stringify(DEFAULT_LIBRARY));
-                localStorage.setItem(PT_VERSION_KEY, PT_DATA_VERSION);
-                return DEFAULT_LIBRARY;
-            }
-
-            // Not first run: load existing library
+            // Load existing library or start empty
             if (storedLibrary) {
                 try {
                     const parsed = JSON.parse(storedLibrary);
                     if (Array.isArray(parsed)) {
-                        return parsed.length > 0 ? parsed : [];
+                        return parsed;
                     }
                 } catch (e) {
                     console.error('Failed to parse exercise library:', e);
@@ -1583,7 +1366,8 @@
                 }
             }
 
-            // No stored library but not first run (user deleted library)
+            // No stored library - start empty
+            // User can browse library to import exercises
             return [];
         }
 
@@ -3937,34 +3721,6 @@
                 exerciseLibrary = loadExerciseLibrary();
                 haptic('success');
                 showArchivedExercises(); // Refresh archived view
-            });
-        }
-
-        function archiveExamples() {
-            const examples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
-
-            if (examples.length === 0) {
-                alert('No example exercises found to archive.');
-                return;
-            }
-
-            const message = `Archive ${examples.length} example exercise${examples.length !== 1 ? 's' : ''}?\n\n${examples.map(ex => ex.name).join('\n')}\n\nYou can restore them from the Archived section later.`;
-
-            showActionSheet(message, () => {
-                examples.forEach(ex => {
-                    ex.archived = true;
-                });
-                persistExerciseLibrary();
-                exerciseLibrary = loadExerciseLibrary();
-                filterExercises(); // Refresh the list
-                haptic('success');
-                alert(`${examples.length} example${examples.length !== 1 ? 's' : ''} archived successfully!`);
-
-                // Hide the button if no more examples
-                const remainingExamples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
-                if (remainingExamples.length === 0) {
-                    document.getElementById('archive-examples-btn').style.display = 'none';
-                }
             });
         }
 
