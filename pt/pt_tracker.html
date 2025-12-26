@@ -1925,7 +1925,14 @@
                 return;
             }
 
-            document.getElementById('exercise-name').textContent = currentExercise.name;
+            // Show exercise name with pattern badge
+            const entry = getLibraryEntryById(currentExercise.id);
+            let exerciseNameDisplay = currentExercise.name;
+            if (entry) {
+                const patternBadge = entry.pattern === 'side' ? ' 🔄' : ' ✓';
+                exerciseNameDisplay += patternBadge;
+            }
+            document.getElementById('exercise-name').textContent = exerciseNameDisplay;
 
             // For sided exercises, show per-side progress
             const hasSides = currentExercise.sideOptions && currentExercise.sideOptions.length > 0 && !currentExercise.bilateral;
@@ -5168,9 +5175,10 @@
 
             container.innerHTML = activeExercises.map(ex => {
                 const isCurrent = ex.id === currentExercise.id;
+                const patternBadge = ex.pattern === 'side' ? ' 🔄' : ' ✓';
                 return `
                     <div class="history-item" style="cursor: pointer; background: ${isCurrent ? 'rgba(0,122,255,0.1)' : 'white'};" onclick="quickSwitchTo('${ex.id}')">
-                        <div>${isCurrent ? '▶ ' : ''}${ex.name}${ex.favorite ? ' ⭐' : ''}</div>
+                        <div>${isCurrent ? '▶ ' : ''}${ex.name}${patternBadge}${ex.favorite ? ' ⭐' : ''}</div>
                         <div class="history-meta">${describeSpec(ex.current || {})}</div>
                     </div>
                 `;
