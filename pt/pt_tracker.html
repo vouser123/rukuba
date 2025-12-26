@@ -1886,7 +1886,14 @@
                 const sideLabels = currentExercise.sideOptions.map(side =>
                     `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
                 ).join(' · ');
+
+                // Show alternating indicator if applicable
+                const entry = getLibraryEntryById(currentExercise.id);
+                const hasAlternating = entry && (entry.form_parameters_required || []).includes('alternating');
                 remainingLabel = `${sideLabels}`;
+                if (hasAlternating) {
+                    remainingLabel += ' ⚡ Alternating';
+                }
             }
 
             if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
@@ -2189,6 +2196,7 @@
             const sideOptions = entry.sideOptions || [];
 
             // For sided exercises, show which sides need more sets
+            const hasAlternating = entry && (entry.form_parameters_required || []).includes('alternating');
             let subtitleText = `Target: ${targetReps} reps · Enter actual reps performed`;
             if (sideOptions.length > 0 && !isBilateral && currentExercise.baseSets) {
                 // Count completed sets per side
@@ -2213,6 +2221,9 @@
                     `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
                 ).join(', ');
                 subtitleText = `${progressText} · Enter reps for selected side`;
+                if (hasAlternating) {
+                    subtitleText += ' · ⚡ ALTERNATE sides each rep';
+                }
                 logSetSide = suggestedSide;
             } else {
                 logSetSide = sideOptions[0] || 'both';
@@ -3507,6 +3518,7 @@
                 secondary_muscles: ex.secondary_muscles,
                 pattern: ex.pattern,
                 pattern_modifiers: ex.pattern_modifiers,
+                form_parameters_required: ex.form_parameters_required || [],
                 equipment: equipmentList,
                 equipmentOptional: ex.equipment.optional || [],
                 guidance: ex.guidance,
@@ -3545,9 +3557,13 @@
             } else {
                 // Single import or last in bulk - show success message
                 closeLibraryBrowser();
-                const patternMsg = ex.pattern === 'side'
+                const hasAlternating = (ex.form_parameters_required || []).includes('alternating');
+                let patternMsg = ex.pattern === 'side'
                     ? '🔄 Side tracking enabled: Will log left and right separately'
                     : '✓ Bilateral exercise: Both sides work together';
+                if (hasAlternating && ex.pattern === 'side') {
+                    patternMsg += '\n⚡ ALTERNATING: Switch sides on each rep within the set';
+                }
                 alert(`"${ex.canonical_name}" added to your program!\n\n${dosageSummary}\n\n${patternMsg}`);
                 haptic('success');
             }
@@ -3897,9 +3913,13 @@
 
                 const statsHtml = `<div style="font-size: 12px; color: ${adherenceColor}; margin-top: 4px; font-weight: 600;">${adherenceIcon}${adherenceText}${totalSessions > 0 ? ` · ${totalSessions} session${totalSessions > 1 ? 's' : ''} total` : ''}</div>`;
 
+                // Show alternating indicator
+                const hasAlternating = (ex.form_parameters_required || []).includes('alternating');
+                const alternatingIndicator = hasAlternating && ex.pattern === 'side' ? ' ⚡' : '';
+
                 return `
                     <div class="history-item" style="cursor: pointer; border-left: 4px solid ${adherenceColor};">
-                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}</div>
+                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}${alternatingIndicator}</div>
                         ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
                         <div class="history-meta">${describeSpec(spec)}</div>
                         ${statsHtml}
@@ -4959,6 +4979,11 @@
                         <span class="pill" style="background: ${ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)'}; color: white;">
                             ${ex.pattern === 'side' ? '🔄 Sided Exercise (work left and right separately)' : '✓ Bilateral Exercise (both sides together)'}
                         </span>
+                        ${(ex.form_parameters_required || []).includes('alternating') && ex.pattern === 'side' ? `
+                        <span class="pill" style="background: var(--ios-orange); color: white; margin-left: 6px;">
+                            ⚡ ALTERNATING (switch sides each rep within set)
+                        </span>
+                        ` : ''}
                     </div>
                 </div>
 
