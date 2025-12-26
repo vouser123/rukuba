@@ -8,65 +8,68 @@
 - shoulder
 - other
 
-## pattern
-- side          # q sets of z reps per side
+## pattern (for qxz, where q and z are int)	
+- side          # q sets of z reps per side (i.e., 2x10 means 2 sets of 10 on the right and 2 sets of 10 on the left)
 - both          # q sets of z reps done with both sides simultaneously
-- side-measure  # q sets of z measured units per side
 
 ## pattern_modifiers
-- duration_seconds  # replaces reps with seconds (e.g., 3 x 30s)
+- duration_seconds  # replaces reps with seconds (e.g., 3 x 30 = 3 sets, each 30 seconds)
 - hold_seconds      # adds isometric hold time per rep (e.g., 3 x 10 reps, 5s hold)
 - AMRAP             # as many reps as possible in a defined duration
+- distance_feet     # replaces reps with distance measured in feet (e.g., 4 x 20 = 4 sets, each 20 feet)
 
 ## form_parameters
-- eyes
-- surface
-- band_resistance
-- band_position
-- strap_position
-- slope
-- alternating
-- distance
-- weight
+- eyes             	# Visual condition (e.g., open, closed, tracking). Required for many balance exercises.
+- surface          	# Surface type used during the exercise (e.g., firm, foam, BOSU).
+- band_resistance	# Describes resistance level of band used (e.g., light, medium, heavy).
+- band_position 	# Location of band position on the body (e.g., above knees, at ankles). Dosage will show position as 'variable' when position is changed as part of progression or based on symptoms.
+- strap_position	# Same as band_position, but used with a canvas strap or similar, instead of resistance band.
+- slope				# Incline or decline used during the exercise (e.g., uphill, downhill).
+- alternating		# Indicates reps alternate between sides within each set (e.g., left-right-left...).
+- distance			# Indicates height, length, etc. where this is a separate variable and may change frequently in dosage or need logged separately in sessions (e.g., height of step for step down or step up).
+- weight			# Weight (in lbs) (if applicable). Log as int.
 
 ## equipment (examples)
 - support_surface
 - strap
-- stability_ball_22in
+- Swiss Ball
 - small_ball_9in
 - foam_pad
 - miniband
-- long band
+- long_band
 - ankle_weights
-- dumbbell_pair
-- wall
+- dumbbell
 - step
 
 ## tags.functional (examples)
-- hip_strength
-- knee_strength
-- ankle_control
-- core_control
-- SIJ_control
-- balance
-- gait
-- posture
-- mobility
-- stability
+- ankle_control 		# Trains ankle stability or alignment
+- balance_training		# Trains balance through static or dynamic body control
+- core_control			# Trains or requires active core engagement to maintain posture, regulate movement, or stabilize the trunk without load emphasis. Often used for motor control, balance, or positioning.
+- core_strength			# Strengthens core musculature through load-bearing, sustained effort, or resistance. Emphasizes force production or endurance.
+- functional_task_prep	# Prepares body for real-life movement demands
+- glute_control			# Trains glute activation for neuromuscular retraining, alignment control, or postural stability. Does not require heavy resistance and is often used to correct movement patterns or improve joint support.
+- glute_strength		# Strengthens glute muscles through sustained effort, resistance, or bodyweight load. Emphasizes force production, endurance, or power generation.
+- hamstring_strength	# Strengthens hamstrings during isolated or compound motion
+- hip_flexor			# Trains or activates hip flexor muscles
+- knee_control			# Requires control of knee motion or alignment
+- nerve_glide			# Mobilizes neural structures via controlled movement
+- pain_relief			# Used to reduce pain, sensitivity, or neural irritability through movement, positioning, or desensitization.
+- patellofemoral		# Targets or accommodates patellofemoral joint mechanics
+- quad_control 			# Trains quadriceps for movement precision or alignment without load focus
+- quad_strength 		# Strengthens quadriceps during movement or loading
+- trunk_motion_reset	# Restores trunk motion post-immobility or pain
 
 ## tags.format (examples)
-- supine
-- sidelying
-- prone
-- seated
-- standing
-- quadruped
-- dynamic_control
-- static_hold
-- single_leg
-- bilateral
-- supported
-- unsupported
+- dynamic_control	  # Involves active movement requiring muscular or positional control. May include single-plane or complex patterns, and is used to distinguish from static holds.
+- supine		      #  Exercise performed in supine position
+- seated			  # Exercise performed while sitting on a surface
+- side_lying		  # Exercise performed lying on the side
+- single_leg		  # Performed with one leg as primary load-bearing limb
+- standing			  # Exercise performed in upright weight-bearing posture
+- static_hold		  # Involves isometric holding without movement
+- unsupported_balance # Requires balance without upper body support
+- controlled_descent  # Emphasizes slow, eccentric lowering or downward movement under control
+
 
 ## tags.heatmap (examples)
 - hip_lateral
