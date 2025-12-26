@@ -3440,13 +3440,20 @@
 
             closeDosagePrompt();
             closeExerciseDetail();
-            closeLibraryBrowser();
 
-            const patternMsg = ex.pattern === 'side'
-                ? '🔄 Side tracking enabled: Will log left and right separately'
-                : '✓ Bilateral exercise: Both sides work together';
-            alert(`"${ex.canonical_name}" added to your program!\n\n${sets} sets × ${reps} reps${isHold ? ` × ${seconds}s` : ''}\n\n${patternMsg}`);
-            haptic('success');
+            // Check if we're in bulk import mode
+            if (bulkImportQueue && bulkImportQueue.length > 0) {
+                // More exercises to import, continue to next
+                processNextBulkImport();
+            } else {
+                // Single import or last in bulk - show success message
+                closeLibraryBrowser();
+                const patternMsg = ex.pattern === 'side'
+                    ? '🔄 Side tracking enabled: Will log left and right separately'
+                    : '✓ Bilateral exercise: Both sides work together';
+                alert(`"${ex.canonical_name}" added to your program!\n\n${sets} sets × ${reps} reps${isHold ? ` × ${seconds}s` : ''}\n\n${patternMsg}`);
+                haptic('success');
+            }
         }
 
         function exportExerciseLibrary() {
@@ -5095,83 +5102,55 @@
             showDosagePrompt(ex);
         }
 
+        // Queue for bulk import - process one at a time with dosage prompts
+        let bulkImportQueue = [];
+
         function bulkImportExercises() {
             if (selectedExercisesForImport.size === 0) {
                 alert('No exercises selected');
                 return;
             }
 
-            let importedCount = 0;
-            const defaultSets = 3;
-            const defaultReps = 10;
-
-            selectedExercisesForImport.forEach(exerciseId => {
+            // Convert selected IDs to array and filter out already-imported
+            bulkImportQueue = Array.from(selectedExercisesForImport).filter(exerciseId => {
                 const ex = seedExercises.find(e => e.exercise_id === exerciseId);
-                if (!ex) return;
-
+                if (!ex) return false;
                 // Skip if already imported
-                if (exerciseLibrary.find(e => e.id === ex.exercise_id)) return;
-
-                const isHold = ex.pattern_modifiers && ex.pattern_modifiers.includes('hold_seconds');
-                const isBilateral = ex.pattern === 'both';
-                const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
-                const simpleTags = ex.tags.functional || [];
-                const equipmentList = ex.equipment.required || [];
-
-                const newExercise = {
-                    id: ex.exercise_id,
-                    name: ex.canonical_name,
-                    description: ex.description,
-                    pt_category: ex.pt_category,
-                    primary_muscles: ex.primary_muscles,
-                    secondary_muscles: ex.secondary_muscles,
-                    pattern: ex.pattern,
-                    pattern_modifiers: ex.pattern_modifiers,
-                    equipment: equipmentList,
-                    equipmentOptional: ex.equipment.optional || [],
-                    guidance: ex.guidance,
-                    tags: simpleTags,
-                    bilateral: isBilateral,
-                    sideOptions: sideOptions,
-                    primaryMuscles: ex.primary_muscles.join(', '),
-                    anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
-                    difficulty: '',
-                    supersedes: [],
-                    atlasUrl: '',
-                    current: {
-                        type: isHold ? 'hold' : 'reps',
-                        sets: defaultSets,
-                        repsPerSet: defaultReps,
-                        secondsPerRep: isHold ? 30 : 0
-                    },
-                    history: [
-                        {
-                            timestamp: new Date().toISOString(),
-                            summary: `Imported from exercise library with default dosage`,
-                            previous: {},
-                            next: {
-                                type: isHold ? 'hold' : 'reps',
-                                sets: defaultSets,
-                                repsPerSet: defaultReps,
-                                secondsPerRep: isHold ? 30 : 0
-                            },
-                            supersedes: []
-                        }
-                    ],
-                    favorite: false,
-                    archived: false
-                };
-
-                exerciseLibrary.push(newExercise);
-                importedCount++;
+                if (exerciseLibrary.find(e => e.id === ex.exercise_id)) return false;
+                return true;
             });
 
-            persistExerciseLibrary();
+            if (bulkImportQueue.length === 0) {
+                alert('All selected exercises are already in your program');
+                selectedExercisesForImport.clear();
+                return;
+            }
+
+            // Clear selection and close library browser
             selectedExercisesForImport.clear();
             closeLibraryBrowser();
 
-            alert(`Successfully imported ${importedCount} exercise${importedCount !== 1 ? 's' : ''}!\n\n⚠️ Default dosage applied (3 sets × 10 reps).\nUpdate each exercise with your PT's prescription.`);
-            haptic('success');
+            // Start importing first exercise
+            processNextBulkImport();
+        }
+
+        function processNextBulkImport() {
+            if (bulkImportQueue.length === 0) {
+                // All done!
+                alert('All exercises imported successfully!');
+                haptic('success');
+                return;
+            }
+
+            // Get next exercise ID and show dosage prompt
+            const exerciseId = bulkImportQueue.shift();
+            const ex = seedExercises.find(e => e.exercise_id === exerciseId);
+            if (ex) {
+                showDosagePrompt(ex);
+            } else {
+                // Skip if not found, continue to next
+                processNextBulkImport();
+            }
         }
 
         function closeLibraryBrowser() {
