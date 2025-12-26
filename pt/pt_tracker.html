@@ -749,6 +749,37 @@
         </div>
     </div>
 
+    <!-- Edit Dosage Modal -->
+    <div class="modal" id="edit-dosage-modal" onclick="if(event.target === this) closeEditDosage()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title" id="edit-dosage-title">Edit Dosage</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 16px;">Update your PT's prescribed dosage</div>
+
+                <label>Sets</label>
+                <input type="number" class="modal-input" id="edit-sets" placeholder="Sets">
+
+                <label>Reps (per set)</label>
+                <input type="number" class="modal-input" id="edit-reps" placeholder="Reps">
+
+                <div id="edit-seconds-container" style="display: none;">
+                    <label id="edit-seconds-label">Seconds (per rep)</label>
+                    <input type="number" class="modal-input" id="edit-seconds" placeholder="Seconds">
+                </div>
+
+                <div id="edit-distance-container" style="display: none;">
+                    <label>Distance (feet)</label>
+                    <input type="number" class="modal-input" id="edit-distance" placeholder="Distance in feet">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeEditDosage()">Cancel</button>
+                <button class="modal-save" onclick="saveEditedDosage()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Session Notes Modal -->
     <div class="modal" id="session-notes-modal" onclick="if(event.target === this) closeSessionNotesModal()">
         <div class="modal-content">
@@ -3846,263 +3877,94 @@
             }
         }
 
-        function showAddExerciseModal() {
-            editingExerciseId = null;
-            selectedTags = [];
-            selectedSideOptions = [];
-            selectedSupersedes = [];
-            document.getElementById('add-exercise-title').textContent = 'Add Exercise';
-            document.getElementById('new-exercise-name').value = '';
-            document.getElementById('new-exercise-type').value = 'reps';
-            document.getElementById('new-sets').value = '3';
-            document.getElementById('new-reps').value = '10';
-            document.getElementById('new-seconds').value = '';
-            document.getElementById('bilateral-checkbox').checked = false;
-            document.getElementById('primary-muscles').value = '';
-            document.getElementById('anatomic-regions').value = '';
-            document.getElementById('equipment-select').selectedIndex = -1;
-            document.getElementById('difficulty-select').value = '';
-            renderTagSelector();
-            renderSideOptionsSelector();
-            renderSupersedesSelector();
-            document.getElementById('add-exercise-modal').classList.add('active');
-            haptic('medium');
-        }
-
-        function closeAddExerciseModal() {
-            document.getElementById('add-exercise-modal').classList.remove('active');
-            haptic('medium');
-        }
-
-        function renderTagSelector() {
-            const container = document.getElementById('tag-selector-container');
-            container.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Tags (body parts):</div>' +
-                AVAILABLE_TAGS.map(tag => {
-                    const active = selectedTags.includes(tag);
-                    return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleTag('${tag}')">${tag}</span>`;
-                }).join(' ');
-        }
-
-        function toggleTag(tag) {
-            if (selectedTags.includes(tag)) {
-                selectedTags = selectedTags.filter(t => t !== tag);
-            } else {
-                selectedTags.push(tag);
-            }
-            renderTagSelector();
-        }
-
-        function renderSideOptionsSelector() {
-            const container = document.getElementById('side-options-container');
-            const isBilateral = document.getElementById('bilateral-checkbox').checked;
-
-            if (isBilateral) {
-                container.innerHTML = '<div style="font-size: 13px; color: var(--ios-gray); font-style: italic;">Side tracking disabled (bilateral exercise)</div>';
-                selectedSideOptions = [];
-                return;
-            }
-
-            const hasSelection = selectedSideOptions.length > 0;
-            let helpText;
-            if (selectedSideOptions.length === 2 && selectedSideOptions.includes('left') && selectedSideOptions.includes('right')) {
-                helpText = '✓ Will log left and right separately (e.g., clams)';
-            } else if (selectedSideOptions.length === 1) {
-                helpText = `✓ Will ask which ${selectedSideOptions[0]} side when logging`;
-            } else if (selectedSideOptions.length === 3) {
-                helpText = '✓ Will ask which side (left/right/both)';
-            } else {
-                helpText = '⚠️ Tap which sides - select BOTH for exercises like clams';
-            }
-
-            container.innerHTML = `
-                <div style="background: var(--bg-primary); padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Tap which sides this exercise uses:</div>
-                    <div style="font-size: 12px; color: ${hasSelection ? 'var(--ios-green)' : 'var(--ios-orange)'}; margin-bottom: 8px;">${helpText}</div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        ${SIDE_OPTIONS_AVAILABLE.map(side => {
-                            const active = selectedSideOptions.includes(side);
-                            return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'}; padding: 8px 16px; font-weight: 600;" onclick="toggleSideOption('${side}')">${side}</span>`;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function toggleSideOption(side) {
-            if (selectedSideOptions.includes(side)) {
-                selectedSideOptions = selectedSideOptions.filter(s => s !== side);
-            } else {
-                selectedSideOptions.push(side);
-            }
-            renderSideOptionsSelector();
-        }
-
-        function renderSupersedesSelector() {
-            const container = document.getElementById('supersedes-selector-container');
-
-            // Get all exercises except the one being edited
-            const availableExercises = exerciseLibrary.filter(ex => {
-                // Don't show archived exercises
-                if (ex.archived) return false;
-                // Don't show the exercise being edited
-                if (editingExerciseId && ex.id === editingExerciseId) return false;
-                return true;
-            });
-
-            if (availableExercises.length === 0) {
-                container.innerHTML = '<div style="font-size: 13px; color: var(--ios-gray); font-style: italic;">No other exercises available</div>';
-                return;
-            }
-
-            const hasSelection = selectedSupersedes.length > 0;
-            const helpText = hasSelection
-                ? `✓ Replaces ${selectedSupersedes.length} exercise${selectedSupersedes.length > 1 ? 's' : ''}`
-                : 'No exercises selected';
-
-            container.innerHTML = `
-                <div style="background: var(--bg-primary); padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 12px; color: ${hasSelection ? 'var(--ios-green)' : 'var(--ios-gray)'}; margin-bottom: 8px;">${helpText}</div>
-                    <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
-                        ${availableExercises.map(ex => {
-                            const active = selectedSupersedes.includes(ex.id);
-                            return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'}; padding: 6px 12px; font-size: 13px;" onclick="toggleSupersedes('${ex.id}')">${ex.name}${active ? ' ✓' : ''}</span>`;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function toggleSupersedes(exerciseId) {
-            if (selectedSupersedes.includes(exerciseId)) {
-                selectedSupersedes = selectedSupersedes.filter(id => id !== exerciseId);
-            } else {
-                selectedSupersedes.push(exerciseId);
-            }
-            renderSupersedesSelector();
-        }
-
-        // Update bilateral checkbox listener
-        document.addEventListener('DOMContentLoaded', () => {
-            const bilateralCheckbox = document.getElementById('bilateral-checkbox');
-            if (bilateralCheckbox) {
-                bilateralCheckbox.addEventListener('change', renderSideOptionsSelector);
-            }
-        });
-
-        function saveNewExercise() {
-            const name = document.getElementById('new-exercise-name').value.trim();
-            const type = document.getElementById('new-exercise-type').value;
-            const sets = parseInt(document.getElementById('new-sets').value);
-            const reps = parseInt(document.getElementById('new-reps').value);
-            const seconds = parseInt(document.getElementById('new-seconds').value);
-            const isBilateral = document.getElementById('bilateral-checkbox').checked;
-
-            // ATLAS fields
-            const primaryMuscles = document.getElementById('primary-muscles').value.trim();
-            const anatomicRegions = document.getElementById('anatomic-regions').value.trim();
-            const equipmentSelect = document.getElementById('equipment-select');
-            const equipment = Array.from(equipmentSelect.selectedOptions).map(opt => opt.value);
-            const difficulty = document.getElementById('difficulty-select').value;
-
-            if (!name) {
-                alert('Please enter an exercise name.');
-                return;
-            }
-
-            if (!sets || sets <= 0) {
-                alert('Please enter a valid number of sets.');
-                return;
-            }
-
-            const spec = {
-                type: type,
-                sets: sets,
-                repsPerSet: reps || 0,
-                secondsPerRep: seconds || 0
-            };
-
-            // Use selectedSupersedes array (exercise IDs)
-            const supersedes = selectedSupersedes;
-
-            if (editingExerciseId) {
-                // Edit existing
-                const entry = getLibraryEntryById(editingExerciseId);
-                entry.name = name;
-                entry.tags = selectedTags;
-                entry.bilateral = isBilateral;
-                entry.sideOptions = isBilateral ? [] : selectedSideOptions;
-                entry.supersedes = supersedes;
-                entry.primaryMuscles = primaryMuscles;
-                entry.anatomicRegions = anatomicRegions;
-                entry.equipment = equipment;
-                entry.difficulty = difficulty;
-                entry.favorite = entry.favorite || false; // Preserve favorite status
-                recordRevision(entry, spec, 'Manual edit');
-            } else {
-                // Add new
-                const newId = 'ex_' + Date.now();
-                const newEntry = {
-                    id: newId,
-                    name: name,
-                    tags: selectedTags,
-                    bilateral: isBilateral,
-                    sideOptions: isBilateral ? [] : selectedSideOptions,
-                    supersedes: supersedes,
-                    primaryMuscles: primaryMuscles,
-                    anatomicRegions: anatomicRegions,
-                    equipment: equipment,
-                    difficulty: difficulty,
-                    favorite: false,
-                    archived: false,
-                    current: spec,
-                    history: [{
-                        timestamp: new Date().toISOString(),
-                        summary: 'Exercise created',
-                        previous: null,
-                        next: spec,
-                        supersedes: supersedes
-                    }]
-                };
-                exerciseLibrary.push(newEntry);
-                persistExerciseLibrary();
-            }
-
-            exerciseLibrary = loadExerciseLibrary();
-            renderExerciseList();
-            closeAddExerciseModal();
-            haptic('success');
-        }
+        // Edit Dosage Modal
+        let editingDosageExerciseId = null;
 
         function editExerciseFromList(exerciseId) {
-            editingExerciseId = exerciseId;
+            editingDosageExerciseId = exerciseId;
             const entry = getLibraryEntryById(exerciseId);
             const spec = entry.current || {};
+            const modifiers = entry.pattern_modifiers || [];
 
-            document.getElementById('add-exercise-title').textContent = 'Edit Exercise';
-            document.getElementById('new-exercise-name').value = entry.name;
-            document.getElementById('new-exercise-type').value = spec.type || 'reps';
-            document.getElementById('new-sets').value = spec.sets || 3;
-            document.getElementById('new-reps').value = spec.repsPerSet || 10;
-            document.getElementById('new-seconds').value = spec.secondsPerRep || '';
-            document.getElementById('bilateral-checkbox').checked = entry.bilateral || false;
-            document.getElementById('primary-muscles').value = entry.primaryMuscles || '';
-            document.getElementById('anatomic-regions').value = entry.anatomicRegions || '';
-            document.getElementById('difficulty-select').value = entry.difficulty || '';
+            document.getElementById('edit-dosage-title').textContent = `Edit Dosage: ${entry.name}`;
+            document.getElementById('edit-sets').value = spec.sets || '';
+            document.getElementById('edit-reps').value = spec.repsPerSet || '';
+            document.getElementById('edit-seconds').value = spec.secondsPerRep || '';
+            document.getElementById('edit-distance').value = spec.distanceFeet || '';
 
-            // Set equipment multi-select
-            const equipmentSelect = document.getElementById('equipment-select');
-            Array.from(equipmentSelect.options).forEach(opt => {
-                opt.selected = (entry.equipment || []).includes(opt.value);
-            });
+            // Dynamically show fields based on pattern_modifiers
+            const secondsContainer = document.getElementById('edit-seconds-container');
+            const secondsLabel = document.getElementById('edit-seconds-label');
+            const distanceContainer = document.getElementById('edit-distance-container');
 
-            selectedTags = entry.tags || [];
-            selectedSideOptions = entry.sideOptions || [];
-            selectedSupersedes = entry.supersedes || [];
-            renderTagSelector();
-            renderSideOptionsSelector();
-            renderSupersedesSelector();
-            document.getElementById('add-exercise-modal').classList.add('active');
+            // Check modifiers to determine what fields to show
+            if (modifiers.includes('hold_seconds')) {
+                secondsContainer.style.display = 'block';
+                secondsLabel.textContent = 'Hold Seconds (per rep)';
+            } else if (modifiers.includes('duration_seconds')) {
+                secondsContainer.style.display = 'block';
+                secondsLabel.textContent = 'Duration (seconds)';
+            } else {
+                secondsContainer.style.display = 'none';
+            }
+
+            if (modifiers.includes('distance_feet')) {
+                distanceContainer.style.display = 'block';
+            } else {
+                distanceContainer.style.display = 'none';
+            }
+
+            document.getElementById('edit-dosage-modal').classList.add('active');
             haptic('medium');
+        }
+
+        function closeEditDosage() {
+            document.getElementById('edit-dosage-modal').classList.remove('active');
+            editingDosageExerciseId = null;
+            haptic('medium');
+        }
+
+        function saveEditedDosage() {
+            if (!editingDosageExerciseId) return;
+
+            const sets = parseInt(document.getElementById('edit-sets').value);
+            const reps = parseInt(document.getElementById('edit-reps').value);
+            const seconds = parseInt(document.getElementById('edit-seconds').value) || 0;
+            const distance = parseInt(document.getElementById('edit-distance').value) || 0;
+
+            if (!sets || !reps || sets < 1 || reps < 1) {
+                alert('Please enter valid sets and reps');
+                return;
+            }
+
+            const entry = getLibraryEntryById(editingDosageExerciseId);
+            const spec = entry.current || {};
+            const modifiers = entry.pattern_modifiers || [];
+
+            const newSpec = {
+                type: spec.type || 'reps',
+                sets: sets,
+                repsPerSet: reps,
+                secondsPerRep: seconds
+            };
+
+            // Add distance if applicable
+            if (modifiers.includes('distance_feet') && distance > 0) {
+                newSpec.distanceFeet = distance;
+            }
+
+            recordRevision(entry, newSpec, 'Dosage updated');
+            persistExerciseLibrary();
+            exerciseLibrary = loadExerciseLibrary();
+            renderExerciseList();
+            closeEditDosage();
+            haptic('success');
+
+            // Build success message dynamically
+            let msg = `Dosage updated!\n\n${sets} sets × ${reps} reps`;
+            if (seconds > 0) msg += ` × ${seconds}s`;
+            if (distance > 0) msg += ` × ${distance}ft`;
+            alert(msg);
         }
 
         function deleteExerciseFromList(exerciseId) {
