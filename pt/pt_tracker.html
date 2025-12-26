@@ -881,23 +881,10 @@
                 <input type="number" class="modal-input" id="log-set-distance" placeholder="Distance (feet)" min="0" step="1" style="display: none;">
                 <div id="log-set-side-selector" style="margin: 12px 0;"></div>
 
-                <!-- Weight/Resistance Tracking (Optional) -->
-                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
-                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Optional Tracking:</div>
-                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                        <input type="number" class="modal-input" id="log-set-weight" placeholder="Weight (lbs)" min="0" step="0.5" style="flex: 1; margin: 0;">
-                        <select class="modal-select" id="log-set-weight-unit" style="flex: 0 0 auto; width: 80px; margin: 0;">
-                            <option value="lbs">lbs</option>
-                            <option value="kg">kg</option>
-                        </select>
-                    </div>
-                    <select class="modal-select" id="log-set-resistance" style="margin: 0;">
-                        <option value="">Resistance Band (optional)</option>
-                        <option value="light">Light</option>
-                        <option value="medium">Medium</option>
-                        <option value="heavy">Heavy</option>
-                        <option value="extra-heavy">Extra Heavy</option>
-                    </select>
+                <!-- Dynamic Form Parameters -->
+                <div id="log-set-form-params" style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0; display: none;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Form Parameters:</div>
+                    <div id="log-set-form-params-fields"></div>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -2323,10 +2310,98 @@
 
             document.getElementById('log-set-subtitle').textContent = subtitleText;
 
-            // Clear weight/resistance fields
-            document.getElementById('log-set-weight').value = '';
-            document.getElementById('log-set-weight-unit').value = 'lbs';
-            document.getElementById('log-set-resistance').value = '';
+            // Dynamic form parameters
+            const formParams = entry.form_parameters_required || [];
+            const formParamsContainer = document.getElementById('log-set-form-params');
+            const formParamsFields = document.getElementById('log-set-form-params-fields');
+
+            if (formParams.length > 0) {
+                formParamsFields.innerHTML = formParams.map(param => {
+                    if (param === 'weight') {
+                        return `
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace('_', ' ')}</label>
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                <input type="number" class="modal-input" id="log-param-${param}" placeholder="Weight" min="0" step="0.5" style="flex: 1; margin: 0;" data-param="${param}">
+                                <select class="modal-select" id="log-param-${param}-unit" style="flex: 0 0 auto; width: 80px; margin: 0;">
+                                    <option value="lbs">lbs</option>
+                                    <option value="kg">kg</option>
+                                </select>
+                            </div>
+                        `;
+                    } else if (param === 'band_resistance') {
+                        return `
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace('_', ' ')}</label>
+                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
+                                <option value="">Select...</option>
+                                <option value="light">Light</option>
+                                <option value="medium">Medium</option>
+                                <option value="heavy">Heavy</option>
+                                <option value="extra-heavy">Extra Heavy</option>
+                            </select>
+                        `;
+                    } else if (param === 'band_position' || param === 'strap_position') {
+                        return `
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace('_', ' ')}</label>
+                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
+                                <option value="">Select...</option>
+                                <option value="above_knees">Above knees</option>
+                                <option value="at_knees">At knees</option>
+                                <option value="below_knees">Below knees</option>
+                                <option value="at_ankles">At ankles</option>
+                                <option value="at_feet">At feet</option>
+                            </select>
+                        `;
+                    } else if (param === 'eyes') {
+                        return `
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param}</label>
+                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
+                                <option value="">Select...</option>
+                                <option value="open">Open</option>
+                                <option value="closed">Closed</option>
+                                <option value="tracking">Tracking</option>
+                            </select>
+                        `;
+                    } else if (param === 'surface') {
+                        return `
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param}</label>
+                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
+                                <option value="">Select...</option>
+                                <option value="firm">Firm</option>
+                                <option value="foam">Foam</option>
+                                <option value="bosu">BOSU</option>
+                                <option value="unstable">Unstable</option>
+                            </select>
+                        `;
+                    } else if (param === 'slope') {
+                        return `
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param}</label>
+                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
+                                <option value="">Select...</option>
+                                <option value="flat">Flat</option>
+                                <option value="uphill">Uphill</option>
+                                <option value="downhill">Downhill</option>
+                            </select>
+                        `;
+                    } else if (param === 'distance') {
+                        return `
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param} (variable, e.g. step height)</label>
+                            <input type="number" class="modal-input" id="log-param-${param}" placeholder="Distance in inches" min="0" style="margin-bottom: 12px;" data-param="${param}">
+                        `;
+                    } else if (param === 'alternating') {
+                        // Skip alternating for now (will be moved to pattern_modifiers)
+                        return '';
+                    } else {
+                        // Generic text input for unknown parameters
+                        return `
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace('_', ' ')}</label>
+                            <input type="text" class="modal-input" id="log-param-${param}" placeholder="${param}" style="margin-bottom: 12px;" data-param="${param}">
+                        `;
+                    }
+                }).join('');
+                formParamsContainer.style.display = 'block';
+            } else {
+                formParamsContainer.style.display = 'none';
+            }
 
             const sideContainer = document.getElementById('log-set-side-selector');
             if (sideOptions.length > 0 && !isBilateral) {
@@ -2407,18 +2482,35 @@
                 setData.side = logSetSide;
             }
 
-            // Add weight tracking if provided
-            const weight = parseFloat(document.getElementById('log-set-weight').value);
-            if (!isNaN(weight) && weight > 0) {
-                const unit = document.getElementById('log-set-weight-unit').value;
-                setData.weight = weight;
-                setData.weightUnit = unit;
-            }
+            // Add dynamic form parameters
+            const formParams = entry.form_parameters_required || [];
+            const formParamsData = {};
+            formParams.forEach(param => {
+                if (param === 'alternating') return; // Skip alternating (will be in pattern_modifiers)
 
-            // Add resistance band tracking if provided
-            const resistance = document.getElementById('log-set-resistance').value;
-            if (resistance) {
-                setData.resistance = resistance;
+                const inputElement = document.getElementById(`log-param-${param}`);
+                if (!inputElement) return;
+
+                let value = inputElement.value;
+                if (param === 'weight' && value) {
+                    const weightValue = parseFloat(value);
+                    if (!isNaN(weightValue) && weightValue > 0) {
+                        const unitElement = document.getElementById(`log-param-${param}-unit`);
+                        formParamsData[param] = weightValue;
+                        formParamsData[`${param}_unit`] = unitElement ? unitElement.value : 'lbs';
+                    }
+                } else if (param === 'distance' && value) {
+                    const distValue = parseFloat(value);
+                    if (!isNaN(distValue) && distValue > 0) {
+                        formParamsData[param] = distValue;
+                    }
+                } else if (value && value !== '') {
+                    formParamsData[param] = value;
+                }
+            });
+
+            if (Object.keys(formParamsData).length > 0) {
+                setData.formParams = formParamsData;
             }
 
             currentExercise.sessionData.push(setData);
@@ -3373,14 +3465,50 @@
                             ? `${session.sets?.length || 0} sets · ${session.exerciseType} · ${totalReps} reps`
                             : `${session.sets?.length || 0} sets · ${totalReps} reps`;
 
-                        // Show side info for unilateral exercises and weight/resistance
+                        // Show side info for unilateral exercises and form parameters
                         const setDetails = (session.sets || []).map((set, idx) => {
                             const sideLabel = set.side ? ` (${set.side})` : '';
                             const manualLabel = set.manualLog ? ' 📝' : '';
-                            const weightLabel = set.weight ? ` ${set.weight}${set.weightUnit || 'lbs'}` : '';
-                            const resistanceLabel = set.resistance ? ` [${set.resistance}]` : '';
                             const distanceLabel = set.distanceFeet ? `${set.distanceFeet}ft` : `${set.reps} reps`;
-                            return `Set ${idx + 1}: ${distanceLabel}${sideLabel}${weightLabel}${resistanceLabel}${manualLabel}`;
+
+                            // Build form parameters label
+                            let formParamsLabel = '';
+                            if (set.formParams) {
+                                const params = [];
+                                if (set.formParams.weight) {
+                                    params.push(`${set.formParams.weight}${set.formParams.weight_unit || 'lbs'}`);
+                                }
+                                if (set.formParams.band_resistance) {
+                                    params.push(`[${set.formParams.band_resistance}]`);
+                                }
+                                if (set.formParams.band_position) {
+                                    params.push(`@${set.formParams.band_position.replace('_', ' ')}`);
+                                }
+                                if (set.formParams.surface) {
+                                    params.push(`on ${set.formParams.surface}`);
+                                }
+                                if (set.formParams.eyes) {
+                                    params.push(`eyes ${set.formParams.eyes}`);
+                                }
+                                if (set.formParams.slope) {
+                                    params.push(set.formParams.slope);
+                                }
+                                if (set.formParams.distance) {
+                                    params.push(`${set.formParams.distance}in`);
+                                }
+                                if (params.length > 0) {
+                                    formParamsLabel = ' ' + params.join(' ');
+                                }
+                            }
+
+                            // Legacy support for old weight/resistance fields
+                            if (!formParamsLabel) {
+                                const weightLabel = set.weight ? ` ${set.weight}${set.weightUnit || 'lbs'}` : '';
+                                const resistanceLabel = set.resistance ? ` [${set.resistance}]` : '';
+                                formParamsLabel = weightLabel + resistanceLabel;
+                            }
+
+                            return `Set ${idx + 1}: ${distanceLabel}${sideLabel}${formParamsLabel}${manualLabel}`;
                         }).join(' · ');
 
                         const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: var(--text-secondary);">"${session.notes}"</div>` : '';
