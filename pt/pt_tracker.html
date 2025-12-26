@@ -807,6 +807,7 @@
                     Enter actual reps performed
                 </div>
                 <input type="number" class="modal-input" id="log-set-reps" placeholder="Reps performed" min="0">
+                <input type="number" class="modal-input" id="log-set-distance" placeholder="Distance (feet)" min="0" step="1" style="display: none;">
                 <div id="log-set-side-selector" style="margin: 12px 0;"></div>
 
                 <!-- Weight/Resistance Tracking (Optional) -->
@@ -2194,10 +2195,29 @@
             const entry = getLibraryEntryById(currentExercise.id);
             const isBilateral = entry.bilateral === true;
             const sideOptions = entry.sideOptions || [];
+            const modifiers = entry.pattern_modifiers || [];
+            const hasDistance = modifiers.includes('distance_feet');
+            const spec = entry.current || {};
+            const targetDistance = spec.distanceFeet || 0;
+
+            // Show/hide reps vs distance fields
+            const repsField = document.getElementById('log-set-reps');
+            const distanceField = document.getElementById('log-set-distance');
+            if (hasDistance) {
+                repsField.style.display = 'none';
+                distanceField.style.display = 'block';
+                distanceField.value = targetDistance;
+            } else {
+                repsField.style.display = 'block';
+                distanceField.style.display = 'none';
+                repsField.value = targetReps;
+            }
 
             // For sided exercises, show which sides need more sets
             const hasAlternating = entry && (entry.form_parameters_required || []).includes('alternating');
-            let subtitleText = `Target: ${targetReps} reps · Enter actual reps performed`;
+            let subtitleText = hasDistance
+                ? `Target: ${targetDistance}ft · Enter actual distance covered`
+                : `Target: ${targetReps} reps · Enter actual reps performed`;
             if (sideOptions.length > 0 && !isBilateral && currentExercise.baseSets) {
                 // Count completed sets per side
                 const sideProgress = {};
@@ -2220,7 +2240,8 @@
                 const progressText = sideOptions.map(side =>
                     `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
                 ).join(', ');
-                subtitleText = `${progressText} · Enter reps for selected side`;
+                const fieldType = hasDistance ? 'distance' : 'reps';
+                subtitleText = `${progressText} · Enter ${fieldType} for selected side`;
                 if (hasAlternating) {
                     subtitleText += ' · ⚡ ALTERNATE sides each rep';
                 }
@@ -2230,7 +2251,6 @@
             }
 
             document.getElementById('log-set-subtitle').textContent = subtitleText;
-            document.getElementById('log-set-reps').value = targetReps;
 
             // Clear weight/resistance fields
             document.getElementById('log-set-weight').value = '';
@@ -2251,10 +2271,11 @@
             document.getElementById('log-set-modal').classList.add('active');
             haptic('medium');
 
-            // Auto-focus the input
+            // Auto-focus the correct input field
             setTimeout(() => {
-                document.getElementById('log-set-reps').focus();
-                document.getElementById('log-set-reps').select();
+                const fieldToFocus = hasDistance ? distanceField : repsField;
+                fieldToFocus.focus();
+                fieldToFocus.select();
             }, 300);
         }
 
@@ -2274,11 +2295,27 @@
         }
 
         function saveLoggedSet() {
-            const reps = parseInt(document.getElementById('log-set-reps').value);
+            const entry = getLibraryEntryById(currentExercise.id);
+            const modifiers = entry.pattern_modifiers || [];
+            const hasDistance = modifiers.includes('distance_feet');
 
-            if (isNaN(reps) || reps < 0) {
-                alert('Please enter a valid number of reps (0 or more).');
-                return;
+            let reps, distance, logMessage;
+
+            if (hasDistance) {
+                distance = parseInt(document.getElementById('log-set-distance').value);
+                if (isNaN(distance) || distance < 0) {
+                    alert('Please enter a valid distance (0 or more feet).');
+                    return;
+                }
+                reps = 1; // Set to 1 for data structure, but not used
+                logMessage = `Set ${currentExercise.currentSet} logged: ${distance}ft`;
+            } else {
+                reps = parseInt(document.getElementById('log-set-reps').value);
+                if (isNaN(reps) || reps < 0) {
+                    alert('Please enter a valid number of reps (0 or more).');
+                    return;
+                }
+                logMessage = `Set ${currentExercise.currentSet} logged: ${reps} reps`;
             }
 
             const setData = {
@@ -2288,6 +2325,11 @@
                 timestamp: new Date().toISOString(),
                 manualLog: true
             };
+
+            // Add distance if applicable
+            if (hasDistance && distance > 0) {
+                setData.distanceFeet = distance;
+            }
 
             // Add side if applicable
             if (logSetSide && logSetSide !== 'both') {
@@ -2312,10 +2354,10 @@
 
             closeLogSetModal();
             haptic('success');
-            speak(`Set ${currentExercise.currentSet} logged: ${reps} reps`);
+            speak(logMessage);
 
             // Check for progress
-            detectProgress(currentExercise.currentSet, reps);
+            detectProgress(currentExercise.currentSet, hasDistance ? distance : reps);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -3192,10 +3234,28 @@
 
         function describeSpec(spec) {
             if (!spec) return 'No spec available';
-            const parts = [
-                `${spec.sets || 0} sets`,
-                spec.type === 'timed' ? `${spec.repsPerSet || 0} reps × ${spec.secondsPerRep || 0}s` : `${spec.repsPerSet || 0} reps`
-            ];
+            const parts = [`${spec.sets || 0} sets`];
+
+            // Show distance if present (replaces reps)
+            if (spec.distanceFeet && spec.distanceFeet > 0) {
+                parts.push(`${spec.distanceFeet}ft`);
+            }
+            // Show duration if type is duration or timed (replaces reps)
+            else if (spec.type === 'duration') {
+                parts.push(`${spec.secondsPerRep || 0}s`);
+            }
+            // Show reps with optional hold time
+            else {
+                const repsText = `${spec.repsPerSet || 0} reps`;
+                if (spec.type === 'hold' && spec.secondsPerRep > 0) {
+                    parts.push(`${repsText} × ${spec.secondsPerRep}s hold`);
+                } else if (spec.type === 'timed' && spec.secondsPerRep > 0) {
+                    parts.push(`${repsText} × ${spec.secondsPerRep}s`);
+                } else {
+                    parts.push(repsText);
+                }
+            }
+
             return parts.join(' · ');
         }
 
@@ -3248,7 +3308,8 @@
                             const manualLabel = set.manualLog ? ' 📝' : '';
                             const weightLabel = set.weight ? ` ${set.weight}${set.weightUnit || 'lbs'}` : '';
                             const resistanceLabel = set.resistance ? ` [${set.resistance}]` : '';
-                            return `Set ${idx + 1}: ${set.reps}${sideLabel}${weightLabel}${resistanceLabel}${manualLabel}`;
+                            const distanceLabel = set.distanceFeet ? `${set.distanceFeet}ft` : `${set.reps} reps`;
+                            return `Set ${idx + 1}: ${distanceLabel}${sideLabel}${weightLabel}${resistanceLabel}${manualLabel}`;
                         }).join(' · ');
 
                         const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: var(--text-secondary);">"${session.notes}"</div>` : '';
