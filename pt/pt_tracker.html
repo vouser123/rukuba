@@ -760,8 +760,10 @@
                 <label>Sets</label>
                 <input type="number" class="modal-input" id="edit-sets" placeholder="Sets">
 
-                <label>Reps (per set)</label>
-                <input type="number" class="modal-input" id="edit-reps" placeholder="Reps">
+                <div id="edit-reps-container">
+                    <label>Reps (per set)</label>
+                    <input type="number" class="modal-input" id="edit-reps" placeholder="Reps">
+                </div>
 
                 <div id="edit-seconds-container" style="display: none;">
                     <label id="edit-seconds-label">Seconds (per rep)</label>
@@ -1213,7 +1215,7 @@
                     <input type="number" id="dosage-sets" class="modal-input" placeholder="e.g., 3" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
                 </div>
 
-                <div style="margin-bottom: 16px;">
+                <div style="margin-bottom: 16px;" id="dosage-reps-container">
                     <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Reps (per set)</label>
                     <input type="number" id="dosage-reps" class="modal-input" placeholder="e.g., 10" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
                 </div>
@@ -3384,19 +3386,30 @@
             document.getElementById('dosage-seconds').value = '';
             document.getElementById('dosage-distance').value = '';
 
-            // Dynamically show fields based on pattern_modifiers
+            // Dynamically show/hide fields based on pattern_modifiers
             const modifiers = exercise.pattern_modifiers || [];
+            const repsContainer = document.getElementById('dosage-reps-container');
             const secondsContainer = document.getElementById('dosage-seconds-container');
             const secondsLabel = document.getElementById('dosage-seconds-label');
             const distanceContainer = document.getElementById('dosage-distance-container');
 
-            // Check modifiers to determine what fields to show
+            // duration_seconds or distance_feet REPLACE reps entirely
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+            if (replacesReps) {
+                repsContainer.style.display = 'none';
+            } else {
+                repsContainer.style.display = 'block';
+            }
+
+            // hold_seconds MODIFIES reps (shown alongside)
+            // duration_seconds REPLACES reps
             if (modifiers.includes('hold_seconds')) {
                 secondsContainer.style.display = 'block';
                 secondsLabel.textContent = 'Hold Seconds (per rep)';
             } else if (modifiers.includes('duration_seconds')) {
                 secondsContainer.style.display = 'block';
-                secondsLabel.textContent = 'Duration (seconds)';
+                secondsLabel.textContent = 'Duration (seconds per set)';
             } else {
                 secondsContainer.style.display = 'none';
             }
@@ -3419,12 +3432,12 @@
 
         function confirmDosage() {
             const sets = parseInt(document.getElementById('dosage-sets').value);
-            const reps = parseInt(document.getElementById('dosage-reps').value);
+            let reps = parseInt(document.getElementById('dosage-reps').value);
             const seconds = parseInt(document.getElementById('dosage-seconds').value) || 0;
             const distance = parseInt(document.getElementById('dosage-distance').value) || 0;
 
-            if (!sets || !reps || sets < 1 || reps < 1) {
-                alert('Please enter valid sets and reps');
+            if (!sets || sets < 1) {
+                alert('Please enter valid sets');
                 return;
             }
 
@@ -3432,6 +3445,20 @@
 
             const ex = pendingExerciseImport;
             const modifiers = ex.pattern_modifiers || [];
+
+            // duration_seconds or distance_feet REPLACE reps
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+            if (replacesReps) {
+                // Set reps to 1 (not used, but required for data structure)
+                reps = 1;
+            } else {
+                // Normal reps-based exercise
+                if (!reps || reps < 1) {
+                    alert('Please enter valid reps');
+                    return;
+                }
+            }
 
             // Validate required fields based on modifiers
             if (modifiers.includes('hold_seconds') && (!seconds || seconds < 1)) {
@@ -3466,7 +3493,8 @@
             }
 
             // Build dosage summary for history
-            let dosageSummary = `${sets} sets × ${reps} reps`;
+            let dosageSummary = `${sets} sets`;
+            if (!replacesReps) dosageSummary += ` × ${reps} reps`;
             if (seconds > 0) dosageSummary += ` × ${seconds}s`;
             if (distance > 0) dosageSummary += ` × ${distance}ft`;
 
@@ -3930,18 +3958,29 @@
             document.getElementById('edit-seconds').value = spec.secondsPerRep || '';
             document.getElementById('edit-distance').value = spec.distanceFeet || '';
 
-            // Dynamically show fields based on pattern_modifiers
+            // Dynamically show/hide fields based on pattern_modifiers
+            const repsContainer = document.getElementById('edit-reps-container');
             const secondsContainer = document.getElementById('edit-seconds-container');
             const secondsLabel = document.getElementById('edit-seconds-label');
             const distanceContainer = document.getElementById('edit-distance-container');
 
-            // Check modifiers to determine what fields to show
+            // duration_seconds or distance_feet REPLACE reps entirely
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+            if (replacesReps) {
+                repsContainer.style.display = 'none';
+            } else {
+                repsContainer.style.display = 'block';
+            }
+
+            // hold_seconds MODIFIES reps (shown alongside)
+            // duration_seconds REPLACES reps
             if (modifiers.includes('hold_seconds')) {
                 secondsContainer.style.display = 'block';
                 secondsLabel.textContent = 'Hold Seconds (per rep)';
             } else if (modifiers.includes('duration_seconds')) {
                 secondsContainer.style.display = 'block';
-                secondsLabel.textContent = 'Duration (seconds)';
+                secondsLabel.textContent = 'Duration (seconds per set)';
             } else {
                 secondsContainer.style.display = 'none';
             }
@@ -3966,18 +4005,32 @@
             if (!editingDosageExerciseId) return;
 
             const sets = parseInt(document.getElementById('edit-sets').value);
-            const reps = parseInt(document.getElementById('edit-reps').value);
+            let reps = parseInt(document.getElementById('edit-reps').value);
             const seconds = parseInt(document.getElementById('edit-seconds').value) || 0;
             const distance = parseInt(document.getElementById('edit-distance').value) || 0;
 
-            if (!sets || !reps || sets < 1 || reps < 1) {
-                alert('Please enter valid sets and reps');
+            if (!sets || sets < 1) {
+                alert('Please enter valid sets');
                 return;
             }
 
             const entry = getLibraryEntryById(editingDosageExerciseId);
             const spec = entry.current || {};
             const modifiers = entry.pattern_modifiers || [];
+
+            // duration_seconds or distance_feet REPLACE reps
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+            if (replacesReps) {
+                // Set reps to 1 (not used, but required for data structure)
+                reps = 1;
+            } else {
+                // Normal reps-based exercise
+                if (!reps || reps < 1) {
+                    alert('Please enter valid reps');
+                    return;
+                }
+            }
 
             const newSpec = {
                 type: spec.type || 'reps',
@@ -3999,7 +4052,8 @@
             haptic('success');
 
             // Build success message dynamically
-            let msg = `Dosage updated!\n\n${sets} sets × ${reps} reps`;
+            let msg = `Dosage updated!\n\n${sets} sets`;
+            if (!replacesReps) msg += ` × ${reps} reps`;
             if (seconds > 0) msg += ` × ${seconds}s`;
             if (distance > 0) msg += ` × ${distance}ft`;
             alert(msg);
