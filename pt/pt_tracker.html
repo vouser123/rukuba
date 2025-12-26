@@ -749,35 +749,106 @@
         </div>
     </div>
 
-    <!-- Edit Dosage Modal -->
+    <!-- Edit Exercise Modal (Comprehensive) -->
     <div class="modal" id="edit-dosage-modal" onclick="if(event.target === this) closeEditDosage()">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 600px;">
             <div class="modal-drag-handle"></div>
-            <div class="modal-title" id="edit-dosage-title">Edit Dosage</div>
-            <div class="modal-form">
-                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 16px;">Update your PT's prescribed dosage</div>
-
-                <label>Sets</label>
-                <input type="number" class="modal-input" id="edit-sets" placeholder="Sets">
-
-                <div id="edit-reps-container">
-                    <label>Reps (per set)</label>
-                    <input type="number" class="modal-input" id="edit-reps" placeholder="Reps">
+            <div class="modal-title" id="edit-dosage-title">Edit Exercise</div>
+            <div class="modal-form" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Exercise Name -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Exercise Name</label>
+                    <input type="text" class="modal-input" id="edit-name" placeholder="Exercise name">
                 </div>
 
-                <div id="edit-seconds-container" style="display: none;">
-                    <label id="edit-seconds-label">Seconds (per rep)</label>
-                    <input type="number" class="modal-input" id="edit-seconds" placeholder="Seconds">
+                <!-- Pattern Selection -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Pattern (laterality)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <label style="flex: 1; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; text-align: center;" id="edit-pattern-side-label">
+                            <input type="radio" name="edit-pattern" value="side" id="edit-pattern-side" style="display: none;" onchange="updateEditPatternUI()">
+                            <div style="font-weight: 600;">🔄 Side</div>
+                            <div style="font-size: 12px; color: var(--ios-gray);">Work left and right separately</div>
+                        </label>
+                        <label style="flex: 1; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; text-align: center;" id="edit-pattern-both-label">
+                            <input type="radio" name="edit-pattern" value="both" id="edit-pattern-both" style="display: none;" onchange="updateEditPatternUI()">
+                            <div style="font-weight: 600;">✓ Both</div>
+                            <div style="font-size: 12px; color: var(--ios-gray);">Both sides together</div>
+                        </label>
+                    </div>
                 </div>
 
-                <div id="edit-distance-container" style="display: none;">
-                    <label>Distance (feet)</label>
-                    <input type="number" class="modal-input" id="edit-distance" placeholder="Distance in feet">
+                <!-- Pattern Modifiers -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Pattern Modifiers</label>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">How reps are structured</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                            <input type="checkbox" id="edit-mod-hold" value="hold_seconds" style="margin-right: 8px;" onchange="updateEditDosageFields()">
+                            <div>
+                                <div style="font-weight: 600;">Hold Seconds</div>
+                                <div style="font-size: 11px; color: var(--ios-gray);">Adds isometric hold time per rep</div>
+                            </div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                            <input type="checkbox" id="edit-mod-duration" value="duration_seconds" style="margin-right: 8px;" onchange="updateEditDosageFields()">
+                            <div>
+                                <div style="font-weight: 600;">Duration Seconds</div>
+                                <div style="font-size: 11px; color: var(--ios-gray);">Replaces reps with time duration</div>
+                            </div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                            <input type="checkbox" id="edit-mod-distance" value="distance_feet" style="margin-right: 8px;" onchange="updateEditDosageFields()">
+                            <div>
+                                <div style="font-weight: 600;">Distance (feet)</div>
+                                <div style="font-size: 11px; color: var(--ios-gray);">Replaces reps with distance</div>
+                            </div>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                            <input type="checkbox" id="edit-mod-amrap" value="AMRAP" style="margin-right: 8px;" onchange="updateEditDosageFields()">
+                            <div>
+                                <div style="font-weight: 600;">AMRAP</div>
+                                <div style="font-size: 11px; color: var(--ios-gray);">As many reps as possible</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Form Parameters -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Form Parameters Required</label>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">Variables that must be specified</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;" id="edit-form-params">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Dosage Section -->
+                <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 12px; display: block;">Dosage (PT Prescription)</label>
+
+                    <label>Sets</label>
+                    <input type="number" class="modal-input" id="edit-sets" placeholder="Sets" style="margin-bottom: 12px;">
+
+                    <div id="edit-reps-container">
+                        <label>Reps (per set)</label>
+                        <input type="number" class="modal-input" id="edit-reps" placeholder="Reps" style="margin-bottom: 12px;">
+                    </div>
+
+                    <div id="edit-seconds-container" style="display: none;">
+                        <label id="edit-seconds-label">Seconds (per rep)</label>
+                        <input type="number" class="modal-input" id="edit-seconds" placeholder="Seconds" style="margin-bottom: 12px;">
+                    </div>
+
+                    <div id="edit-distance-container" style="display: none;">
+                        <label>Distance (feet)</label>
+                        <input type="number" class="modal-input" id="edit-distance" placeholder="Distance in feet">
+                    </div>
                 </div>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeEditDosage()">Cancel</button>
-                <button class="modal-save" onclick="saveEditedDosage()">Save Changes</button>
+                <button class="modal-save" onclick="saveEditedExercise()">Save All Changes</button>
             </div>
         </div>
     </div>
@@ -807,6 +878,7 @@
                     Enter actual reps performed
                 </div>
                 <input type="number" class="modal-input" id="log-set-reps" placeholder="Reps performed" min="0">
+                <input type="number" class="modal-input" id="log-set-distance" placeholder="Distance (feet)" min="0" step="1" style="display: none;">
                 <div id="log-set-side-selector" style="margin: 12px 0;"></div>
 
                 <!-- Weight/Resistance Tracking (Optional) -->
@@ -1886,7 +1958,14 @@
                 const sideLabels = currentExercise.sideOptions.map(side =>
                     `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
                 ).join(' · ');
+
+                // Show alternating indicator if applicable
+                const entry = getLibraryEntryById(currentExercise.id);
+                const hasAlternating = entry && (entry.form_parameters_required || []).includes('alternating');
                 remainingLabel = `${sideLabels}`;
+                if (hasAlternating) {
+                    remainingLabel += ' ⚡ Alternating';
+                }
             }
 
             if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
@@ -2187,9 +2266,29 @@
             const entry = getLibraryEntryById(currentExercise.id);
             const isBilateral = entry.bilateral === true;
             const sideOptions = entry.sideOptions || [];
+            const modifiers = entry.pattern_modifiers || [];
+            const hasDistance = modifiers.includes('distance_feet');
+            const spec = entry.current || {};
+            const targetDistance = spec.distanceFeet || 0;
+
+            // Show/hide reps vs distance fields
+            const repsField = document.getElementById('log-set-reps');
+            const distanceField = document.getElementById('log-set-distance');
+            if (hasDistance) {
+                repsField.style.display = 'none';
+                distanceField.style.display = 'block';
+                distanceField.value = targetDistance;
+            } else {
+                repsField.style.display = 'block';
+                distanceField.style.display = 'none';
+                repsField.value = targetReps;
+            }
 
             // For sided exercises, show which sides need more sets
-            let subtitleText = `Target: ${targetReps} reps · Enter actual reps performed`;
+            const hasAlternating = entry && (entry.form_parameters_required || []).includes('alternating');
+            let subtitleText = hasDistance
+                ? `Target: ${targetDistance}ft · Enter actual distance covered`
+                : `Target: ${targetReps} reps · Enter actual reps performed`;
             if (sideOptions.length > 0 && !isBilateral && currentExercise.baseSets) {
                 // Count completed sets per side
                 const sideProgress = {};
@@ -2212,14 +2311,17 @@
                 const progressText = sideOptions.map(side =>
                     `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
                 ).join(', ');
-                subtitleText = `${progressText} · Enter reps for selected side`;
+                const fieldType = hasDistance ? 'distance' : 'reps';
+                subtitleText = `${progressText} · Enter ${fieldType} for selected side`;
+                if (hasAlternating) {
+                    subtitleText += ' · ⚡ ALTERNATE sides each rep';
+                }
                 logSetSide = suggestedSide;
             } else {
                 logSetSide = sideOptions[0] || 'both';
             }
 
             document.getElementById('log-set-subtitle').textContent = subtitleText;
-            document.getElementById('log-set-reps').value = targetReps;
 
             // Clear weight/resistance fields
             document.getElementById('log-set-weight').value = '';
@@ -2240,10 +2342,11 @@
             document.getElementById('log-set-modal').classList.add('active');
             haptic('medium');
 
-            // Auto-focus the input
+            // Auto-focus the correct input field
             setTimeout(() => {
-                document.getElementById('log-set-reps').focus();
-                document.getElementById('log-set-reps').select();
+                const fieldToFocus = hasDistance ? distanceField : repsField;
+                fieldToFocus.focus();
+                fieldToFocus.select();
             }, 300);
         }
 
@@ -2263,11 +2366,27 @@
         }
 
         function saveLoggedSet() {
-            const reps = parseInt(document.getElementById('log-set-reps').value);
+            const entry = getLibraryEntryById(currentExercise.id);
+            const modifiers = entry.pattern_modifiers || [];
+            const hasDistance = modifiers.includes('distance_feet');
 
-            if (isNaN(reps) || reps < 0) {
-                alert('Please enter a valid number of reps (0 or more).');
-                return;
+            let reps, distance, logMessage;
+
+            if (hasDistance) {
+                distance = parseInt(document.getElementById('log-set-distance').value);
+                if (isNaN(distance) || distance < 0) {
+                    alert('Please enter a valid distance (0 or more feet).');
+                    return;
+                }
+                reps = 1; // Set to 1 for data structure, but not used
+                logMessage = `Set ${currentExercise.currentSet} logged: ${distance}ft`;
+            } else {
+                reps = parseInt(document.getElementById('log-set-reps').value);
+                if (isNaN(reps) || reps < 0) {
+                    alert('Please enter a valid number of reps (0 or more).');
+                    return;
+                }
+                logMessage = `Set ${currentExercise.currentSet} logged: ${reps} reps`;
             }
 
             const setData = {
@@ -2277,6 +2396,11 @@
                 timestamp: new Date().toISOString(),
                 manualLog: true
             };
+
+            // Add distance if applicable
+            if (hasDistance && distance > 0) {
+                setData.distanceFeet = distance;
+            }
 
             // Add side if applicable
             if (logSetSide && logSetSide !== 'both') {
@@ -2301,10 +2425,10 @@
 
             closeLogSetModal();
             haptic('success');
-            speak(`Set ${currentExercise.currentSet} logged: ${reps} reps`);
+            speak(logMessage);
 
             // Check for progress
-            detectProgress(currentExercise.currentSet, reps);
+            detectProgress(currentExercise.currentSet, hasDistance ? distance : reps);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -3181,10 +3305,28 @@
 
         function describeSpec(spec) {
             if (!spec) return 'No spec available';
-            const parts = [
-                `${spec.sets || 0} sets`,
-                spec.type === 'timed' ? `${spec.repsPerSet || 0} reps × ${spec.secondsPerRep || 0}s` : `${spec.repsPerSet || 0} reps`
-            ];
+            const parts = [`${spec.sets || 0} sets`];
+
+            // Show distance if present (replaces reps)
+            if (spec.distanceFeet && spec.distanceFeet > 0) {
+                parts.push(`${spec.distanceFeet}ft`);
+            }
+            // Show duration if type is duration or timed (replaces reps)
+            else if (spec.type === 'duration') {
+                parts.push(`${spec.secondsPerRep || 0}s`);
+            }
+            // Show reps with optional hold time
+            else {
+                const repsText = `${spec.repsPerSet || 0} reps`;
+                if (spec.type === 'hold' && spec.secondsPerRep > 0) {
+                    parts.push(`${repsText} × ${spec.secondsPerRep}s hold`);
+                } else if (spec.type === 'timed' && spec.secondsPerRep > 0) {
+                    parts.push(`${repsText} × ${spec.secondsPerRep}s`);
+                } else {
+                    parts.push(repsText);
+                }
+            }
+
             return parts.join(' · ');
         }
 
@@ -3237,7 +3379,8 @@
                             const manualLabel = set.manualLog ? ' 📝' : '';
                             const weightLabel = set.weight ? ` ${set.weight}${set.weightUnit || 'lbs'}` : '';
                             const resistanceLabel = set.resistance ? ` [${set.resistance}]` : '';
-                            return `Set ${idx + 1}: ${set.reps}${sideLabel}${weightLabel}${resistanceLabel}${manualLabel}`;
+                            const distanceLabel = set.distanceFeet ? `${set.distanceFeet}ft` : `${set.reps} reps`;
+                            return `Set ${idx + 1}: ${distanceLabel}${sideLabel}${weightLabel}${resistanceLabel}${manualLabel}`;
                         }).join(' · ');
 
                         const notesHtml = session.notes ? `<div style="margin-top: 6px; font-style: italic; color: var(--text-secondary);">"${session.notes}"</div>` : '';
@@ -3507,6 +3650,7 @@
                 secondary_muscles: ex.secondary_muscles,
                 pattern: ex.pattern,
                 pattern_modifiers: ex.pattern_modifiers,
+                form_parameters_required: ex.form_parameters_required || [],
                 equipment: equipmentList,
                 equipmentOptional: ex.equipment.optional || [],
                 guidance: ex.guidance,
@@ -3545,9 +3689,13 @@
             } else {
                 // Single import or last in bulk - show success message
                 closeLibraryBrowser();
-                const patternMsg = ex.pattern === 'side'
+                const hasAlternating = (ex.form_parameters_required || []).includes('alternating');
+                let patternMsg = ex.pattern === 'side'
                     ? '🔄 Side tracking enabled: Will log left and right separately'
                     : '✓ Bilateral exercise: Both sides work together';
+                if (hasAlternating && ex.pattern === 'side') {
+                    patternMsg += '\n⚡ ALTERNATING: Switch sides on each rep within the set';
+                }
                 alert(`"${ex.canonical_name}" added to your program!\n\n${dosageSummary}\n\n${patternMsg}`);
                 haptic('success');
             }
@@ -3897,9 +4045,13 @@
 
                 const statsHtml = `<div style="font-size: 12px; color: ${adherenceColor}; margin-top: 4px; font-weight: 600;">${adherenceIcon}${adherenceText}${totalSessions > 0 ? ` · ${totalSessions} session${totalSessions > 1 ? 's' : ''} total` : ''}</div>`;
 
+                // Show alternating indicator
+                const hasAlternating = (ex.form_parameters_required || []).includes('alternating');
+                const alternatingIndicator = hasAlternating && ex.pattern === 'side' ? ' ⚡' : '';
+
                 return `
                     <div class="history-item" style="cursor: pointer; border-left: 4px solid ${adherenceColor};">
-                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}</div>
+                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}${alternatingIndicator}</div>
                         ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
                         <div class="history-meta">${describeSpec(spec)}</div>
                         ${statsHtml}
@@ -3951,21 +4103,90 @@
             const entry = getLibraryEntryById(exerciseId);
             const spec = entry.current || {};
             const modifiers = entry.pattern_modifiers || [];
+            const formParams = entry.form_parameters_required || [];
 
-            document.getElementById('edit-dosage-title').textContent = `Edit Dosage: ${entry.name}`;
+            // Set title and basic fields
+            document.getElementById('edit-dosage-title').textContent = `Edit: ${entry.name}`;
+            document.getElementById('edit-name').value = entry.name || '';
+
+            // Set pattern radio buttons
+            document.getElementById('edit-pattern-side').checked = entry.pattern === 'side';
+            document.getElementById('edit-pattern-both').checked = entry.pattern === 'both';
+            updateEditPatternUI();
+
+            // Set pattern modifiers checkboxes
+            document.getElementById('edit-mod-hold').checked = modifiers.includes('hold_seconds');
+            document.getElementById('edit-mod-duration').checked = modifiers.includes('duration_seconds');
+            document.getElementById('edit-mod-distance').checked = modifiers.includes('distance_feet');
+            document.getElementById('edit-mod-amrap').checked = modifiers.includes('AMRAP');
+
+            // Populate form parameters
+            const formParamsContainer = document.getElementById('edit-form-params');
+            const availableFormParams = ['eyes', 'surface', 'band_resistance', 'band_position', 'strap_position', 'slope', 'alternating', 'distance', 'weight'];
+            formParamsContainer.innerHTML = availableFormParams.map(param => {
+                const isChecked = formParams.includes(param);
+                return `<label class="pill" style="cursor: pointer; background: ${isChecked ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${isChecked ? 'white' : 'var(--ios-blue)'}; padding: 6px 12px;">
+                    <input type="checkbox" value="${param}" ${isChecked ? 'checked' : ''} onchange="toggleEditFormParam(this)" style="display: none;">
+                    ${param.replace('_', ' ')}
+                </label>`;
+            }).join('');
+
+            // Set dosage fields
             document.getElementById('edit-sets').value = spec.sets || '';
             document.getElementById('edit-reps').value = spec.repsPerSet || '';
             document.getElementById('edit-seconds').value = spec.secondsPerRep || '';
             document.getElementById('edit-distance').value = spec.distanceFeet || '';
 
-            // Dynamically show/hide fields based on pattern_modifiers
+            // Update dosage fields visibility
+            updateEditDosageFields();
+
+            document.getElementById('edit-dosage-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function updateEditPatternUI() {
+            const sideChecked = document.getElementById('edit-pattern-side').checked;
+            const bothChecked = document.getElementById('edit-pattern-both').checked;
+
+            const sideLabel = document.getElementById('edit-pattern-side-label');
+            const bothLabel = document.getElementById('edit-pattern-both-label');
+
+            if (sideChecked) {
+                sideLabel.style.borderColor = 'var(--ios-blue)';
+                sideLabel.style.background = 'rgba(0,122,255,0.05)';
+                bothLabel.style.borderColor = 'var(--border-color)';
+                bothLabel.style.background = 'transparent';
+            } else if (bothChecked) {
+                bothLabel.style.borderColor = 'var(--ios-blue)';
+                bothLabel.style.background = 'rgba(0,122,255,0.05)';
+                sideLabel.style.borderColor = 'var(--border-color)';
+                sideLabel.style.background = 'transparent';
+            }
+        }
+
+        function toggleEditFormParam(checkbox) {
+            const label = checkbox.parentElement;
+            if (checkbox.checked) {
+                label.style.background = 'var(--ios-blue)';
+                label.style.color = 'white';
+            } else {
+                label.style.background = 'rgba(0,122,255,0.1)';
+                label.style.color = 'var(--ios-blue)';
+            }
+        }
+
+        function updateEditDosageFields() {
+            const holdChecked = document.getElementById('edit-mod-hold').checked;
+            const durationChecked = document.getElementById('edit-mod-duration').checked;
+            const distanceChecked = document.getElementById('edit-mod-distance').checked;
+
             const repsContainer = document.getElementById('edit-reps-container');
             const secondsContainer = document.getElementById('edit-seconds-container');
             const secondsLabel = document.getElementById('edit-seconds-label');
             const distanceContainer = document.getElementById('edit-distance-container');
 
             // duration_seconds or distance_feet REPLACE reps entirely
-            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+            const replacesReps = durationChecked || distanceChecked;
 
             if (replacesReps) {
                 repsContainer.style.display = 'none';
@@ -3975,24 +4196,21 @@
 
             // hold_seconds MODIFIES reps (shown alongside)
             // duration_seconds REPLACES reps
-            if (modifiers.includes('hold_seconds')) {
+            if (holdChecked) {
                 secondsContainer.style.display = 'block';
                 secondsLabel.textContent = 'Hold Seconds (per rep)';
-            } else if (modifiers.includes('duration_seconds')) {
+            } else if (durationChecked) {
                 secondsContainer.style.display = 'block';
                 secondsLabel.textContent = 'Duration (seconds per set)';
             } else {
                 secondsContainer.style.display = 'none';
             }
 
-            if (modifiers.includes('distance_feet')) {
+            if (distanceChecked) {
                 distanceContainer.style.display = 'block';
             } else {
                 distanceContainer.style.display = 'none';
             }
-
-            document.getElementById('edit-dosage-modal').classList.add('active');
-            haptic('medium');
         }
 
         function closeEditDosage() {
@@ -4001,62 +4219,100 @@
             haptic('medium');
         }
 
-        function saveEditedDosage() {
+        function saveEditedExercise() {
             if (!editingDosageExerciseId) return;
 
+            const entry = getLibraryEntryById(editingDosageExerciseId);
+
+            // Get updated values
+            const name = document.getElementById('edit-name').value.trim();
+            const pattern = document.getElementById('edit-pattern-side').checked ? 'side' : 'both';
+
+            // Get pattern modifiers
+            const newModifiers = [];
+            if (document.getElementById('edit-mod-hold').checked) newModifiers.push('hold_seconds');
+            if (document.getElementById('edit-mod-duration').checked) newModifiers.push('duration_seconds');
+            if (document.getElementById('edit-mod-distance').checked) newModifiers.push('distance_feet');
+            if (document.getElementById('edit-mod-amrap').checked) newModifiers.push('AMRAP');
+
+            // Get form parameters
+            const formParamsContainer = document.getElementById('edit-form-params');
+            const newFormParams = Array.from(formParamsContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            // Get dosage
             const sets = parseInt(document.getElementById('edit-sets').value);
             let reps = parseInt(document.getElementById('edit-reps').value);
             const seconds = parseInt(document.getElementById('edit-seconds').value) || 0;
             const distance = parseInt(document.getElementById('edit-distance').value) || 0;
 
+            // Validation
+            if (!name) {
+                alert('Please enter an exercise name');
+                return;
+            }
             if (!sets || sets < 1) {
                 alert('Please enter valid sets');
                 return;
             }
 
-            const entry = getLibraryEntryById(editingDosageExerciseId);
-            const spec = entry.current || {};
-            const modifiers = entry.pattern_modifiers || [];
-
             // duration_seconds or distance_feet REPLACE reps
-            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+            const replacesReps = newModifiers.includes('duration_seconds') || newModifiers.includes('distance_feet');
 
             if (replacesReps) {
-                // Set reps to 1 (not used, but required for data structure)
-                reps = 1;
+                reps = 1; // Set to 1 for data structure
             } else {
-                // Normal reps-based exercise
                 if (!reps || reps < 1) {
                     alert('Please enter valid reps');
                     return;
                 }
             }
 
+            // Update exercise properties
+            const oldName = entry.name;
+            entry.name = name;
+            entry.pattern = pattern;
+            entry.pattern_modifiers = newModifiers;
+            entry.form_parameters_required = newFormParams;
+
+            // Update pattern-derived properties
+            entry.bilateral = pattern === 'both';
+            entry.sideOptions = pattern === 'side' ? ['left', 'right'] : [];
+
+            // Update dosage spec
             const newSpec = {
-                type: spec.type || 'reps',
+                type: entry.current?.type || 'reps',
                 sets: sets,
                 repsPerSet: reps,
                 secondsPerRep: seconds
             };
 
-            // Add distance if applicable
-            if (modifiers.includes('distance_feet') && distance > 0) {
+            if (newModifiers.includes('distance_feet') && distance > 0) {
                 newSpec.distanceFeet = distance;
             }
 
-            recordRevision(entry, newSpec, 'Dosage updated');
+            // Build change summary
+            let changes = [];
+            if (oldName !== name) changes.push(`renamed to "${name}"`);
+            if (entry.current) {
+                if (entry.current.sets !== sets) changes.push(`sets: ${entry.current.sets} → ${sets}`);
+                if (entry.current.repsPerSet !== reps && !replacesReps) changes.push(`reps: ${entry.current.repsPerSet} → ${reps}`);
+            }
+            const changeSummary = changes.length ? changes.join(', ') : 'Exercise updated';
+
+            recordRevision(entry, newSpec, changeSummary);
             persistExerciseLibrary();
             exerciseLibrary = loadExerciseLibrary();
             renderExerciseList();
             closeEditDosage();
             haptic('success');
 
-            // Build success message dynamically
-            let msg = `Dosage updated!\n\n${sets} sets`;
-            if (!replacesReps) msg += ` × ${reps} reps`;
-            if (seconds > 0) msg += ` × ${seconds}s`;
-            if (distance > 0) msg += ` × ${distance}ft`;
-            alert(msg);
+            alert(`Exercise updated!\n\n${changeSummary}`);
+        }
+
+        // Keep old function name for compatibility
+        function saveEditedDosage() {
+            saveEditedExercise();
         }
 
         function deleteExerciseFromList(exerciseId) {
@@ -4959,6 +5215,11 @@
                         <span class="pill" style="background: ${ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)'}; color: white;">
                             ${ex.pattern === 'side' ? '🔄 Sided Exercise (work left and right separately)' : '✓ Bilateral Exercise (both sides together)'}
                         </span>
+                        ${(ex.form_parameters_required || []).includes('alternating') && ex.pattern === 'side' ? `
+                        <span class="pill" style="background: var(--ios-orange); color: white; margin-left: 6px;">
+                            ⚡ ALTERNATING (switch sides each rep within set)
+                        </span>
+                        ` : ''}
                     </div>
                 </div>
 
