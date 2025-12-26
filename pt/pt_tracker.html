@@ -57,6 +57,7 @@
             touch-action: manipulation;
             user-select: none;
             overflow-x: hidden;
+            padding-bottom: 100px;
         }
 
         /* Header */
@@ -176,10 +177,10 @@
 
         .control-btn {
             flex: 1;
-            padding: 14px;
-            font-size: 17px;
+            padding: 10px 12px;
+            font-size: 15px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.1s, opacity 0.2s;
@@ -232,8 +233,8 @@
 
         .footer button {
             flex: 1;
-            padding: 14px;
-            font-size: 17px;
+            padding: 12px;
+            font-size: 15px;
             border: none;
             border-radius: 12px;
             cursor: pointer;
@@ -625,6 +626,7 @@
             <div style="display: flex; gap: 4px;">
                 <button onclick="showWeeklyStats()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📊</button>
                 <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
+                <button onclick="showSettings()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">⚙️</button>
             </div>
         </div>
     </div>
@@ -1109,11 +1111,174 @@
                 <div style="border-top: 1px solid var(--ios-separator); padding-top: 16px; margin-top: 4px;">
                     <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Restore from backup file</div>
                     <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="handleImportFile(event)">
-                    <button class="control-btn btn-secondary" onclick="document.getElementById('import-file-input').click()" style="width: 100%;">📥 Import Data</button>
+                    <button class="control-btn btn-secondary" onclick="document.getElementById('import-file-input').click()" style="width: 100%; margin-bottom: 12px;">📥 Import Data</button>
+                </div>
+
+                <div style="border-top: 1px solid var(--ios-separator); padding-top: 16px; margin-top: 4px;">
+                    <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Advanced: Schema-driven exercise editor</div>
+                    <button class="control-btn btn-primary" onclick="window.open('./exercise_editor.html', '_blank')" style="width: 100%;">🛠️ Open Exercise Editor</button>
+                    <div style="font-size: 11px; color: var(--ios-gray); margin-top: 8px; text-align: center;">Create/edit exercises with full schema validation</div>
                 </div>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeDataBackup()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settings-modal" onclick="if(event.target === this) closeSettings()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">⚙️ Settings</div>
+            <div class="modal-form" style="max-height: 600px; overflow-y: auto;">
+
+                <!-- Data & Backup Section -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; padding-left: 8px;">📊 DATA & BACKUP</div>
+                    <div style="background: var(--bg-primary); border-radius: 12px; overflow: hidden;">
+                        <button onclick="exportAllData()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span>💾 Export All Data</span>
+                                <span style="color: var(--ios-gray); font-size: 14px;">›</span>
+                            </div>
+                            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Library + history + version</div>
+                        </button>
+                        <button onclick="exportExerciseLibrary()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span>📚 Export Library Only</span>
+                                <span style="color: var(--ios-gray); font-size: 14px;">›</span>
+                            </div>
+                        </button>
+                        <button onclick="exportExerciseHistory()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span>📊 Export History Only</span>
+                                <span style="color: var(--ios-gray); font-size: 14px;">›</span>
+                            </div>
+                        </button>
+                        <button onclick="document.getElementById('import-file-input').click()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span>📥 Import Data</span>
+                                <span style="color: var(--ios-gray); font-size: 14px;">›</span>
+                            </div>
+                            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Restore from backup</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Exercise Library Section -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; padding-left: 8px;">💪 EXERCISE LIBRARY</div>
+                    <div style="background: var(--bg-primary); border-radius: 12px; overflow: hidden;">
+                        <button onclick="closeSettings(); showLibraryBrowser();" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span>📚 Browse Library</span>
+                                <span style="color: var(--ios-gray); font-size: 14px;">›</span>
+                            </div>
+                            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Professional PT exercises</div>
+                        </button>
+                        <button onclick="window.open('./exercise_editor.html', '_blank')" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span>🛠️ Exercise Editor</span>
+                                <span style="color: var(--ios-gray); font-size: 14px;">↗</span>
+                            </div>
+                            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Create custom exercises</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tracking Preferences Section -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; padding-left: 8px;">🎯 TRACKING PREFERENCES</div>
+                    <div style="background: var(--bg-primary); border-radius: 12px; overflow: hidden;">
+                        <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 15px; color: var(--text-primary);">Haptic Feedback</div>
+                                    <div style="font-size: 11px; color: var(--ios-gray); margin-top: 2px;">Vibration on actions</div>
+                                </div>
+                                <input type="checkbox" id="haptic-toggle" checked onchange="toggleHaptic()" style="width: 42px; height: 24px; cursor: pointer;">
+                            </div>
+                        </div>
+                        <div style="padding: 10px 12px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 15px; color: var(--text-primary);">Voice Announcements</div>
+                                    <div style="font-size: 11px; color: var(--ios-gray); margin-top: 2px;">Speak progress updates</div>
+                                </div>
+                                <input type="checkbox" id="voice-toggle" checked onchange="toggleVoice()" style="width: 42px; height: 24px; cursor: pointer;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- App Management Section -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; padding-left: 8px;">📱 APP MANAGEMENT</div>
+                    <div style="background: var(--bg-primary); border-radius: 12px; overflow: hidden;">
+                        <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span style="font-size: 15px; color: var(--text-primary);">App Version</span>
+                                <span style="color: var(--ios-gray); font-size: 13px;">v1.3.0</span>
+                            </div>
+                        </div>
+                        <button onclick="reloadApp()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span>🔄 Reload App</span>
+                                <span style="color: var(--ios-gray); font-size: 14px;">›</span>
+                            </div>
+                            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Check for updates</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- About Section -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; padding-left: 8px;">ℹ️ ABOUT</div>
+                    <div style="background: var(--bg-primary); border-radius: 12px; overflow: hidden;">
+                        <div style="padding: 14px 16px;">
+                            <div style="font-size: 14px; color: var(--ios-gray); line-height: 1.6;">
+                                All data stored locally on your device. No cloud sync. Export regularly to back up your progress.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeSettings()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dosage Prompt Modal -->
+    <div class="modal" id="dosage-prompt-modal" onclick="if(event.target === this) closeDosagePrompt()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">💊 Set Initial Dosage</div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--text-primary); margin-bottom: 20px; text-align: center; font-weight: 600;" id="dosage-exercise-name"></div>
+                <div style="font-size: 14px; color: var(--ios-gray); margin-bottom: 24px; text-align: center;">What did your PT prescribe?</div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Sets</label>
+                    <input type="number" id="dosage-sets" class="modal-input" placeholder="e.g., 3" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Reps (per set)</label>
+                    <input type="number" id="dosage-reps" class="modal-input" placeholder="e.g., 10" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+
+                <div id="dosage-seconds-container" style="margin-bottom: 16px; display: none;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Seconds (per rep)</label>
+                    <input type="number" id="dosage-seconds" class="modal-input" placeholder="e.g., 30" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-top: 4px; text-align: center;">Hold exercises typically 20-30s</div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeDosagePrompt()">Cancel</button>
+                <button class="modal-save" onclick="confirmDosage()">Add to My Program</button>
             </div>
         </div>
     </div>
@@ -1359,6 +1524,7 @@
 
         // Speech synthesis for voice announcements
         function speak(text) {
+            if (!preferences.voiceEnabled) return;
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = 1.0;
@@ -1603,6 +1769,7 @@
 
         // Haptic feedback helper (stronger vibrations for better feedback)
         function haptic(style = 'light') {
+            if (!preferences.hapticEnabled) return;
             if ('vibrate' in navigator) {
                 switch(style) {
                     case 'light':
@@ -2464,7 +2631,7 @@
             exercisesContainer.innerHTML = sortedExercises.map(id => {
                 const entry = getLibraryEntryById(id);
                 if (!entry || entry.archived) return '';
-                return `<button class="pill" style="cursor: pointer; padding: 8px 14px; background: var(--ios-blue); color: white; font-weight: 500;" onclick="quickStartExercise('${id}')">${entry.name}</button>`;
+                return `<button class="pill" style="cursor: pointer; padding: 8px 14px; background: var(--ios-blue); color: white; font-weight: 500; white-space: normal; word-wrap: break-word; text-align: left; line-height: 1.4;" onclick="quickStartExercise('${id}')">${entry.name}</button>`;
             }).filter(Boolean).join('');
 
             container.style.display = exercisesContainer.innerHTML ? 'block' : 'none';
@@ -3334,6 +3501,168 @@
         function closeDataBackup() {
             document.getElementById('data-backup-modal').classList.remove('active');
             haptic('medium');
+        }
+
+        // SETTINGS FUNCTIONS
+        const PREFERENCES_KEY = 'pt_preferences';
+        let preferences = {
+            hapticEnabled: true,
+            voiceEnabled: true
+        };
+
+        function loadPreferences() {
+            try {
+                const stored = localStorage.getItem(PREFERENCES_KEY);
+                if (stored) {
+                    preferences = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Failed to load preferences:', e);
+            }
+            // Update UI toggles
+            document.getElementById('haptic-toggle').checked = preferences.hapticEnabled;
+            document.getElementById('voice-toggle').checked = preferences.voiceEnabled;
+        }
+
+        function savePreferences() {
+            localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+        }
+
+        function showSettings() {
+            loadPreferences();
+            document.getElementById('settings-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function toggleHaptic() {
+            preferences.hapticEnabled = document.getElementById('haptic-toggle').checked;
+            savePreferences();
+            haptic('light');
+        }
+
+        function toggleVoice() {
+            preferences.voiceEnabled = document.getElementById('voice-toggle').checked;
+            savePreferences();
+            haptic('light');
+        }
+
+        // DOSAGE PROMPT FUNCTIONS
+        let pendingExerciseImport = null;
+
+        function showDosagePrompt(exercise) {
+            pendingExerciseImport = exercise;
+
+            document.getElementById('dosage-exercise-name').textContent = exercise.canonical_name;
+            document.getElementById('dosage-sets').value = '';
+            document.getElementById('dosage-reps').value = '';
+            document.getElementById('dosage-seconds').value = '';
+
+            // Show seconds field for hold exercises
+            const isHold = exercise.pattern_modifiers && exercise.pattern_modifiers.includes('hold_seconds');
+            const secondsContainer = document.getElementById('dosage-seconds-container');
+            if (isHold) {
+                secondsContainer.style.display = 'block';
+            } else {
+                secondsContainer.style.display = 'none';
+            }
+
+            document.getElementById('dosage-prompt-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeDosagePrompt() {
+            document.getElementById('dosage-prompt-modal').classList.remove('active');
+            pendingExerciseImport = null;
+            haptic('medium');
+        }
+
+        function confirmDosage() {
+            const sets = parseInt(document.getElementById('dosage-sets').value);
+            const reps = parseInt(document.getElementById('dosage-reps').value);
+            const seconds = parseInt(document.getElementById('dosage-seconds').value) || 0;
+
+            if (!sets || !reps || sets < 1 || reps < 1) {
+                alert('Please enter valid sets and reps');
+                return;
+            }
+
+            if (!pendingExerciseImport) return;
+
+            const ex = pendingExerciseImport;
+            const isHold = ex.pattern_modifiers && ex.pattern_modifiers.includes('hold_seconds');
+
+            if (isHold && (!seconds || seconds < 1)) {
+                alert('Please enter valid seconds for this hold exercise');
+                return;
+            }
+
+            // Import the exercise with the specified dosage
+            const isBilateral = ex.pattern === 'both';
+            const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
+            const simpleTags = ex.tags.functional || [];
+            const equipmentList = ex.equipment.required || [];
+
+            const newExercise = {
+                id: ex.exercise_id,
+                name: ex.canonical_name,
+                description: ex.description,
+                pt_category: ex.pt_category,
+                primary_muscles: ex.primary_muscles,
+                secondary_muscles: ex.secondary_muscles,
+                pattern: ex.pattern,
+                pattern_modifiers: ex.pattern_modifiers,
+                equipment: equipmentList,
+                equipmentOptional: ex.equipment.optional || [],
+                guidance: ex.guidance,
+                tags: simpleTags,
+                bilateral: isBilateral,
+                sideOptions: sideOptions,
+                primaryMuscles: ex.primary_muscles.join(', '),
+                anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
+                difficulty: '',
+                supersedes: [],
+                atlasUrl: '',
+                current: {
+                    type: isHold ? 'hold' : 'reps',
+                    sets: sets,
+                    repsPerSet: reps,
+                    secondsPerRep: seconds
+                },
+                history: [
+                    {
+                        timestamp: new Date().toISOString(),
+                        summary: `Imported from exercise library (${sets} sets × ${reps} reps${isHold ? ` × ${seconds}s` : ''})`,
+                        previous: {},
+                        next: {
+                            type: isHold ? 'hold' : 'reps',
+                            sets: sets,
+                            repsPerSet: reps,
+                            secondsPerRep: seconds
+                        },
+                        supersedes: []
+                    }
+                ],
+                favorite: false,
+                archived: false
+            };
+
+            exerciseLibrary.push(newExercise);
+            persistExerciseLibrary();
+
+            closeDosagePrompt();
+            closeExerciseDetail();
+            closeLibraryBrowser();
+
+            const patternMsg = ex.pattern === 'side'
+                ? '🔄 Side tracking enabled: Will log left and right separately'
+                : '✓ Bilateral exercise: Both sides work together';
+            alert(`"${ex.canonical_name}" added to your program!\n\n${sets} sets × ${reps} reps${isHold ? ` × ${seconds}s` : ''}\n\n${patternMsg}`);
+            haptic('success');
         }
 
         function exportExerciseLibrary() {
@@ -4717,30 +5046,59 @@
         let selectedSeedExercise = null;
         let showOnlyNewExercises = true;  // Default: filter out already-imported
         let selectedExercisesForImport = new Set();  // Track checked exercises
+        let isLoadingSeedExercises = false;
 
         async function loadExerciseSeedData() {
+            isLoadingSeedExercises = true;
             try {
-                const response = await fetch('exercise_guidance_seed.json');
+                const timeoutMs = 7000;
+                const response = await Promise.race([
+                    fetch('exercise_guidance_seed.json'),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), timeoutMs))
+                ]);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 const data = await response.json();
                 seedExercises = data.exercises || [];
+                console.log(`Loaded ${seedExercises.length} exercises from seed data`);
                 return seedExercises;
             } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.error('Exercise seed data request timed out.');
+                    alert('Failed to load exercise library:\nRequest timed out.\n\nMake sure exercise_guidance_seed.json is accessible.');
+                } else {
                 console.error('Failed to load exercise seed data:', error);
+                alert(`Failed to load exercise library:\n${error.message}\n\nMake sure exercise_guidance_seed.json is accessible.`);
+                }
                 seedExercises = [];
                 return [];
+            } finally {
+                isLoadingSeedExercises = false;
             }
         }
 
         async function showLibraryBrowser() {
-            if (seedExercises.length === 0) {
-                await loadExerciseSeedData();
-            }
+            console.log('Opening library browser...');
+            try {
+                // Show loading message immediately
+                document.getElementById('library-exercises-list').innerHTML = '<div class="history-item">Loading exercise library…</div>';
+                document.getElementById('library-browser-modal').classList.add('active');
 
-            selectedExercisesForImport.clear();
-            document.getElementById('bulk-import-btn').style.display = 'none';
-            renderLibraryExercises();
-            document.getElementById('library-browser-modal').classList.add('active');
-            haptic('medium');
+                if (seedExercises.length === 0) {
+                    console.log('Loading seed data...');
+                    await loadExerciseSeedData();
+                }
+
+                console.log(`Seed exercises loaded: ${seedExercises.length}`);
+                selectedExercisesForImport.clear();
+                document.getElementById('bulk-import-btn').style.display = 'none';
+                renderLibraryExercises();
+                haptic('medium');
+            } catch (error) {
+                console.error('Error showing library browser:', error);
+                alert(`Failed to open library browser:\n${error.message}`);
+            }
         }
 
         function toggleShowOnlyNew() {
@@ -4768,64 +5126,97 @@
         }
 
         function renderLibraryExercises() {
+            console.log('Rendering library exercises...');
             const container = document.getElementById('library-exercises-list');
             const searchTerm = document.getElementById('library-search').value.toLowerCase();
 
+            // Check if still loading
+            if (isLoadingSeedExercises) {
+                container.innerHTML = '<div class="history-item">Loading exercise library…</div>';
+                return;
+            }
+
+            console.log(`Total seed exercises: ${seedExercises.length}`);
+            console.log(`Exercise library size: ${exerciseLibrary.length}`);
+
             // Filter exercises based on search and "show only new" toggle
-            let filtered = seedExercises.filter(ex =>
-                ex.canonical_name.toLowerCase().includes(searchTerm) ||
-                ex.description.toLowerCase().includes(searchTerm) ||
-                ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm)) ||
-                ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm))
-            );
+            let filtered = seedExercises.filter(ex => {
+                try {
+                    const matchesSearch =
+                        ex.canonical_name.toLowerCase().includes(searchTerm) ||
+                        ex.description.toLowerCase().includes(searchTerm) ||
+                        (ex.primary_muscles && ex.primary_muscles.some(m => m.toLowerCase().includes(searchTerm))) ||
+                        (ex.equipment && ex.equipment.required && ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm)));
+                    return matchesSearch;
+                } catch (error) {
+                    console.error('Error filtering exercise:', ex.exercise_id, error);
+                    return false;
+                }
+            });
 
             // Apply "show only new" filter
             if (showOnlyNewExercises) {
                 filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.exercise_id));
             }
 
+            console.log(`Filtered exercises: ${filtered.length}`);
+
             if (filtered.length === 0) {
                 const message = showOnlyNewExercises
                     ? 'No new exercises found. Uncheck "Show only new" to see all.'
                     : 'No exercises found in library';
                 container.innerHTML = `<div class="history-item">${message}</div>`;
+                console.log('No exercises to display');
                 return;
             }
 
-            container.innerHTML = filtered.map(ex => {
-                const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
-                const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
-                const equipmentLabel = ex.equipment.required.length > 0
-                    ? ex.equipment.required.join(', ')
-                    : 'No equipment';
+            try {
+                container.innerHTML = filtered.map((ex, idx) => {
+                    try {
+                        const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
+                        const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
+                        const equipmentRequired = ex.equipment && ex.equipment.required ? ex.equipment.required : [];
+                        const equipmentLabel = equipmentRequired.length > 0
+                            ? equipmentRequired.join(', ')
+                            : 'No equipment';
 
-                const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
-                const isChecked = selectedExercisesForImport.has(ex.exercise_id);
-                const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
+                        const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
+                        const isChecked = selectedExercisesForImport.has(ex.exercise_id);
+                        const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
+                        const primaryMuscles = ex.primary_muscles || [];
 
-                return `
-                    <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
-                        <input type="checkbox"
-                               id="ex-check-${ex.exercise_id}"
-                               ${isChecked ? 'checked' : ''}
-                               ${checkboxDisabled ? 'disabled' : ''}
-                               onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
-                               style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
-                        <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
-                            <div style="font-weight: 600; margin-bottom: 4px;">
-                                ${ex.canonical_name}
-                                ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
+                        return `
+                            <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
+                                <input type="checkbox"
+                                       id="ex-check-${ex.exercise_id}"
+                                       ${isChecked ? 'checked' : ''}
+                                       ${checkboxDisabled ? 'disabled' : ''}
+                                       onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
+                                       style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
+                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">
+                                        ${ex.canonical_name}
+                                        ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${(ex.description || '').substring(0, 100)}${(ex.description || '').length > 100 ? '...' : ''}</div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                        <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
+                                        <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
+                                        <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${primaryMuscles.length} muscles</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${ex.description.substring(0, 100)}${ex.description.length > 100 ? '...' : ''}</div>
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                                <span class="pill" style="background: ${patternColor}; color: white; font-size: 11px; padding: 4px 8px;">${patternLabel}</span>
-                                <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">📦 ${equipmentLabel}</span>
-                                <span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 11px; padding: 4px 8px;">💪 ${ex.primary_muscles.length} muscles</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                        `;
+                    } catch (error) {
+                        console.error(`Error rendering exercise ${ex.exercise_id}:`, error);
+                        return `<div class="history-item" style="color: var(--ios-red);">Error rendering ${ex.exercise_id}</div>`;
+                    }
+                }).join('');
+                console.log('Library exercises rendered successfully');
+            } catch (error) {
+                console.error('Error rendering library list:', error);
+                container.innerHTML = `<div class="history-item" style="color: var(--ios-red);">Error loading exercises. Check console for details.</div>`;
+            }
         }
 
         function filterLibraryExercises() {
@@ -4944,76 +5335,8 @@
                 return;
             }
 
-            // Convert seed format to library format
-            const defaultSets = 3;
-            const defaultReps = 10;
-            const isHold = ex.pattern_modifiers && ex.pattern_modifiers.includes('hold_seconds');
-
-            // Auto-populate side tracking based on pattern field
-            const isBilateral = ex.pattern === 'both';
-            const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
-
-            // Convert tags.functional to simple tags array for compatibility
-            const simpleTags = ex.tags.functional || [];
-
-            // Extract equipment names from structured format
-            const equipmentList = ex.equipment.required || [];
-
-            const newExercise = {
-                id: ex.exercise_id,
-                name: ex.canonical_name,
-                description: ex.description,
-                pt_category: ex.pt_category,
-                primary_muscles: ex.primary_muscles,
-                secondary_muscles: ex.secondary_muscles,
-                pattern: ex.pattern,
-                pattern_modifiers: ex.pattern_modifiers,
-                equipment: equipmentList,
-                equipmentOptional: ex.equipment.optional || [],
-                guidance: ex.guidance,
-                tags: simpleTags,
-                bilateral: isBilateral,
-                sideOptions: sideOptions,
-                primaryMuscles: ex.primary_muscles.join(', '),
-                anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
-                difficulty: '',
-                supersedes: [],
-                atlasUrl: '',
-                current: {
-                    type: isHold ? 'hold' : 'reps',
-                    sets: defaultSets,
-                    repsPerSet: defaultReps,
-                    secondsPerRep: isHold ? 30 : 0
-                },
-                history: [
-                    {
-                        timestamp: new Date().toISOString(),
-                        summary: `Imported from exercise library`,
-                        previous: {},
-                        next: {
-                            type: isHold ? 'hold' : 'reps',
-                            sets: defaultSets,
-                            repsPerSet: defaultReps,
-                            secondsPerRep: isHold ? 30 : 0
-                        },
-                        supersedes: []
-                    }
-                ],
-                favorite: false,
-                archived: false
-            };
-
-            exerciseLibrary.push(newExercise);
-            persistExerciseLibrary();
-
-            closeExerciseDetail();
-            closeLibraryBrowser();
-
-            const patternMsg = ex.pattern === 'side'
-                ? '🔄 Side tracking enabled: Will log left and right separately'
-                : '✓ Bilateral exercise: Both sides work together';
-            alert(`"${ex.canonical_name}" imported successfully!\n\n${patternMsg}`);
-            haptic('success');
+            // Show dosage prompt instead of using defaults
+            showDosagePrompt(ex);
         }
 
         function bulkImportExercises() {
@@ -5068,7 +5391,7 @@
                     history: [
                         {
                             timestamp: new Date().toISOString(),
-                            summary: `Imported from exercise library`,
+                            summary: `Imported from exercise library with default dosage`,
                             previous: {},
                             next: {
                                 type: isHold ? 'hold' : 'reps',
@@ -5091,7 +5414,7 @@
             selectedExercisesForImport.clear();
             closeLibraryBrowser();
 
-            alert(`Successfully imported ${importedCount} exercise${importedCount !== 1 ? 's' : ''}`);
+            alert(`Successfully imported ${importedCount} exercise${importedCount !== 1 ? 's' : ''}!\n\n⚠️ Default dosage applied (3 sets × 10 reps).\nUpdate each exercise with your PT's prescription.`);
             haptic('success');
         }
 
@@ -5101,6 +5424,7 @@
         }
 
         // Initialize
+        loadPreferences(); // Load user preferences
         updateDisplay();
         updateStreakDisplay();
         updateQuickStartShortcuts();
