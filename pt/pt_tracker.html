@@ -3166,8 +3166,22 @@
             const totalSessions = sessions.length;
             const allSets = sessions.flatMap(s => s.sets);
             const totalSets = allSets.length;
-            const totalReps = allSets.reduce((sum, set) => sum + (set.reps || 0), 0);
-            const avgRepsPerSet = (totalReps / totalSets).toFixed(1);
+
+            // Check if this is a distance-based exercise
+            const hasDistance = allSets.some(set => set.distanceFeet);
+            let volumeMetric, avgMetric;
+
+            if (hasDistance) {
+                const totalDistance = allSets.reduce((sum, set) => sum + (set.distanceFeet || 0), 0);
+                const avgDistance = (totalDistance / totalSets).toFixed(1);
+                volumeMetric = `${totalDistance} ft`;
+                avgMetric = `${avgDistance} ft`;
+            } else {
+                const totalReps = allSets.reduce((sum, set) => sum + (set.reps || 0), 0);
+                const avgReps = (totalReps / totalSets).toFixed(1);
+                volumeMetric = `${totalReps} reps`;
+                avgMetric = `${avgReps} reps`;
+            }
 
             // First vs last comparison
             const firstSession = sessions[0];
@@ -3197,11 +3211,11 @@
                         </div>
                         <div>
                             <div style="color: var(--text-secondary); font-size: 11px;">Total Volume</div>
-                            <div style="font-size: 20px; font-weight: 700;">${totalReps}<span style="font-size: 14px;"> reps</span></div>
+                            <div style="font-size: 20px; font-weight: 700;">${volumeMetric}</div>
                         </div>
                         <div>
                             <div style="color: var(--text-secondary); font-size: 11px;">Avg per Set</div>
-                            <div style="font-size: 20px; font-weight: 700;">${avgRepsPerSet}<span style="font-size: 14px;"> reps</span></div>
+                            <div style="font-size: 20px; font-weight: 700;">${avgMetric}</div>
                         </div>
                     </div>
                     ${totalSessions > 1 ? `
@@ -3258,8 +3272,18 @@
                     <div style="max-height: 300px; overflow-y: auto;">
                         ${sessions.slice().reverse().map((session, idx) => {
                             const date = new Date(session.date);
-                            const totalReps = session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
-                            const avgReps = (totalReps / session.sets.length).toFixed(1);
+                            const hasDistance = session.sets.some(set => set.distanceFeet);
+
+                            let volumeDisplay;
+                            if (hasDistance) {
+                                const totalDistance = session.sets.reduce((sum, set) => sum + (set.distanceFeet || 0), 0);
+                                const avgDistance = (totalDistance / session.sets.length).toFixed(1);
+                                volumeDisplay = `${session.sets.length} sets × ${avgDistance}ft avg = ${totalDistance}ft total`;
+                            } else {
+                                const totalReps = session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+                                const avgReps = (totalReps / session.sets.length).toFixed(1);
+                                volumeDisplay = `${session.sets.length} sets × ${avgReps} avg reps = ${totalReps} total reps`;
+                            }
 
                             return `
                                 <div style="padding: 8px; border-bottom: 1px solid var(--border-color); ${idx === 0 ? 'background: rgba(0,122,255,0.05);' : ''}">
@@ -3268,7 +3292,7 @@
                                         <div style="font-size: 12px; color: var(--text-secondary);">${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                     </div>
                                     <div style="font-size: 12px; color: var(--text-secondary);">
-                                        ${session.sets.length} sets × ${avgReps} avg reps = ${totalReps} total reps
+                                        ${volumeDisplay}
                                     </div>
                                     ${session.notes ? `<div style="font-size: 11px; color: var(--ios-gray); margin-top: 4px; font-style: italic;">"${session.notes}"</div>` : ''}
                                 </div>
@@ -3460,10 +3484,19 @@
                 sessionHistoryList.innerHTML = relevantSessions
                     .slice(0, 10)
                     .map(session => {
-                        const totalReps = (session.sets || []).reduce((sum, set) => sum + (set.reps || 0), 0);
-                        const sessionLabel = session.exerciseType === 'timed'
-                            ? `${session.sets?.length || 0} sets · ${session.exerciseType} · ${totalReps} reps`
-                            : `${session.sets?.length || 0} sets · ${totalReps} reps`;
+                        // Check if this is a distance-based exercise
+                        const hasDistance = (session.sets || []).some(set => set.distanceFeet);
+
+                        let volumeLabel;
+                        if (hasDistance) {
+                            const totalDistance = (session.sets || []).reduce((sum, set) => sum + (set.distanceFeet || 0), 0);
+                            volumeLabel = `${totalDistance}ft total`;
+                        } else {
+                            const totalReps = (session.sets || []).reduce((sum, set) => sum + (set.reps || 0), 0);
+                            volumeLabel = `${totalReps} reps`;
+                        }
+
+                        const sessionLabel = `${session.sets?.length || 0} sets · ${volumeLabel}`;
 
                         // Show side info for unilateral exercises and form parameters
                         const setDetails = (session.sets || []).map((set, idx) => {
