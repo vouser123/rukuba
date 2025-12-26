@@ -2846,6 +2846,8 @@
             closeWeeklyStats();
             const sessions = loadHistory();
 
+            console.log('[All Sessions] Total sessions loaded:', sessions.length);
+
             // Group by sessionId
             const sessionGroups = {};
             sessions.forEach(session => {
@@ -2855,6 +2857,8 @@
                 }
                 sessionGroups[sid].push(session);
             });
+
+            console.log('[All Sessions] Unique workout sessions:', Object.keys(sessionGroups).length);
 
             // Sort session groups by date (most recent first)
             const sortedGroups = Object.entries(sessionGroups).sort((a, b) => {
@@ -2933,6 +2937,14 @@
 
             const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
 
+            // Debug logging
+            console.log('[Weekly Stats] Total sessions in history:', sessions.length);
+            console.log('[Weekly Stats] Week starts:', startOfWeek.toLocaleString());
+            console.log('[Weekly Stats] Sessions this week:', weekSessions.length);
+            if (weekSessions.length > 0) {
+                console.log('[Weekly Stats] Week session dates:', weekSessions.map(s => new Date(s.date).toLocaleString()));
+            }
+
             renderWeeklyOverview(weekSessions, startOfWeek);
             renderWeeklyVolumeChart(sessions);
             renderWeeklyExercises(weekSessions);
@@ -2958,10 +2970,17 @@
             // Days trained this week
             const daysWithSessions = new Set(weekSessions.map(s => new Date(s.date).toDateString())).size;
 
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+
             container.innerHTML = `
                 <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">
-                        This Week (${startOfWeek.toLocaleDateString()})
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--ios-blue);">
+                        This Week
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">
+                        ${startOfWeek.toLocaleDateString()} - ${endOfWeek.toLocaleDateString()}
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px;">
                         <div>
