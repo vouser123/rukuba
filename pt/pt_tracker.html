@@ -811,6 +811,13 @@
                                 <div style="font-size: 11px; color: var(--ios-gray);">As many reps as possible</div>
                             </div>
                         </label>
+                        <label style="display: flex; align-items: center; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                            <input type="checkbox" id="edit-mod-alternating" value="alternating" style="margin-right: 8px;">
+                            <div>
+                                <div style="font-weight: 600;">⚡ Alternating</div>
+                                <div style="font-size: 11px; color: var(--ios-gray);">Switch sides each rep within set</div>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
@@ -1100,7 +1107,7 @@
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeExerciseDetail()">Back</button>
-                <button class="modal-save" id="import-exercise-btn" onclick="importSeedExercise()">Import to My Exercises</button>
+                <button class="modal-save" id="import-exercise-btn" onclick="importLibraryExercise()">Import to My Exercises</button>
             </div>
         </div>
     </div>
@@ -1948,7 +1955,7 @@
 
                 // Show alternating indicator if applicable
                 const entry = getLibraryEntryById(currentExercise.id);
-                const hasAlternating = entry && (entry.form_parameters_required || []).includes('alternating');
+                const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
                 remainingLabel = `${sideLabels}`;
                 if (hasAlternating) {
                     remainingLabel += ' ⚡ Alternating';
@@ -2272,7 +2279,7 @@
             }
 
             // For sided exercises, show which sides need more sets
-            const hasAlternating = entry && (entry.form_parameters_required || []).includes('alternating');
+            const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
             let subtitleText = hasDistance
                 ? `Target: ${targetDistance}ft · Enter actual distance covered`
                 : `Target: ${targetReps} reps · Enter actual reps performed`;
@@ -3850,7 +3857,7 @@
             } else {
                 // Single import or last in bulk - show success message
                 closeLibraryBrowser();
-                const hasAlternating = (ex.form_parameters_required || []).includes('alternating');
+                const hasAlternating = (ex.pattern_modifiers || []).includes('alternating');
                 let patternMsg = ex.pattern === 'side'
                     ? '🔄 Side tracking enabled: Will log left and right separately'
                     : '✓ Bilateral exercise: Both sides work together';
@@ -4207,7 +4214,7 @@
                 const statsHtml = `<div style="font-size: 12px; color: ${adherenceColor}; margin-top: 4px; font-weight: 600;">${adherenceIcon}${adherenceText}${totalSessions > 0 ? ` · ${totalSessions} session${totalSessions > 1 ? 's' : ''} total` : ''}</div>`;
 
                 // Show alternating indicator
-                const hasAlternating = (ex.form_parameters_required || []).includes('alternating');
+                const hasAlternating = (ex.pattern_modifiers || []).includes('alternating');
                 const alternatingIndicator = hasAlternating && ex.pattern === 'side' ? ' ⚡' : '';
 
                 return `
@@ -4280,10 +4287,11 @@
             document.getElementById('edit-mod-duration').checked = modifiers.includes('duration_seconds');
             document.getElementById('edit-mod-distance').checked = modifiers.includes('distance_feet');
             document.getElementById('edit-mod-amrap').checked = modifiers.includes('AMRAP');
+            document.getElementById('edit-mod-alternating').checked = modifiers.includes('alternating');
 
             // Populate form parameters
             const formParamsContainer = document.getElementById('edit-form-params');
-            const availableFormParams = ['eyes', 'surface', 'band_resistance', 'band_position', 'strap_position', 'slope', 'alternating', 'distance', 'weight'];
+            const availableFormParams = ['eyes', 'surface', 'band_resistance', 'band_position', 'strap_position', 'slope', 'distance', 'weight'];
             formParamsContainer.innerHTML = availableFormParams.map(param => {
                 const isChecked = formParams.includes(param);
                 return `<label class="pill" style="cursor: pointer; background: ${isChecked ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${isChecked ? 'white' : 'var(--ios-blue)'}; padding: 6px 12px;">
@@ -4395,6 +4403,7 @@
             if (document.getElementById('edit-mod-duration').checked) newModifiers.push('duration_seconds');
             if (document.getElementById('edit-mod-distance').checked) newModifiers.push('distance_feet');
             if (document.getElementById('edit-mod-amrap').checked) newModifiers.push('AMRAP');
+            if (document.getElementById('edit-mod-alternating').checked) newModifiers.push('alternating');
 
             // Get form parameters
             const formParamsContainer = document.getElementById('edit-form-params');
@@ -5176,39 +5185,39 @@
         }
 
         // Exercise Library Browser Functions
-        let seedExercises = [];
-        let selectedSeedExercise = null;
+        let libraryExercises = [];
+        let selectedLibraryExercise = null;
         let showOnlyNewExercises = true;  // Default: filter out already-imported
         let selectedExercisesForImport = new Set();  // Track checked exercises
-        let isLoadingSeedExercises = false;
+        let isLoadingLibraryExercises = false;
 
-        async function loadExerciseSeedData() {
-            isLoadingSeedExercises = true;
+        async function loadExerciseLibraryData() {
+            isLoadingLibraryExercises = true;
             try {
                 const timeoutMs = 7000;
                 const response = await Promise.race([
-                    fetch('exercise_guidance_seed.json'),
+                    fetch('exercise_library.json'),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), timeoutMs))
                 ]);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 const data = await response.json();
-                seedExercises = data.exercises || [];
-                console.log(`Loaded ${seedExercises.length} exercises from seed data`);
-                return seedExercises;
+                libraryExercises = data.exercises || [];
+                console.log(`Loaded ${libraryExercises.length} exercises from library`);
+                return libraryExercises;
             } catch (error) {
                 if (error.name === 'AbortError') {
-                    console.error('Exercise seed data request timed out.');
-                    alert('Failed to load exercise library:\nRequest timed out.\n\nMake sure exercise_guidance_seed.json is accessible.');
+                    console.error('Exercise library request timed out.');
+                    alert('Failed to load exercise library:\nRequest timed out.\n\nMake sure exercise_library.json is accessible.');
                 } else {
-                console.error('Failed to load exercise seed data:', error);
-                alert(`Failed to load exercise library:\n${error.message}\n\nMake sure exercise_guidance_seed.json is accessible.`);
+                console.error('Failed to load exercise library:', error);
+                alert(`Failed to load exercise library:\n${error.message}\n\nMake sure exercise_library.json is accessible.`);
                 }
-                seedExercises = [];
+                libraryExercises = [];
                 return [];
             } finally {
-                isLoadingSeedExercises = false;
+                isLoadingLibraryExercises = false;
             }
         }
 
@@ -5219,12 +5228,12 @@
                 document.getElementById('library-exercises-list').innerHTML = '<div class="history-item">Loading exercise library…</div>';
                 document.getElementById('library-browser-modal').classList.add('active');
 
-                if (seedExercises.length === 0) {
-                    console.log('Loading seed data...');
-                    await loadExerciseSeedData();
+                if (libraryExercises.length === 0) {
+                    console.log('Loading exercise library...');
+                    await loadExerciseLibraryData();
                 }
 
-                console.log(`Seed exercises loaded: ${seedExercises.length}`);
+                console.log(`Library exercises loaded: ${libraryExercises.length}`);
                 selectedExercisesForImport.clear();
                 document.getElementById('bulk-import-btn').style.display = 'none';
                 renderLibraryExercises();
@@ -5265,16 +5274,16 @@
             const searchTerm = document.getElementById('library-search').value.toLowerCase();
 
             // Check if still loading
-            if (isLoadingSeedExercises) {
+            if (isLoadingLibraryExercises) {
                 container.innerHTML = '<div class="history-item">Loading exercise library…</div>';
                 return;
             }
 
-            console.log(`Total seed exercises: ${seedExercises.length}`);
+            console.log(`Total library exercises: ${libraryExercises.length}`);
             console.log(`Exercise library size: ${exerciseLibrary.length}`);
 
             // Filter exercises based on search and "show only new" toggle
-            let filtered = seedExercises.filter(ex => {
+            let filtered = libraryExercises.filter(ex => {
                 try {
                     const matchesSearch =
                         ex.canonical_name.toLowerCase().includes(searchTerm) ||
@@ -5358,10 +5367,10 @@
         }
 
         function showExerciseDetail(exerciseId) {
-            selectedSeedExercise = seedExercises.find(ex => ex.exercise_id === exerciseId);
-            if (!selectedSeedExercise) return;
+            selectedLibraryExercise = libraryExercises.find(ex => ex.exercise_id === exerciseId);
+            if (!selectedLibraryExercise) return;
 
-            const ex = selectedSeedExercise;
+            const ex = selectedLibraryExercise;
             document.getElementById('exercise-detail-title').textContent = ex.canonical_name;
 
             const detailContent = `
@@ -5376,7 +5385,7 @@
                         <span class="pill" style="background: ${ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)'}; color: white;">
                             ${ex.pattern === 'side' ? '🔄 Sided Exercise (work left and right separately)' : '✓ Bilateral Exercise (both sides together)'}
                         </span>
-                        ${(ex.form_parameters_required || []).includes('alternating') && ex.pattern === 'side' ? `
+                        ${(ex.pattern_modifiers || []).includes('alternating') && ex.pattern === 'side' ? `
                         <span class="pill" style="background: var(--ios-orange); color: white; margin-left: 6px;">
                             ⚡ ALTERNATING (switch sides each rep within set)
                         </span>
@@ -5463,10 +5472,10 @@
             haptic('medium');
         }
 
-        function importSeedExercise() {
-            if (!selectedSeedExercise) return;
+        function importLibraryExercise() {
+            if (!selectedLibraryExercise) return;
 
-            const ex = selectedSeedExercise;
+            const ex = selectedLibraryExercise;
 
             // Check if already imported
             if (exerciseLibrary.find(e => e.id === ex.exercise_id)) {
@@ -5489,7 +5498,7 @@
 
             // Convert selected IDs to array and filter out already-imported
             bulkImportQueue = Array.from(selectedExercisesForImport).filter(exerciseId => {
-                const ex = seedExercises.find(e => e.exercise_id === exerciseId);
+                const ex = libraryExercises.find(e => e.exercise_id === exerciseId);
                 if (!ex) return false;
                 // Skip if already imported
                 if (exerciseLibrary.find(e => e.id === ex.exercise_id)) return false;
@@ -5520,7 +5529,7 @@
 
             // Get next exercise ID and show dosage prompt
             const exerciseId = bulkImportQueue.shift();
-            const ex = seedExercises.find(e => e.exercise_id === exerciseId);
+            const ex = libraryExercises.find(e => e.exercise_id === exerciseId);
             if (ex) {
                 showDosagePrompt(ex);
             } else {

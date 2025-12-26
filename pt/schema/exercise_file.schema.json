@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schema/exercise_file.schema.json",
   "title": "Exercise File",
-  "description": "Schema for the exercise guidance seed JSON used by the PWA.",
+  "description": "Schema for the exercise library JSON used by the PWA.",
   "type": "object",
   "properties": {
     "exercises": {
@@ -68,14 +68,15 @@
         },
         "pattern_modifiers": {
           "type": "array",
-          "description": "Pattern-level modifiers indicating structural dosage changes (e.g., duration vs reps). Values are flags; actual numbers live in the program layer.",
+          "description": "Pattern-level modifiers indicating structural dosage changes (e.g., duration vs reps, alternating sides within set). Values are flags; actual numbers live in the program layer.",
           "items": {
             "type": "string",
             "enum": [
               "duration_seconds",
               "hold_seconds",
               "AMRAP",
-              "distance_feet"
+              "distance_feet",
+              "alternating"
             ]
           },
           "uniqueItems": true,
@@ -86,7 +87,7 @@
         },
         "form_parameters_required": {
           "type": "array",
-          "description": "Form parameters that MUST be specified in the program layer.",
+          "description": "Form parameters that MUST be specified in the program layer (variable values like weight, surface type, etc.).",
           "items": {
             "type": "string",
             "enum": [
@@ -95,7 +96,6 @@
               "band_resistance",
               "band_position",
               "slope",
-              "alternating",
               "distance",
               "weight",
               "strap_position"
