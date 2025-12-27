@@ -881,8 +881,8 @@
                 <textarea class="modal-input" id="session-notes" placeholder="How did it feel? Any pain? Progress notes..." style="min-height: 100px; resize: vertical;"></textarea>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="saveSessionWithNotes('')">Skip</button>
-                <button class="modal-save" onclick="saveSessionWithNotes(document.getElementById('session-notes').value)">Save</button>
+                <button class="modal-cancel" onclick="confirmSkipNotes()">Skip Notes</button>
+                <button class="modal-save" onclick="saveSessionWithNotes(document.getElementById('session-notes').value)">Save & Finish</button>
             </div>
         </div>
     </div>
@@ -1356,7 +1356,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.2'; // Updated: 2025-12-26 - Enhanced side selection UI with progress indicators
+        const APP_VERSION = 'v1.5.3'; // Updated: 2025-12-26 - Complete vs Log UX improvements with confirmations
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -2185,7 +2185,7 @@
             const reps = currentExercise.currentRep;
 
             if (reps === 0) {
-                showActionSheet('No reps recorded. Complete set anyway?', () => {
+                showActionSheet('⚠️ Complete set with 0 reps?\n\nThis will log an empty set and move to the next set.\n\nTip: Use "Log Set" to manually enter reps.', () => {
                     finishSet();
                 });
                 return;
@@ -2688,6 +2688,15 @@
         function closeSessionNotesModal() {
             document.getElementById('session-notes-modal').classList.remove('active');
             haptic('medium');
+        }
+
+        function confirmSkipNotes() {
+            const setsLogged = currentExercise.sessionData.length;
+            const message = `✓ Save exercise without notes?\n\n${setsLogged} set${setsLogged !== 1 ? 's' : ''} will be saved to your history.\n\nYou can add notes later if needed.`;
+
+            showActionSheet(message, () => {
+                saveSessionWithNotes('');
+            });
         }
 
         function saveSessionWithNotes(notes) {
@@ -4416,6 +4425,21 @@
         }
 
         function selectExerciseFromList(exerciseId) {
+            // Check for unsaved progress
+            if (currentExercise && currentExercise.sessionData && currentExercise.sessionData.length > 0) {
+                const setsLogged = currentExercise.sessionData.length;
+                const message = `⚠️ Switch exercises?\n\nYou have ${setsLogged} unsaved set${setsLogged !== 1 ? 's' : ''} for "${currentExercise.name}".\n\nProgress will be lost if you switch now.`;
+
+                showActionSheet(message, () => {
+                    proceedToSwitchExercise(exerciseId);
+                });
+                return;
+            }
+
+            proceedToSwitchExercise(exerciseId);
+        }
+
+        function proceedToSwitchExercise(exerciseId) {
             const entry = getLibraryEntryById(exerciseId);
             currentExercise = toSessionExercise(entry);
 
