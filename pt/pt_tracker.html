@@ -618,7 +618,10 @@
 <body>
     <div class="header">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-            <h1 style="margin: 0;">💪 PT Exercise Tracker</h1>
+            <div>
+                <h1 style="margin: 0; display: inline;">💪 PT Exercise Tracker</h1>
+                <span style="font-size: 11px; color: var(--ios-gray); margin-left: 6px; vertical-align: super;" id="header-version">v1.4.0</span>
+            </div>
             <div id="streak-display" style="font-size: 14px; font-weight: 600; color: var(--ios-orange);"></div>
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -828,6 +831,15 @@
                     <div style="display: flex; flex-wrap: wrap; gap: 6px;" id="edit-form-params">
                         <!-- Will be populated dynamically -->
                     </div>
+                </div>
+
+                <!-- Supersedes Section -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Supersedes (Replaces Old Exercise)</label>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">Select exercises this replaces (will be auto-archived)</div>
+                    <select multiple class="modal-select" id="edit-supersedes" style="min-height: 80px;">
+                        <!-- Populated dynamically -->
+                    </select>
                 </div>
 
                 <!-- Dosage Section -->
@@ -1235,7 +1247,7 @@
                         <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-color);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span style="font-size: 15px; color: var(--text-primary);">App Version</span>
-                                <span style="color: var(--ios-gray); font-size: 13px;">v1.3.0</span>
+                                <span style="color: var(--ios-gray); font-size: 13px;" id="app-version-display">v1.4.0</span>
                             </div>
                         </div>
                         <button onclick="reloadApp()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
@@ -1344,6 +1356,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
+        const APP_VERSION = 'v1.5.2'; // Updated: 2025-12-26 - Enhanced side selection UI with progress indicators
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -1921,7 +1934,14 @@
                 return;
             }
 
-            document.getElementById('exercise-name').textContent = currentExercise.name;
+            // Show exercise name with pattern badge
+            const entry = getLibraryEntryById(currentExercise.id);
+            let exerciseNameDisplay = currentExercise.name;
+            if (entry) {
+                const patternBadge = entry.pattern === 'side' ? ' 🔄' : ' ✓';
+                exerciseNameDisplay += patternBadge;
+            }
+            document.getElementById('exercise-name').textContent = exerciseNameDisplay;
 
             // For sided exercises, show per-side progress
             const hasSides = currentExercise.sideOptions && currentExercise.sideOptions.length > 0 && !currentExercise.bilateral;
@@ -2412,10 +2432,48 @@
 
             const sideContainer = document.getElementById('log-set-side-selector');
             if (sideOptions.length > 0 && !isBilateral) {
-                sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Select side for this set:</div>' +
+                // Count completed sets per side for progress display
+                const sideProgress = {};
+                sideOptions.forEach(side => sideProgress[side] = 0);
+                currentExercise.sessionData.forEach(set => {
+                    if (set.side && sideProgress[set.side] !== undefined) {
+                        sideProgress[set.side]++;
+                    }
+                });
+
+                const targetSets = currentExercise.baseSets || 0;
+
+                sideContainer.innerHTML = '<div style="font-size: 15px; font-weight: 700; margin-bottom: 12px; text-align: center; color: var(--text-primary);">📍 SELECT SIDE FOR THIS SET:</div>' +
+                    '<div style="display: flex; gap: 12px;">' +
                     sideOptions.map(side => {
-                        return `<span class="pill" style="cursor: pointer; background: ${logSetSide === side ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === side ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${side}')">${side}</span>`;
-                    }).join(' ');
+                        const completed = sideProgress[side];
+                        const isSelected = logSetSide === side;
+                        const isComplete = completed >= targetSets;
+                        const emoji = side === 'left' ? '👈' : side === 'right' ? '👉' : '';
+
+                        return `
+                            <div onclick="selectLogSetSide('${side}')" style="
+                                flex: 1;
+                                cursor: pointer;
+                                padding: 16px 12px;
+                                border-radius: 12px;
+                                border: 3px solid ${isSelected ? 'var(--ios-blue)' : isComplete ? 'var(--ios-green)' : 'var(--border-color)'};
+                                background: ${isSelected ? 'var(--ios-blue)' : isComplete ? 'rgba(52,199,89,0.1)' : 'var(--bg-secondary)'};
+                                text-align: center;
+                                transition: all 0.2s;
+                                ${isSelected ? 'transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,122,255,0.3);' : ''}
+                            ">
+                                <div style="font-size: 24px; margin-bottom: 4px;">${emoji}</div>
+                                <div style="font-size: 16px; font-weight: 700; text-transform: uppercase; color: ${isSelected ? 'white' : 'var(--text-primary)'}; margin-bottom: 6px;">
+                                    ${side}
+                                </div>
+                                <div style="font-size: 13px; font-weight: 600; color: ${isSelected ? 'rgba(255,255,255,0.9)' : isComplete ? 'var(--ios-green)' : 'var(--ios-gray)'};">
+                                    ${completed}/${targetSets} sets ${isComplete ? '✓' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('') +
+                    '</div>';
             } else {
                 sideContainer.innerHTML = '';
                 logSetSide = 'both';
@@ -2434,12 +2492,54 @@
 
         function selectLogSetSide(side) {
             logSetSide = side;
-            const sideOptions = getLibraryEntryById(currentExercise.id).sideOptions || [];
+            const entry = getLibraryEntryById(currentExercise.id);
+            const sideOptions = entry.sideOptions || [];
+
+            // Count completed sets per side for progress display
+            const sideProgress = {};
+            sideOptions.forEach(s => sideProgress[s] = 0);
+            currentExercise.sessionData.forEach(set => {
+                if (set.side && sideProgress[set.side] !== undefined) {
+                    sideProgress[set.side]++;
+                }
+            });
+
+            const targetSets = currentExercise.baseSets || 0;
             const sideContainer = document.getElementById('log-set-side-selector');
-            sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side:</div>' +
+
+            sideContainer.innerHTML = '<div style="font-size: 15px; font-weight: 700; margin-bottom: 12px; text-align: center; color: var(--text-primary);">📍 SELECT SIDE FOR THIS SET:</div>' +
+                '<div style="display: flex; gap: 12px;">' +
                 sideOptions.map(s => {
-                    return `<span class="pill" style="cursor: pointer; background: ${logSetSide === s ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === s ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${s}')">${s}</span>`;
-                }).join(' ');
+                    const completed = sideProgress[s];
+                    const isSelected = logSetSide === s;
+                    const isComplete = completed >= targetSets;
+                    const emoji = s === 'left' ? '👈' : s === 'right' ? '👉' : '';
+
+                    return `
+                        <div onclick="selectLogSetSide('${s}')" style="
+                            flex: 1;
+                            cursor: pointer;
+                            padding: 16px 12px;
+                            border-radius: 12px;
+                            border: 3px solid ${isSelected ? 'var(--ios-blue)' : isComplete ? 'var(--ios-green)' : 'var(--border-color)'};
+                            background: ${isSelected ? 'var(--ios-blue)' : isComplete ? 'rgba(52,199,89,0.1)' : 'var(--bg-secondary)'};
+                            text-align: center;
+                            transition: all 0.2s;
+                            ${isSelected ? 'transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,122,255,0.3);' : ''}
+                        ">
+                            <div style="font-size: 24px; margin-bottom: 4px;">${emoji}</div>
+                            <div style="font-size: 16px; font-weight: 700; text-transform: uppercase; color: ${isSelected ? 'white' : 'var(--text-primary)'}; margin-bottom: 6px;">
+                                ${s}
+                            </div>
+                            <div style="font-size: 13px; font-weight: 600; color: ${isSelected ? 'rgba(255,255,255,0.9)' : isComplete ? 'var(--ios-green)' : 'var(--ios-gray)'};">
+                                ${completed}/${targetSets} sets ${isComplete ? '✓' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('') +
+                '</div>';
+
+            haptic('light');
         }
 
         function closeLogSetModal() {
@@ -2842,6 +2942,8 @@
             closeWeeklyStats();
             const sessions = loadHistory();
 
+            console.log('[All Sessions] Total sessions loaded:', sessions.length);
+
             // Group by sessionId
             const sessionGroups = {};
             sessions.forEach(session => {
@@ -2851,6 +2953,8 @@
                 }
                 sessionGroups[sid].push(session);
             });
+
+            console.log('[All Sessions] Unique workout sessions:', Object.keys(sessionGroups).length);
 
             // Sort session groups by date (most recent first)
             const sortedGroups = Object.entries(sessionGroups).sort((a, b) => {
@@ -2929,6 +3033,14 @@
 
             const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
 
+            // Debug logging
+            console.log('[Weekly Stats] Total sessions in history:', sessions.length);
+            console.log('[Weekly Stats] Week starts:', startOfWeek.toLocaleString());
+            console.log('[Weekly Stats] Sessions this week:', weekSessions.length);
+            if (weekSessions.length > 0) {
+                console.log('[Weekly Stats] Week session dates:', weekSessions.map(s => new Date(s.date).toLocaleString()));
+            }
+
             renderWeeklyOverview(weekSessions, startOfWeek);
             renderWeeklyVolumeChart(sessions);
             renderWeeklyExercises(weekSessions);
@@ -2954,10 +3066,17 @@
             // Days trained this week
             const daysWithSessions = new Set(weekSessions.map(s => new Date(s.date).toDateString())).size;
 
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+
             container.innerHTML = `
                 <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">
-                        This Week (${startOfWeek.toLocaleDateString()})
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--ios-blue);">
+                        This Week
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">
+                        ${startOfWeek.toLocaleDateString()} - ${endOfWeek.toLocaleDateString()}
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px;">
                         <div>
@@ -3664,6 +3783,7 @@
 
         function showSettings() {
             loadPreferences();
+            document.getElementById('app-version-display').textContent = APP_VERSION;
             document.getElementById('settings-modal').classList.add('active');
             haptic('medium');
         }
@@ -3877,11 +3997,71 @@
             }
 
             try {
-                const parsed = JSON.parse(stored);
+                const internalLibrary = JSON.parse(stored);
+
+                // Convert from internal format to schema format
+                const exercises = internalLibrary.map(ex => {
+                    // Parse anatomicRegions back to array
+                    const heatmapTags = ex.anatomicRegions
+                        ? ex.anatomicRegions.split(',').map(s => s.trim()).filter(Boolean)
+                        : [];
+
+                    return {
+                        exercise_id: ex.id,
+                        canonical_name: ex.name,
+                        description: ex.description || '',
+                        pt_category: ex.pt_category || 'other',
+                        primary_muscles: ex.primary_muscles || [],
+                        secondary_muscles: ex.secondary_muscles || [],
+                        pattern: ex.pattern || 'both',
+                        pattern_modifiers: ex.pattern_modifiers || [],
+                        equipment: {
+                            required: ex.equipment || [],
+                            optional: ex.equipmentOptional || []
+                        },
+                        form_parameters_required: ex.form_parameters_required || [],
+                        tags: {
+                            functional: ex.tags || [],
+                            format: [], // Not tracked in internal format
+                            heatmap: heatmapTags
+                        },
+                        guidance: ex.guidance || {
+                            external_cues: [],
+                            motor_cues: [],
+                            compensation_warnings: [],
+                            safety_flags: []
+                        },
+                        lifecycle: {
+                            status: ex.archived ? 'archived' : 'active',
+                            effective_start_date: null,
+                            effective_end_date: ex.archived && ex.superseded_date
+                                ? ex.superseded_date.split('T')[0]
+                                : null
+                        },
+                        added_date: null,
+                        updated_date: ex.history && ex.history.length > 0
+                            ? ex.history[ex.history.length - 1].timestamp.split('T')[0]
+                            : null,
+                        // Supersedes metadata (CRITICAL for maintenance workflow)
+                        supersedes: ex.supersedes || [],
+                        superseded_by: ex.superseded_by || null,
+                        superseded_date: ex.superseded_date || null
+                    };
+                });
+
+                // Wrap in schema format
+                const schemaData = {
+                    exercises: exercises
+                };
+
                 const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
                 const filename = `pt_exercise_library-${dateStamp}.json`;
-                downloadJSON(parsed, filename);
+                downloadJSON(schemaData, filename);
                 haptic('success');
+
+                const archivedCount = exercises.filter(ex => ex.lifecycle.status === 'archived').length;
+                const supersedesCount = exercises.filter(ex => ex.supersedes && ex.supersedes.length > 0).length;
+                alert(`✓ Exported ${exercises.length} exercises\n\n${archivedCount} archived\n${supersedesCount} with supersedes relationships\n\nReady for library maintenance!`);
             } catch (e) {
                 console.error('Failed to export exercise library:', e);
                 alert('Unable to export exercise library. Data may be corrupt.');
@@ -4300,6 +4480,14 @@
                 </label>`;
             }).join('');
 
+            // Populate supersedes dropdown (exclude current exercise and already archived)
+            const supersedesSelect = document.getElementById('edit-supersedes');
+            const availableExercises = exerciseLibrary.filter(ex => ex.id !== entry.id && !ex.archived);
+            supersedesSelect.innerHTML = availableExercises.map(ex => {
+                const isSelected = (entry.supersedes || []).includes(ex.id);
+                return `<option value="${ex.id}" ${isSelected ? 'selected' : ''}>${ex.name}</option>`;
+            }).join('');
+
             // Set dosage fields
             document.getElementById('edit-sets').value = spec.sets || '';
             document.getElementById('edit-reps').value = spec.repsPerSet || '';
@@ -4410,6 +4598,10 @@
             const newFormParams = Array.from(formParamsContainer.querySelectorAll('input[type="checkbox"]:checked'))
                 .map(cb => cb.value);
 
+            // Get supersedes list
+            const supersedesSelect = document.getElementById('edit-supersedes');
+            const newSupersedes = Array.from(supersedesSelect.selectedOptions).map(opt => opt.value);
+
             // Get dosage
             const sets = parseInt(document.getElementById('edit-sets').value);
             let reps = parseInt(document.getElementById('edit-reps').value);
@@ -4440,10 +4632,50 @@
 
             // Update exercise properties
             const oldName = entry.name;
+            const oldSupersedes = entry.supersedes || [];
             entry.name = name;
             entry.pattern = pattern;
             entry.pattern_modifiers = newModifiers;
             entry.form_parameters_required = newFormParams;
+            entry.supersedes = newSupersedes;
+
+            // Handle supersedes relationships
+            const now = new Date().toISOString();
+
+            // Archive and mark newly superseded exercises
+            newSupersedes.forEach(supersededId => {
+                const supersededEx = getLibraryEntryById(supersededId);
+                if (supersededEx && !supersededEx.archived) {
+                    console.log(`[Supersedes] Archiving ${supersededEx.name} - superseded by ${name}`);
+                    supersededEx.archived = true;
+                    supersededEx.superseded_by = entry.id;
+                    supersededEx.superseded_date = now;
+
+                    // Add to history
+                    const revisionNote = `Superseded by "${name}" - automatically archived`;
+                    if (!supersededEx.history) supersededEx.history = [];
+                    supersededEx.history.push({
+                        timestamp: now,
+                        summary: revisionNote,
+                        previous: supersededEx.current || {},
+                        next: supersededEx.current || {},
+                        supersedes: []
+                    });
+                }
+            });
+
+            // Un-archive exercises that were removed from supersedes list
+            oldSupersedes.forEach(oldSupersededId => {
+                if (!newSupersedes.includes(oldSupersededId)) {
+                    const supersededEx = getLibraryEntryById(oldSupersededId);
+                    if (supersededEx && supersededEx.superseded_by === entry.id) {
+                        console.log(`[Supersedes] Un-archiving ${supersededEx.name} - no longer superseded`);
+                        supersededEx.archived = false;
+                        delete supersededEx.superseded_by;
+                        delete supersededEx.superseded_date;
+                    }
+                }
+            });
 
             // Update pattern-derived properties
             entry.bilateral = pattern === 'both';
@@ -4468,6 +4700,10 @@
                 if (entry.current.sets !== sets) changes.push(`sets: ${entry.current.sets} → ${sets}`);
                 if (entry.current.repsPerSet !== reps && !replacesReps) changes.push(`reps: ${entry.current.repsPerSet} → ${reps}`);
             }
+            if (newSupersedes.length > 0 && JSON.stringify(oldSupersedes) !== JSON.stringify(newSupersedes)) {
+                const supersededNames = newSupersedes.map(id => getLibraryEntryById(id)?.name || id).join(', ');
+                changes.push(`supersedes: ${supersededNames}`);
+            }
             const changeSummary = changes.length ? changes.join(', ') : 'Exercise updated';
 
             recordRevision(entry, newSpec, changeSummary);
@@ -4477,7 +4713,12 @@
             closeEditDosage();
             haptic('success');
 
-            alert(`Exercise updated!\n\n${changeSummary}`);
+            let alertMsg = `Exercise updated!\n\n${changeSummary}`;
+            if (newSupersedes.length > 0) {
+                const archivedCount = newSupersedes.length;
+                alertMsg += `\n\n✓ ${archivedCount} exercise${archivedCount > 1 ? 's' : ''} archived`;
+            }
+            alert(alertMsg);
         }
 
         // Keep old function name for compatibility
@@ -5144,9 +5385,10 @@
 
             container.innerHTML = activeExercises.map(ex => {
                 const isCurrent = ex.id === currentExercise.id;
+                const patternBadge = ex.pattern === 'side' ? ' 🔄' : ' ✓';
                 return `
                     <div class="history-item" style="cursor: pointer; background: ${isCurrent ? 'rgba(0,122,255,0.1)' : 'white'};" onclick="quickSwitchTo('${ex.id}')">
-                        <div>${isCurrent ? '▶ ' : ''}${ex.name}${ex.favorite ? ' ⭐' : ''}</div>
+                        <div>${isCurrent ? '▶ ' : ''}${ex.name}${patternBadge}${ex.favorite ? ' ⭐' : ''}</div>
                         <div class="history-meta">${describeSpec(ex.current || {})}</div>
                     </div>
                 `;
@@ -5545,6 +5787,7 @@
 
         // Initialize
         loadPreferences(); // Load user preferences
+        document.getElementById('header-version').textContent = APP_VERSION; // Show version in header
         updateDisplay();
         updateStreakDisplay();
         updateQuickStartShortcuts();

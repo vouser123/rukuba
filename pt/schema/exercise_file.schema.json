@@ -122,6 +122,26 @@
           "type": ["string", "null"],
           "format": "date",
           "description": "Date this exercise definition was last materially updated (YYYY-MM-DD), or null if never."
+        },
+        "supersedes": {
+          "type": "array",
+          "description": "Array of exercise_ids that this exercise replaces/supersedes. When set, the superseded exercises should be automatically archived.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "superseded_by": {
+          "type": ["string", "null"],
+          "description": "The exercise_id of the exercise that replaced/superseded this one. Set automatically when this exercise appears in another exercise's 'supersedes' array.",
+          "default": null
+        },
+        "superseded_date": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when this exercise was superseded. Set automatically when superseded_by is set.",
+          "default": null
         }
       },
       "required": [
