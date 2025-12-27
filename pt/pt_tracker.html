@@ -870,6 +870,25 @@
                     </div>
                 </div>
 
+                <!-- Equipment Section -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Equipment Required</label>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">Select equipment needed for this exercise</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;" id="edit-equipment-required">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                    <button type="button" class="modal-cancel" onclick="addNewEquipment('required')" style="font-size: 13px; padding: 6px 12px;">+ Add New Equipment</button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Optional Equipment</label>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">Equipment that helps but isn't required</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;" id="edit-equipment-optional">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                    <button type="button" class="modal-cancel" onclick="addNewEquipment('optional')" style="font-size: 13px; padding: 6px 12px;">+ Add New Equipment</button>
+                </div>
+
                 <!-- Form Parameters -->
                 <div style="margin-bottom: 20px;">
                     <label style="font-weight: 600; margin-bottom: 8px; display: block;">Form Parameters Required</label>
@@ -1420,7 +1439,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.8'; // Updated: 2025-12-27 - Pattern helpers and dynamic tag/equipment derivation
+        const APP_VERSION = 'v1.5.9'; // Updated: 2025-12-27 - Equipment editing with dynamic library and add-new capability
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -4899,6 +4918,14 @@
             document.getElementById('edit-mod-amrap').checked = modifiers.includes('AMRAP');
             document.getElementById('edit-mod-alternating').checked = modifiers.includes('alternating');
 
+            // Populate equipment selectors
+            const availableEquipment = getAvailableEquipment();
+            const equipmentRequired = entry.equipment || [];
+            const equipmentOptional = entry.equipmentOptional || [];
+
+            renderEquipmentPills('edit-equipment-required', availableEquipment, equipmentRequired);
+            renderEquipmentPills('edit-equipment-optional', availableEquipment, equipmentOptional);
+
             // Populate form parameters
             const formParamsContainer = document.getElementById('edit-form-params');
             const availableFormParams = ['eyes', 'surface', 'band_resistance', 'band_position', 'strap_position', 'slope', 'distance', 'weight'];
@@ -5000,6 +5027,69 @@
             }
         }
 
+        // Equipment editing functions
+        function renderEquipmentPills(containerId, availableEquipment, selectedEquipment) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = availableEquipment.map(item => {
+                const isChecked = selectedEquipment.includes(item);
+                return `<label class="pill" style="cursor: pointer; background: ${isChecked ? 'var(--ios-green)' : 'rgba(52,199,89,0.1)'}; color: ${isChecked ? 'white' : 'var(--ios-green)'}; padding: 6px 12px;">
+                    <input type="checkbox" value="${item}" ${isChecked ? 'checked' : ''} onchange="toggleEquipmentItem(this, '${containerId}')" style="display: none;">
+                    ${item}
+                </label>`;
+            }).join('');
+        }
+
+        function toggleEquipmentItem(checkbox, containerId) {
+            const label = checkbox.parentElement;
+            const isChecked = checkbox.checked;
+
+            if (isChecked) {
+                label.style.background = 'var(--ios-green)';
+                label.style.color = 'white';
+            } else {
+                label.style.background = 'rgba(52,199,89,0.1)';
+                label.style.color = 'var(--ios-green)';
+            }
+            haptic('light');
+        }
+
+        function addNewEquipment(type) {
+            const newItem = prompt('Enter new equipment name:\n\n(This will be added to the library for all exercises)');
+            if (!newItem || newItem.trim() === '') return;
+
+            const trimmed = newItem.trim();
+            const availableEquipment = getAvailableEquipment();
+
+            // Check if already exists
+            if (availableEquipment.map(e => e.toLowerCase()).includes(trimmed.toLowerCase())) {
+                alert('This equipment item already exists in the library.');
+                return;
+            }
+
+            // Confirm addition
+            const confirmed = confirm(`Add "${trimmed}" to equipment library?\n\nThis will be available for all exercises.`);
+            if (!confirmed) return;
+
+            // Add to current exercise being edited
+            const containerId = type === 'required' ? 'edit-equipment-required' : 'edit-equipment-optional';
+            const container = document.getElementById(containerId);
+
+            // Get currently selected items
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            const currentlySelected = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            // Add new item to selected
+            currentlySelected.push(trimmed);
+
+            // Re-render with new item included in available equipment
+            const updatedAvailable = [...availableEquipment, trimmed].sort();
+            renderEquipmentPills(containerId, updatedAvailable, currentlySelected);
+
+            haptic('success');
+        }
+
         function closeEditDosage() {
             document.getElementById('edit-dosage-modal').classList.remove('active');
             editingDosageExerciseId = null;
@@ -5026,6 +5116,15 @@
             // Get form parameters
             const formParamsContainer = document.getElementById('edit-form-params');
             const newFormParams = Array.from(formParamsContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            // Get equipment
+            const equipmentRequiredContainer = document.getElementById('edit-equipment-required');
+            const newEquipmentRequired = Array.from(equipmentRequiredContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            const equipmentOptionalContainer = document.getElementById('edit-equipment-optional');
+            const newEquipmentOptional = Array.from(equipmentOptionalContainer.querySelectorAll('input[type="checkbox"]:checked'))
                 .map(cb => cb.value);
 
             // Get supersedes list
@@ -5067,6 +5166,8 @@
             entry.pattern = pattern;
             entry.pattern_modifiers = newModifiers;
             entry.form_parameters_required = newFormParams;
+            entry.equipment = newEquipmentRequired;
+            entry.equipmentOptional = newEquipmentOptional;
             entry.supersedes = newSupersedes;
 
             // Handle supersedes relationships
