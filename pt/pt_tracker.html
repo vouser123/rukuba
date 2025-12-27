@@ -870,6 +870,25 @@
                     </div>
                 </div>
 
+                <!-- Equipment Section -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Equipment Required</label>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">Select equipment needed for this exercise</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;" id="edit-equipment-required">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                    <button type="button" class="modal-cancel" onclick="addNewEquipment('required')" style="font-size: 13px; padding: 6px 12px;">+ Add New Equipment</button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Optional Equipment</label>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">Equipment that helps but isn't required</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;" id="edit-equipment-optional">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                    <button type="button" class="modal-cancel" onclick="addNewEquipment('optional')" style="font-size: 13px; padding: 6px 12px;">+ Add New Equipment</button>
+                </div>
+
                 <!-- Form Parameters -->
                 <div style="margin-bottom: 20px;">
                     <label style="font-weight: 600; margin-bottom: 8px; display: block;">Form Parameters Required</label>
@@ -914,6 +933,24 @@
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeEditDosage()">Cancel</button>
                 <button class="modal-save" onclick="saveEditedExercise()">Save All Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Parameters Modal (shown after completing all sets) -->
+    <div class="modal" id="form-params-modal" onclick="if(event.target === this) closeFormParamsModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Exercise Parameters</div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--ios-gray); margin-bottom: 16px; text-align: center;" id="form-params-subtitle">
+                    Enter details for this session
+                </div>
+                <div id="form-params-fields"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="skipFormParams()">Skip</button>
+                <button class="modal-save" onclick="saveFormParams()">Save & Continue</button>
             </div>
         </div>
     </div>
@@ -1402,7 +1439,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.6'; // Updated: 2025-12-27 - Alternating exercise support in side selector
+        const APP_VERSION = 'v1.5.9'; // Updated: 2025-12-27 - Equipment editing with dynamic library and add-new capability
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -1468,7 +1505,61 @@
         const TIMER_TYPES = ['timed', 'hold', 'duration'];
         const COUNTER_TYPES = ['reps', 'amrap', 'distance'];
 
-        const AVAILABLE_TAGS = ['knee', 'back', 'ankle', 'hip', 'shoulder', 'core', 'arm', 'leg', 'glute', 'neck', 'wrist', 'elbow'];
+        // Pattern helper functions - avoid hard-coded pattern checks
+        function isSidedPattern(pattern) {
+            return pattern === 'side';
+        }
+
+        function isBilateralPattern(pattern) {
+            return pattern === 'both';
+        }
+
+        function getSideOptionsForPattern(pattern) {
+            return isSidedPattern(pattern) ? ['left', 'right'] : [];
+        }
+
+        function getPatternBadge(pattern) {
+            return isSidedPattern(pattern) ? '🔄' : '✓';
+        }
+
+        function getPatternLabel(pattern) {
+            return isSidedPattern(pattern) ? 'Sided' : 'Bilateral';
+        }
+
+        function getPatternColor(pattern) {
+            return isSidedPattern(pattern) ? 'var(--ios-blue)' : 'var(--ios-green)';
+        }
+
+        function getPatternDescription(pattern) {
+            return isSidedPattern(pattern)
+                ? 'work left and right separately'
+                : 'both sides together';
+        }
+
+        // Derive available tags from library
+        function getAvailableTags() {
+            const tags = new Set();
+            exerciseLibrary.forEach(ex => {
+                if (ex.tags && Array.isArray(ex.tags)) {
+                    ex.tags.forEach(tag => tags.add(tag));
+                }
+            });
+            return Array.from(tags).sort();
+        }
+
+        // Derive available equipment from library
+        function getAvailableEquipment() {
+            const equipment = new Set();
+            exerciseLibrary.forEach(ex => {
+                if (ex.equipment && Array.isArray(ex.equipment)) {
+                    ex.equipment.forEach(item => equipment.add(item));
+                }
+                if (ex.equipmentOptional && Array.isArray(ex.equipmentOptional)) {
+                    ex.equipmentOptional.forEach(item => equipment.add(item));
+                }
+            });
+            return Array.from(equipment).sort();
+        }
 
         let editingExerciseId = null;
         let selectedTags = [];
@@ -1521,6 +1612,17 @@
                 try {
                     const parsed = JSON.parse(storedLibrary);
                     if (Array.isArray(parsed)) {
+                        // Backward compatibility: ensure equipment is in array format (internal)
+                        parsed.forEach(ex => {
+                            // If equipment is in schema format {required: [], optional: []}, convert to internal
+                            if (ex.equipment && typeof ex.equipment === 'object' && !Array.isArray(ex.equipment)) {
+                                ex.equipmentOptional = ex.equipment.optional || [];
+                                ex.equipment = ex.equipment.required || [];
+                            }
+                            // Ensure arrays exist
+                            if (!ex.equipment) ex.equipment = [];
+                            if (!ex.equipmentOptional) ex.equipmentOptional = [];
+                        });
                         return parsed;
                     }
                 } catch (e) {
@@ -1984,7 +2086,7 @@
             const entry = getLibraryEntryById(currentExercise.id);
             let exerciseNameDisplay = currentExercise.name;
             if (entry) {
-                const patternBadge = entry.pattern === 'side' ? ' 🔄' : ' ✓';
+                const patternBadge = ' ' + getPatternBadge(entry.pattern);
                 exerciseNameDisplay += patternBadge;
             }
             document.getElementById('exercise-name').textContent = exerciseNameDisplay;
@@ -2282,7 +2384,14 @@
                 }
             } else {
                 speak('All sets complete');
-                showSessionNotesModal();
+                // Check if form parameters need to be logged
+                const entry = getLibraryEntryById(currentExercise.id);
+                const formParams = entry?.form_parameters_required || [];
+                if (formParams.length > 0) {
+                    showFormParamsModal();
+                } else {
+                    showSessionNotesModal();
+                }
             }
         }
 
@@ -2336,7 +2445,14 @@
                 stopTimer();
                 updateDisplay();
             } else {
-                showSessionNotesModal();
+                // Check if form parameters need to be logged
+                const entry = getLibraryEntryById(currentExercise.id);
+                const formParams = entry?.form_parameters_required || [];
+                if (formParams.length > 0) {
+                    showFormParamsModal();
+                } else {
+                    showSessionNotesModal();
+                }
             }
         }
 
@@ -2863,6 +2979,139 @@
                 haptic('medium');
                 updateDisplay();
             }
+        }
+
+        // Form Parameters Modal (shown after completing all sets)
+        let sessionFormParams = {}; // Store form parameters for the session
+
+        function showFormParamsModal() {
+            const entry = getLibraryEntryById(currentExercise.id);
+            const formParams = entry?.form_parameters_required || [];
+            const fieldsContainer = document.getElementById('form-params-fields');
+
+            // Build form fields dynamically
+            fieldsContainer.innerHTML = formParams.map(param => {
+                if (param === 'weight') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            <input type="number" class="modal-input" id="session-param-${param}" placeholder="Weight" min="0" step="0.5" style="flex: 1; margin: 0;" data-param="${param}">
+                            <select class="modal-select" id="session-param-${param}-unit" style="flex: 0 0 auto; width: 80px; margin: 0;">
+                                <option value="lbs">lbs</option>
+                                <option value="kg">kg</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (param === 'band_resistance') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="light">Light</option>
+                            <option value="medium">Medium</option>
+                            <option value="heavy">Heavy</option>
+                            <option value="extra-heavy">Extra Heavy</option>
+                        </select>
+                    `;
+                } else if (param === 'band_position') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="above_knees">Above knees</option>
+                            <option value="at_knees">At knees</option>
+                            <option value="below_knees">Below knees</option>
+                            <option value="at_ankles">At ankles</option>
+                            <option value="at_feet">At feet</option>
+                        </select>
+                    `;
+                } else if (param === 'eyes') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="open">Open</option>
+                            <option value="closed">Closed</option>
+                            <option value="tracking">Tracking</option>
+                        </select>
+                    `;
+                } else if (param === 'surface') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="firm">Firm</option>
+                            <option value="foam">Foam</option>
+                            <option value="bosu">BOSU</option>
+                            <option value="unstable">Unstable</option>
+                        </select>
+                    `;
+                } else if (param === 'slope') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="flat">Flat</option>
+                            <option value="uphill">Uphill</option>
+                            <option value="downhill">Downhill</option>
+                        </select>
+                    `;
+                } else if (param === 'distance') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param} (variable, e.g. step height)</label>
+                        <input type="number" class="modal-input" id="session-param-${param}" placeholder="Distance in inches" min="0" style="margin-bottom: 16px;" data-param="${param}">
+                    `;
+                } else {
+                    // Generic text input
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <input type="text" class="modal-input" id="session-param-${param}" placeholder="${param}" style="margin-bottom: 16px;" data-param="${param}">
+                    `;
+                }
+            }).join('');
+
+            document.getElementById('form-params-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeFormParamsModal() {
+            document.getElementById('form-params-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function skipFormParams() {
+            sessionFormParams = {};
+            closeFormParamsModal();
+            showSessionNotesModal();
+        }
+
+        function saveFormParams() {
+            const entry = getLibraryEntryById(currentExercise.id);
+            const formParams = entry?.form_parameters_required || [];
+
+            sessionFormParams = {};
+            formParams.forEach(param => {
+                const inputElement = document.getElementById(`session-param-${param}`);
+                if (!inputElement) return;
+
+                let value = inputElement.value;
+                if (param === 'weight' && value) {
+                    const unitElement = document.getElementById(`session-param-${param}-unit`);
+                    sessionFormParams[param] = `${value} ${unitElement?.value || 'lbs'}`;
+                } else if (value && value !== '') {
+                    sessionFormParams[param] = value;
+                }
+            });
+
+            // Apply form parameters to all sets in this session
+            currentExercise.sessionData.forEach(set => {
+                if (Object.keys(sessionFormParams).length > 0) {
+                    set.formParams = { ...sessionFormParams };
+                }
+            });
+
+            closeFormParamsModal();
+            showSessionNotesModal();
         }
 
         function showSessionNotesModal() {
@@ -4101,8 +4350,8 @@
             }
 
             // Import the exercise with the specified dosage
-            const isBilateral = ex.pattern === 'both';
-            const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
+            const isBilateral = isBilateralPattern(ex.pattern);
+            const sideOptions = getSideOptionsForPattern(ex.pattern);
             const simpleTags = ex.tags.functional || [];
             const equipmentList = ex.equipment.required || [];
 
@@ -4173,10 +4422,10 @@
                 // Single import or last in bulk - show success message
                 closeLibraryBrowser();
                 const hasAlternating = (ex.pattern_modifiers || []).includes('alternating');
-                let patternMsg = ex.pattern === 'side'
+                let patternMsg = isSidedPattern(ex.pattern)
                     ? '🔄 Side tracking enabled: Will log left and right separately'
                     : '✓ Bilateral exercise: Both sides work together';
-                if (hasAlternating && ex.pattern === 'side') {
+                if (hasAlternating && isSidedPattern(ex.pattern)) {
                     patternMsg += '\n⚡ ALTERNATING: Switch sides on each rep within the set';
                 }
                 alert(`"${ex.canonical_name}" added to your program!\n\n${dosageSummary}\n\n${patternMsg}`);
@@ -4408,7 +4657,8 @@
 
         function renderTagFilters() {
             const container = document.getElementById('tag-filter-container');
-            container.innerHTML = AVAILABLE_TAGS.map(tag => {
+            const availableTags = getAvailableTags();
+            container.innerHTML = availableTags.map(tag => {
                 const active = filterTags.includes(tag);
                 return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleFilterTag('${tag}')">${tag}</span>`;
             }).join(' ');
@@ -4590,7 +4840,7 @@
 
                 // Show alternating indicator
                 const hasAlternating = (ex.pattern_modifiers || []).includes('alternating');
-                const alternatingIndicator = hasAlternating && ex.pattern === 'side' ? ' ⚡' : '';
+                const alternatingIndicator = hasAlternating && isSidedPattern(ex.pattern) ? ' ⚡' : '';
 
                 return `
                     <div class="history-item" style="cursor: pointer; border-left: 4px solid ${adherenceColor};">
@@ -4668,8 +4918,8 @@
             document.getElementById('edit-name').value = entry.name || '';
 
             // Set pattern radio buttons
-            document.getElementById('edit-pattern-side').checked = entry.pattern === 'side';
-            document.getElementById('edit-pattern-both').checked = entry.pattern === 'both';
+            document.getElementById('edit-pattern-side').checked = isSidedPattern(entry.pattern);
+            document.getElementById('edit-pattern-both').checked = isBilateralPattern(entry.pattern);
             updateEditPatternUI();
 
             // Set pattern modifiers checkboxes
@@ -4678,6 +4928,14 @@
             document.getElementById('edit-mod-distance').checked = modifiers.includes('distance_feet');
             document.getElementById('edit-mod-amrap').checked = modifiers.includes('AMRAP');
             document.getElementById('edit-mod-alternating').checked = modifiers.includes('alternating');
+
+            // Populate equipment selectors
+            const availableEquipment = getAvailableEquipment();
+            const equipmentRequired = entry.equipment || [];
+            const equipmentOptional = entry.equipmentOptional || [];
+
+            renderEquipmentPills('edit-equipment-required', availableEquipment, equipmentRequired);
+            renderEquipmentPills('edit-equipment-optional', availableEquipment, equipmentOptional);
 
             // Populate form parameters
             const formParamsContainer = document.getElementById('edit-form-params');
@@ -4780,6 +5038,69 @@
             }
         }
 
+        // Equipment editing functions
+        function renderEquipmentPills(containerId, availableEquipment, selectedEquipment) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = availableEquipment.map(item => {
+                const isChecked = selectedEquipment.includes(item);
+                return `<label class="pill" style="cursor: pointer; background: ${isChecked ? 'var(--ios-green)' : 'rgba(52,199,89,0.1)'}; color: ${isChecked ? 'white' : 'var(--ios-green)'}; padding: 6px 12px;">
+                    <input type="checkbox" value="${item}" ${isChecked ? 'checked' : ''} onchange="toggleEquipmentItem(this, '${containerId}')" style="display: none;">
+                    ${item}
+                </label>`;
+            }).join('');
+        }
+
+        function toggleEquipmentItem(checkbox, containerId) {
+            const label = checkbox.parentElement;
+            const isChecked = checkbox.checked;
+
+            if (isChecked) {
+                label.style.background = 'var(--ios-green)';
+                label.style.color = 'white';
+            } else {
+                label.style.background = 'rgba(52,199,89,0.1)';
+                label.style.color = 'var(--ios-green)';
+            }
+            haptic('light');
+        }
+
+        function addNewEquipment(type) {
+            const newItem = prompt('Enter new equipment name:\n\n(This will be added to the library for all exercises)');
+            if (!newItem || newItem.trim() === '') return;
+
+            const trimmed = newItem.trim();
+            const availableEquipment = getAvailableEquipment();
+
+            // Check if already exists
+            if (availableEquipment.map(e => e.toLowerCase()).includes(trimmed.toLowerCase())) {
+                alert('This equipment item already exists in the library.');
+                return;
+            }
+
+            // Confirm addition
+            const confirmed = confirm(`Add "${trimmed}" to equipment library?\n\nThis will be available for all exercises.`);
+            if (!confirmed) return;
+
+            // Add to current exercise being edited
+            const containerId = type === 'required' ? 'edit-equipment-required' : 'edit-equipment-optional';
+            const container = document.getElementById(containerId);
+
+            // Get currently selected items
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            const currentlySelected = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            // Add new item to selected
+            currentlySelected.push(trimmed);
+
+            // Re-render with new item included in available equipment
+            const updatedAvailable = [...availableEquipment, trimmed].sort();
+            renderEquipmentPills(containerId, updatedAvailable, currentlySelected);
+
+            haptic('success');
+        }
+
         function closeEditDosage() {
             document.getElementById('edit-dosage-modal').classList.remove('active');
             editingDosageExerciseId = null;
@@ -4806,6 +5127,15 @@
             // Get form parameters
             const formParamsContainer = document.getElementById('edit-form-params');
             const newFormParams = Array.from(formParamsContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            // Get equipment
+            const equipmentRequiredContainer = document.getElementById('edit-equipment-required');
+            const newEquipmentRequired = Array.from(equipmentRequiredContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            const equipmentOptionalContainer = document.getElementById('edit-equipment-optional');
+            const newEquipmentOptional = Array.from(equipmentOptionalContainer.querySelectorAll('input[type="checkbox"]:checked'))
                 .map(cb => cb.value);
 
             // Get supersedes list
@@ -4847,6 +5177,8 @@
             entry.pattern = pattern;
             entry.pattern_modifiers = newModifiers;
             entry.form_parameters_required = newFormParams;
+            entry.equipment = newEquipmentRequired;
+            entry.equipmentOptional = newEquipmentOptional;
             entry.supersedes = newSupersedes;
 
             // Handle supersedes relationships
@@ -4888,8 +5220,8 @@
             });
 
             // Update pattern-derived properties
-            entry.bilateral = pattern === 'both';
-            entry.sideOptions = pattern === 'side' ? ['left', 'right'] : [];
+            entry.bilateral = isBilateralPattern(pattern);
+            entry.sideOptions = getSideOptionsForPattern(pattern);
 
             // Update dosage spec
             const newSpec = {
@@ -5595,7 +5927,7 @@
 
             container.innerHTML = activeExercises.map(ex => {
                 const isCurrent = ex.id === currentExercise.id;
-                const patternBadge = ex.pattern === 'side' ? ' 🔄' : ' ✓';
+                const patternBadge = ' ' + getPatternBadge(ex.pattern);
                 return `
                     <div class="history-item" style="cursor: pointer; background: ${isCurrent ? 'rgba(0,122,255,0.1)' : 'white'};" onclick="quickSwitchTo('${ex.id}')">
                         <div>${isCurrent ? '▶ ' : ''}${ex.name}${patternBadge}${ex.favorite ? ' ⭐' : ''}</div>
@@ -5768,8 +6100,8 @@
             try {
                 container.innerHTML = filtered.map((ex, idx) => {
                     try {
-                        const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
-                        const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
+                        const patternLabel = getPatternBadge(ex.pattern) + ' ' + getPatternLabel(ex.pattern);
+                        const patternColor = getPatternColor(ex.pattern);
                         const equipmentRequired = ex.equipment && ex.equipment.required ? ex.equipment.required : [];
                         const equipmentLabel = equipmentRequired.length > 0
                             ? equipmentRequired.join(', ')
@@ -5834,10 +6166,10 @@
                 <div style="margin-bottom: 16px;">
                     <div style="font-weight: 600; margin-bottom: 8px;">Pattern</div>
                     <div style="font-size: 14px;">
-                        <span class="pill" style="background: ${ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)'}; color: white;">
-                            ${ex.pattern === 'side' ? '🔄 Sided Exercise (work left and right separately)' : '✓ Bilateral Exercise (both sides together)'}
+                        <span class="pill" style="background: ${getPatternColor(ex.pattern)}; color: white;">
+                            ${getPatternBadge(ex.pattern)} ${isSidedPattern(ex.pattern) ? 'Sided Exercise (work left and right separately)' : 'Bilateral Exercise (both sides together)'}
                         </span>
-                        ${(ex.pattern_modifiers || []).includes('alternating') && ex.pattern === 'side' ? `
+                        ${(ex.pattern_modifiers || []).includes('alternating') && isSidedPattern(ex.pattern) ? `
                         <span class="pill" style="background: var(--ios-orange); color: white; margin-left: 6px;">
                             ⚡ ALTERNATING (switch sides each rep within set)
                         </span>
