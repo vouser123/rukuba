@@ -1612,6 +1612,17 @@
                 try {
                     const parsed = JSON.parse(storedLibrary);
                     if (Array.isArray(parsed)) {
+                        // Backward compatibility: ensure equipment is in array format (internal)
+                        parsed.forEach(ex => {
+                            // If equipment is in schema format {required: [], optional: []}, convert to internal
+                            if (ex.equipment && typeof ex.equipment === 'object' && !Array.isArray(ex.equipment)) {
+                                ex.equipmentOptional = ex.equipment.optional || [];
+                                ex.equipment = ex.equipment.required || [];
+                            }
+                            // Ensure arrays exist
+                            if (!ex.equipment) ex.equipment = [];
+                            if (!ex.equipmentOptional) ex.equipmentOptional = [];
+                        });
                         return parsed;
                     }
                 } catch (e) {
