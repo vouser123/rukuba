@@ -1486,7 +1486,61 @@
         const TIMER_TYPES = ['timed', 'hold', 'duration'];
         const COUNTER_TYPES = ['reps', 'amrap', 'distance'];
 
-        const AVAILABLE_TAGS = ['knee', 'back', 'ankle', 'hip', 'shoulder', 'core', 'arm', 'leg', 'glute', 'neck', 'wrist', 'elbow'];
+        // Pattern helper functions - avoid hard-coded pattern checks
+        function isSidedPattern(pattern) {
+            return pattern === 'side';
+        }
+
+        function isBilateralPattern(pattern) {
+            return pattern === 'both';
+        }
+
+        function getSideOptionsForPattern(pattern) {
+            return isSidedPattern(pattern) ? ['left', 'right'] : [];
+        }
+
+        function getPatternBadge(pattern) {
+            return isSidedPattern(pattern) ? '🔄' : '✓';
+        }
+
+        function getPatternLabel(pattern) {
+            return isSidedPattern(pattern) ? 'Sided' : 'Bilateral';
+        }
+
+        function getPatternColor(pattern) {
+            return isSidedPattern(pattern) ? 'var(--ios-blue)' : 'var(--ios-green)';
+        }
+
+        function getPatternDescription(pattern) {
+            return isSidedPattern(pattern)
+                ? 'work left and right separately'
+                : 'both sides together';
+        }
+
+        // Derive available tags from library
+        function getAvailableTags() {
+            const tags = new Set();
+            exerciseLibrary.forEach(ex => {
+                if (ex.tags && Array.isArray(ex.tags)) {
+                    ex.tags.forEach(tag => tags.add(tag));
+                }
+            });
+            return Array.from(tags).sort();
+        }
+
+        // Derive available equipment from library
+        function getAvailableEquipment() {
+            const equipment = new Set();
+            exerciseLibrary.forEach(ex => {
+                if (ex.equipment && Array.isArray(ex.equipment)) {
+                    ex.equipment.forEach(item => equipment.add(item));
+                }
+                if (ex.equipmentOptional && Array.isArray(ex.equipmentOptional)) {
+                    ex.equipmentOptional.forEach(item => equipment.add(item));
+                }
+            });
+            return Array.from(equipment).sort();
+        }
 
         let editingExerciseId = null;
         let selectedTags = [];
@@ -2002,7 +2056,7 @@
             const entry = getLibraryEntryById(currentExercise.id);
             let exerciseNameDisplay = currentExercise.name;
             if (entry) {
-                const patternBadge = entry.pattern === 'side' ? ' 🔄' : ' ✓';
+                const patternBadge = ' ' + getPatternBadge(entry.pattern);
                 exerciseNameDisplay += patternBadge;
             }
             document.getElementById('exercise-name').textContent = exerciseNameDisplay;
@@ -4266,8 +4320,8 @@
             }
 
             // Import the exercise with the specified dosage
-            const isBilateral = ex.pattern === 'both';
-            const sideOptions = ex.pattern === 'side' ? ['left', 'right'] : [];
+            const isBilateral = isBilateralPattern(ex.pattern);
+            const sideOptions = getSideOptionsForPattern(ex.pattern);
             const simpleTags = ex.tags.functional || [];
             const equipmentList = ex.equipment.required || [];
 
@@ -4338,10 +4392,10 @@
                 // Single import or last in bulk - show success message
                 closeLibraryBrowser();
                 const hasAlternating = (ex.pattern_modifiers || []).includes('alternating');
-                let patternMsg = ex.pattern === 'side'
+                let patternMsg = isSidedPattern(ex.pattern)
                     ? '🔄 Side tracking enabled: Will log left and right separately'
                     : '✓ Bilateral exercise: Both sides work together';
-                if (hasAlternating && ex.pattern === 'side') {
+                if (hasAlternating && isSidedPattern(ex.pattern)) {
                     patternMsg += '\n⚡ ALTERNATING: Switch sides on each rep within the set';
                 }
                 alert(`"${ex.canonical_name}" added to your program!\n\n${dosageSummary}\n\n${patternMsg}`);
@@ -4833,8 +4887,8 @@
             document.getElementById('edit-name').value = entry.name || '';
 
             // Set pattern radio buttons
-            document.getElementById('edit-pattern-side').checked = entry.pattern === 'side';
-            document.getElementById('edit-pattern-both').checked = entry.pattern === 'both';
+            document.getElementById('edit-pattern-side').checked = isSidedPattern(entry.pattern);
+            document.getElementById('edit-pattern-both').checked = isBilateralPattern(entry.pattern);
             updateEditPatternUI();
 
             // Set pattern modifiers checkboxes
@@ -5053,8 +5107,8 @@
             });
 
             // Update pattern-derived properties
-            entry.bilateral = pattern === 'both';
-            entry.sideOptions = pattern === 'side' ? ['left', 'right'] : [];
+            entry.bilateral = isBilateralPattern(pattern);
+            entry.sideOptions = getSideOptionsForPattern(pattern);
 
             // Update dosage spec
             const newSpec = {
