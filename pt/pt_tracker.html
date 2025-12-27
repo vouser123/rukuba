@@ -1356,7 +1356,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.1'; // Updated: 2025-12-26 - Supersedes export with schema-compliant metadata
+        const APP_VERSION = 'v1.5.2'; // Updated: 2025-12-26 - Enhanced side selection UI with progress indicators
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -2432,10 +2432,48 @@
 
             const sideContainer = document.getElementById('log-set-side-selector');
             if (sideOptions.length > 0 && !isBilateral) {
-                sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Select side for this set:</div>' +
+                // Count completed sets per side for progress display
+                const sideProgress = {};
+                sideOptions.forEach(side => sideProgress[side] = 0);
+                currentExercise.sessionData.forEach(set => {
+                    if (set.side && sideProgress[set.side] !== undefined) {
+                        sideProgress[set.side]++;
+                    }
+                });
+
+                const targetSets = currentExercise.baseSets || 0;
+
+                sideContainer.innerHTML = '<div style="font-size: 15px; font-weight: 700; margin-bottom: 12px; text-align: center; color: var(--text-primary);">📍 SELECT SIDE FOR THIS SET:</div>' +
+                    '<div style="display: flex; gap: 12px;">' +
                     sideOptions.map(side => {
-                        return `<span class="pill" style="cursor: pointer; background: ${logSetSide === side ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === side ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${side}')">${side}</span>`;
-                    }).join(' ');
+                        const completed = sideProgress[side];
+                        const isSelected = logSetSide === side;
+                        const isComplete = completed >= targetSets;
+                        const emoji = side === 'left' ? '👈' : side === 'right' ? '👉' : '';
+
+                        return `
+                            <div onclick="selectLogSetSide('${side}')" style="
+                                flex: 1;
+                                cursor: pointer;
+                                padding: 16px 12px;
+                                border-radius: 12px;
+                                border: 3px solid ${isSelected ? 'var(--ios-blue)' : isComplete ? 'var(--ios-green)' : 'var(--border-color)'};
+                                background: ${isSelected ? 'var(--ios-blue)' : isComplete ? 'rgba(52,199,89,0.1)' : 'var(--bg-secondary)'};
+                                text-align: center;
+                                transition: all 0.2s;
+                                ${isSelected ? 'transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,122,255,0.3);' : ''}
+                            ">
+                                <div style="font-size: 24px; margin-bottom: 4px;">${emoji}</div>
+                                <div style="font-size: 16px; font-weight: 700; text-transform: uppercase; color: ${isSelected ? 'white' : 'var(--text-primary)'}; margin-bottom: 6px;">
+                                    ${side}
+                                </div>
+                                <div style="font-size: 13px; font-weight: 600; color: ${isSelected ? 'rgba(255,255,255,0.9)' : isComplete ? 'var(--ios-green)' : 'var(--ios-gray)'};">
+                                    ${completed}/${targetSets} sets ${isComplete ? '✓' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('') +
+                    '</div>';
             } else {
                 sideContainer.innerHTML = '';
                 logSetSide = 'both';
@@ -2454,12 +2492,54 @@
 
         function selectLogSetSide(side) {
             logSetSide = side;
-            const sideOptions = getLibraryEntryById(currentExercise.id).sideOptions || [];
+            const entry = getLibraryEntryById(currentExercise.id);
+            const sideOptions = entry.sideOptions || [];
+
+            // Count completed sets per side for progress display
+            const sideProgress = {};
+            sideOptions.forEach(s => sideProgress[s] = 0);
+            currentExercise.sessionData.forEach(set => {
+                if (set.side && sideProgress[set.side] !== undefined) {
+                    sideProgress[set.side]++;
+                }
+            });
+
+            const targetSets = currentExercise.baseSets || 0;
             const sideContainer = document.getElementById('log-set-side-selector');
-            sideContainer.innerHTML = '<div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Side:</div>' +
+
+            sideContainer.innerHTML = '<div style="font-size: 15px; font-weight: 700; margin-bottom: 12px; text-align: center; color: var(--text-primary);">📍 SELECT SIDE FOR THIS SET:</div>' +
+                '<div style="display: flex; gap: 12px;">' +
                 sideOptions.map(s => {
-                    return `<span class="pill" style="cursor: pointer; background: ${logSetSide === s ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${logSetSide === s ? 'white' : 'var(--ios-blue)'};" onclick="selectLogSetSide('${s}')">${s}</span>`;
-                }).join(' ');
+                    const completed = sideProgress[s];
+                    const isSelected = logSetSide === s;
+                    const isComplete = completed >= targetSets;
+                    const emoji = s === 'left' ? '👈' : s === 'right' ? '👉' : '';
+
+                    return `
+                        <div onclick="selectLogSetSide('${s}')" style="
+                            flex: 1;
+                            cursor: pointer;
+                            padding: 16px 12px;
+                            border-radius: 12px;
+                            border: 3px solid ${isSelected ? 'var(--ios-blue)' : isComplete ? 'var(--ios-green)' : 'var(--border-color)'};
+                            background: ${isSelected ? 'var(--ios-blue)' : isComplete ? 'rgba(52,199,89,0.1)' : 'var(--bg-secondary)'};
+                            text-align: center;
+                            transition: all 0.2s;
+                            ${isSelected ? 'transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,122,255,0.3);' : ''}
+                        ">
+                            <div style="font-size: 24px; margin-bottom: 4px;">${emoji}</div>
+                            <div style="font-size: 16px; font-weight: 700; text-transform: uppercase; color: ${isSelected ? 'white' : 'var(--text-primary)'}; margin-bottom: 6px;">
+                                ${s}
+                            </div>
+                            <div style="font-size: 13px; font-weight: 600; color: ${isSelected ? 'rgba(255,255,255,0.9)' : isComplete ? 'var(--ios-green)' : 'var(--ios-gray)'};">
+                                ${completed}/${targetSets} sets ${isComplete ? '✓' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('') +
+                '</div>';
+
+            haptic('light');
         }
 
         function closeLogSetModal() {
