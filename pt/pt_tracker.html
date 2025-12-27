@@ -833,6 +833,15 @@
                     </div>
                 </div>
 
+                <!-- Supersedes Section -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Supersedes (Replaces Old Exercise)</label>
+                    <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 8px;">Select exercises this replaces (will be auto-archived)</div>
+                    <select multiple class="modal-select" id="edit-supersedes" style="min-height: 80px;">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
                 <!-- Dosage Section -->
                 <div style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 20px;">
                     <label style="font-weight: 600; margin-bottom: 12px; display: block;">Dosage (PT Prescription)</label>
@@ -1347,7 +1356,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.0'; // Updated: 2025-12-26 - Versioning system, pattern badges, session debugging
+        const APP_VERSION = 'v1.5.1'; // Updated: 2025-12-26 - Supersedes export with schema-compliant metadata
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -3908,11 +3917,71 @@
             }
 
             try {
-                const parsed = JSON.parse(stored);
+                const internalLibrary = JSON.parse(stored);
+
+                // Convert from internal format to schema format
+                const exercises = internalLibrary.map(ex => {
+                    // Parse anatomicRegions back to array
+                    const heatmapTags = ex.anatomicRegions
+                        ? ex.anatomicRegions.split(',').map(s => s.trim()).filter(Boolean)
+                        : [];
+
+                    return {
+                        exercise_id: ex.id,
+                        canonical_name: ex.name,
+                        description: ex.description || '',
+                        pt_category: ex.pt_category || 'other',
+                        primary_muscles: ex.primary_muscles || [],
+                        secondary_muscles: ex.secondary_muscles || [],
+                        pattern: ex.pattern || 'both',
+                        pattern_modifiers: ex.pattern_modifiers || [],
+                        equipment: {
+                            required: ex.equipment || [],
+                            optional: ex.equipmentOptional || []
+                        },
+                        form_parameters_required: ex.form_parameters_required || [],
+                        tags: {
+                            functional: ex.tags || [],
+                            format: [], // Not tracked in internal format
+                            heatmap: heatmapTags
+                        },
+                        guidance: ex.guidance || {
+                            external_cues: [],
+                            motor_cues: [],
+                            compensation_warnings: [],
+                            safety_flags: []
+                        },
+                        lifecycle: {
+                            status: ex.archived ? 'archived' : 'active',
+                            effective_start_date: null,
+                            effective_end_date: ex.archived && ex.superseded_date
+                                ? ex.superseded_date.split('T')[0]
+                                : null
+                        },
+                        added_date: null,
+                        updated_date: ex.history && ex.history.length > 0
+                            ? ex.history[ex.history.length - 1].timestamp.split('T')[0]
+                            : null,
+                        // Supersedes metadata (CRITICAL for maintenance workflow)
+                        supersedes: ex.supersedes || [],
+                        superseded_by: ex.superseded_by || null,
+                        superseded_date: ex.superseded_date || null
+                    };
+                });
+
+                // Wrap in schema format
+                const schemaData = {
+                    exercises: exercises
+                };
+
                 const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
                 const filename = `pt_exercise_library-${dateStamp}.json`;
-                downloadJSON(parsed, filename);
+                downloadJSON(schemaData, filename);
                 haptic('success');
+
+                const archivedCount = exercises.filter(ex => ex.lifecycle.status === 'archived').length;
+                const supersedesCount = exercises.filter(ex => ex.supersedes && ex.supersedes.length > 0).length;
+                alert(`✓ Exported ${exercises.length} exercises\n\n${archivedCount} archived\n${supersedesCount} with supersedes relationships\n\nReady for library maintenance!`);
             } catch (e) {
                 console.error('Failed to export exercise library:', e);
                 alert('Unable to export exercise library. Data may be corrupt.');
@@ -4331,6 +4400,14 @@
                 </label>`;
             }).join('');
 
+            // Populate supersedes dropdown (exclude current exercise and already archived)
+            const supersedesSelect = document.getElementById('edit-supersedes');
+            const availableExercises = exerciseLibrary.filter(ex => ex.id !== entry.id && !ex.archived);
+            supersedesSelect.innerHTML = availableExercises.map(ex => {
+                const isSelected = (entry.supersedes || []).includes(ex.id);
+                return `<option value="${ex.id}" ${isSelected ? 'selected' : ''}>${ex.name}</option>`;
+            }).join('');
+
             // Set dosage fields
             document.getElementById('edit-sets').value = spec.sets || '';
             document.getElementById('edit-reps').value = spec.repsPerSet || '';
@@ -4441,6 +4518,10 @@
             const newFormParams = Array.from(formParamsContainer.querySelectorAll('input[type="checkbox"]:checked'))
                 .map(cb => cb.value);
 
+            // Get supersedes list
+            const supersedesSelect = document.getElementById('edit-supersedes');
+            const newSupersedes = Array.from(supersedesSelect.selectedOptions).map(opt => opt.value);
+
             // Get dosage
             const sets = parseInt(document.getElementById('edit-sets').value);
             let reps = parseInt(document.getElementById('edit-reps').value);
@@ -4471,10 +4552,50 @@
 
             // Update exercise properties
             const oldName = entry.name;
+            const oldSupersedes = entry.supersedes || [];
             entry.name = name;
             entry.pattern = pattern;
             entry.pattern_modifiers = newModifiers;
             entry.form_parameters_required = newFormParams;
+            entry.supersedes = newSupersedes;
+
+            // Handle supersedes relationships
+            const now = new Date().toISOString();
+
+            // Archive and mark newly superseded exercises
+            newSupersedes.forEach(supersededId => {
+                const supersededEx = getLibraryEntryById(supersededId);
+                if (supersededEx && !supersededEx.archived) {
+                    console.log(`[Supersedes] Archiving ${supersededEx.name} - superseded by ${name}`);
+                    supersededEx.archived = true;
+                    supersededEx.superseded_by = entry.id;
+                    supersededEx.superseded_date = now;
+
+                    // Add to history
+                    const revisionNote = `Superseded by "${name}" - automatically archived`;
+                    if (!supersededEx.history) supersededEx.history = [];
+                    supersededEx.history.push({
+                        timestamp: now,
+                        summary: revisionNote,
+                        previous: supersededEx.current || {},
+                        next: supersededEx.current || {},
+                        supersedes: []
+                    });
+                }
+            });
+
+            // Un-archive exercises that were removed from supersedes list
+            oldSupersedes.forEach(oldSupersededId => {
+                if (!newSupersedes.includes(oldSupersededId)) {
+                    const supersededEx = getLibraryEntryById(oldSupersededId);
+                    if (supersededEx && supersededEx.superseded_by === entry.id) {
+                        console.log(`[Supersedes] Un-archiving ${supersededEx.name} - no longer superseded`);
+                        supersededEx.archived = false;
+                        delete supersededEx.superseded_by;
+                        delete supersededEx.superseded_date;
+                    }
+                }
+            });
 
             // Update pattern-derived properties
             entry.bilateral = pattern === 'both';
@@ -4499,6 +4620,10 @@
                 if (entry.current.sets !== sets) changes.push(`sets: ${entry.current.sets} → ${sets}`);
                 if (entry.current.repsPerSet !== reps && !replacesReps) changes.push(`reps: ${entry.current.repsPerSet} → ${reps}`);
             }
+            if (newSupersedes.length > 0 && JSON.stringify(oldSupersedes) !== JSON.stringify(newSupersedes)) {
+                const supersededNames = newSupersedes.map(id => getLibraryEntryById(id)?.name || id).join(', ');
+                changes.push(`supersedes: ${supersededNames}`);
+            }
             const changeSummary = changes.length ? changes.join(', ') : 'Exercise updated';
 
             recordRevision(entry, newSpec, changeSummary);
@@ -4508,7 +4633,12 @@
             closeEditDosage();
             haptic('success');
 
-            alert(`Exercise updated!\n\n${changeSummary}`);
+            let alertMsg = `Exercise updated!\n\n${changeSummary}`;
+            if (newSupersedes.length > 0) {
+                const archivedCount = newSupersedes.length;
+                alertMsg += `\n\n✓ ${archivedCount} exercise${archivedCount > 1 ? 's' : ''} archived`;
+            }
+            alert(alertMsg);
         }
 
         // Keep old function name for compatibility
