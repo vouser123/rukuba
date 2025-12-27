@@ -918,6 +918,24 @@
         </div>
     </div>
 
+    <!-- Form Parameters Modal (shown after completing all sets) -->
+    <div class="modal" id="form-params-modal" onclick="if(event.target === this) closeFormParamsModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Exercise Parameters</div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--ios-gray); margin-bottom: 16px; text-align: center;" id="form-params-subtitle">
+                    Enter details for this session
+                </div>
+                <div id="form-params-fields"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="skipFormParams()">Skip</button>
+                <button class="modal-save" onclick="saveFormParams()">Save & Continue</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Session Notes Modal -->
     <div class="modal" id="session-notes-modal" onclick="if(event.target === this) closeSessionNotesModal()">
         <div class="modal-content">
@@ -1402,7 +1420,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.6'; // Updated: 2025-12-27 - Alternating exercise support in side selector
+        const APP_VERSION = 'v1.5.7'; // Updated: 2025-12-27 - Form parameters prompting after exercise completion
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -2282,7 +2300,14 @@
                 }
             } else {
                 speak('All sets complete');
-                showSessionNotesModal();
+                // Check if form parameters need to be logged
+                const entry = getLibraryEntryById(currentExercise.id);
+                const formParams = entry?.form_parameters_required || [];
+                if (formParams.length > 0) {
+                    showFormParamsModal();
+                } else {
+                    showSessionNotesModal();
+                }
             }
         }
 
@@ -2336,7 +2361,14 @@
                 stopTimer();
                 updateDisplay();
             } else {
-                showSessionNotesModal();
+                // Check if form parameters need to be logged
+                const entry = getLibraryEntryById(currentExercise.id);
+                const formParams = entry?.form_parameters_required || [];
+                if (formParams.length > 0) {
+                    showFormParamsModal();
+                } else {
+                    showSessionNotesModal();
+                }
             }
         }
 
@@ -2863,6 +2895,139 @@
                 haptic('medium');
                 updateDisplay();
             }
+        }
+
+        // Form Parameters Modal (shown after completing all sets)
+        let sessionFormParams = {}; // Store form parameters for the session
+
+        function showFormParamsModal() {
+            const entry = getLibraryEntryById(currentExercise.id);
+            const formParams = entry?.form_parameters_required || [];
+            const fieldsContainer = document.getElementById('form-params-fields');
+
+            // Build form fields dynamically
+            fieldsContainer.innerHTML = formParams.map(param => {
+                if (param === 'weight') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            <input type="number" class="modal-input" id="session-param-${param}" placeholder="Weight" min="0" step="0.5" style="flex: 1; margin: 0;" data-param="${param}">
+                            <select class="modal-select" id="session-param-${param}-unit" style="flex: 0 0 auto; width: 80px; margin: 0;">
+                                <option value="lbs">lbs</option>
+                                <option value="kg">kg</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (param === 'band_resistance') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="light">Light</option>
+                            <option value="medium">Medium</option>
+                            <option value="heavy">Heavy</option>
+                            <option value="extra-heavy">Extra Heavy</option>
+                        </select>
+                    `;
+                } else if (param === 'band_position') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="above_knees">Above knees</option>
+                            <option value="at_knees">At knees</option>
+                            <option value="below_knees">Below knees</option>
+                            <option value="at_ankles">At ankles</option>
+                            <option value="at_feet">At feet</option>
+                        </select>
+                    `;
+                } else if (param === 'eyes') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="open">Open</option>
+                            <option value="closed">Closed</option>
+                            <option value="tracking">Tracking</option>
+                        </select>
+                    `;
+                } else if (param === 'surface') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="firm">Firm</option>
+                            <option value="foam">Foam</option>
+                            <option value="bosu">BOSU</option>
+                            <option value="unstable">Unstable</option>
+                        </select>
+                    `;
+                } else if (param === 'slope') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
+                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <option value="">Select...</option>
+                            <option value="flat">Flat</option>
+                            <option value="uphill">Uphill</option>
+                            <option value="downhill">Downhill</option>
+                        </select>
+                    `;
+                } else if (param === 'distance') {
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param} (variable, e.g. step height)</label>
+                        <input type="number" class="modal-input" id="session-param-${param}" placeholder="Distance in inches" min="0" style="margin-bottom: 16px;" data-param="${param}">
+                    `;
+                } else {
+                    // Generic text input
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <input type="text" class="modal-input" id="session-param-${param}" placeholder="${param}" style="margin-bottom: 16px;" data-param="${param}">
+                    `;
+                }
+            }).join('');
+
+            document.getElementById('form-params-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeFormParamsModal() {
+            document.getElementById('form-params-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function skipFormParams() {
+            sessionFormParams = {};
+            closeFormParamsModal();
+            showSessionNotesModal();
+        }
+
+        function saveFormParams() {
+            const entry = getLibraryEntryById(currentExercise.id);
+            const formParams = entry?.form_parameters_required || [];
+
+            sessionFormParams = {};
+            formParams.forEach(param => {
+                const inputElement = document.getElementById(`session-param-${param}`);
+                if (!inputElement) return;
+
+                let value = inputElement.value;
+                if (param === 'weight' && value) {
+                    const unitElement = document.getElementById(`session-param-${param}-unit`);
+                    sessionFormParams[param] = `${value} ${unitElement?.value || 'lbs'}`;
+                } else if (value && value !== '') {
+                    sessionFormParams[param] = value;
+                }
+            });
+
+            // Apply form parameters to all sets in this session
+            currentExercise.sessionData.forEach(set => {
+                if (Object.keys(sessionFormParams).length > 0) {
+                    set.formParams = { ...sessionFormParams };
+                }
+            });
+
+            closeFormParamsModal();
+            showSessionNotesModal();
         }
 
         function showSessionNotesModal() {
