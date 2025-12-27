@@ -1420,7 +1420,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.7'; // Updated: 2025-12-27 - Form parameters prompting after exercise completion
+        const APP_VERSION = 'v1.5.8'; // Updated: 2025-12-27 - Pattern helpers and dynamic tag/equipment derivation
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -4627,7 +4627,8 @@
 
         function renderTagFilters() {
             const container = document.getElementById('tag-filter-container');
-            container.innerHTML = AVAILABLE_TAGS.map(tag => {
+            const availableTags = getAvailableTags();
+            container.innerHTML = availableTags.map(tag => {
                 const active = filterTags.includes(tag);
                 return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleFilterTag('${tag}')">${tag}</span>`;
             }).join(' ');
@@ -4809,7 +4810,7 @@
 
                 // Show alternating indicator
                 const hasAlternating = (ex.pattern_modifiers || []).includes('alternating');
-                const alternatingIndicator = hasAlternating && ex.pattern === 'side' ? ' ⚡' : '';
+                const alternatingIndicator = hasAlternating && isSidedPattern(ex.pattern) ? ' ⚡' : '';
 
                 return `
                     <div class="history-item" style="cursor: pointer; border-left: 4px solid ${adherenceColor};">
@@ -5814,7 +5815,7 @@
 
             container.innerHTML = activeExercises.map(ex => {
                 const isCurrent = ex.id === currentExercise.id;
-                const patternBadge = ex.pattern === 'side' ? ' 🔄' : ' ✓';
+                const patternBadge = ' ' + getPatternBadge(ex.pattern);
                 return `
                     <div class="history-item" style="cursor: pointer; background: ${isCurrent ? 'rgba(0,122,255,0.1)' : 'white'};" onclick="quickSwitchTo('${ex.id}')">
                         <div>${isCurrent ? '▶ ' : ''}${ex.name}${patternBadge}${ex.favorite ? ' ⭐' : ''}</div>
@@ -5987,8 +5988,8 @@
             try {
                 container.innerHTML = filtered.map((ex, idx) => {
                     try {
-                        const patternLabel = ex.pattern === 'side' ? '🔄 Sided' : '✓ Bilateral';
-                        const patternColor = ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)';
+                        const patternLabel = getPatternBadge(ex.pattern) + ' ' + getPatternLabel(ex.pattern);
+                        const patternColor = getPatternColor(ex.pattern);
                         const equipmentRequired = ex.equipment && ex.equipment.required ? ex.equipment.required : [];
                         const equipmentLabel = equipmentRequired.length > 0
                             ? equipmentRequired.join(', ')
@@ -6053,10 +6054,10 @@
                 <div style="margin-bottom: 16px;">
                     <div style="font-weight: 600; margin-bottom: 8px;">Pattern</div>
                     <div style="font-size: 14px;">
-                        <span class="pill" style="background: ${ex.pattern === 'side' ? 'var(--ios-blue)' : 'var(--ios-green)'}; color: white;">
-                            ${ex.pattern === 'side' ? '🔄 Sided Exercise (work left and right separately)' : '✓ Bilateral Exercise (both sides together)'}
+                        <span class="pill" style="background: ${getPatternColor(ex.pattern)}; color: white;">
+                            ${getPatternBadge(ex.pattern)} ${isSidedPattern(ex.pattern) ? 'Sided Exercise (work left and right separately)' : 'Bilateral Exercise (both sides together)'}
                         </span>
-                        ${(ex.pattern_modifiers || []).includes('alternating') && ex.pattern === 'side' ? `
+                        ${(ex.pattern_modifiers || []).includes('alternating') && isSidedPattern(ex.pattern) ? `
                         <span class="pill" style="background: var(--ios-orange); color: white; margin-left: 6px;">
                             ⚡ ALTERNATING (switch sides each rep within set)
                         </span>
