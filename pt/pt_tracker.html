@@ -113,6 +113,12 @@
             margin-bottom: 30px;
             cursor: pointer;
             transition: transform 0.1s, box-shadow 0.1s;
+            /* Mobile Safari touch fixes for large tap target */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
         }
 
         .counter-display:active {
@@ -184,11 +190,25 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.1s, opacity 0.2s;
+            /* Mobile Safari touch fixes */
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 44px; /* Apple HIG minimum touch target */
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .control-btn:active {
             transform: scale(0.98);
             opacity: 0.8;
+        }
+
+        /* Force cursor pointer on all interactive elements */
+        button, [onclick], .pill, .history-item {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
         }
 
         .btn-primary {
@@ -279,6 +299,9 @@
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 -2px 20px var(--shadow);
+            /* iOS Safari modal scroll fixes */
+            -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on iOS */
+            overscroll-behavior: contain; /* Prevent scroll chaining */
         }
 
         .modal.active .modal-content {
@@ -311,17 +334,34 @@
             padding: 12px;
             border: none;
             border-radius: 10px;
-            font-size: 17px;
+            font-size: 17px; /* Prevents iOS zoom on focus (must be ≥16px) */
             margin-bottom: 12px;
             font-family: inherit;
             background: var(--input-bg);
             color: var(--text-primary);
             box-shadow: 0 1px 3px var(--shadow);
+            /* Mobile Safari input fixes */
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .modal-input:focus, .modal-select:focus {
             outline: none;
             box-shadow: 0 0 0 2px var(--ios-blue);
+        }
+
+        /* iOS-specific input type fixes */
+        input[type="number"], input[type="text"], textarea {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* Prevent iOS Safari from adding default styling to buttons */
+        input[type="submit"], input[type="button"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
 
         .modal-buttons {
@@ -881,8 +921,8 @@
                 <textarea class="modal-input" id="session-notes" placeholder="How did it feel? Any pain? Progress notes..." style="min-height: 100px; resize: vertical;"></textarea>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="saveSessionWithNotes('')">Skip</button>
-                <button class="modal-save" onclick="saveSessionWithNotes(document.getElementById('session-notes').value)">Save</button>
+                <button class="modal-cancel" onclick="confirmSkipNotes()">Skip Notes</button>
+                <button class="modal-save" onclick="saveSessionWithNotes(document.getElementById('session-notes').value)">Save & Finish</button>
             </div>
         </div>
     </div>
@@ -1356,7 +1396,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.2'; // Updated: 2025-12-26 - Enhanced side selection UI with progress indicators
+        const APP_VERSION = 'v1.5.4'; // Updated: 2025-12-26 - Comprehensive Mobile Safari touch fixes
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -2185,7 +2225,7 @@
             const reps = currentExercise.currentRep;
 
             if (reps === 0) {
-                showActionSheet('No reps recorded. Complete set anyway?', () => {
+                showActionSheet('⚠️ Complete set with 0 reps?\n\nThis will log an empty set and move to the next set.\n\nTip: Use "Log Set" to manually enter reps.', () => {
                     finishSet();
                 });
                 return;
@@ -2688,6 +2728,15 @@
         function closeSessionNotesModal() {
             document.getElementById('session-notes-modal').classList.remove('active');
             haptic('medium');
+        }
+
+        function confirmSkipNotes() {
+            const setsLogged = currentExercise.sessionData.length;
+            const message = `✓ Save exercise without notes?\n\n${setsLogged} set${setsLogged !== 1 ? 's' : ''} will be saved to your history.\n\nYou can add notes later if needed.`;
+
+            showActionSheet(message, () => {
+                saveSessionWithNotes('');
+            });
         }
 
         function saveSessionWithNotes(notes) {
@@ -4416,6 +4465,21 @@
         }
 
         function selectExerciseFromList(exerciseId) {
+            // Check for unsaved progress
+            if (currentExercise && currentExercise.sessionData && currentExercise.sessionData.length > 0) {
+                const setsLogged = currentExercise.sessionData.length;
+                const message = `⚠️ Switch exercises?\n\nYou have ${setsLogged} unsaved set${setsLogged !== 1 ? 's' : ''} for "${currentExercise.name}".\n\nProgress will be lost if you switch now.`;
+
+                showActionSheet(message, () => {
+                    proceedToSwitchExercise(exerciseId);
+                });
+                return;
+            }
+
+            proceedToSwitchExercise(exerciseId);
+        }
+
+        function proceedToSwitchExercise(exerciseId) {
             const entry = getLibraryEntryById(exerciseId);
             currentExercise = toSessionExercise(entry);
 
