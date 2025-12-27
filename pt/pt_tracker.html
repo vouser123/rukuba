@@ -1684,14 +1684,52 @@
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
         }
 
-        // Safe history loading with error handling
+        // Safe history loading with error handling and backward compatibility
         function loadHistory() {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (!stored) return [];
 
             try {
                 const parsed = JSON.parse(stored);
-                return Array.isArray(parsed) ? parsed : [];
+                if (!Array.isArray(parsed)) return [];
+
+                // Backward compatibility: ensure all sessions have required fields
+                return parsed.map(session => {
+                    // Ensure sessionId exists (added in later versions)
+                    if (!session.sessionId) {
+                        session.sessionId = session.date || new Date().toISOString();
+                    }
+
+                    // Ensure exerciseId exists (try to find by name if missing)
+                    if (!session.exerciseId && session.exerciseName) {
+                        const matchingExercise = exerciseLibrary.find(ex => ex.name === session.exerciseName);
+                        if (matchingExercise) {
+                            session.exerciseId = matchingExercise.id;
+                        }
+                    }
+
+                    // Ensure sets array exists
+                    if (!session.sets) {
+                        session.sets = [];
+                    }
+
+                    // Migrate old weight/resistance fields to formParams if needed
+                    session.sets = session.sets.map(set => {
+                        if ((set.weight || set.resistance) && !set.formParams) {
+                            set.formParams = {};
+                            if (set.weight) {
+                                set.formParams.weight = set.weight;
+                                set.formParams.weight_unit = set.weightUnit || 'lbs';
+                            }
+                            if (set.resistance) {
+                                set.formParams.band_resistance = set.resistance;
+                            }
+                        }
+                        return set;
+                    });
+
+                    return session;
+                });
             } catch (e) {
                 console.error('Failed to parse exercise history:', e);
                 console.warn('Returning empty history - stored data preserved');
