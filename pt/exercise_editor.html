@@ -263,6 +263,7 @@
         <div class="card">
             <button class="button button-success" onclick="createNewExercise()">+ Create New Exercise</button>
             <button class="button button-secondary" onclick="showExportDialog()">📤 Export All Data</button>
+            <button class="button button-secondary" onclick="reloadFromJSON()">🔄 Reload from JSON</button>
         </div>
 
         <div class="card">
@@ -862,6 +863,31 @@
 
             alert('Exercise deleted!');
             backToList();
+        }
+
+        async function reloadFromJSON() {
+            if (!confirm('Reload from exercise_library.json?\n\nThis will:\n• Discard ALL drafts\n• Restore all deleted exercises\n• Reset to the JSON file state\n\nContinue?')) {
+                return;
+            }
+
+            try {
+                // Clear all drafts
+                drafts = {};
+                localStorage.removeItem('pt_exercise_drafts');
+
+                // Reload from JSON
+                const seedResp = await fetch('./exercise_library.json');
+                if (!seedResp.ok) throw new Error('Failed to fetch exercise_library.json');
+
+                const seedData = await seedResp.json();
+                baselineExercises = seedData.exercises || [];
+
+                renderExerciseList();
+                alert('✓ Reloaded from JSON!\n\nAll drafts discarded, exercises restored.');
+            } catch (e) {
+                alert('Failed to reload from JSON:\n\n' + e.message);
+                console.error('Reload error:', e);
+            }
         }
 
         function showExportDialog() {
