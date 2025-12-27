@@ -1402,7 +1402,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.5'; // Updated: 2025-12-27 - Side selection in main rep/timer interface
+        const APP_VERSION = 'v1.5.6'; // Updated: 2025-12-27 - Alternating exercise support in side selector
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -2209,8 +2209,8 @@
                 partialRep: true
             };
 
-            // Add side information for unilateral exercises
-            if (currentWorkingSide !== 'both') {
+            // Add side information for unilateral exercises (but not alternating)
+            if (currentWorkingSide !== 'both' && currentWorkingSide !== 'alternating') {
                 setData.side = currentWorkingSide;
             }
 
@@ -2254,8 +2254,8 @@
                 timestamp: new Date().toISOString()
             };
 
-            // Add side information for unilateral exercises
-            if (currentWorkingSide !== 'both') {
+            // Add side information for unilateral exercises (but not alternating)
+            if (currentWorkingSide !== 'both' && currentWorkingSide !== 'alternating') {
                 setData.side = currentWorkingSide;
             }
 
@@ -2322,8 +2322,8 @@
                 timestamp: new Date().toISOString()
             };
 
-            // Add side information for unilateral exercises
-            if (currentWorkingSide !== 'both') {
+            // Add side information for unilateral exercises (but not alternating)
+            if (currentWorkingSide !== 'both' && currentWorkingSide !== 'alternating') {
                 setData.side = currentWorkingSide;
             }
 
@@ -2349,17 +2349,47 @@
 
             const sideOptions = entry.sideOptions || [];
             const isBilateral = entry.bilateral === true;
+            const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
             const selectorContainer = document.getElementById('current-side-selector');
             const buttonsContainer = document.getElementById('current-side-buttons');
 
-            // Show selector only for unilateral exercises
+            // For alternating exercises, show indicator instead of selector
+            if (hasAlternating && sideOptions.length > 0 && !isBilateral) {
+                buttonsContainer.innerHTML = `
+                    <div style="
+                        flex: 1;
+                        padding: 14px 10px;
+                        border-radius: 12px;
+                        border: 3px solid var(--ios-orange);
+                        background: rgba(255,149,0,0.1);
+                        text-align: center;
+                    ">
+                        <div style="font-size: 20px; margin-bottom: 2px;">⚡</div>
+                        <div style="font-size: 15px; font-weight: 700; text-transform: uppercase; color: var(--text-primary); margin-bottom: 4px;">
+                            ALTERNATING
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: var(--ios-gray);">
+                            Switch sides each rep
+                        </div>
+                    </div>
+                `;
+                selectorContainer.style.display = 'block';
+                currentWorkingSide = 'alternating'; // Special marker
+                return;
+            }
+
+            // Show selector only for non-alternating unilateral exercises
             if (sideOptions.length > 0 && !isBilateral) {
                 // Count completed sets per side
                 const sideProgress = {};
                 sideOptions.forEach(side => sideProgress[side] = 0);
                 currentExercise.sessionData.forEach(set => {
                     if (set.side && sideProgress[set.side] !== undefined) {
+                        // Set with specific side (left or right)
                         sideProgress[set.side]++;
+                    } else if (!set.side) {
+                        // Set without side = alternating set, counts for ALL sides
+                        sideOptions.forEach(side => sideProgress[side]++);
                     }
                 });
 
@@ -2461,7 +2491,11 @@
                 sideOptions.forEach(side => sideProgress[side] = 0);
                 currentExercise.sessionData.forEach(set => {
                     if (set.side && sideProgress[set.side] !== undefined) {
+                        // Set with specific side (left or right)
                         sideProgress[set.side]++;
+                    } else if (!set.side) {
+                        // Set without side = alternating set, counts for ALL sides
+                        sideOptions.forEach(side => sideProgress[side]++);
                     }
                 });
 
