@@ -113,6 +113,12 @@
             margin-bottom: 30px;
             cursor: pointer;
             transition: transform 0.1s, box-shadow 0.1s;
+            /* Mobile Safari touch fixes for large tap target */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
         }
 
         .counter-display:active {
@@ -184,11 +190,25 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.1s, opacity 0.2s;
+            /* Mobile Safari touch fixes */
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 44px; /* Apple HIG minimum touch target */
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .control-btn:active {
             transform: scale(0.98);
             opacity: 0.8;
+        }
+
+        /* Force cursor pointer on all interactive elements */
+        button, [onclick], .pill, .history-item {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
         }
 
         .btn-primary {
@@ -279,6 +299,9 @@
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 -2px 20px var(--shadow);
+            /* iOS Safari modal scroll fixes */
+            -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on iOS */
+            overscroll-behavior: contain; /* Prevent scroll chaining */
         }
 
         .modal.active .modal-content {
@@ -311,17 +334,34 @@
             padding: 12px;
             border: none;
             border-radius: 10px;
-            font-size: 17px;
+            font-size: 17px; /* Prevents iOS zoom on focus (must be ≥16px) */
             margin-bottom: 12px;
             font-family: inherit;
             background: var(--input-bg);
             color: var(--text-primary);
             box-shadow: 0 1px 3px var(--shadow);
+            /* Mobile Safari input fixes */
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .modal-input:focus, .modal-select:focus {
             outline: none;
             box-shadow: 0 0 0 2px var(--ios-blue);
+        }
+
+        /* iOS-specific input type fixes */
+        input[type="number"], input[type="text"], textarea {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* Prevent iOS Safari from adding default styling to buttons */
+        input[type="submit"], input[type="button"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
 
         .modal-buttons {
@@ -1356,7 +1396,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.3'; // Updated: 2025-12-26 - Complete vs Log UX improvements with confirmations
+        const APP_VERSION = 'v1.5.4'; // Updated: 2025-12-26 - Comprehensive Mobile Safari touch fixes
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
