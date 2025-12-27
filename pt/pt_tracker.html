@@ -694,6 +694,12 @@
         <div class="set-info" id="set-info">Set 1 of 3</div>
         <div class="remaining-info" id="remaining-info">Reps left: 10 · Sets left: 3</div>
 
+        <!-- Side Selector for Unilateral Exercises -->
+        <div id="current-side-selector" style="display: none; margin: 16px 0; width: 100%; max-width: 400px;">
+            <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px; text-align: center; color: var(--text-secondary);">Working Side:</div>
+            <div id="current-side-buttons" style="display: flex; gap: 10px;"></div>
+        </div>
+
         <!-- Counter Mode -->
         <div id="counter-mode">
             <div class="counter-display" id="counter-display" onclick="incrementCounter()" aria-live="assertive">0</div>
@@ -1396,7 +1402,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
-        const APP_VERSION = 'v1.5.4'; // Updated: 2025-12-26 - Comprehensive Mobile Safari touch fixes
+        const APP_VERSION = 'v1.5.6'; // Updated: 2025-12-27 - Alternating exercise support in side selector
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
         const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
@@ -2106,6 +2112,9 @@
                 }
             }
 
+            // Update side selector for unilateral exercises
+            updateCurrentSideSelector();
+
             updatePocketOverlay();
         }
 
@@ -2190,7 +2199,7 @@
             const achievedSeconds = Math.max(currentExercise.secondsPerRep || 0, 1) - timerSecondsRemaining;
 
             // Record this rep with the actual time achieved (not target)
-            currentExercise.sessionData.push({
+            const setData = {
                 set: currentExercise.currentSet,
                 reps: 1,
                 secondsAchieved: achievedSeconds,
@@ -2198,7 +2207,14 @@
                 type: currentExercise.type,
                 timestamp: new Date().toISOString(),
                 partialRep: true
-            });
+            };
+
+            // Add side information for unilateral exercises (but not alternating)
+            if (currentWorkingSide !== 'both' && currentWorkingSide !== 'alternating') {
+                setData.side = currentWorkingSide;
+            }
+
+            currentExercise.sessionData.push(setData);
 
             playBeep(500, 150);
             haptic('success');
@@ -2231,12 +2247,19 @@
                 return;
             }
 
-            currentExercise.sessionData.push({
+            const setData = {
                 set: currentExercise.currentSet,
                 reps: reps,
                 type: currentExercise.type,
                 timestamp: new Date().toISOString()
-            });
+            };
+
+            // Add side information for unilateral exercises (but not alternating)
+            if (currentWorkingSide !== 'both' && currentWorkingSide !== 'alternating') {
+                setData.side = currentWorkingSide;
+            }
+
+            currentExercise.sessionData.push(setData);
 
             haptic('success');
             speak(`Set ${currentExercise.currentSet} complete`);
@@ -2292,12 +2315,19 @@
          * TODO: Progressive overload tracking (weight/resistance over time)
          */
         function finishSet() {
-            currentExercise.sessionData.push({
+            const setData = {
                 set: currentExercise.currentSet,
                 reps: currentExercise.currentRep,
                 type: currentExercise.type,
                 timestamp: new Date().toISOString()
-            });
+            };
+
+            // Add side information for unilateral exercises (but not alternating)
+            if (currentWorkingSide !== 'both' && currentWorkingSide !== 'alternating') {
+                setData.side = currentWorkingSide;
+            }
+
+            currentExercise.sessionData.push(setData);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -2311,6 +2341,118 @@
         }
 
         let logSetSide = 'both'; // Track which side for unilateral exercises
+        let currentWorkingSide = 'both'; // Track which side for current set during rep/timer
+
+        function updateCurrentSideSelector() {
+            const entry = getLibraryEntryById(currentExercise?.id);
+            if (!entry) return;
+
+            const sideOptions = entry.sideOptions || [];
+            const isBilateral = entry.bilateral === true;
+            const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
+            const selectorContainer = document.getElementById('current-side-selector');
+            const buttonsContainer = document.getElementById('current-side-buttons');
+
+            // For alternating exercises, show indicator instead of selector
+            if (hasAlternating && sideOptions.length > 0 && !isBilateral) {
+                buttonsContainer.innerHTML = `
+                    <div style="
+                        flex: 1;
+                        padding: 14px 10px;
+                        border-radius: 12px;
+                        border: 3px solid var(--ios-orange);
+                        background: rgba(255,149,0,0.1);
+                        text-align: center;
+                    ">
+                        <div style="font-size: 20px; margin-bottom: 2px;">⚡</div>
+                        <div style="font-size: 15px; font-weight: 700; text-transform: uppercase; color: var(--text-primary); margin-bottom: 4px;">
+                            ALTERNATING
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: var(--ios-gray);">
+                            Switch sides each rep
+                        </div>
+                    </div>
+                `;
+                selectorContainer.style.display = 'block';
+                currentWorkingSide = 'alternating'; // Special marker
+                return;
+            }
+
+            // Show selector only for non-alternating unilateral exercises
+            if (sideOptions.length > 0 && !isBilateral) {
+                // Count completed sets per side
+                const sideProgress = {};
+                sideOptions.forEach(side => sideProgress[side] = 0);
+                currentExercise.sessionData.forEach(set => {
+                    if (set.side && sideProgress[set.side] !== undefined) {
+                        // Set with specific side (left or right)
+                        sideProgress[set.side]++;
+                    } else if (!set.side) {
+                        // Set without side = alternating set, counts for ALL sides
+                        sideOptions.forEach(side => sideProgress[side]++);
+                    }
+                });
+
+                const targetSets = currentExercise.baseSets || 0;
+
+                // Auto-select side that needs more work if currentWorkingSide is 'both'
+                if (currentWorkingSide === 'both' || !sideOptions.includes(currentWorkingSide)) {
+                    // Find which side needs more sets
+                    for (const side of sideOptions) {
+                        if (sideProgress[side] < targetSets) {
+                            currentWorkingSide = side;
+                            break;
+                        }
+                    }
+                    // If both complete or equal, default to first option
+                    if (currentWorkingSide === 'both') {
+                        currentWorkingSide = sideOptions[0];
+                    }
+                }
+
+                // Render side buttons
+                buttonsContainer.innerHTML = sideOptions.map(side => {
+                    const completed = sideProgress[side];
+                    const isSelected = currentWorkingSide === side;
+                    const isComplete = completed >= targetSets;
+                    const emoji = side === 'left' ? '👈' : side === 'right' ? '👉' : '';
+
+                    return `
+                        <div onclick="selectCurrentSide('${side}')" style="
+                            flex: 1;
+                            cursor: pointer;
+                            padding: 14px 10px;
+                            border-radius: 12px;
+                            border: 3px solid ${isSelected ? 'var(--ios-blue)' : isComplete ? 'var(--ios-green)' : 'var(--border-color)'};
+                            background: ${isSelected ? 'var(--ios-blue)' : isComplete ? 'rgba(52,199,89,0.1)' : 'var(--bg-secondary)'};
+                            text-align: center;
+                            transition: all 0.2s;
+                            ${isSelected ? 'transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,122,255,0.3);' : ''}
+                        ">
+                            <div style="font-size: 20px; margin-bottom: 2px;">${emoji}</div>
+                            <div style="font-size: 15px; font-weight: 700; text-transform: uppercase; color: ${isSelected ? 'white' : 'var(--text-primary)'}; margin-bottom: 4px;">
+                                ${side}
+                            </div>
+                            <div style="font-size: 12px; font-weight: 600; color: ${isSelected ? 'rgba(255,255,255,0.9)' : isComplete ? 'var(--ios-green)' : 'var(--ios-gray)'};">
+                                ${completed}/${targetSets} ${isComplete ? '✓' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                selectorContainer.style.display = 'block';
+            } else {
+                selectorContainer.style.display = 'none';
+                currentWorkingSide = 'both';
+            }
+        }
+
+        function selectCurrentSide(side) {
+            currentWorkingSide = side;
+            updateCurrentSideSelector();
+            haptic('light');
+            speak(`Working ${side} side`);
+        }
 
         function showLogSetModal() {
             const targetReps = currentExercise.repsPerSet || 0;
@@ -2349,7 +2491,11 @@
                 sideOptions.forEach(side => sideProgress[side] = 0);
                 currentExercise.sessionData.forEach(set => {
                     if (set.side && sideProgress[set.side] !== undefined) {
+                        // Set with specific side (left or right)
                         sideProgress[set.side]++;
+                    } else if (!set.side) {
+                        // Set without side = alternating set, counts for ALL sides
+                        sideOptions.forEach(side => sideProgress[side]++);
                     }
                 });
 
