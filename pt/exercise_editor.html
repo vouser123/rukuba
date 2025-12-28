@@ -297,6 +297,23 @@
         </div>
     </div>
 
+    <!-- Supersedes Selection Modal -->
+    <div id="supersedes-modal" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: none;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-primary); border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="padding: 16px; border-bottom: 1px solid var(--border-color);">
+                <h3 style="margin: 0; font-size: 18px;">Select Exercises to Supersede</h3>
+                <input type="text" id="supersedes-search" placeholder="Search exercises..." style="width: 100%; padding: 8px; margin-top: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;" oninput="filterSupersedes(this.value)">
+            </div>
+            <div id="supersedes-list" style="max-height: 400px; overflow-y: auto; padding: 8px;">
+                <!-- Populated by JS -->
+            </div>
+            <div style="padding: 12px; border-top: 1px solid var(--border-color); display: flex; gap: 8px;">
+                <button class="button button-secondary" onclick="closeSupersedesModal()" style="flex: 1;">Cancel</button>
+                <button class="button button-success" onclick="saveSupersedesSelection()" style="flex: 1;">Save Selection</button>
+            </div>
+        </div>
+    </div>
+
     <div id="export-dialog" class="hidden">
         <div class="card">
             <h2 style="font-size: 20px; margin-bottom: 12px;">Export Data</h2>
@@ -635,17 +652,30 @@
                 return nameA.localeCompare(nameB);
             });
 
-            html += `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;">`;
-            availableExercises.forEach(ex => {
-                const exerciseId = ex.exercise_id;
-                const exerciseName = (ex.canonical_name || ex.name || exerciseId).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                const isSelected = (selectedIds || []).includes(exerciseId);
-                const selectedClass = isSelected ? 'selected' : '';
-                const escapedId = exerciseId.replace(/'/g, "\\'");
-                const escapedPath = path.replace(/'/g, "\\'");
-                html += `<button type="button" class="enum-option ${selectedClass}" onclick="toggleEnumValueByPath('${escapedPath}', '${escapedId}', this)" title="${exerciseId}">${exerciseName}</button>`;
+            // Store available exercises for modal
+            window.supersedesData = {
+                path: path,
+                availableExercises: availableExercises,
+                selectedIds: selectedIds || []
+            };
+
+            // Show selected count and button to open modal
+            const selectedCount = (selectedIds || []).length;
+            const selectedNames = (selectedIds || []).map(id => {
+                const ex = availableExercises.find(e => e.exercise_id === id);
+                return ex ? (ex.canonical_name || ex.name || id) : id;
             });
-            html += '</div>';
+
+            html += `<div style="margin: 8px 0;">`;
+            if (selectedCount > 0) {
+                html += `<div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; padding: 8px; background: rgba(0,122,255,0.05); border-radius: 8px;">`;
+                html += `<strong>${selectedCount} exercise${selectedCount > 1 ? 's' : ''} selected:</strong><br>`;
+                html += selectedNames.join(', ');
+                html += `</div>`;
+            }
+            html += `<button type="button" class="button button-secondary" onclick="openSupersedesModal()">📝 Select Exercises to Supersede</button>`;
+            html += `</div>`;
+
             return html;
         }
 
@@ -753,6 +783,81 @@
                 console.error('[toggleEnumValueByPath] Error:', e);
                 alert('Error toggling value: ' + e.message);
             }
+        }
+
+        // Supersedes modal functions
+        let tempSupersedesSelection = [];
+
+        function openSupersedesModal() {
+            const data = window.supersedesData;
+            if (!data) return;
+
+            tempSupersedesSelection = [...data.selectedIds];
+            const modal = document.getElementById('supersedes-modal');
+            const list = document.getElementById('supersedes-list');
+
+            // Render all exercises
+            renderSupersedesList(data.availableExercises);
+
+            modal.style.display = 'block';
+            modal.classList.remove('hidden');
+        }
+
+        function renderSupersedesList(exercises) {
+            const list = document.getElementById('supersedes-list');
+            list.innerHTML = exercises.map(ex => {
+                const exerciseId = ex.exercise_id;
+                const exerciseName = ex.canonical_name || ex.name || exerciseId;
+                const isSelected = tempSupersedesSelection.includes(exerciseId);
+                return `
+                    <div style="padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
+                        <input type="checkbox" id="super-${exerciseId}" ${isSelected ? 'checked' : ''} onchange="toggleSupersedesItem('${exerciseId.replace(/'/g, "\\'")}', this.checked)" style="width: 20px; height: 20px;">
+                        <label for="super-${exerciseId}" style="flex: 1; cursor: pointer; font-size: 14px;">${exerciseName}</label>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterSupersedes(searchTerm) {
+            const data = window.supersedesData;
+            if (!data) return;
+
+            const filtered = data.availableExercises.filter(ex => {
+                const name = (ex.canonical_name || ex.name || '').toLowerCase();
+                return name.includes(searchTerm.toLowerCase());
+            });
+
+            renderSupersedesList(filtered);
+        }
+
+        function toggleSupersedesItem(exerciseId, isChecked) {
+            if (isChecked) {
+                if (!tempSupersedesSelection.includes(exerciseId)) {
+                    tempSupersedesSelection.push(exerciseId);
+                }
+            } else {
+                tempSupersedesSelection = tempSupersedesSelection.filter(id => id !== exerciseId);
+            }
+        }
+
+        function closeSupersedesModal() {
+            const modal = document.getElementById('supersedes-modal');
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+            document.getElementById('supersedes-search').value = '';
+        }
+
+        function saveSupersedesSelection() {
+            const data = window.supersedesData;
+            if (!data) return;
+
+            // Update the field value
+            updateFieldByPath(data.path, tempSupersedesSelection);
+
+            closeSupersedesModal();
+
+            // Re-render the editor to show updated selection
+            editExercise(currentExerciseId);
         }
 
         function setDateIntent(path, intent) {
