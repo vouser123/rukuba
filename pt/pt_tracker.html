@@ -787,19 +787,25 @@
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">My Exercises</div>
-            <div class="modal-form">
+
+            <!-- Sticky Actions at Top -->
+            <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); background: var(--modal-bg);">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <button class="control-btn btn-primary" onclick="showPlanSessionModal()" style="flex: 1; font-size: 14px;">📅 Plan Session</button>
+                    <button class="control-btn btn-primary" onclick="showLibraryBrowser()" style="flex: 1; font-size: 14px;">📚 Browse Library</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1; font-size: 13px;" id="archived-btn">📦 Archived</button>
+                    <button class="control-btn btn-secondary" onclick="showDataBackup()" style="flex: 1; font-size: 13px;">💾 Data</button>
+                </div>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="modal-form" style="max-height: 60vh; overflow-y: auto;">
                 <input type="text" class="modal-input" id="exercise-search" placeholder="Search exercises..." oninput="filterExercises()">
                 <div id="tag-filter-container" style="margin-bottom: 12px;"></div>
                 <div id="recent-exercises-container" style="margin-bottom: 12px;"></div>
                 <div class="history-list" id="exercise-list-content"></div>
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <button class="control-btn btn-primary" onclick="showLibraryBrowser()" style="flex: 1;">📚 Browse Library</button>
-                    <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1;" id="archived-btn">📦 Archived</button>
-                </div>
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <button class="control-btn btn-primary" onclick="showPlanSessionModal()" style="flex: 1;">📅 Plan Session</button>
-                    <button class="control-btn btn-secondary" onclick="showDataBackup()" style="flex: 1;">💾 Data / Backup</button>
-                </div>
             </div>
         </div>
     </div>
