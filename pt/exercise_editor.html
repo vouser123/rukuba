@@ -263,6 +263,7 @@
         <div class="card">
             <button class="button button-success" onclick="createNewExercise()">+ Create New Exercise</button>
             <button class="button button-secondary" onclick="showExportDialog()">📤 Export All Data</button>
+            <button class="button button-secondary" onclick="reloadFromJSON()">🔄 Reload from JSON</button>
         </div>
 
         <div class="card">
@@ -276,7 +277,14 @@
         <div id="editor-form"></div>
         <div style="height: 80px;"></div>
         <div class="bottom-bar">
-            <button class="button button-success" onclick="saveAndBackToList()" style="flex: 1;">💾 Save</button>
+            <button class="button button-success" onclick="saveAndBackToList()" style="flex: 2;">💾 Save</button>
+            <button class="button button-danger" onclick="deleteExercise()" style="flex: 1;">🗑 Delete</button>
+        </div>
+        <div style="position: fixed; bottom: 80px; left: 0; right: 0; padding: 0 16px;" id="draft-actions">
+            <div style="display: flex; gap: 8px; background: var(--bg-primary); padding: 8px; border-radius: 12px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);">
+                <button class="button button-secondary" onclick="discardDraft()" style="flex: 1; padding: 8px; font-size: 14px;">↩️ Discard Draft</button>
+                <button class="button button-success" onclick="commitDraft()" style="flex: 1; padding: 8px; font-size: 14px;">✓ Commit Draft</button>
+            </div>
         </div>
     </div>
 
@@ -779,6 +787,11 @@
             renderEditor(exercise);
             document.getElementById('list-view').classList.add('hidden');
             document.getElementById('editor-view').classList.remove('hidden');
+
+            // Show/hide draft actions
+            const isDraft = drafts[currentExerciseId] !== undefined;
+            const draftActions = document.getElementById('draft-actions');
+            draftActions.style.display = isDraft ? 'block' : 'none';
         }
 
         function backToList() {
@@ -792,6 +805,89 @@
             // Already saved via auto-save in updateFieldByPath
             alert('Exercise saved!');
             backToList();
+        }
+
+        function discardDraft() {
+            if (!confirm('Discard all changes to this exercise?\n\nThis will revert to the baseline version.')) {
+                return;
+            }
+
+            delete drafts[currentExerciseId];
+            saveDrafts();
+            alert('Draft discarded! Reverted to baseline.');
+            backToList();
+        }
+
+        function commitDraft() {
+            if (!confirm('Commit this draft?\n\nThis will mark it as the new baseline and remove the DRAFT indicator.')) {
+                return;
+            }
+
+            // Find and update baseline
+            const draft = drafts[currentExerciseId];
+            const baselineIndex = baselineExercises.findIndex(ex => ex.exercise_id === currentExerciseId);
+
+            if (baselineIndex >= 0) {
+                baselineExercises[baselineIndex] = { ...draft };
+            } else {
+                baselineExercises.push({ ...draft });
+            }
+
+            // Remove from drafts
+            delete drafts[currentExerciseId];
+            saveDrafts();
+
+            alert('Draft committed! This is now the baseline.\n\nReminder: You still need to export the data to save it to a file.');
+            backToList();
+        }
+
+        function deleteExercise() {
+            const exercise = getCurrentExercise();
+            const exerciseName = exercise.name || exercise.exercise_name || 'this exercise';
+
+            if (!confirm(`Delete "${exerciseName}"?\n\nThis cannot be undone.`)) {
+                return;
+            }
+
+            // Remove from drafts
+            if (drafts[currentExerciseId]) {
+                delete drafts[currentExerciseId];
+                saveDrafts();
+            }
+
+            // Remove from baseline
+            const baselineIndex = baselineExercises.findIndex(ex => ex.exercise_id === currentExerciseId);
+            if (baselineIndex >= 0) {
+                baselineExercises.splice(baselineIndex, 1);
+            }
+
+            alert('Exercise deleted!');
+            backToList();
+        }
+
+        async function reloadFromJSON() {
+            if (!confirm('Reload from exercise_library.json?\n\nThis will:\n• Discard ALL drafts\n• Restore all deleted exercises\n• Reset to the JSON file state\n\nContinue?')) {
+                return;
+            }
+
+            try {
+                // Clear all drafts
+                drafts = {};
+                localStorage.removeItem('pt_exercise_drafts');
+
+                // Reload from JSON
+                const seedResp = await fetch('./exercise_library.json');
+                if (!seedResp.ok) throw new Error('Failed to fetch exercise_library.json');
+
+                const seedData = await seedResp.json();
+                baselineExercises = seedData.exercises || [];
+
+                renderExerciseList();
+                alert('✓ Reloaded from JSON!\n\nAll drafts discarded, exercises restored.');
+            } catch (e) {
+                alert('Failed to reload from JSON:\n\n' + e.message);
+                console.error('Reload error:', e);
+            }
         }
 
         function showExportDialog() {

@@ -35,7 +35,7 @@
                 --bg-primary: #1c1c1e;
                 --bg-secondary: #2c2c2e;
                 --text-primary: #FFFFFF;
-                --text-secondary: #98989d;
+                --text-secondary: #adadb3; /* Improved from #98989d for better WCAG contrast */
                 --border-color: rgba(255,255,255,0.15);
                 --modal-bg: #1c1c1e;
                 --input-bg: #2c2c2e;
@@ -672,12 +672,6 @@
                 <button onclick="showSettings()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">⚙️</button>
             </div>
         </div>
-    </div>
-
-    <!-- Quick Start Shortcuts -->
-    <div id="quick-start-container" style="padding: 12px 15px; background: var(--bg-primary); border-bottom: 1px solid var(--border-color); display: none;">
-        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Quick Start</div>
-        <div id="quick-start-exercises" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
     </div>
 
     <!-- Session Plan -->
@@ -3123,7 +3117,7 @@
             stopTimer();
             updateDisplay();
             updateStreakDisplay(); // Refresh streak after completing session
-            updateQuickStartShortcuts(); // Update shortcuts based on usage
+            // updateQuickStartShortcuts(); // REMOVED: Quick Start section removed
         }
 
         function updateQuickStartShortcuts() {
@@ -6090,7 +6084,7 @@
         document.getElementById('header-version').textContent = APP_VERSION; // Show version in header
         updateDisplay();
         updateStreakDisplay();
-        updateQuickStartShortcuts();
+        // updateQuickStartShortcuts(); // REMOVED: Quick Start section removed
         setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
 
         // Register Service Worker for offline support
