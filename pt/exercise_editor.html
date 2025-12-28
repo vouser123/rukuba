@@ -473,6 +473,11 @@
 
             let html = '';
 
+            // Special case: supersedes field - render as multi-select of exercises
+            if (fieldName === 'supersedes') {
+                return renderSupersedesField(fullPath, label, value, hint);
+            }
+
             if (primaryType === 'array') {
                 if (fieldSchema.items && fieldSchema.items.enum) {
                     // Multi-select enum
@@ -586,6 +591,48 @@
                 const isSelected = (selected || []).includes(val);
                 const selectedClass = isSelected ? 'selected' : '';
                 html += `<div class="enum-option ${selectedClass}" onclick="toggleEnumValueByPath('${path}', '${val}', this)">${val}</div>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function renderSupersedesField(path, label, selectedIds, hint) {
+            let html = `<div class="label">${label}</div>`;
+            if (hint) html += `<div class="hint">${hint}</div>`;
+
+            // Get list of all exercises except the current one
+            const allExercises = [...baselineExercises];
+            Object.keys(drafts).forEach(id => {
+                const existingIndex = allExercises.findIndex(ex => ex.exercise_id === id);
+                if (existingIndex >= 0) {
+                    allExercises[existingIndex] = drafts[id];
+                } else {
+                    allExercises.push(drafts[id]);
+                }
+            });
+
+            // Filter out current exercise
+            const availableExercises = allExercises.filter(ex => ex.exercise_id !== currentExerciseId);
+
+            if (availableExercises.length === 0) {
+                html += `<div style="color: var(--text-secondary); font-size: 14px; margin: 8px 0;">No other exercises available</div>`;
+                return html;
+            }
+
+            // Sort by name
+            availableExercises.sort((a, b) => {
+                const nameA = a.canonical_name || a.name || '';
+                const nameB = b.canonical_name || b.name || '';
+                return nameA.localeCompare(nameB);
+            });
+
+            html += `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;">`;
+            availableExercises.forEach(ex => {
+                const exerciseId = ex.exercise_id;
+                const exerciseName = ex.canonical_name || ex.name || exerciseId;
+                const isSelected = (selectedIds || []).includes(exerciseId);
+                const selectedClass = isSelected ? 'selected' : '';
+                html += `<div class="enum-option ${selectedClass}" onclick="toggleEnumValueByPath('${path}', '${exerciseId}', this)" title="${exerciseId}">${exerciseName}</div>`;
             });
             html += '</div>';
             return html;
