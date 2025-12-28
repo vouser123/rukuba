@@ -851,13 +851,56 @@
             const data = window.supersedesData;
             if (!data) return;
 
-            // Update the field value
-            updateFieldByPath(data.path, tempSupersedesSelection);
+            const oldSupersedes = data.selectedIds || [];
+            const newSupersedes = tempSupersedesSelection;
 
+            // Update the current exercise's supersedes field
+            updateFieldByPath(data.path, newSupersedes);
+
+            // Update bidirectional relationships
+            const now = new Date().toISOString();
+
+            // 1. For exercises newly added to supersedes list
+            newSupersedes.forEach(supersededId => {
+                if (!oldSupersedes.includes(supersededId)) {
+                    // This exercise is now superseded by current exercise
+                    const supersededEx = drafts[supersededId] || baselineExercises.find(ex => ex.exercise_id === supersededId);
+                    if (supersededEx) {
+                        // Create draft if not already exists
+                        if (!drafts[supersededId]) {
+                            drafts[supersededId] = JSON.parse(JSON.stringify(supersededEx));
+                        }
+                        drafts[supersededId].superseded_by = currentExerciseId;
+                        drafts[supersededId].superseded_date = now;
+                        console.log(`[Supersedes] Set ${supersededId} superseded_by to ${currentExerciseId}`);
+                    }
+                }
+            });
+
+            // 2. For exercises removed from supersedes list
+            oldSupersedes.forEach(supersededId => {
+                if (!newSupersedes.includes(supersededId)) {
+                    // This exercise is no longer superseded by current exercise
+                    const supersededEx = drafts[supersededId] || baselineExercises.find(ex => ex.exercise_id === supersededId);
+                    if (supersededEx && supersededEx.superseded_by === currentExerciseId) {
+                        // Create draft if not already exists
+                        if (!drafts[supersededId]) {
+                            drafts[supersededId] = JSON.parse(JSON.stringify(supersededEx));
+                        }
+                        drafts[supersededId].superseded_by = null;
+                        drafts[supersededId].superseded_date = null;
+                        console.log(`[Supersedes] Cleared ${supersededId} superseded_by`);
+                    }
+                }
+            });
+
+            saveDrafts();
             closeSupersedesModal();
 
             // Re-render the editor to show updated selection
             editExercise(currentExerciseId);
+
+            alert(`Updated supersedes relationships!\n\n${newSupersedes.length} exercise${newSupersedes.length !== 1 ? 's' : ''} now superseded by this exercise.`);
         }
 
         function setDateIntent(path, intent) {
