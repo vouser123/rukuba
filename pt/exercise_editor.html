@@ -220,6 +220,15 @@
             text-align: center;
             cursor: pointer;
             font-size: 14px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: inherit;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .enum-option:active {
+            opacity: 0.7;
         }
 
         .enum-option.selected {
@@ -473,6 +482,11 @@
 
             let html = '';
 
+            // Special case: supersedes field - render as multi-select of exercises
+            if (fieldName === 'supersedes') {
+                return renderSupersedesField(fullPath, label, value, hint);
+            }
+
             if (primaryType === 'array') {
                 if (fieldSchema.items && fieldSchema.items.enum) {
                     // Multi-select enum
@@ -585,7 +599,51 @@
             enumValues.forEach(val => {
                 const isSelected = (selected || []).includes(val);
                 const selectedClass = isSelected ? 'selected' : '';
-                html += `<div class="enum-option ${selectedClass}" onclick="toggleEnumValueByPath('${path}', '${val}', this)">${val}</div>`;
+                html += `<button type="button" class="enum-option ${selectedClass}" onclick="toggleEnumValueByPath('${path}', '${val}', this)">${val}</button>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function renderSupersedesField(path, label, selectedIds, hint) {
+            let html = `<div class="label">${label}</div>`;
+            if (hint) html += `<div class="hint">${hint}</div>`;
+
+            // Get list of all exercises except the current one
+            const allExercises = [...baselineExercises];
+            Object.keys(drafts).forEach(id => {
+                const existingIndex = allExercises.findIndex(ex => ex.exercise_id === id);
+                if (existingIndex >= 0) {
+                    allExercises[existingIndex] = drafts[id];
+                } else {
+                    allExercises.push(drafts[id]);
+                }
+            });
+
+            // Filter out current exercise
+            const availableExercises = allExercises.filter(ex => ex.exercise_id !== currentExerciseId);
+
+            if (availableExercises.length === 0) {
+                html += `<div style="color: var(--text-secondary); font-size: 14px; margin: 8px 0;">No other exercises available</div>`;
+                return html;
+            }
+
+            // Sort by name
+            availableExercises.sort((a, b) => {
+                const nameA = a.canonical_name || a.name || '';
+                const nameB = b.canonical_name || b.name || '';
+                return nameA.localeCompare(nameB);
+            });
+
+            html += `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;">`;
+            availableExercises.forEach(ex => {
+                const exerciseId = ex.exercise_id;
+                const exerciseName = (ex.canonical_name || ex.name || exerciseId).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                const isSelected = (selectedIds || []).includes(exerciseId);
+                const selectedClass = isSelected ? 'selected' : '';
+                const escapedId = exerciseId.replace(/'/g, "\\'");
+                const escapedPath = path.replace(/'/g, "\\'");
+                html += `<button type="button" class="enum-option ${selectedClass}" onclick="toggleEnumValueByPath('${escapedPath}', '${escapedId}', this)" title="${exerciseId}">${exerciseName}</button>`;
             });
             html += '</div>';
             return html;
@@ -658,27 +716,43 @@
         }
 
         function toggleEnumValueByPath(path, value, element) {
-            const current = getCurrentExercise();
-            const parts = path.split('.');
-            const updated = JSON.parse(JSON.stringify(current));
+            try {
+                console.log('[toggleEnumValueByPath] path:', path, 'value:', value);
+                const current = getCurrentExercise();
+                const parts = path.split('.');
+                const updated = JSON.parse(JSON.stringify(current));
 
-            let obj = updated;
-            for (let i = 0; i < parts.length - 1; i++) {
-                obj = obj[parts[i]];
+                let obj = updated;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    obj = obj[parts[i]];
+                }
+
+                // Ensure array exists
+                const fieldName = parts[parts.length - 1];
+                if (!obj[fieldName]) {
+                    obj[fieldName] = [];
+                    console.log('[toggleEnumValueByPath] Initialized empty array for', fieldName);
+                }
+                const arr = obj[fieldName];
+
+                const index = arr.indexOf(value);
+                if (index >= 0) {
+                    arr.splice(index, 1);
+                    element.classList.remove('selected');
+                    console.log('[toggleEnumValueByPath] Removed', value, 'from', fieldName);
+                } else {
+                    arr.push(value);
+                    element.classList.add('selected');
+                    console.log('[toggleEnumValueByPath] Added', value, 'to', fieldName);
+                }
+
+                drafts[currentExerciseId] = updated;
+                saveDrafts();
+                console.log('[toggleEnumValueByPath] Draft saved, array now:', arr);
+            } catch (e) {
+                console.error('[toggleEnumValueByPath] Error:', e);
+                alert('Error toggling value: ' + e.message);
             }
-            const arr = obj[parts[parts.length - 1]];
-
-            const index = arr.indexOf(value);
-            if (index >= 0) {
-                arr.splice(index, 1);
-                element.classList.remove('selected');
-            } else {
-                arr.push(value);
-                element.classList.add('selected');
-            }
-
-            drafts[currentExerciseId] = updated;
-            saveDrafts();
         }
 
         function setDateIntent(path, intent) {
