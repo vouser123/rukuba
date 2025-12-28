@@ -3952,6 +3952,57 @@
             return parts.join(' · ');
         }
 
+        // Standardized session summary formatting
+        function formatSessionSummary(session, options = {}) {
+            const {
+                includeDate = true,
+                includeExerciseName = false,
+                includeSets = true,
+                includeFormParams = true
+            } = options;
+
+            const parts = [];
+
+            // Date
+            if (includeDate) {
+                parts.push(new Date(session.date).toLocaleString());
+            }
+
+            // Exercise name (if requested)
+            if (includeExerciseName && session.exerciseName) {
+                parts.push(session.exerciseName);
+            }
+
+            // Sets summary
+            if (includeSets && session.sets && session.sets.length > 0) {
+                const totalSets = session.sets.length;
+                const hasDistance = session.sets.some(s => s.distanceFeet);
+
+                if (hasDistance) {
+                    const totalDistance = session.sets.reduce((sum, s) => sum + (s.distanceFeet || 0), 0);
+                    parts.push(`${totalSets} sets · ${totalDistance}ft total`);
+                } else {
+                    const totalReps = session.sets.reduce((sum, s) => sum + (s.reps || 0), 0);
+                    parts.push(`${totalSets} sets · ${totalReps} reps total`);
+                }
+            }
+
+            // Form params (if requested and present)
+            if (includeFormParams && session.sets && session.sets.length > 0) {
+                const firstSet = session.sets[0];
+                if (firstSet.formParams) {
+                    const params = [];
+                    if (firstSet.formParams.weight) params.push(`${firstSet.formParams.weight}${firstSet.formParams.weight_unit || 'lbs'}`);
+                    if (firstSet.formParams.band_resistance) params.push(`[${firstSet.formParams.band_resistance}]`);
+                    if (params.length > 0) {
+                        parts.push(params.join(', '));
+                    }
+                }
+            }
+
+            return parts.join(' · ');
+        }
+
         function renderHistory() {
             const sessions = loadHistory();
             const exerciseHistoryList = document.getElementById('exercise-history-list');
@@ -3990,19 +4041,7 @@
                 sessionHistoryList.innerHTML = relevantSessions
                     .slice(0, 10)
                     .map(session => {
-                        // Check if this is a distance-based exercise
-                        const hasDistance = (session.sets || []).some(set => set.distanceFeet);
-
-                        let volumeLabel;
-                        if (hasDistance) {
-                            const totalDistance = (session.sets || []).reduce((sum, set) => sum + (set.distanceFeet || 0), 0);
-                            volumeLabel = `${totalDistance}ft total`;
-                        } else {
-                            const totalReps = (session.sets || []).reduce((sum, set) => sum + (set.reps || 0), 0);
-                            volumeLabel = `${totalReps} reps`;
-                        }
-
-                        const sessionLabel = `${session.sets?.length || 0} sets · ${volumeLabel}`;
+                        const sessionSummary = formatSessionSummary(session, { includeDate: true, includeSets: true, includeFormParams: false });
 
                         // Show side info for unilateral exercises and form parameters
                         const setDetails = (session.sets || []).map((set, idx) => {
@@ -4057,7 +4096,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: start;">
                                     <div style="flex: 1;">
                                         <div>${session.exerciseName}</div>
-                                        <div class="history-meta">${new Date(session.date).toLocaleString()} · ${sessionLabel}</div>
+                                        <div class="history-meta">${sessionSummary}</div>
                                         <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${setDetails}</div>
                                         ${notesHtml}
                                     </div>
@@ -4250,13 +4289,6 @@
             renderRecentExercises();
             renderExerciseList();
             renderTagFilters();
-
-            // Show/hide Archive Examples button
-            const examples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
-            const archiveBtn = document.getElementById('archive-examples-btn');
-            if (archiveBtn) {
-                archiveBtn.style.display = examples.length > 0 ? 'block' : 'none';
-            }
 
             document.getElementById('exercise-list-modal').classList.add('active');
             haptic('medium');
