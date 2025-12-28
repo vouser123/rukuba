@@ -1,5 +1,5 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.6.1';
+const CACHE_NAME = 'pt-tracker-v1.7.0';
 const libraryUrl = new URL('exercise_library.json', self.location).pathname;
 const scopeUrl = new URL('./', self.location).pathname;
 // Only cache assets, not the HTML (which might have updates)
