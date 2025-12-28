@@ -629,10 +629,12 @@
             html += `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;">`;
             availableExercises.forEach(ex => {
                 const exerciseId = ex.exercise_id;
-                const exerciseName = ex.canonical_name || ex.name || exerciseId;
+                const exerciseName = (ex.canonical_name || ex.name || exerciseId).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                 const isSelected = (selectedIds || []).includes(exerciseId);
                 const selectedClass = isSelected ? 'selected' : '';
-                html += `<div class="enum-option ${selectedClass}" onclick="toggleEnumValueByPath('${path}', '${exerciseId}', this)" title="${exerciseId}">${exerciseName}</div>`;
+                const escapedId = exerciseId.replace(/'/g, "\\'");
+                const escapedPath = path.replace(/'/g, "\\'");
+                html += `<div class="enum-option ${selectedClass}" onclick="toggleEnumValueByPath('${escapedPath}', '${escapedId}', this)" title="${exerciseId}">${exerciseName}</div>`;
             });
             html += '</div>';
             return html;
@@ -705,27 +707,43 @@
         }
 
         function toggleEnumValueByPath(path, value, element) {
-            const current = getCurrentExercise();
-            const parts = path.split('.');
-            const updated = JSON.parse(JSON.stringify(current));
+            try {
+                console.log('[toggleEnumValueByPath] path:', path, 'value:', value);
+                const current = getCurrentExercise();
+                const parts = path.split('.');
+                const updated = JSON.parse(JSON.stringify(current));
 
-            let obj = updated;
-            for (let i = 0; i < parts.length - 1; i++) {
-                obj = obj[parts[i]];
+                let obj = updated;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    obj = obj[parts[i]];
+                }
+
+                // Ensure array exists
+                const fieldName = parts[parts.length - 1];
+                if (!obj[fieldName]) {
+                    obj[fieldName] = [];
+                    console.log('[toggleEnumValueByPath] Initialized empty array for', fieldName);
+                }
+                const arr = obj[fieldName];
+
+                const index = arr.indexOf(value);
+                if (index >= 0) {
+                    arr.splice(index, 1);
+                    element.classList.remove('selected');
+                    console.log('[toggleEnumValueByPath] Removed', value, 'from', fieldName);
+                } else {
+                    arr.push(value);
+                    element.classList.add('selected');
+                    console.log('[toggleEnumValueByPath] Added', value, 'to', fieldName);
+                }
+
+                drafts[currentExerciseId] = updated;
+                saveDrafts();
+                console.log('[toggleEnumValueByPath] Draft saved, array now:', arr);
+            } catch (e) {
+                console.error('[toggleEnumValueByPath] Error:', e);
+                alert('Error toggling value: ' + e.message);
             }
-            const arr = obj[parts[parts.length - 1]];
-
-            const index = arr.indexOf(value);
-            if (index >= 0) {
-                arr.splice(index, 1);
-                element.classList.remove('selected');
-            } else {
-                arr.push(value);
-                element.classList.add('selected');
-            }
-
-            drafts[currentExerciseId] = updated;
-            saveDrafts();
         }
 
         function setDateIntent(path, intent) {
