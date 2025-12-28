@@ -63,23 +63,26 @@
         /* Header */
         .header {
             background: var(--bg-primary);
-            padding: 15px;
-            box-shadow: 0 2px 8px var(--shadow);
+            padding: 16px 20px;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.08);
             position: sticky;
             top: 0;
             z-index: 1000;
         }
 
         .header h1 {
-            font-size: 20px;
+            font-size: 28px;
+            font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
         }
 
         .exercise-name {
             font-size: 17px;
             color: var(--ios-blue);
             font-weight: 600;
+            letter-spacing: -0.3px;
         }
 
         /* Main Counter View */
@@ -214,25 +217,33 @@
         .btn-primary {
             background: var(--ios-blue);
             color: white;
-            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+            font-weight: 600;
+            letter-spacing: -0.2px;
         }
 
         .btn-secondary {
-            background: var(--bg-primary);
+            background: rgba(0, 122, 255, 0.08);
             color: var(--ios-blue);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            box-shadow: none;
+            font-weight: 600;
+            letter-spacing: -0.2px;
         }
 
         .btn-success {
             background: var(--ios-green);
             color: white;
-            box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+            box-shadow: 0 2px 8px rgba(52, 199, 89, 0.25);
+            font-weight: 600;
+            letter-spacing: -0.2px;
         }
 
         .btn-danger {
             background: var(--ios-red);
             color: white;
-            box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+            box-shadow: 0 2px 8px rgba(255, 59, 48, 0.25);
+            font-weight: 600;
+            letter-spacing: -0.2px;
         }
 
         /* Footer */
@@ -311,17 +322,18 @@
         .modal-drag-handle {
             width: 36px;
             height: 5px;
-            background: var(--border-color);
+            background: rgba(60, 60, 67, 0.3);
             border-radius: 3px;
-            margin: 12px auto 8px;
+            margin: 8px auto 12px;
         }
 
         .modal-title {
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 600;
+            letter-spacing: -0.4px;
             text-align: center;
-            padding: 8px 20px 16px;
-            color: #000;
+            padding: 0 20px 20px;
+            color: var(--text-primary);
             border-bottom: 0.5px solid rgba(0,0,0,0.1);
         }
 
@@ -1459,6 +1471,99 @@
             return Array.from(equipment).sort();
         }
 
+        // Get historical values for a form parameter from this exercise's session history
+        function getHistoricalParamValues(exerciseId, paramName) {
+            const sessions = loadHistory();
+            const exerciseSessions = sessions.filter(s => s.exerciseId === exerciseId);
+            const values = new Set();
+
+            exerciseSessions.forEach(session => {
+                (session.sets || []).forEach(set => {
+                    if (set.formParams && set.formParams[paramName]) {
+                        values.add(set.formParams[paramName]);
+                    }
+                });
+            });
+
+            return Array.from(values).sort();
+        }
+
+        // Get the last used value for a parameter on this exercise
+        function getLastUsedParamValue(exerciseId, paramName) {
+            const sessions = loadHistory();
+            const exerciseSessions = sessions.filter(s => s.exerciseId === exerciseId);
+
+            // Sort by date descending (most recent first)
+            exerciseSessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Find the most recent value
+            for (const session of exerciseSessions) {
+                for (const set of (session.sets || [])) {
+                    if (set.formParams && set.formParams[paramName]) {
+                        return set.formParams[paramName];
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // Render a smart form parameter select that learns from history
+        function renderSmartParamSelect(param, exerciseId, elementId) {
+            const historicalValues = getHistoricalParamValues(exerciseId, param);
+            const lastUsed = getLastUsedParamValue(exerciseId, param);
+            const label = param.replace(/_/g, ' ');
+
+            // Build options list
+            let options = [];
+
+            // Add last used first (if exists)
+            if (lastUsed) {
+                options.push(`<option value="${lastUsed}" selected>✓ ${lastUsed} (last used)</option>`);
+            }
+
+            // Add other historical values (excluding last used)
+            historicalValues.forEach(value => {
+                if (value !== lastUsed) {
+                    options.push(`<option value="${value}">${value}</option>`);
+                }
+            });
+
+            // Add "Other..." option
+            options.push(`<option value="__other__">Other...</option>`);
+
+            // If no last used, add blank default
+            if (!lastUsed) {
+                options.unshift(`<option value="">Select ${label}...</option>`);
+            }
+
+            return `
+                <label style="font-size: 13px; margin-bottom: 4px; display: block;">${label}</label>
+                <select class="modal-select" id="${elementId}" style="margin-bottom: 12px;" data-param="${param}" onchange="handleParamSelectChange(this, '${param}')">
+                    ${options.join('')}
+                </select>
+            `;
+        }
+
+        // Handle "Other..." selection in parameter dropdowns
+        function handleParamSelectChange(selectElement, paramName) {
+            if (selectElement.value === '__other__') {
+                const newValue = prompt(`Enter custom value for ${paramName.replace(/_/g, ' ')}:`);
+                if (newValue && newValue.trim()) {
+                    const trimmed = newValue.trim();
+                    // Add new option and select it
+                    const newOption = document.createElement('option');
+                    newOption.value = trimmed;
+                    newOption.text = trimmed;
+                    newOption.selected = true;
+                    selectElement.insertBefore(newOption, selectElement.lastChild); // Before "Other..."
+                } else {
+                    // User cancelled, reset to blank
+                    selectElement.value = '';
+                }
+            }
+        }
+
         let editingExerciseId = null;
         let selectedTags = [];
         let filterTags = [];
@@ -2593,74 +2698,17 @@
                                 </select>
                             </div>
                         `;
-                    } else if (param === 'band_resistance') {
-                        return `
-                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace('_', ' ')}</label>
-                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
-                                <option value="">Select...</option>
-                                <option value="light">Light</option>
-                                <option value="medium">Medium</option>
-                                <option value="heavy">Heavy</option>
-                                <option value="extra-heavy">Extra Heavy</option>
-                            </select>
-                        `;
-                    } else if (param === 'band_position' || param === 'strap_position') {
-                        return `
-                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace('_', ' ')}</label>
-                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
-                                <option value="">Select...</option>
-                                <option value="above_knees">Above knees</option>
-                                <option value="at_knees">At knees</option>
-                                <option value="below_knees">Below knees</option>
-                                <option value="at_ankles">At ankles</option>
-                                <option value="at_feet">At feet</option>
-                            </select>
-                        `;
-                    } else if (param === 'eyes') {
-                        return `
-                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param}</label>
-                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
-                                <option value="">Select...</option>
-                                <option value="open">Open</option>
-                                <option value="closed">Closed</option>
-                                <option value="tracking">Tracking</option>
-                            </select>
-                        `;
-                    } else if (param === 'surface') {
-                        return `
-                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param}</label>
-                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
-                                <option value="">Select...</option>
-                                <option value="firm">Firm</option>
-                                <option value="foam">Foam</option>
-                                <option value="bosu">BOSU</option>
-                                <option value="unstable">Unstable</option>
-                            </select>
-                        `;
-                    } else if (param === 'slope') {
-                        return `
-                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param}</label>
-                            <select class="modal-select" id="log-param-${param}" style="margin-bottom: 12px;" data-param="${param}">
-                                <option value="">Select...</option>
-                                <option value="flat">Flat</option>
-                                <option value="uphill">Uphill</option>
-                                <option value="downhill">Downhill</option>
-                            </select>
-                        `;
                     } else if (param === 'distance') {
                         return `
                             <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param} (variable, e.g. step height)</label>
                             <input type="number" class="modal-input" id="log-param-${param}" placeholder="Distance in inches" min="0" style="margin-bottom: 12px;" data-param="${param}">
                         `;
                     } else if (param === 'alternating') {
-                        // Skip alternating for now (will be moved to pattern_modifiers)
+                        // Skip alternating (pattern modifier, not form param)
                         return '';
                     } else {
-                        // Generic text input for unknown parameters
-                        return `
-                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace('_', ' ')}</label>
-                            <input type="text" class="modal-input" id="log-param-${param}" placeholder="${param}" style="margin-bottom: 12px;" data-param="${param}">
-                        `;
+                        // Use smart select for all other parameters (band_resistance, eyes, surface, etc.)
+                        return renderSmartParamSelect(param, currentExercise.id, `log-param-${param}`);
                     }
                 }).join('');
                 formParamsContainer.style.display = 'block';
@@ -2938,71 +2986,14 @@
                             </select>
                         </div>
                     `;
-                } else if (param === 'band_resistance') {
-                    return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
-                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
-                            <option value="">Select...</option>
-                            <option value="light">Light</option>
-                            <option value="medium">Medium</option>
-                            <option value="heavy">Heavy</option>
-                            <option value="extra-heavy">Extra Heavy</option>
-                        </select>
-                    `;
-                } else if (param === 'band_position') {
-                    return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
-                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
-                            <option value="">Select...</option>
-                            <option value="above_knees">Above knees</option>
-                            <option value="at_knees">At knees</option>
-                            <option value="below_knees">Below knees</option>
-                            <option value="at_ankles">At ankles</option>
-                            <option value="at_feet">At feet</option>
-                        </select>
-                    `;
-                } else if (param === 'eyes') {
-                    return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
-                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
-                            <option value="">Select...</option>
-                            <option value="open">Open</option>
-                            <option value="closed">Closed</option>
-                            <option value="tracking">Tracking</option>
-                        </select>
-                    `;
-                } else if (param === 'surface') {
-                    return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
-                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
-                            <option value="">Select...</option>
-                            <option value="firm">Firm</option>
-                            <option value="foam">Foam</option>
-                            <option value="bosu">BOSU</option>
-                            <option value="unstable">Unstable</option>
-                        </select>
-                    `;
-                } else if (param === 'slope') {
-                    return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param}</label>
-                        <select class="modal-select" id="session-param-${param}" style="margin-bottom: 16px;" data-param="${param}">
-                            <option value="">Select...</option>
-                            <option value="flat">Flat</option>
-                            <option value="uphill">Uphill</option>
-                            <option value="downhill">Downhill</option>
-                        </select>
-                    `;
                 } else if (param === 'distance') {
                     return `
                         <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param} (variable, e.g. step height)</label>
                         <input type="number" class="modal-input" id="session-param-${param}" placeholder="Distance in inches" min="0" style="margin-bottom: 16px;" data-param="${param}">
                     `;
                 } else {
-                    // Generic text input
-                    return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
-                        <input type="text" class="modal-input" id="session-param-${param}" placeholder="${param}" style="margin-bottom: 16px;" data-param="${param}">
-                    `;
+                    // Use smart select for all other parameters
+                    return renderSmartParamSelect(param, currentExercise.id, `session-param-${param}`).replace('margin-bottom: 12px;', 'margin-bottom: 16px;');
                 }
             }).join('');
 
@@ -3952,6 +3943,57 @@
             return parts.join(' · ');
         }
 
+        // Standardized session summary formatting
+        function formatSessionSummary(session, options = {}) {
+            const {
+                includeDate = true,
+                includeExerciseName = false,
+                includeSets = true,
+                includeFormParams = true
+            } = options;
+
+            const parts = [];
+
+            // Date
+            if (includeDate) {
+                parts.push(new Date(session.date).toLocaleString());
+            }
+
+            // Exercise name (if requested)
+            if (includeExerciseName && session.exerciseName) {
+                parts.push(session.exerciseName);
+            }
+
+            // Sets summary
+            if (includeSets && session.sets && session.sets.length > 0) {
+                const totalSets = session.sets.length;
+                const hasDistance = session.sets.some(s => s.distanceFeet);
+
+                if (hasDistance) {
+                    const totalDistance = session.sets.reduce((sum, s) => sum + (s.distanceFeet || 0), 0);
+                    parts.push(`${totalSets} sets · ${totalDistance}ft total`);
+                } else {
+                    const totalReps = session.sets.reduce((sum, s) => sum + (s.reps || 0), 0);
+                    parts.push(`${totalSets} sets · ${totalReps} reps total`);
+                }
+            }
+
+            // Form params (if requested and present)
+            if (includeFormParams && session.sets && session.sets.length > 0) {
+                const firstSet = session.sets[0];
+                if (firstSet.formParams) {
+                    const params = [];
+                    if (firstSet.formParams.weight) params.push(`${firstSet.formParams.weight}${firstSet.formParams.weight_unit || 'lbs'}`);
+                    if (firstSet.formParams.band_resistance) params.push(`[${firstSet.formParams.band_resistance}]`);
+                    if (params.length > 0) {
+                        parts.push(params.join(', '));
+                    }
+                }
+            }
+
+            return parts.join(' · ');
+        }
+
         function renderHistory() {
             const sessions = loadHistory();
             const exerciseHistoryList = document.getElementById('exercise-history-list');
@@ -3990,19 +4032,7 @@
                 sessionHistoryList.innerHTML = relevantSessions
                     .slice(0, 10)
                     .map(session => {
-                        // Check if this is a distance-based exercise
-                        const hasDistance = (session.sets || []).some(set => set.distanceFeet);
-
-                        let volumeLabel;
-                        if (hasDistance) {
-                            const totalDistance = (session.sets || []).reduce((sum, set) => sum + (set.distanceFeet || 0), 0);
-                            volumeLabel = `${totalDistance}ft total`;
-                        } else {
-                            const totalReps = (session.sets || []).reduce((sum, set) => sum + (set.reps || 0), 0);
-                            volumeLabel = `${totalReps} reps`;
-                        }
-
-                        const sessionLabel = `${session.sets?.length || 0} sets · ${volumeLabel}`;
+                        const sessionSummary = formatSessionSummary(session, { includeDate: true, includeSets: true, includeFormParams: false });
 
                         // Show side info for unilateral exercises and form parameters
                         const setDetails = (session.sets || []).map((set, idx) => {
@@ -4057,7 +4087,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: start;">
                                     <div style="flex: 1;">
                                         <div>${session.exerciseName}</div>
-                                        <div class="history-meta">${new Date(session.date).toLocaleString()} · ${sessionLabel}</div>
+                                        <div class="history-meta">${sessionSummary}</div>
                                         <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${setDetails}</div>
                                         ${notesHtml}
                                     </div>
@@ -4250,13 +4280,6 @@
             renderRecentExercises();
             renderExerciseList();
             renderTagFilters();
-
-            // Show/hide Archive Examples button
-            const examples = exerciseLibrary.filter(ex => ex.name.includes('(Example)') && !ex.archived);
-            const archiveBtn = document.getElementById('archive-examples-btn');
-            if (archiveBtn) {
-                archiveBtn.style.display = examples.length > 0 ? 'block' : 'none';
-            }
 
             document.getElementById('exercise-list-modal').classList.add('active');
             haptic('medium');
