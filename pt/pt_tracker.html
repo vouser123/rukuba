@@ -1508,6 +1508,21 @@
             return null;
         }
 
+        // Format date/time to human-readable EST/EDT
+        function formatDateTime(isoDateString) {
+            if (!isoDateString) return '';
+            const date = new Date(isoDateString);
+            return date.toLocaleString('en-US', {
+                timeZone: 'America/New_York',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
         // Render a smart form parameter select that learns from history
         function renderSmartParamSelect(param, exerciseId, elementId) {
             const historicalValues = getHistoricalParamValues(exerciseId, param);
@@ -3956,7 +3971,7 @@
 
             // Date
             if (includeDate) {
-                parts.push(new Date(session.date).toLocaleString());
+                parts.push(formatDateTime(session.date));
             }
 
             // Exercise name (if requested)
@@ -4014,7 +4029,7 @@
                             <div class="history-item">
                                 <div>${revision.summary}</div>
                                 ${supersedesLabel}
-                                <div class="history-meta">${new Date(revision.timestamp).toLocaleString()} · ${describeSpec(revision.next)}</div>
+                                <div class="history-meta">${formatDateTime(revision.timestamp)} · ${describeSpec(revision.next)}</div>
                             </div>
                         `;
                     })
