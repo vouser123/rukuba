@@ -536,6 +536,10 @@
             <div class="menu-item-icon">✏️</div>
             <div class="menu-item-text">Edit Roles</div>
         </div>
+        <div class="menu-item" onclick="exportForPT(); toggleMenu();">
+            <div class="menu-item-icon">🏥</div>
+            <div class="menu-item-text">Export for PT</div>
+        </div>
         <div class="menu-item" onclick="exportAllData()">
             <div class="menu-item-icon">💾</div>
             <div class="menu-item-text">Export All Data</div>
@@ -1459,6 +1463,35 @@
             // Refresh the view
             selectExerciseToEdit(currentEditExerciseId);
             alert('Role deleted! Remember to export when done.');
+        }
+
+        // Export for PT - creates a JSON file that PT can import and view
+        function exportForPT() {
+            const exportData = {
+                exportDate: new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                sessionHistory: sessionHistory,
+                exerciseLibrary: exerciseLibrary,
+                rolesData: rolesData,
+                schema: schema
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PT-Report-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert('PT Report exported! Send this file to your PT. They can view it at pt_report.html');
         }
 
         // Go back to PT Tracker

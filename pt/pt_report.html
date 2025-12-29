@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PT Progress Report</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <style>
+        body {
+            padding: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .report-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .report-date {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--ios-blue);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--ios-blue);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .exercise-list {
+            margin-top: 15px;
+        }
+
+        .exercise-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border-left: 3px solid var(--ios-blue);
+        }
+
+        .exercise-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .exercise-stats {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .action-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        @media print {
+            .action-buttons {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <div class="report-title">Physical Therapy Progress Report</div>
+        <div class="report-date" id="report-date"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Overall Progress</div>
+        <div class="metric-grid" id="overall-metrics"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Coverage Analysis</div>
+        <div id="coverage-summary"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Recent Activity (Last 7 Days)</div>
+        <div id="recent-activity"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Exercise History</div>
+        <div class="exercise-list" id="exercise-history"></div>
+    </div>
+
+    <div id="import-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+        <h2 style="margin-bottom: 20px;">PT Progress Report Viewer</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 30px; max-width: 500px;">
+            Import a progress report JSON file to view detailed PT metrics and exercise history.
+        </p>
+        <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+        <button class="btn-primary" onclick="document.getElementById('file-input').click()">📥 Import Report</button>
+    </div>
+
+    <div class="action-buttons" style="display: none;" id="action-buttons">
+        <button class="btn-secondary" onclick="window.print()">🖨️ Print</button>
+        <button class="btn-secondary" onclick="resetReport()">📥 Load New</button>
+        <button class="btn-secondary" onclick="window.location.href='rehab_coverage.html'">← Back</button>
+    </div>
+
+    <script>
+        let sessionHistory = [];
+        let exerciseLibrary = [];
+        let rolesData = null;
+        let schema = null;
+
+        async function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                // Validate the data
+                if (!data.sessionHistory || !data.rolesData || !data.schema) {
+                    throw new Error('Invalid report file format');
+                }
+
+                // Load the data
+                sessionHistory = data.sessionHistory;
+                exerciseLibrary = data.exerciseLibrary || [];
+                rolesData = data.rolesData;
+                schema = data.schema;
+
+                // Hide import screen, show report
+                document.getElementById('import-screen').style.display = 'none';
+                document.querySelectorAll('.section').forEach(el => el.style.display = 'block');
+                document.querySelector('.report-header').style.display = 'block';
+                document.getElementById('action-buttons').style.display = 'flex';
+
+                // Set report date
+                document.getElementById('report-date').textContent = data.exportDate || `Imported: ${new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}`;
+
+                // Generate report
+                renderOverallMetrics();
+                renderCoverageSummary();
+                renderRecentActivity();
+                renderExerciseHistory();
+            } catch (error) {
+                console.error('Error importing report:', error);
+                alert('Error importing report: ' + error.message);
+            }
+        }
+
+        function resetReport() {
+            document.getElementById('import-screen').style.display = 'flex';
+            document.querySelectorAll('.section').forEach(el => el.style.display = 'none');
+            document.querySelector('.report-header').style.display = 'none';
+            document.getElementById('action-buttons').style.display = 'none';
+            document.getElementById('file-input').value = '';
+        }
+
+        function init() {
+            // Hide report sections initially
+            document.querySelectorAll('.section').forEach(el => el.style.display = 'none');
+            document.querySelector('.report-header').style.display = 'none';
+        }
+
+        function renderOverallMetrics() {
+            const container = document.getElementById('overall-metrics');
+
+            const totalSessions = sessionHistory.length;
+            const uniqueExercises = new Set(sessionHistory.map(s => s.exerciseId)).size;
+            const totalSets = sessionHistory.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+            const totalReps = sessionHistory.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+
+            // Calculate days active
+            const uniqueDays = new Set(sessionHistory.map(s => new Date(s.date).toDateString())).size;
+
+            // Calculate date range
+            if (sessionHistory.length > 0) {
+                const dates = sessionHistory.map(s => new Date(s.date).getTime());
+                const firstDate = new Date(Math.min(...dates));
+                const lastDate = new Date(Math.max(...dates));
+                const daySpan = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24)) + 1;
+
+                container.innerHTML = `
+                    <div class="metric">
+                        <div class="metric-value">${totalSessions}</div>
+                        <div class="metric-label">Total Sessions</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${uniqueExercises}</div>
+                        <div class="metric-label">Exercises Performed</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${uniqueDays}</div>
+                        <div class="metric-label">Days Active</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${totalSets}</div>
+                        <div class="metric-label">Total Sets</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${totalReps}</div>
+                        <div class="metric-label">Total Reps</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${daySpan}</div>
+                        <div class="metric-label">Day Span</div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<div class="metric"><div class="metric-label">No session data available</div></div>';
+            }
+        }
+
+        function renderCoverageSummary() {
+            const container = document.getElementById('coverage-summary');
+
+            if (!rolesData || !schema) {
+                container.innerHTML = '<div style="color: var(--text-secondary);">Coverage data not available</div>';
+                return;
+            }
+
+            // Get all exercises from roles
+            const allExercises = Object.keys(rolesData.exercise_roles || {});
+            const totalExercises = allExercises.length;
+
+            // Get exercises that have been done
+            const doneExerciseIds = new Set(sessionHistory.map(s => s.exerciseId));
+            const doneExercises = allExercises.filter(id => doneExerciseIds.has(id));
+            const coveragePercent = totalExercises > 0 ? Math.round((doneExercises.length / totalExercises) * 100) : 0;
+
+            // Get regions from schema
+            const regions = schema.definitions?.role?.properties?.region?.enum || [];
+
+            let html = `
+                <div class="metric-grid" style="margin-bottom: 20px;">
+                    <div class="metric">
+                        <div class="metric-value" style="color: ${coveragePercent >= 70 ? 'var(--ios-green)' : coveragePercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)'};">${coveragePercent}%</div>
+                        <div class="metric-label">Exercise Coverage</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${doneExercises.length}/${totalExercises}</div>
+                        <div class="metric-label">Exercises Completed</div>
+                    </div>
+                </div>
+            `;
+
+            // Break down by region
+            html += '<div style="font-weight: 600; margin-bottom: 10px;">Coverage by Body Region:</div>';
+            regions.forEach(region => {
+                const regionExercises = allExercises.filter(id => {
+                    const exerciseData = rolesData.exercise_roles[id];
+                    return exerciseData?.roles?.some(role => role.region === region);
+                });
+                const regionDone = regionExercises.filter(id => doneExerciseIds.has(id)).length;
+                const regionPercent = regionExercises.length > 0 ? Math.round((regionDone / regionExercises.length) * 100) : 0;
+                const barColor = regionPercent >= 70 ? 'var(--ios-green)' : regionPercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+
+                html += `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="text-transform: capitalize; font-size: 14px;">${region}</span>
+                            <span style="font-size: 13px; color: ${barColor}; font-weight: 600;">${regionDone}/${regionExercises.length} (${regionPercent}%)</span>
+                        </div>
+                        <div style="height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; width: ${regionPercent}%; background: ${barColor}; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderRecentActivity() {
+            const container = document.getElementById('recent-activity');
+
+            const sevenDaysAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+            const recentSessions = sessionHistory.filter(s => new Date(s.date) >= sevenDaysAgo);
+
+            if (recentSessions.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary);">No activity in the last 7 days</div>';
+                return;
+            }
+
+            const uniqueExercises = new Set(recentSessions.map(s => s.exerciseId)).size;
+            const totalSets = recentSessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+            const totalReps = recentSessions.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+            const daysActive = new Set(recentSessions.map(s => new Date(s.date).toDateString())).size;
+
+            let html = `
+                <div class="metric-grid" style="margin-bottom: 20px;">
+                    <div class="metric">
+                        <div class="metric-value">${recentSessions.length}</div>
+                        <div class="metric-label">Sessions</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${uniqueExercises}</div>
+                        <div class="metric-label">Unique Exercises</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${daysActive}/7</div>
+                        <div class="metric-label">Days Active</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${totalSets}</div>
+                        <div class="metric-label">Total Sets</div>
+                    </div>
+                </div>
+            `;
+
+            // Group by exercise
+            const exerciseGroups = {};
+            recentSessions.forEach(session => {
+                if (!exerciseGroups[session.exerciseId]) {
+                    exerciseGroups[session.exerciseId] = {
+                        name: session.exerciseName,
+                        sessions: 0,
+                        sets: 0,
+                        reps: 0
+                    };
+                }
+                exerciseGroups[session.exerciseId].sessions++;
+                exerciseGroups[session.exerciseId].sets += session.sets.length;
+                exerciseGroups[session.exerciseId].reps += session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            });
+
+            html += '<div style="font-weight: 600; margin-bottom: 10px;">Exercises This Week:</div>';
+            Object.entries(exerciseGroups)
+                .sort((a, b) => b[1].sessions - a[1].sessions)
+                .forEach(([id, data]) => {
+                    html += `
+                        <div style="padding: 10px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">${data.name}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">
+                                ${data.sessions} sessions • ${data.sets} sets • ${data.reps} reps
+                            </div>
+                        </div>
+                    `;
+                });
+
+            container.innerHTML = html;
+        }
+
+        function renderExerciseHistory() {
+            const container = document.getElementById('exercise-history');
+
+            if (sessionHistory.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary);">No exercise history available</div>';
+                return;
+            }
+
+            // Group all sessions by exercise
+            const exerciseGroups = {};
+            sessionHistory.forEach(session => {
+                if (!exerciseGroups[session.exerciseId]) {
+                    exerciseGroups[session.exerciseId] = {
+                        name: session.exerciseName,
+                        sessions: [],
+                        totalSets: 0,
+                        totalReps: 0
+                    };
+                }
+                exerciseGroups[session.exerciseId].sessions.push(session);
+                exerciseGroups[session.exerciseId].totalSets += session.sets.length;
+                exerciseGroups[session.exerciseId].totalReps += session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            });
+
+            let html = '';
+            Object.entries(exerciseGroups)
+                .sort((a, b) => b[1].sessions.length - a[1].sessions.length)
+                .slice(0, 20) // Limit to top 20 exercises
+                .forEach(([id, data]) => {
+                    const lastSession = data.sessions[data.sessions.length - 1];
+                    const lastDate = new Date(lastSession.date);
+                    const daysAgo = Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24));
+
+                    html += `
+                        <div class="exercise-item">
+                            <div class="exercise-name">${data.name}</div>
+                            <div class="exercise-stats">
+                                ${data.sessions.length} sessions • ${data.totalSets} sets • ${data.totalReps} reps
+                                <br>Last performed: ${daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`}
+                            </div>
+                        </div>
+                    `;
+                });
+
+            container.innerHTML = html;
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
