@@ -3062,23 +3062,13 @@
             return Array.from(units);
         }
 
-        // Get common unit options based on parameter name
-        function getCommonUnits(paramName) {
-            const unitMap = {
-                'weight': ['lbs', 'kg'],
-                'distance': ['in', 'ft', 'cm', 'm'],
-                'slope': ['degrees', '%'],
-                'band_resistance': ['lbs', 'kg'],
-                'strap_position': ['in', 'cm']
-            };
-
-            return unitMap[paramName] || ['lbs', 'kg', 'in', 'ft', 'cm', 'm', 'degrees', '%'];
-        }
-
         function showFormParamsModal() {
             const entry = getLibraryEntryById(currentExercise.id);
             const formParams = entry?.form_parameters_required || [];
             const fieldsContainer = document.getElementById('form-params-fields');
+
+            // Common units offered for any numeric parameter
+            const commonUnits = ['lbs', 'kg', 'in', 'ft', 'cm', 'm', 'degrees', '%'];
 
             // Build form fields dynamically
             fieldsContainer.innerHTML = formParams.map(param => {
@@ -3090,9 +3080,8 @@
                 // For numeric parameters, use input + unit selector
                 if (isNumeric) {
                     const historicalUnits = getHistoricalUnits(currentExercise.id, param);
-                    const commonUnits = getCommonUnits(param);
 
-                    // Merge historical and common units
+                    // Merge historical units first, then common units (prioritize what user has used)
                     const allUnits = [...new Set([...historicalUnits, ...commonUnits])];
 
                     // Parse last used value to get default value and unit
