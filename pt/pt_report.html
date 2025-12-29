@@ -830,25 +830,38 @@
         }
 
         function initializeEditorMode() {
+            console.log('[Editor] Initializing with', exerciseLibrary?.length || 0, 'exercises');
+
+            if (!exerciseLibrary || exerciseLibrary.length === 0) {
+                console.warn('[Editor] exerciseLibrary is empty or undefined');
+            }
+
             // Populate exercise dropdown for role assignment
             const exerciseSelect = document.getElementById('role-exercise-select');
             exerciseSelect.innerHTML = '<option value="">-- Choose an exercise --</option>';
-            exerciseLibrary.forEach(ex => {
-                const option = document.createElement('option');
-                option.value = ex.id;
-                option.textContent = ex.title || ex.name;
-                exerciseSelect.appendChild(option);
-            });
+            if (exerciseLibrary && exerciseLibrary.length > 0) {
+                exerciseLibrary.forEach(ex => {
+                    const option = document.createElement('option');
+                    option.value = ex.id;
+                    option.textContent = ex.title || ex.name;
+                    exerciseSelect.appendChild(option);
+                });
+            }
 
             // Populate exercise dropdown for editing
             const editExerciseSelect = document.getElementById('edit-ex-select');
             editExerciseSelect.innerHTML = '<option value="">-- Add new exercise (leave blank) --</option>';
-            exerciseLibrary.forEach(ex => {
-                const option = document.createElement('option');
-                option.value = ex.id;
-                option.textContent = ex.title || ex.name;
-                editExerciseSelect.appendChild(option);
-            });
+            if (exerciseLibrary && exerciseLibrary.length > 0) {
+                exerciseLibrary.forEach(ex => {
+                    const option = document.createElement('option');
+                    option.value = ex.id;
+                    option.textContent = ex.title || ex.name;
+                    editExerciseSelect.appendChild(option);
+                });
+                console.log('[Editor] Populated edit dropdown with', exerciseLibrary.length, 'exercises');
+            } else {
+                console.warn('[Editor] No exercises to populate in edit dropdown');
+            }
 
             // Populate region datalist with schema values + current values from rolesData
             const regionDatalist = document.getElementById('region-options');
@@ -1349,6 +1362,9 @@
                 rolesData = rolesDataRaw;
                 schema = schemaData;
                 vocabulary = vocabData;
+
+                console.log('[PT Mode] Loaded', exerciseLibrary.length, 'exercises from library');
+                console.log('[PT Mode] Sample exercise:', exerciseLibrary[0]);
 
                 // Hide import screen, show editor immediately
                 document.getElementById('import-screen').style.display = 'none';
