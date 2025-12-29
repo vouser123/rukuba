@@ -234,7 +234,7 @@
         </p>
         <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)">
         <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
-            <button class="btn-primary" onclick="document.getElementById('file-input').click()">📥 Import Patient Report</button>
+            <button class="btn-primary" onclick="showImportPasteModal()">📥 Import Patient Report</button>
             <button class="btn-secondary" onclick="loadPTMode()">✏️ PT Editor Mode (Load Base Exercises)</button>
         </div>
         <p style="color: var(--text-secondary); font-size: 13px; margin-top: 20px; max-width: 600px;">
@@ -254,7 +254,10 @@
         <div style="max-width: 1000px; margin: 0 auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
                 <h2 style="font-size: 24px; font-weight: 600;">PT Editor Mode</h2>
-                <button class="btn-danger" onclick="toggleEditorMode()" accesskey="x">Close Editor (Alt+X)</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-secondary" onclick="location.reload()">🔄 Reload</button>
+                    <button class="btn-danger" onclick="toggleEditorMode()" accesskey="x">Close Editor (Alt+X)</button>
+                </div>
             </div>
 
             <!-- Keyboard Shortcuts Help -->
@@ -329,7 +332,7 @@
             <div id="mod-summary" style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none;">
                 <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--ios-blue);">Modifications Summary</h3>
                 <div id="mod-summary-content"></div>
-                <button class="btn-primary" style="margin-top: 15px; width: 100%; min-height: 52px; font-size: 17px;" onclick="exportModifications()" accesskey="e">💾 Export Modifications for Patient (Alt+E)</button>
+                <button class="btn-primary" style="margin-top: 15px; width: 100%; min-height: 52px; font-size: 17px;" onclick="showExportEmailModal()" accesskey="e">📧 Send to Patient (Alt+E)</button>
             </div>
 
             <!-- Add/Edit Exercise Section -->
@@ -354,8 +357,11 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="ex-category">PT Category</label>
-                        <input type="text" id="ex-category" class="form-input" placeholder="e.g., back_sij, hip, knee">
+                        <label class="form-label" for="ex-category">PT Category <span style="font-size: 11px; color: var(--text-secondary);">(select from schema)</span></label>
+                        <input type="text" id="ex-category" class="form-input" list="pt-category-options" placeholder="Select or type">
+                        <datalist id="pt-category-options">
+                            <!-- Populated from schema dynamically -->
+                        </datalist>
                     </div>
 
                     <div class="form-group">
@@ -386,18 +392,19 @@
                     <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🔄 Movement Pattern</summary>
 
                     <div class="form-group">
-                        <label class="form-label" for="ex-pattern">Pattern *</label>
+                        <label class="form-label" for="ex-pattern">Pattern * <span style="font-size: 11px; color: var(--text-secondary);">(side=unilateral, both=bilateral)</span></label>
                         <select id="ex-pattern" class="form-select">
                             <option value="">-- Select --</option>
-                            <option value="side">Side (Unilateral)</option>
-                            <option value="bilateral">Bilateral</option>
-                            <option value="unilateral">Unilateral</option>
-                            <option value="alternating">Alternating</option>
+                            <option value="side">side (unilateral - one side at a time)</option>
+                            <option value="both">both (bilateral - both sides together)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="form-label">Pattern Modifiers</label>
+                        <label class="form-label">Pattern Modifiers <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
+                        <p id="pattern-modifiers-help" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                            <!-- Populated from vocabulary dynamically -->
+                        </p>
                         <div id="pattern-modifiers-list"></div>
                         <button type="button" class="btn-secondary" onclick="addPatternModifier()" style="width: 100%; margin-top: 8px;">+ Add Modifier</button>
                     </div>
@@ -498,6 +505,10 @@
             <!-- Assign Roles Section -->
             <div class="section">
                 <h3 class="section-title">Assign Roles to Exercises</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                    <strong>Roles</strong> define how an exercise contributes to different movement capacities in different body regions.
+                    One exercise can have multiple roles (e.g., Single Leg Bridge works hip extension AND core stability).
+                </p>
                 <div class="form-group">
                     <label class="form-label" for="role-exercise-select">Select Exercise *</label>
                     <select id="role-exercise-select" class="form-select" onchange="loadExerciseRoles()">
@@ -562,6 +573,69 @@
                     <textarea id="vocab-definition" class="form-input" rows="4" placeholder="Enter the definition"></textarea>
                 </div>
                 <button class="btn-primary" onclick="updateVocabulary()" accesskey="v">💾 Update Definition (Alt+V)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Patient Report Modal (Paste) -->
+    <div id="import-paste-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <h2 style="margin: 0 0 16px 0; font-size: 20px;">📨 Import Patient Report</h2>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+                Paste the patient's email content below. The app will automatically extract the data.
+            </p>
+            <textarea id="import-paste-content" placeholder="Paste the entire email content here..." style="
+                width: 100%;
+                min-height: 300px;
+                padding: 12px;
+                font-family: 'Courier New', monospace;
+                font-size: 11px;
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                resize: vertical;
+                color: var(--text-primary);
+                margin-bottom: 16px;
+            "></textarea>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="closeImportPasteModal()">Cancel</button>
+                <button class="btn-primary" onclick="processPatientPaste()">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modifications Modal (Email) -->
+    <div id="export-email-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%;">
+            <h2 style="margin: 0 0 16px 0; font-size: 20px;">📤 Send to Patient</h2>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+                Enter patient's email address. The app will open your email client with the modifications ready to send.
+            </p>
+            <input type="email" id="patient-email" placeholder="patient@example.com" style="
+                width: 100%;
+                padding: 12px;
+                font-size: 15px;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                background: var(--bg-secondary);
+                color: var(--text-primary);
+                margin-bottom: 12px;
+            ">
+            <textarea id="pt-message" placeholder="Optional: Add a message for your patient" style="
+                width: 100%;
+                min-height: 80px;
+                padding: 12px;
+                font-size: 14px;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                background: var(--bg-secondary);
+                color: var(--text-primary);
+                resize: vertical;
+                margin-bottom: 16px;
+            "></textarea>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="closeExportEmailModal()">Cancel</button>
+                <button class="btn-primary" onclick="sendModificationsToPatient()">📧 Open Email</button>
             </div>
         </div>
     </div>
@@ -1022,6 +1096,43 @@
             }
             focusDatalist.innerHTML = Array.from(focusSet).map(f => `<option value="${f}">${f}</option>`).join('');
 
+            // Populate pattern dropdown from schema
+            const patternSelect = document.getElementById('ex-pattern');
+            patternSelect.innerHTML = '<option value="">-- Select --</option>';
+            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern) {
+                const patterns = schema.$defs.exercise.properties.pattern.enum || [];
+                patterns.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p;
+                    // Add descriptive labels
+                    if (p === 'side') {
+                        option.textContent = 'side (unilateral - one side at a time)';
+                    } else if (p === 'both') {
+                        option.textContent = 'both (bilateral - both sides together)';
+                    } else {
+                        option.textContent = p;
+                    }
+                    patternSelect.appendChild(option);
+                });
+            }
+
+            // Populate pattern modifiers help text from vocabulary
+            const patternModifiersHelp = document.getElementById('pattern-modifiers-help');
+            if (patternModifiersHelp && vocabulary && vocabulary.pattern_modifiers) {
+                const modifierDefs = vocabulary.pattern_modifiers;
+                const helpLines = Object.keys(modifierDefs).map(key => {
+                    return `<strong>${key}</strong>: ${modifierDefs[key]}`;
+                });
+                patternModifiersHelp.innerHTML = helpLines.join('<br>');
+            }
+
+            // Populate pt_category datalist from schema
+            const ptCategoryDatalist = document.getElementById('pt-category-options');
+            if (ptCategoryDatalist && schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pt_category) {
+                const categories = schema.$defs.exercise.properties.pt_category.enum || [];
+                ptCategoryDatalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
+            }
+
             updateModificationSummary();
         }
 
@@ -1056,11 +1167,21 @@
             const container = document.getElementById('pattern-modifiers-list');
             const index = container.children.length;
 
+            // Build datalist from schema
+            let datalistOptions = '';
+            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern_modifiers && schema.$defs.exercise.properties.pattern_modifiers.items) {
+                const modifiers = schema.$defs.exercise.properties.pattern_modifiers.items.enum || [];
+                datalistOptions = modifiers.map(m => `<option value="${m}">`).join('');
+            }
+
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="e.g., loaded, eccentric_emphasis" style="flex: 1;">
+                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="Select or type custom" list="pattern-modifier-options-${index}" style="flex: 1;">
+                    <datalist id="pattern-modifier-options-${index}">
+                        ${datalistOptions}
+                    </datalist>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
@@ -1087,11 +1208,21 @@
             const container = document.getElementById('form-params-list');
             const index = container.children.length;
 
+            // Build datalist from schema
+            let datalistOptions = '';
+            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.form_parameters_required && schema.$defs.exercise.properties.form_parameters_required.items) {
+                const params = schema.$defs.exercise.properties.form_parameters_required.items.enum || [];
+                datalistOptions = params.map(p => `<option value="${p}">`).join('');
+            }
+
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="form-param-${index}" placeholder="e.g., band_color, step_height_inches" style="flex: 1;">
+                    <input type="text" class="form-input" id="form-param-${index}" placeholder="Select from schema or type custom" list="form-param-options-${index}" style="flex: 1;">
+                    <datalist id="form-param-options-${index}">
+                        ${datalistOptions}
+                    </datalist>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
@@ -1752,7 +1883,98 @@
             contentDiv.innerHTML = html;
         }
 
-        function exportModifications() {
+        function showImportPasteModal() {
+            document.getElementById('import-paste-content').value = '';
+            document.getElementById('import-paste-modal').style.display = 'flex';
+        }
+
+        function closeImportPasteModal() {
+            document.getElementById('import-paste-modal').style.display = 'none';
+        }
+
+        async function processPatientPaste() {
+            const pastedContent = document.getElementById('import-paste-content').value;
+
+            if (!pastedContent.trim()) {
+                alert('Please paste the email content from your patient');
+                return;
+            }
+
+            try {
+                // Extract JSON between markers
+                const startMarker = '--START_PT_DATA--';
+                const endMarker = '--END_PT_DATA--';
+
+                const startIdx = pastedContent.indexOf(startMarker);
+                const endIdx = pastedContent.indexOf(endMarker);
+
+                if (startIdx === -1 || endIdx === -1) {
+                    alert('Invalid format: Could not find data markers.\n\nMake sure you pasted the entire email content.');
+                    return;
+                }
+
+                const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
+
+                // Extract and verify checksum if present
+                const checksumMatch = pastedContent.match(/--CHECKSUM:([a-f0-9]{64})--/);
+                const sizeMatch = pastedContent.match(/--SIZE:(\d+)--/);
+
+                if (checksumMatch && sizeMatch) {
+                    const expectedChecksum = checksumMatch[1];
+                    const expectedSize = parseInt(sizeMatch[1]);
+
+                    // Verify size
+                    const actualSize = new TextEncoder().encode(jsonStr).length;
+                    if (actualSize !== expectedSize) {
+                        if (!confirm(`⚠️ Data size mismatch!\n\nExpected: ${expectedSize} bytes\nReceived: ${actualSize} bytes\n\nThe data may be incomplete or corrupted. Continue anyway?`)) {
+                            return;
+                        }
+                    }
+
+                    // Verify checksum
+                    const actualChecksum = await calculateSHA256(jsonStr);
+                    if (actualChecksum !== expectedChecksum) {
+                        if (!confirm(`⚠️ Checksum verification failed!\n\nThe data may have been corrupted during transfer. Continue anyway?`)) {
+                            return;
+                        }
+                    }
+                }
+
+                const reportData = JSON.parse(jsonStr);
+
+                // Load the data
+                sessionHistory = reportData.sessionHistory || [];
+                exerciseLibrary = reportData.exerciseLibrary || [];
+                rolesData = reportData.rolesData || {};
+                schema = reportData.schema || {};
+                vocabulary = reportData.vocabulary || {};
+
+                console.log('[Import] Loaded report:', {
+                    sessions: sessionHistory.length,
+                    exercises: exerciseLibrary.length
+                });
+
+                closeImportPasteModal();
+                document.getElementById('import-screen').style.display = 'none';
+                init();
+
+                alert(`Patient report loaded!\n\nDate: ${reportData.exportDate}\n${reportData.noteForPT ? 'Note: ' + reportData.noteForPT : ''}`);
+            } catch (err) {
+                alert('Error parsing data: ' + err.message + '\n\nMake sure you pasted the complete email content.');
+                console.error('Import error:', err);
+            }
+        }
+
+        // Calculate SHA-256 checksum for data integrity
+        async function calculateSHA256(text) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function showExportEmailModal() {
             const newExCount = modifications.newExercises.length;
             const editedExCount = Object.keys(modifications.editedExercises).length;
             const archivedExCount = modifications.archivedExercises.length;
@@ -1765,33 +1987,93 @@
                 return;
             }
 
+            // Load saved patient email if exists
+            const savedEmail = localStorage.getItem('patient_email_address');
+            if (savedEmail) {
+                document.getElementById('patient-email').value = savedEmail;
+            }
+            document.getElementById('pt-message').value = '';
+            document.getElementById('export-email-modal').style.display = 'flex';
+        }
+
+        function closeExportEmailModal() {
+            document.getElementById('export-email-modal').style.display = 'none';
+        }
+
+        async function sendModificationsToPatient() {
+            const patientEmail = document.getElementById('patient-email').value.trim();
+            const message = document.getElementById('pt-message').value.trim();
+
+            if (!patientEmail) {
+                alert('Please enter patient\'s email address');
+                return;
+            }
+
+            // Save patient email for next time
+            localStorage.setItem('patient_email_address', patientEmail);
+
             const exportData = {
                 exportDate: new Date().toISOString(),
                 modificationType: 'PT_MODIFICATIONS',
                 modifications: modifications
             };
 
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `PT-Modifications-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const jsonData = JSON.stringify(exportData, null, 2);
+            const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-            let summary = 'Modifications exported!\n\n';
-            if (newExCount > 0) summary += `✅ ${newExCount} new exercise${newExCount > 1 ? 's' : ''}\n`;
-            if (editedExCount > 0) summary += `✏️ ${editedExCount} edited exercise${editedExCount > 1 ? 's' : ''}\n`;
-            if (archivedExCount > 0) summary += `🗑️ ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}\n`;
-            if (newRoleCount > 0) summary += `✅ ${newRoleCount} new role${newRoleCount > 1 ? 's' : ''}\n`;
-            if (editedRoleCount > 0) summary += `✏️ ${editedRoleCount} edited role set${editedRoleCount > 1 ? 's' : ''}\n`;
-            if (updatedVocabCount > 0) summary += `✅ ${updatedVocabCount} vocab update${updatedVocabCount > 1 ? 's' : ''}\n`;
-            summary += '\nEmail this file to your patient.';
+            // Calculate checksum for data integrity
+            const checksum = await calculateSHA256(jsonData);
+            const byteLength = new TextEncoder().encode(jsonData).length;
 
-            alert(summary);
+            // Count modifications for summary
+            const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
+
+            let summary = '';
+            if (newExCount > 0) summary += `• ${newExCount} new exercise${newExCount > 1 ? 's' : ''}\n`;
+            if (editedExCount > 0) summary += `• ${editedExCount} edited exercise${editedExCount > 1 ? 's' : ''}\n`;
+            if (archivedExCount > 0) summary += `• ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}\n`;
+
+            // Format email body with markers and verification
+            const emailBody = `Hi,
+
+${message ? message + '\n\n' : ''}I've made the following modifications to your PT program:
+
+${summary}
+Please paste the data below into your PT Tracker app to receive the updates.
+
+════════════════════════════════════════
+   PT MODIFICATIONS
+   Date: ${dateStr}
+   Checksum: ${checksum.substring(0, 16)}
+   Size: ${byteLength} bytes
+════════════════════════════════════════
+
+--START_PT_MODIFICATIONS--
+${jsonData}
+--END_PT_MODIFICATIONS--
+--CHECKSUM:${checksum}--
+--SIZE:${byteLength}--
+
+════════════════════════════════════════
+   END OF PT MODIFICATIONS
+════════════════════════════════════════`;
+
+            const subject = `PT Program Updates - ${dateStr}`;
+
+            // Create mailto link
+            const mailtoLink = `mailto:${encodeURIComponent(patientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+
+            // Open email client
+            window.location.href = mailtoLink;
+
+            closeExportEmailModal();
+        }
+
+        function exportModifications() {
+            // Legacy function - now redirects to email flow
+            showExportEmailModal();
         }
 
         // PT Mode - load base files without patient data
