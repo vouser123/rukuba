@@ -683,6 +683,38 @@
                 <button onclick="showWeeklyStats()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📈</button>
                 <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
                 <button onclick="showSettings()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">⚙️</button>
+                <button onclick="toggleHamburgerMenu()" style="background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 4px 8px;">☰</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hamburger Menu Overlay & Slide-out -->
+    <div id="hamburger-overlay" onclick="toggleHamburgerMenu()" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9998;"></div>
+    <div id="hamburger-menu" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; width: 280px; background: var(--bg-secondary); z-index: 9999; box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3); overflow-y: auto;">
+        <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 18px; font-weight: 600;">Menu</div>
+            <button onclick="toggleHamburgerMenu()" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Close</button>
+        </div>
+        <div style="padding: 0;">
+            <div onclick="window.location.href='pt_report.html'" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">✏️</span>
+                <span>PT Editor Mode</span>
+            </div>
+            <div onclick="window.location.href='rehab_coverage.html'" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">📊</span>
+                <span>Coverage View</span>
+            </div>
+            <div onclick="showSettings(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">⚙️</span>
+                <span>Settings</span>
+            </div>
+            <div onclick="exportForPT(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">🏥</span>
+                <span>Export for PT</span>
+            </div>
+            <div onclick="location.reload()" style="padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">🔄</span>
+                <span>Reload</span>
             </div>
         </div>
     </div>
@@ -1206,19 +1238,12 @@
                             </div>
                             <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Professional PT exercises</div>
                         </button>
-                        <button onclick="window.open('./exercise_editor.html', '_blank')" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button onclick="window.open('./exercise_editor.html', '_blank')" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>🛠️ Exercise Editor</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">↗</span>
                             </div>
                             <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Create custom exercises</div>
-                        </button>
-                        <button onclick="window.location.href='pt_report.html'" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span>✏️ PT Editor Mode</span>
-                                <span style="color: var(--ios-gray); font-size: 14px;">›</span>
-                            </div>
-                            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Edit exercises & assign roles</div>
                         </button>
                     </div>
                 </div>
@@ -4404,6 +4429,21 @@
 
         function closeSettings() {
             document.getElementById('settings-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function toggleHamburgerMenu() {
+            const overlay = document.getElementById('hamburger-overlay');
+            const menu = document.getElementById('hamburger-menu');
+            const isVisible = overlay.style.display !== 'none';
+
+            if (isVisible) {
+                overlay.style.display = 'none';
+                menu.style.display = 'none';
+            } else {
+                overlay.style.display = 'block';
+                menu.style.display = 'block';
+            }
             haptic('medium');
         }
 
