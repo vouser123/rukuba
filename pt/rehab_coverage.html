@@ -145,55 +145,6 @@
             margin-left: 8px;
         }
 
-        .capacity-metrics {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-top: 8px;
-        }
-
-        .effort-display {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .effort-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .effort-bar-container {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .effort-bar {
-            height: 100%;
-            border-radius: 4px;
-            transition: opacity 0.3s;
-        }
-
-        .effort-low { background: var(--ios-blue); }
-        .effort-medium { background: var(--ios-yellow); }
-        .effort-high { background: var(--ios-red); }
-
-        .coverage-display {
-            font-size: 14px;
-            padding: 4px 12px;
-            border-radius: 6px;
-            background: var(--bg-secondary);
-            white-space: nowrap;
-        }
-
-        .coverage-full { color: var(--ios-green); }
-        .coverage-partial { color: var(--ios-yellow); }
-        .coverage-none { color: var(--ios-red); }
-        .coverage-na { color: var(--text-secondary); }
 
         .capacity-chevron {
             font-size: 14px;
@@ -423,17 +374,6 @@
         </div>
     </div>
 
-    <!-- Exercise List Modal -->
-    <div id="exercise-modal" class="modal" onclick="if(event.target === this) closeExerciseList()">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title" id="exercise-modal-title">Exercises</div>
-                <button class="modal-close" onclick="closeExerciseList()">Done</button>
-            </div>
-            <div class="modal-body" id="exercise-list-content"></div>
-        </div>
-    </div>
-
     <!-- Term Definition Modal -->
     <div id="term-modal" class="modal" onclick="if(event.target === this) closeTermDefinition()">
         <div class="modal-content">
@@ -547,207 +487,95 @@
             return Array.from(focuses);
         }
 
-        // Calculate effort and coverage metrics for a bucket
-        function calculateMetrics(region, capacity, focus = null) {
+        // Get all exercises for a (region, capacity, focus) bucket with their status
+        function getExercisesForBucket(region, capacity, focus = null) {
+            const exercises = [];
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             // Find all exercises with matching roles
-            // Data structure: rolesData.exercise_roles[exerciseId].roles[]
-            const matchingExercises = [];
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
                 const exerciseData = rolesData.exercise_roles[exerciseId];
                 exerciseData.roles.forEach(role => {
                     if (role.region !== region || role.capacity !== capacity) return;
-                    // If focus is null, match roles without focus field
-                    // If focus is specified, match only that focus
+
+                    // Check focus match
                     if (focus === null) {
-                        if (!role.focus) {
-                            matchingExercises.push({ exerciseId, role });
-                        }
+                        if (role.focus) return; // Skip focused roles when looking for general
                     } else {
-                        if (role.focus === focus) {
-                            matchingExercises.push({ exerciseId, role });
-                        }
+                        if (role.focus !== focus) return; // Skip if focus doesn't match
+                    }
+
+                    // Find most recent session for this exercise
+                    const sessions = sessionHistory.filter(s => s.exerciseId === exerciseId);
+                    sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const lastSession = sessions[0];
+
+                    const exerciseInfo = {
+                        id: exerciseId,
+                        name: exerciseData.name || exerciseId,
+                        contribution: role.contribution,
+                        focus: role.focus || null,
+                        done: !!lastSession,
+                        lastDate: lastSession ? new Date(lastSession.date) : null,
+                        daysSince: lastSession ? Math.floor((today - new Date(lastSession.date)) / (1000 * 60 * 60 * 24)) : null
+                    };
+
+                    // Avoid duplicates (exercise might have multiple roles for same bucket)
+                    if (!exercises.find(e => e.id === exerciseId)) {
+                        exercises.push(exerciseInfo);
                     }
                 });
             });
 
-            if (matchingExercises.length === 0) {
-                return { lastDate: null, effortLevel: null, daysSince: null, exercises: [] };
-            }
-
-            // Find all logged exercises for these roles
-            // Note: PT Tracker saves one session per exercise (not session.exercises[])
-            const loggedExercises = [];
-
-            sessionHistory.forEach(session => {
-                const sessionDate = new Date(session.date);
-                // Check if this session's exercise has a matching role
-                const match = matchingExercises.find(m => m.exerciseId === session.exerciseId);
-                if (match) {
-                    loggedExercises.push({
-                        exercise_id: session.exerciseId,
-                        date: sessionDate,
-                        contribution: match.role.contribution
-                    });
-                }
+            // Sort: done exercises first (by recency), then not done (by name)
+            exercises.sort((a, b) => {
+                if (a.done && !b.done) return -1;
+                if (!a.done && b.done) return 1;
+                if (a.done && b.done) return a.daysSince - b.daysSince;
+                return a.name.localeCompare(b.name);
             });
 
-            if (loggedExercises.length === 0) {
-                return { lastDate: null, effortLevel: null, daysSince: null, exercises: [] };
+            return exercises;
+        }
+
+        // Render exercise list for a bucket
+        function renderExerciseList(exercises) {
+            if (exercises.length === 0) {
+                return '<div style="padding: 12px; color: var(--text-secondary); font-size: 13px;">No exercises assigned to this role</div>';
             }
 
-            // Sort by date descending
-            loggedExercises.sort((a, b) => b.date - a.date);
-
-            // Get last date
-            const lastDate = loggedExercises[0].date;
-            const daysSince = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
-
-            // Get max contribution on last date
-            const lastDateExercises = loggedExercises.filter(e =>
-                e.date.getTime() === lastDate.getTime()
-            );
-            const contributionLevels = ['low', 'medium', 'high'];
-            let maxContribution = 'low';
-            let maxIndex = 0;
-            lastDateExercises.forEach(e => {
-                const index = contributionLevels.indexOf(e.contribution);
-                if (index > maxIndex) {
-                    maxIndex = index;
-                    maxContribution = e.contribution;
-                }
-            });
-
-            return {
-                lastDate,
-                effortLevel: maxContribution,
-                daysSince,
-                exercises: loggedExercises
+            const contributionColors = {
+                high: 'var(--ios-red)',
+                medium: 'var(--ios-yellow)',
+                low: 'var(--ios-blue)'
             };
-        }
 
-        // Calculate coverage for a capacity (checks all focuses + no-focus roles)
-        function calculateCoverage(region, capacity) {
-            const focuses = getFocuses(region, capacity);
+            let html = '<div style="padding: 8px 0;">';
+            exercises.forEach(ex => {
+                const statusIcon = ex.done ? '✓' : '⚠';
+                const statusColor = ex.done ? 'var(--ios-green)' : 'var(--ios-orange)';
+                const statusText = ex.done ? `${ex.daysSince}d ago` : 'not done';
+                const contribColor = contributionColors[ex.contribution] || 'var(--text-secondary)';
 
-            // Check if there are roles without focus for this region+capacity
-            let hasNoFocusRoles = false;
-            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
-                const exerciseData = rolesData.exercise_roles[exerciseId];
-                exerciseData.roles.forEach(role => {
-                    if (role.region === region && role.capacity === capacity && !role.focus) {
-                        hasNoFocusRoles = true;
-                    }
-                });
-            });
-
-            // Build list of all buckets to check
-            const bucketsToCheck = [];
-
-            // Add no-focus bucket if it exists
-            if (hasNoFocusRoles) {
-                bucketsToCheck.push({
-                    name: '(general)',
-                    focus: null,
-                    metrics: calculateMetrics(region, capacity, null)
-                });
-            }
-
-            // Add all focuses
-            focuses.forEach(focus => {
-                bucketsToCheck.push({
-                    name: focus,
-                    focus: focus,
-                    metrics: calculateMetrics(region, capacity, focus)
-                });
-            });
-
-            // If no buckets exist, coverage is N/A
-            if (bucketsToCheck.length === 0) {
-                return { status: 'na', maxGap: null };
-            }
-
-            const bucketsWithData = bucketsToCheck.filter(b => b.metrics.lastDate !== null);
-            const bucketsWithoutData = bucketsToCheck.filter(b => b.metrics.lastDate === null);
-
-            let status;
-            if (bucketsWithData.length === bucketsToCheck.length) {
-                status = 'full'; // ✓ All buckets exercised
-            } else if (bucketsWithData.length > 0) {
-                status = 'partial'; // ⚠ Some buckets exercised
-            } else {
-                status = 'none'; // ✗ No buckets exercised
-            }
-
-            // Calculate max gap (days since least recent bucket)
-            let maxGap = 0;
-            if (bucketsWithoutData.length > 0) {
-                maxGap = Infinity; // Some buckets never exercised
-            } else {
-                bucketsToCheck.forEach(b => {
-                    if (b.metrics.daysSince > maxGap) {
-                        maxGap = b.metrics.daysSince;
-                    }
-                });
-            }
-
-            return { status, maxGap: maxGap === Infinity ? null : maxGap };
-        }
-
-        // Render effort display
-        function renderEffortDisplay(metrics) {
-            if (!metrics.lastDate) {
-                return `
-                    <div class="effort-display">
-                        <div class="effort-label">No data</div>
-                        <div class="effort-bar-container">
-                            <div class="effort-bar" style="width: 0%;"></div>
+                html += `
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin: 4px 0; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid ${contribColor};">
+                        <span style="color: ${statusColor}; font-size: 16px; min-width: 20px;">${statusIcon}</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 14px; font-weight: 500;">${ex.name}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                <span style="color: ${contribColor}; font-weight: 600;">${ex.contribution}</span>
+                                <span style="margin: 0 6px;">•</span>
+                                <span style="color: ${statusColor};">${statusText}</span>
+                            </div>
                         </div>
                     </div>
                 `;
-            }
-
-            const effortClass = `effort-${metrics.effortLevel}`;
-            const opacity = calculateOpacity(metrics.daysSince);
-
-            return `
-                <div class="effort-display">
-                    <div class="effort-label">${metrics.effortLevel} • ${metrics.daysSince}d ago</div>
-                    <div class="effort-bar-container">
-                        <div class="effort-bar ${effortClass}" style="width: 100%; opacity: ${opacity};"></div>
-                    </div>
-                </div>
-            `;
+            });
+            html += '</div>';
+            return html;
         }
 
-        // Calculate opacity based on days since (simple linear fade)
-        function calculateOpacity(daysSince) {
-            if (daysSince === 0) return 1.0;
-            if (daysSince >= 14) return 0.2;
-            return 1.0 - (daysSince / 14) * 0.8;
-        }
-
-        // Render coverage display
-        function renderCoverageDisplay(coverage) {
-            const icons = {
-                full: '✓',
-                partial: '⚠',
-                none: '✗',
-                na: '—'
-            };
-
-            const statusClass = `coverage-${coverage.status}`;
-            const icon = icons[coverage.status];
-
-            let text = icon;
-            if (coverage.status !== 'na' && coverage.maxGap !== null) {
-                text += ` ${coverage.maxGap}d`;
-            }
-
-            return `<div class="coverage-display ${statusClass}">${text}</div>`;
-        }
 
         // Render coverage view
         function renderCoverageView() {
@@ -774,10 +602,42 @@
             let html = '';
 
             capacities.forEach(capacity => {
-                const metrics = calculateMetrics(region, capacity);
-                const coverage = calculateCoverage(region, capacity);
                 const focuses = getFocuses(region, capacity);
-                const hasChevron = focuses.length > 0;
+                const generalExercises = getExercisesForBucket(region, capacity, null); // No specific focus
+
+                // Also get all focus exercises for overall metrics
+                let allExercises = [...generalExercises];
+                focuses.forEach(focus => {
+                    allExercises = allExercises.concat(getExercisesForBucket(region, capacity, focus));
+                });
+
+                const hasChevron = focuses.length > 0 || generalExercises.length > 0;
+
+                // Calculate overall metrics
+                const doneExercises = allExercises.filter(e => e.done);
+                const totalCount = allExercises.length;
+                const doneCount = doneExercises.length;
+
+                // Get most recent activity
+                let lastActivity = null;
+                if (doneExercises.length > 0) {
+                    doneExercises.sort((a, b) => a.daysSince - b.daysSince);
+                    lastActivity = doneExercises[0].daysSince;
+                }
+
+                // Build summary
+                let summary = '';
+                if (totalCount === 0) {
+                    summary = '<span style="color: var(--text-secondary);">no exercises</span>';
+                } else {
+                    const doneIcon = doneCount === totalCount ? '✓' : (doneCount > 0 ? '⚠' : '✗');
+                    const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
+                    summary = `
+                        <span style="color: ${doneColor};">${doneIcon}</span>
+                        <span style="margin: 0 6px;">${doneCount}/${totalCount}</span>
+                        ${lastActivity !== null ? `<span style="color: var(--text-secondary);">• last ${lastActivity}d ago</span>` : ''}
+                    `;
+                }
 
                 html += `
                     <div class="capacity-row ${hasChevron ? '' : 'no-expand'}" id="capacity-${region}-${capacity}">
@@ -786,18 +646,16 @@
                                 <span class="capacity-name">${capacity}</span>
                                 <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')">ⓘ</span>
                             </div>
+                            <div style="font-size: 13px; display: flex; align-items: center; gap: 4px; margin-right: 8px;">${summary}</div>
                             ${hasChevron ? '<span class="capacity-chevron">›</span>' : ''}
                         </div>
-                        <div class="capacity-metrics">
-                            ${renderEffortDisplay(metrics)}
-                            ${renderCoverageDisplay(coverage)}
-                        </div>
-                        <a href="#" class="exercises-link" onclick="event.preventDefault(); showExercises('${region}', '${capacity}', null)">
-                            View Exercises
-                        </a>
                         ${hasChevron ? `
                             <div class="focus-list">
-                                ${renderFocuses(region, capacity, focuses)}
+                                ${generalExercises.length > 0 ? `
+                                    <div style="padding: 8px 12px; font-size: 13px; color: var(--text-secondary); font-weight: 500;">General</div>
+                                    ${renderExerciseList(generalExercises)}
+                                ` : ''}
+                                ${focuses.length > 0 ? renderFocuses(region, capacity, focuses) : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -811,18 +669,18 @@
             let html = '';
 
             focuses.forEach(focus => {
-                const metrics = calculateMetrics(region, capacity, focus);
+                const focusExercises = getExercisesForBucket(region, capacity, focus);
+                const doneCount = focusExercises.filter(e => e.done).length;
+                const totalCount = focusExercises.length;
 
                 html += `
-                    <div class="focus-row">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span class="focus-name">${focus.replace(/_/g, ' ')}</span>
-                            <span class="focus-term" onclick="showTermDefinition('focus', '${focus}')">ⓘ</span>
+                    <div style="margin: 12px 0; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--ios-blue);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="font-size: 14px; font-weight: 600; text-transform: capitalize;">${focus.replace(/_/g, ' ')}</span>
+                            <span class="focus-term" onclick="showTermDefinition('focus', '${focus}')" style="color: var(--ios-blue); font-size: 13px; cursor: pointer;">ⓘ</span>
+                            <span style="margin-left: auto; font-size: 12px; color: var(--text-secondary);">${doneCount}/${totalCount} done</span>
                         </div>
-                        ${renderEffortDisplay(metrics)}
-                        <a href="#" class="exercises-link" onclick="event.preventDefault(); showExercises('${region}', '${capacity}', '${focus}')">
-                            View Exercises
-                        </a>
+                        ${renderExerciseList(focusExercises)}
                     </div>
                 `;
             });
@@ -919,62 +777,6 @@
             document.getElementById('term-modal').classList.remove('active');
         }
 
-        // Show exercises for a bucket
-        function showExercises(region, capacity, focus) {
-            const metrics = calculateMetrics(region, capacity, focus);
-
-            const title = focus
-                ? `${region} › ${capacity} › ${focus.replace(/_/g, ' ')}`
-                : `${region} › ${capacity}`;
-
-            document.getElementById('exercise-modal-title').textContent = title;
-
-            if (!metrics.exercises || metrics.exercises.length === 0) {
-                document.getElementById('exercise-list-content').innerHTML =
-                    '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No exercises logged</div>';
-            } else {
-                // Group by exercise_id and get most recent
-                const exerciseMap = new Map();
-                metrics.exercises.forEach(ex => {
-                    if (!exerciseMap.has(ex.exercise_id)) {
-                        exerciseMap.set(ex.exercise_id, ex);
-                    }
-                });
-
-                let html = '';
-                exerciseMap.forEach((ex, exerciseId) => {
-                    const exercise = exerciseLibrary.find(e => e.exercise_id === exerciseId);
-                    const name = exercise ? exercise.canonical_name : exerciseId;
-                    const daysSince = Math.floor((new Date() - ex.date) / (1000 * 60 * 60 * 24));
-
-                    html += `
-                        <div class="exercise-item" onclick="openExerciseDetail('${exerciseId}')">
-                            <div class="exercise-name">${name}</div>
-                            <div class="exercise-meta">
-                                ${ex.contribution} • ${daysSince}d ago
-                            </div>
-                        </div>
-                    `;
-                });
-
-                document.getElementById('exercise-list-content').innerHTML = html;
-            }
-
-            document.getElementById('exercise-modal').classList.add('active');
-        }
-
-        function closeExerciseList() {
-            document.getElementById('exercise-modal').classList.remove('active');
-        }
-
-        // Open exercise detail (redirect to PT Tracker with exercise detail)
-        function openExerciseDetail(exerciseId) {
-            // For now, just show an alert - in full implementation would open PT Tracker detail view
-            const exercise = exerciseLibrary.find(e => e.exercise_id === exerciseId);
-            if (exercise) {
-                alert(`Exercise Detail:\n\n${exercise.canonical_name}\n\n${exercise.description}\n\n(Full detail view would open in PT Tracker)`);
-            }
-        }
 
         // Go back to PT Tracker
         function goBack() {
