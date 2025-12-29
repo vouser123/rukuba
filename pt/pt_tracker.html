@@ -1412,7 +1412,7 @@
             return null;
         }
 
-        let currentExercise = getInitialExercise();
+        let currentExercise = null;  // Don't auto-open exercises (too easy to accidentally tap rep button)
 
         let timerInterval = null;
         let timerSecondsRemaining = currentExercise ? Math.max(currentExercise.secondsPerRep || 0, 1) : 0; // counts DOWN
@@ -3925,10 +3925,7 @@
         }
 
         function showHistory() {
-            if (!currentExercise) {
-                alert('Please select an exercise first');
-                return;
-            }
+            // No longer require an exercise to be selected - can view full history anytime
             renderHistory();
             document.getElementById('history-modal').classList.add('active');
             haptic('medium');
