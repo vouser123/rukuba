@@ -399,12 +399,8 @@
 
                     <div>
                         <label class="form-label">Pattern Modifiers <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
-                            <strong>alternating</strong>: reps alternate sides within set (2x10 = 5L + 5R each set)<br>
-                            <strong>duration_seconds</strong>: replaces reps with seconds (3 x 30s)<br>
-                            <strong>hold_seconds</strong>: adds isometric hold per rep (3 x 10 reps, 5s hold)<br>
-                            <strong>distance_feet</strong>: distance replaces reps (4x20 [feet])<br>
-                            <strong>AMRAP</strong>: as many reps as possible in defined duration
+                        <p id="pattern-modifiers-help" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                            <!-- Populated from vocabulary dynamically -->
                         </p>
                         <div id="pattern-modifiers-list"></div>
                         <button type="button" class="btn-secondary" onclick="addPatternModifier()" style="width: 100%; margin-top: 8px;">+ Add Modifier</button>
@@ -1097,6 +1093,36 @@
             }
             focusDatalist.innerHTML = Array.from(focusSet).map(f => `<option value="${f}">${f}</option>`).join('');
 
+            // Populate pattern dropdown from schema
+            const patternSelect = document.getElementById('ex-pattern');
+            patternSelect.innerHTML = '<option value="">-- Select --</option>';
+            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern) {
+                const patterns = schema.$defs.exercise.properties.pattern.enum || [];
+                patterns.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p;
+                    // Add descriptive labels
+                    if (p === 'side') {
+                        option.textContent = 'side (unilateral - one side at a time)';
+                    } else if (p === 'both') {
+                        option.textContent = 'both (bilateral - both sides together)';
+                    } else {
+                        option.textContent = p;
+                    }
+                    patternSelect.appendChild(option);
+                });
+            }
+
+            // Populate pattern modifiers help text from vocabulary
+            const patternModifiersHelp = document.getElementById('pattern-modifiers-help');
+            if (patternModifiersHelp && vocabulary && vocabulary.pattern_modifiers) {
+                const modifierDefs = vocabulary.pattern_modifiers;
+                const helpLines = Object.keys(modifierDefs).map(key => {
+                    return `<strong>${key}</strong>: ${modifierDefs[key]}`;
+                });
+                patternModifiersHelp.innerHTML = helpLines.join('<br>');
+            }
+
             updateModificationSummary();
         }
 
@@ -1131,17 +1157,20 @@
             const container = document.getElementById('pattern-modifiers-list');
             const index = container.children.length;
 
+            // Build datalist from schema
+            let datalistOptions = '';
+            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern_modifiers && schema.$defs.exercise.properties.pattern_modifiers.items) {
+                const modifiers = schema.$defs.exercise.properties.pattern_modifiers.items.enum || [];
+                datalistOptions = modifiers.map(m => `<option value="${m}">`).join('');
+            }
+
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="Select or type custom" list="pattern-modifier-options" style="flex: 1;">
-                    <datalist id="pattern-modifier-options">
-                        <option value="alternating">
-                        <option value="duration_seconds">
-                        <option value="hold_seconds">
-                        <option value="distance_feet">
-                        <option value="AMRAP">
+                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="Select or type custom" list="pattern-modifier-options-${index}" style="flex: 1;">
+                    <datalist id="pattern-modifier-options-${index}">
+                        ${datalistOptions}
                     </datalist>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
