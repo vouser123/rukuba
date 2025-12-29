@@ -436,6 +436,12 @@
             if (!response.ok) throw new Error(`Roles fetch failed: ${response.status}`);
             rolesData = await response.json();
             console.log('[Roles] Loaded:', Object.keys(rolesData.exercise_roles || {}).length, 'exercises with roles');
+
+            // Debug: Show sample role exercise IDs
+            const roleExerciseIds = Object.keys(rolesData.exercise_roles || {});
+            if (roleExerciseIds.length > 0) {
+                console.log('[Roles] Sample exercise IDs:', roleExerciseIds.slice(0, 5));
+            }
         }
 
         async function loadVocabulary() {
@@ -457,6 +463,12 @@
             const historyJSON = localStorage.getItem('session_history');
             sessionHistory = historyJSON ? JSON.parse(historyJSON) : [];
             console.log('[History] Loaded:', sessionHistory.length, 'sessions');
+
+            // Debug: Show sample session IDs
+            if (sessionHistory.length > 0) {
+                const sampleIds = sessionHistory.slice(0, 5).map(s => s.exerciseId);
+                console.log('[History] Sample exercise IDs:', sampleIds);
+            }
         }
 
         function deriveEnums() {
