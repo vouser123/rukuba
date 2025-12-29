@@ -908,19 +908,35 @@
             const recencyText = mostRecentDays === null ? 'No sessions yet' :
                                mostRecentDays === 0 ? 'Today' : `${mostRecentDays}d ago`;
 
+            // Rolling 7-day activity
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            const recentSessions = sessionHistory.filter(s => s.timestamp >= sevenDaysAgo);
+            const recentExerciseIds = [...new Set(recentSessions.map(s => s.exerciseId))];
+            const recentExercisesInLibrary = uniqueExercises.filter(e => recentExerciseIds.includes(e.id));
+            const weeklyDone = recentExercisesInLibrary.length;
+            const weeklyPercent = totalExercises > 0 ? Math.round((weeklyDone / totalExercises) * 100) : 0;
+            const weeklyColor = weeklyPercent >= 50 ? 'var(--ios-green)' : weeklyPercent >= 25 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+
             let html = `
                 <div style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--border-color);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Coverage Overview</span>
                         <span style="font-size: 11px; color: ${recencyColor};">Last session: ${recencyText}</span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                         <span style="font-size: 20px; font-weight: 700; color: ${donePercent >= 70 ? 'var(--ios-green)' : donePercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)'};">${donePercent}%</span>
                         <div style="flex: 1;">
                             <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">${doneExercises} of ${totalExercises} exercises done</div>
                             <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
                                 <div style="height: 100%; width: ${donePercent}%; background: linear-gradient(90deg, var(--ios-green), var(--ios-blue)); transition: width 0.3s;"></div>
                             </div>
+                        </div>
+                    </div>
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 11px; color: var(--text-secondary);">Last 7 days (rolling)</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 13px; font-weight: 600; color: ${weeklyColor};">${weeklyDone}/${totalExercises}</span>
+                            <span style="font-size: 11px; color: ${weeklyColor};">(${weeklyPercent}%)</span>
                         </div>
                     </div>
                 </div>
