@@ -3025,6 +3025,56 @@
         // Form Parameters Modal (shown after completing all sets)
         let sessionFormParams = {}; // Store form parameters for the session
 
+        // Parse value and unit from strings like "10 lbs", "45 degrees", "5.5 kg"
+        function parseValueAndUnit(str) {
+            if (!str) return { value: '', unit: '' };
+            const match = String(str).match(/^([\d.]+)\s*(.*)$/);
+            if (match) {
+                return { value: match[1], unit: match[2].trim() };
+            }
+            return { value: '', unit: str };
+        }
+
+        // Detect if parameter values are numeric based on historical data
+        function isNumericParameter(exerciseId, paramName) {
+            const historicalValues = getHistoricalParamValues(exerciseId, paramName);
+            if (historicalValues.length === 0) return false;
+
+            // Check if most values parse as numbers
+            const numericCount = historicalValues.filter(val => {
+                const { value } = parseValueAndUnit(val);
+                return !isNaN(parseFloat(value));
+            }).length;
+
+            return numericCount > 0;
+        }
+
+        // Get available units from historical data
+        function getHistoricalUnits(exerciseId, paramName) {
+            const historicalValues = getHistoricalParamValues(exerciseId, paramName);
+            const units = new Set();
+
+            historicalValues.forEach(val => {
+                const { unit } = parseValueAndUnit(val);
+                if (unit) units.add(unit);
+            });
+
+            return Array.from(units);
+        }
+
+        // Get common unit options based on parameter name
+        function getCommonUnits(paramName) {
+            const unitMap = {
+                'weight': ['lbs', 'kg'],
+                'distance': ['in', 'ft', 'cm', 'm'],
+                'slope': ['degrees', '%'],
+                'band_resistance': ['lbs', 'kg'],
+                'strap_position': ['in', 'cm']
+            };
+
+            return unitMap[paramName] || ['lbs', 'kg', 'in', 'ft', 'cm', 'm', 'degrees', '%'];
+        }
+
         function showFormParamsModal() {
             const entry = getLibraryEntryById(currentExercise.id);
             const formParams = entry?.form_parameters_required || [];
@@ -3032,25 +3082,44 @@
 
             // Build form fields dynamically
             fieldsContainer.innerHTML = formParams.map(param => {
-                if (param === 'weight') {
+                const historicalValues = getHistoricalParamValues(currentExercise.id, param);
+                const lastUsed = getLastUsedParamValue(currentExercise.id, param);
+                const isNumeric = isNumericParameter(currentExercise.id, param);
+                const label = param.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                // For numeric parameters, use input + unit selector
+                if (isNumeric) {
+                    const historicalUnits = getHistoricalUnits(currentExercise.id, param);
+                    const commonUnits = getCommonUnits(param);
+
+                    // Merge historical and common units
+                    const allUnits = [...new Set([...historicalUnits, ...commonUnits])];
+
+                    // Parse last used value to get default value and unit
+                    const { value: defaultValue, unit: defaultUnit } = parseValueAndUnit(lastUsed);
+                    const selectedUnit = defaultUnit || allUnits[0] || '';
+
                     return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param.replace('_', ' ')}</label>
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${label}</label>
                         <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                            <input type="number" class="modal-input" id="session-param-${param}" placeholder="Weight" min="0" step="0.5" style="flex: 1; margin: 0;" data-param="${param}">
-                            <select class="modal-select" id="session-param-${param}-unit" style="flex: 0 0 auto; width: 80px; margin: 0;">
-                                <option value="lbs">lbs</option>
-                                <option value="kg">kg</option>
+                            <input type="number" class="modal-input" id="session-param-${param}" placeholder="${label}" min="0" step="0.5" value="${defaultValue}" style="flex: 1; margin: 0;" data-param="${param}">
+                            <select class="modal-select" id="session-param-${param}-unit" style="flex: 0 0 auto; width: 90px; margin: 0;">
+                                ${allUnits.map(unit => `<option value="${unit}" ${unit === selectedUnit ? 'selected' : ''}>${unit}</option>`).join('')}
                             </select>
                         </div>
-                    `;
-                } else if (param === 'distance') {
-                    return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${param} (variable, e.g. step height)</label>
-                        <input type="number" class="modal-input" id="session-param-${param}" placeholder="Distance in inches" min="0" style="margin-bottom: 16px;" data-param="${param}">
+                        <datalist id="datalist-${param}">
+                            ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
+                        </datalist>
                     `;
                 } else {
-                    // Use smart select for all other parameters
-                    return renderSmartParamSelect(param, currentExercise.id, `session-param-${param}`).replace('margin-bottom: 12px;', 'margin-bottom: 16px;');
+                    // For non-numeric parameters, use datalist input
+                    return `
+                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${label}</label>
+                        <input type="text" class="modal-input" id="session-param-${param}" placeholder="Enter ${label.toLowerCase()}" value="${lastUsed || ''}" list="datalist-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                        <datalist id="datalist-${param}">
+                            ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
+                        </datalist>
+                    `;
                 }
             }).join('');
 
@@ -3078,11 +3147,16 @@
                 const inputElement = document.getElementById(`session-param-${param}`);
                 if (!inputElement) return;
 
-                let value = inputElement.value;
-                if (param === 'weight' && value) {
-                    const unitElement = document.getElementById(`session-param-${param}-unit`);
-                    sessionFormParams[param] = `${value} ${unitElement?.value || 'lbs'}`;
-                } else if (value && value !== '') {
+                const value = inputElement.value.trim();
+                if (!value || value === '') return;
+
+                // Check if there's a unit selector for this parameter
+                const unitElement = document.getElementById(`session-param-${param}-unit`);
+                if (unitElement) {
+                    // Numeric parameter with unit
+                    sessionFormParams[param] = `${value} ${unitElement.value}`;
+                } else {
+                    // Non-numeric parameter (text input)
                     sessionFormParams[param] = value;
                 }
             });
