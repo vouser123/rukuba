@@ -1514,13 +1514,16 @@
         }
 
         // Get historical values for a form parameter from this exercise's session history
-        function getHistoricalParamValues(exerciseId, paramName) {
+        function getHistoricalParamValues(exerciseId, paramName, side = null) {
             const sessions = loadHistory();
             const exerciseSessions = sessions.filter(s => s.exerciseId === exerciseId);
             const values = new Set();
 
             exerciseSessions.forEach(session => {
                 (session.sets || []).forEach(set => {
+                    // Match side if specified, otherwise any side
+                    if (side && set.side !== side) return;
+
                     if (set.formParams && set.formParams[paramName]) {
                         values.add(set.formParams[paramName]);
                     }
@@ -1531,7 +1534,7 @@
         }
 
         // Get the last used value for a parameter on this exercise
-        function getLastUsedParamValue(exerciseId, paramName) {
+        function getLastUsedParamValue(exerciseId, paramName, side = null) {
             const sessions = loadHistory();
             const exerciseSessions = sessions.filter(s => s.exerciseId === exerciseId);
 
@@ -1541,6 +1544,9 @@
             // Find the most recent value
             for (const session of exerciseSessions) {
                 for (const set of (session.sets || [])) {
+                    // Match side if specified, otherwise any side
+                    if (side && set.side !== side) continue;
+
                     if (set.formParams && set.formParams[paramName]) {
                         return set.formParams[paramName];
                     }
@@ -3036,8 +3042,8 @@
         }
 
         // Detect if parameter values are numeric based on historical data
-        function isNumericParameter(exerciseId, paramName) {
-            const historicalValues = getHistoricalParamValues(exerciseId, paramName);
+        function isNumericParameter(exerciseId, paramName, side = null) {
+            const historicalValues = getHistoricalParamValues(exerciseId, paramName, side);
             if (historicalValues.length === 0) return false;
 
             // Check if most values parse as numbers
@@ -3050,8 +3056,8 @@
         }
 
         // Get available units from historical data
-        function getHistoricalUnits(exerciseId, paramName) {
-            const historicalValues = getHistoricalParamValues(exerciseId, paramName);
+        function getHistoricalUnits(exerciseId, paramName, side = null) {
+            const historicalValues = getHistoricalParamValues(exerciseId, paramName, side);
             const units = new Set();
 
             historicalValues.forEach(val => {
@@ -3070,47 +3076,94 @@
             // Common units offered for any numeric parameter
             const commonUnits = ['lbs', 'kg', 'in', 'ft', 'cm', 'm', 'degrees', '%'];
 
+            // Detect which sides were used in this session
+            const sidesUsed = [...new Set(currentExercise.sessionData.map(s => s.side).filter(Boolean))];
+            const isSided = sidesUsed.length > 0;
+
             // Build form fields dynamically
-            fieldsContainer.innerHTML = formParams.map(param => {
-                const historicalValues = getHistoricalParamValues(currentExercise.id, param);
-                const lastUsed = getLastUsedParamValue(currentExercise.id, param);
-                const isNumeric = isNumericParameter(currentExercise.id, param);
-                const label = param.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            if (isSided) {
+                // For sided exercises, prompt parameters for each side
+                fieldsContainer.innerHTML = sidesUsed.map(side => {
+                    const sideLabel = side.charAt(0).toUpperCase() + side.slice(1);
+                    const sideFields = formParams.map(param => {
+                        const historicalValues = getHistoricalParamValues(currentExercise.id, param, side);
+                        const lastUsed = getLastUsedParamValue(currentExercise.id, param, side);
+                        const isNumeric = isNumericParameter(currentExercise.id, param, side);
+                        const label = param.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-                // For numeric parameters, use input + unit selector
-                if (isNumeric) {
-                    const historicalUnits = getHistoricalUnits(currentExercise.id, param);
+                        // For numeric parameters, use input + unit selector
+                        if (isNumeric) {
+                            const historicalUnits = getHistoricalUnits(currentExercise.id, param, side);
+                            const allUnits = [...new Set([...historicalUnits, ...commonUnits])];
+                            const { value: defaultValue, unit: defaultUnit } = parseValueAndUnit(lastUsed);
+                            const selectedUnit = defaultUnit || allUnits[0] || '';
 
-                    // Merge historical units first, then common units (prioritize what user has used)
-                    const allUnits = [...new Set([...historicalUnits, ...commonUnits])];
-
-                    // Parse last used value to get default value and unit
-                    const { value: defaultValue, unit: defaultUnit } = parseValueAndUnit(lastUsed);
-                    const selectedUnit = defaultUnit || allUnits[0] || '';
+                            return `
+                                <label style="font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block; color: var(--text-secondary);">${label}</label>
+                                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                    <input type="number" class="modal-input" id="session-param-${side}-${param}" placeholder="${label}" min="0" step="0.5" value="${defaultValue}" style="flex: 1; margin: 0;" data-param="${param}" data-side="${side}">
+                                    <select class="modal-select" id="session-param-${side}-${param}-unit" style="flex: 0 0 auto; width: 90px; margin: 0;">
+                                        ${allUnits.map(unit => `<option value="${unit}" ${unit === selectedUnit ? 'selected' : ''}>${unit}</option>`).join('')}
+                                    </select>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <label style="font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block; color: var(--text-secondary);">${label}</label>
+                                <input type="text" class="modal-input" id="session-param-${side}-${param}" placeholder="Enter ${label.toLowerCase()}" value="${lastUsed || ''}" list="datalist-${side}-${param}" style="margin-bottom: 12px;" data-param="${param}" data-side="${side}">
+                                <datalist id="datalist-${side}-${param}">
+                                    ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
+                                </datalist>
+                            `;
+                        }
+                    }).join('');
 
                     return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${label}</label>
-                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                            <input type="number" class="modal-input" id="session-param-${param}" placeholder="${label}" min="0" step="0.5" value="${defaultValue}" style="flex: 1; margin: 0;" data-param="${param}">
-                            <select class="modal-select" id="session-param-${param}-unit" style="flex: 0 0 auto; width: 90px; margin: 0;">
-                                ${allUnits.map(unit => `<option value="${unit}" ${unit === selectedUnit ? 'selected' : ''}>${unit}</option>`).join('')}
-                            </select>
+                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--ios-blue);">${sideLabel} Side</div>
+                            ${sideFields}
                         </div>
-                        <datalist id="datalist-${param}">
-                            ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
-                        </datalist>
                     `;
-                } else {
-                    // For non-numeric parameters, use datalist input
-                    return `
-                        <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${label}</label>
-                        <input type="text" class="modal-input" id="session-param-${param}" placeholder="Enter ${label.toLowerCase()}" value="${lastUsed || ''}" list="datalist-${param}" style="margin-bottom: 16px;" data-param="${param}">
-                        <datalist id="datalist-${param}">
-                            ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
-                        </datalist>
-                    `;
-                }
-            }).join('');
+                }).join('');
+            } else {
+                // For bilateral/non-sided exercises, use single set of fields
+                fieldsContainer.innerHTML = formParams.map(param => {
+                    const historicalValues = getHistoricalParamValues(currentExercise.id, param);
+                    const lastUsed = getLastUsedParamValue(currentExercise.id, param);
+                    const isNumeric = isNumericParameter(currentExercise.id, param);
+                    const label = param.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                    // For numeric parameters, use input + unit selector
+                    if (isNumeric) {
+                        const historicalUnits = getHistoricalUnits(currentExercise.id, param);
+                        const allUnits = [...new Set([...historicalUnits, ...commonUnits])];
+                        const { value: defaultValue, unit: defaultUnit } = parseValueAndUnit(lastUsed);
+                        const selectedUnit = defaultUnit || allUnits[0] || '';
+
+                        return `
+                            <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${label}</label>
+                            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                                <input type="number" class="modal-input" id="session-param-${param}" placeholder="${label}" min="0" step="0.5" value="${defaultValue}" style="flex: 1; margin: 0;" data-param="${param}">
+                                <select class="modal-select" id="session-param-${param}-unit" style="flex: 0 0 auto; width: 90px; margin: 0;">
+                                    ${allUnits.map(unit => `<option value="${unit}" ${unit === selectedUnit ? 'selected' : ''}>${unit}</option>`).join('')}
+                                </select>
+                            </div>
+                            <datalist id="datalist-${param}">
+                                ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
+                            </datalist>
+                        `;
+                    } else {
+                        // For non-numeric parameters, use datalist input
+                        return `
+                            <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${label}</label>
+                            <input type="text" class="modal-input" id="session-param-${param}" placeholder="Enter ${label.toLowerCase()}" value="${lastUsed || ''}" list="datalist-${param}" style="margin-bottom: 16px;" data-param="${param}">
+                            <datalist id="datalist-${param}">
+                                ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
+                            </datalist>
+                        `;
+                    }
+                }).join('');
+            }
 
             document.getElementById('form-params-modal').classList.add('active');
             haptic('medium');
@@ -3131,29 +3184,34 @@
             const entry = getLibraryEntryById(currentExercise.id);
             const formParams = entry?.form_parameters_required || [];
 
-            sessionFormParams = {};
-            formParams.forEach(param => {
-                const inputElement = document.getElementById(`session-param-${param}`);
-                if (!inputElement) return;
+            // Collect all input elements with data-param attribute
+            const paramInputs = document.querySelectorAll('[data-param]');
+            const paramsBySide = {}; // { side: { param: value } } or { null: { param: value } }
 
+            paramInputs.forEach(inputElement => {
+                const param = inputElement.getAttribute('data-param');
+                const side = inputElement.getAttribute('data-side'); // null for bilateral
                 const value = inputElement.value.trim();
                 if (!value || value === '') return;
 
                 // Check if there's a unit selector for this parameter
-                const unitElement = document.getElementById(`session-param-${param}-unit`);
-                if (unitElement) {
-                    // Numeric parameter with unit
-                    sessionFormParams[param] = `${value} ${unitElement.value}`;
-                } else {
-                    // Non-numeric parameter (text input)
-                    sessionFormParams[param] = value;
+                const elementId = inputElement.id;
+                const unitElement = document.getElementById(`${elementId}-unit`);
+                const finalValue = unitElement ? `${value} ${unitElement.value}` : value;
+
+                // Group by side
+                const sideKey = side || 'bilateral';
+                if (!paramsBySide[sideKey]) {
+                    paramsBySide[sideKey] = {};
                 }
+                paramsBySide[sideKey][param] = finalValue;
             });
 
-            // Apply form parameters to all sets in this session
+            // Apply form parameters to sets based on their side
             currentExercise.sessionData.forEach(set => {
-                if (Object.keys(sessionFormParams).length > 0) {
-                    set.formParams = { ...sessionFormParams };
+                const setSide = set.side || 'bilateral';
+                if (paramsBySide[setSide]) {
+                    set.formParams = { ...paramsBySide[setSide] };
                 }
             });
 
