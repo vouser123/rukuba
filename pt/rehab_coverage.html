@@ -353,6 +353,84 @@
             margin-bottom: 16px;
             font-size: 14px;
         }
+
+        /* Slide-out Menu */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 9998;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+
+        .slide-menu {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100%;
+            background: var(--bg-secondary);
+            transition: right 0.3s ease;
+            z-index: 9999;
+            overflow-y: auto;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-menu.active {
+            right: 0;
+        }
+
+        .menu-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .menu-close {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .menu-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-item:active {
+            background: var(--bg-tertiary);
+        }
+
+        .menu-item-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .menu-item-text {
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -362,6 +440,28 @@
             <button class="header-btn" onclick="location.reload()" style="padding: 8px 12px;">🔄</button>
             <button class="header-btn" onclick="toggleDebug()">🐛</button>
             <button class="header-btn" onclick="openVocabulary()">📚 Terms</button>
+            <button class="header-btn" onclick="toggleMenu()">☰</button>
+        </div>
+    </div>
+
+    <!-- Slide-out Menu -->
+    <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+    <div class="slide-menu" id="slide-menu">
+        <div class="menu-header">
+            <div class="menu-title">Menu</div>
+            <button class="menu-close" onclick="toggleMenu()">Close</button>
+        </div>
+        <div class="menu-item" onclick="openRolesEditor()">
+            <div class="menu-item-icon">✏️</div>
+            <div class="menu-item-text">Edit Roles</div>
+        </div>
+        <div class="menu-item" onclick="exportAllData()">
+            <div class="menu-item-icon">💾</div>
+            <div class="menu-item-text">Export All Data</div>
+        </div>
+        <div class="menu-item" onclick="importData()">
+            <div class="menu-item-icon">📥</div>
+            <div class="menu-item-text">Import Data</div>
         </div>
     </div>
 
@@ -457,6 +557,13 @@
             const response = await fetch('exercise_roles_vocabulary.json');
             if (!response.ok) throw new Error(`Vocabulary fetch failed: ${response.status}`);
             vocabulary = await response.json();
+
+            // Validate schema version match
+            if (vocabulary.schema_version && schema.schema_version) {
+                if (vocabulary.schema_version !== schema.schema_version) {
+                    throw new Error(`Schema version mismatch! Vocabulary: ${vocabulary.schema_version}, Schema: ${schema.schema_version}`);
+                }
+            }
         }
 
         async function loadExerciseLibrary() {
@@ -915,6 +1022,87 @@
             } else {
                 panel.style.display = 'none';
             }
+        }
+
+        // Menu functions
+        function toggleMenu() {
+            const overlay = document.getElementById('menu-overlay');
+            const menu = document.getElementById('slide-menu');
+            overlay.classList.toggle('active');
+            menu.classList.toggle('active');
+        }
+
+        // Export all data (roles + schema + vocab)
+        function exportAllData() {
+            const exportData = {
+                exercise_roles: rolesData,
+                schema: schema,
+                vocabulary: vocabulary,
+                export_date: new Date().toISOString(),
+                export_version: "1.0"
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `roles-export-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            toggleMenu();
+            alert('Roles data exported! Upload this file to GitHub.');
+        }
+
+        // Import data
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+
+                        // Validate structure
+                        if (!imported.exercise_roles || !imported.schema || !imported.vocabulary) {
+                            alert('Invalid import file: missing required sections');
+                            return;
+                        }
+
+                        // Update in-memory data
+                        rolesData = imported.exercise_roles;
+                        schema = imported.schema;
+                        vocabulary = imported.vocabulary;
+
+                        // Re-derive enums
+                        deriveEnums();
+
+                        // Re-render
+                        renderCoverageView();
+
+                        toggleMenu();
+                        alert('Data imported successfully! Reload to see changes.');
+                    } catch (err) {
+                        alert('Error importing file: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // Roles editor (placeholder - will build full UI)
+        function openRolesEditor() {
+            toggleMenu();
+            alert('Roles editor coming in next commit...');
         }
 
         // Go back to PT Tracker
