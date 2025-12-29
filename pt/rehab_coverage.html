@@ -178,11 +178,9 @@
             transition: opacity 0.3s;
         }
 
-        .effort-minimal { background: var(--text-secondary); }
-        .effort-light { background: var(--ios-blue); }
-        .effort-moderate { background: var(--ios-yellow); }
-        .effort-heavy { background: var(--ios-orange); }
-        .effort-maximal { background: var(--ios-red); }
+        .effort-low { background: var(--ios-blue); }
+        .effort-medium { background: var(--ios-yellow); }
+        .effort-high { background: var(--ios-red); }
 
         .coverage-display {
             font-size: 14px;
@@ -523,10 +521,11 @@
 
         function deriveEnums() {
             // Extract enums from schema - NO HARDCODING
-            if (!schema || !schema.$defs || !schema.$defs.role) {
-                throw new Error('Schema not properly loaded or missing $defs.role');
+            // Schema uses 'definitions' (not $defs)
+            if (!schema || !schema.definitions || !schema.definitions.role) {
+                throw new Error('Schema not properly loaded or missing definitions.role');
             }
-            const roleSchema = schema.$defs.role;
+            const roleSchema = schema.definitions.role;
             regions = roleSchema.properties.region.enum || [];
             capacities = roleSchema.properties.capacity.enum || [];
             contributions = roleSchema.properties.contribution.enum || [];
@@ -536,10 +535,14 @@
         // Get unique focuses for a (region, capacity) pair
         function getFocuses(region, capacity) {
             const focuses = new Set();
-            rolesData.roles.forEach(role => {
-                if (role.region === region && role.capacity === capacity && role.focus) {
-                    focuses.add(role.focus);
-                }
+            // Data structure: rolesData.exercise_roles[exerciseId].roles[]
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region === region && role.capacity === capacity && role.focus) {
+                        focuses.add(role.focus);
+                    }
+                });
             });
             return Array.from(focuses);
         }
@@ -549,43 +552,45 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // Find all matching roles
-            const matchingRoles = rolesData.roles.filter(role => {
-                if (role.region !== region || role.capacity !== capacity) return false;
-                // If focus is null, match roles without focus field
-                // If focus is specified, match only that focus
-                if (focus === null) {
-                    return !role.focus; // Match roles without focus
-                } else {
-                    return role.focus === focus; // Match specific focus
-                }
+            // Find all exercises with matching roles
+            // Data structure: rolesData.exercise_roles[exerciseId].roles[]
+            const matchingExercises = [];
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region !== region || role.capacity !== capacity) return;
+                    // If focus is null, match roles without focus field
+                    // If focus is specified, match only that focus
+                    if (focus === null) {
+                        if (!role.focus) {
+                            matchingExercises.push({ exerciseId, role });
+                        }
+                    } else {
+                        if (role.focus === focus) {
+                            matchingExercises.push({ exerciseId, role });
+                        }
+                    }
+                });
             });
 
-            if (matchingRoles.length === 0) {
+            if (matchingExercises.length === 0) {
                 return { lastDate: null, effortLevel: null, daysSince: null, exercises: [] };
             }
 
             // Find all logged exercises for these roles
             // Note: PT Tracker saves one session per exercise (not session.exercises[])
-            const exerciseIds = matchingRoles.map(r => r.exercise_id);
             const loggedExercises = [];
 
             sessionHistory.forEach(session => {
                 const sessionDate = new Date(session.date);
-                // PT Tracker structure: each session has exerciseId directly
-                if (exerciseIds.includes(session.exerciseId)) {
-                    // Find the role contribution for this exercise
-                    const role = matchingRoles.find(r =>
-                        r.exercise_id === session.exerciseId &&
-                        (!focus || r.focus === focus)
-                    );
-                    if (role) {
-                        loggedExercises.push({
-                            exercise_id: session.exerciseId,
-                            date: sessionDate,
-                            contribution: role.contribution
-                        });
-                    }
+                // Check if this session's exercise has a matching role
+                const match = matchingExercises.find(m => m.exerciseId === session.exerciseId);
+                if (match) {
+                    loggedExercises.push({
+                        exercise_id: session.exerciseId,
+                        date: sessionDate,
+                        contribution: match.role.contribution
+                    });
                 }
             });
 
@@ -604,8 +609,8 @@
             const lastDateExercises = loggedExercises.filter(e =>
                 e.date.getTime() === lastDate.getTime()
             );
-            const contributionLevels = ['minimal', 'light', 'moderate', 'heavy', 'maximal'];
-            let maxContribution = 'minimal';
+            const contributionLevels = ['low', 'medium', 'high'];
+            let maxContribution = 'low';
             let maxIndex = 0;
             lastDateExercises.forEach(e => {
                 const index = contributionLevels.indexOf(e.contribution);
@@ -628,11 +633,15 @@
             const focuses = getFocuses(region, capacity);
 
             // Check if there are roles without focus for this region+capacity
-            const hasNoFocusRoles = rolesData.roles.some(role =>
-                role.region === region &&
-                role.capacity === capacity &&
-                !role.focus
-            );
+            let hasNoFocusRoles = false;
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region === region && role.capacity === capacity && !role.focus) {
+                        hasNoFocusRoles = true;
+                    }
+                });
+            });
 
             // Build list of all buckets to check
             const bucketsToCheck = [];
@@ -775,7 +784,7 @@
                         <div class="capacity-header" onclick="${hasChevron ? `toggleCapacity('${region}', '${capacity}')` : ''}">
                             <div style="display: flex; align-items: center; flex: 1;">
                                 <span class="capacity-name">${capacity}</span>
-                                <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacities', '${capacity}')">ⓘ</span>
+                                <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')">ⓘ</span>
                             </div>
                             ${hasChevron ? '<span class="capacity-chevron">›</span>' : ''}
                         </div>
@@ -808,7 +817,7 @@
                     <div class="focus-row">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span class="focus-name">${focus.replace(/_/g, ' ')}</span>
-                            <span class="focus-term" onclick="showTermDefinition('focus_terms', '${focus}')">ⓘ</span>
+                            <span class="focus-term" onclick="showTermDefinition('focus', '${focus}')">ⓘ</span>
                         </div>
                         ${renderEffortDisplay(metrics)}
                         <a href="#" class="exercises-link" onclick="event.preventDefault(); showExercises('${region}', '${capacity}', '${focus}')">
@@ -839,11 +848,11 @@
 
             // Regions
             html += '<div class="vocab-section"><h3>Regions</h3>';
-            Object.keys(vocabulary.regions).forEach(term => {
+            Object.keys(vocabulary.region || {}).forEach(term => {
                 html += `
                     <div class="vocab-item">
                         <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
-                        <div class="vocab-def">${vocabulary.regions[term]}</div>
+                        <div class="vocab-def">${vocabulary.region[term]}</div>
                     </div>
                 `;
             });
@@ -851,11 +860,11 @@
 
             // Capacities
             html += '<div class="vocab-section"><h3>Capacities</h3>';
-            Object.keys(vocabulary.capacities).forEach(term => {
+            Object.keys(vocabulary.capacity || {}).forEach(term => {
                 html += `
                     <div class="vocab-item">
                         <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
-                        <div class="vocab-def">${vocabulary.capacities[term]}</div>
+                        <div class="vocab-def">${vocabulary.capacity[term]}</div>
                     </div>
                 `;
             });
@@ -863,11 +872,11 @@
 
             // Contributions
             html += '<div class="vocab-section"><h3>Contributions</h3>';
-            Object.keys(vocabulary.contributions).forEach(term => {
+            Object.keys(vocabulary.contribution || {}).forEach(term => {
                 html += `
                     <div class="vocab-item">
                         <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
-                        <div class="vocab-def">${vocabulary.contributions[term]}</div>
+                        <div class="vocab-def">${vocabulary.contribution[term]}</div>
                     </div>
                 `;
             });
@@ -875,11 +884,11 @@
 
             // Focus Terms
             html += '<div class="vocab-section"><h3>Focus Terms</h3>';
-            Object.keys(vocabulary.focus_terms).forEach(term => {
+            Object.keys(vocabulary.focus || {}).forEach(term => {
                 html += `
                     <div class="vocab-item">
                         <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
-                        <div class="vocab-def">${vocabulary.focus_terms[term]}</div>
+                        <div class="vocab-def">${vocabulary.focus[term]}</div>
                     </div>
                 `;
             });
