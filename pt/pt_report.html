@@ -254,7 +254,10 @@
         <div style="max-width: 1000px; margin: 0 auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
                 <h2 style="font-size: 24px; font-weight: 600;">PT Editor Mode</h2>
-                <button class="btn-danger" onclick="toggleEditorMode()" accesskey="x">Close Editor (Alt+X)</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-secondary" onclick="location.reload()">🔄 Reload</button>
+                    <button class="btn-danger" onclick="toggleEditorMode()" accesskey="x">Close Editor (Alt+X)</button>
+                </div>
             </div>
 
             <!-- Keyboard Shortcuts Help -->
@@ -386,18 +389,23 @@
                     <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🔄 Movement Pattern</summary>
 
                     <div class="form-group">
-                        <label class="form-label" for="ex-pattern">Pattern *</label>
+                        <label class="form-label" for="ex-pattern">Pattern * <span style="font-size: 11px; color: var(--text-secondary);">(side=unilateral, both=bilateral)</span></label>
                         <select id="ex-pattern" class="form-select">
                             <option value="">-- Select --</option>
-                            <option value="side">Side (Unilateral)</option>
-                            <option value="bilateral">Bilateral</option>
-                            <option value="unilateral">Unilateral</option>
-                            <option value="alternating">Alternating</option>
+                            <option value="side">side (unilateral - one side at a time)</option>
+                            <option value="both">both (bilateral - both sides together)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="form-label">Pattern Modifiers</label>
+                        <label class="form-label">Pattern Modifiers <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                            <strong>alternating</strong>: reps alternate sides within set (2x10 = 5L + 5R each set)<br>
+                            <strong>duration_seconds</strong>: replaces reps with seconds (3 x 30s)<br>
+                            <strong>hold_seconds</strong>: adds isometric hold per rep (3 x 10 reps, 5s hold)<br>
+                            <strong>distance_feet</strong>: distance replaces reps (4x20 [feet])<br>
+                            <strong>AMRAP</strong>: as many reps as possible in defined duration
+                        </p>
                         <div id="pattern-modifiers-list"></div>
                         <button type="button" class="btn-secondary" onclick="addPatternModifier()" style="width: 100%; margin-top: 8px;">+ Add Modifier</button>
                     </div>
@@ -498,6 +506,10 @@
             <!-- Assign Roles Section -->
             <div class="section">
                 <h3 class="section-title">Assign Roles to Exercises</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                    <strong>Roles</strong> define how an exercise contributes to different movement capacities in different body regions.
+                    One exercise can have multiple roles (e.g., Single Leg Bridge works hip extension AND core stability).
+                </p>
                 <div class="form-group">
                     <label class="form-label" for="role-exercise-select">Select Exercise *</label>
                     <select id="role-exercise-select" class="form-select" onchange="loadExerciseRoles()">
@@ -1123,7 +1135,14 @@
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="e.g., loaded, eccentric_emphasis" style="flex: 1;">
+                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="Select or type custom" list="pattern-modifier-options" style="flex: 1;">
+                    <datalist id="pattern-modifier-options">
+                        <option value="alternating">
+                        <option value="duration_seconds">
+                        <option value="hold_seconds">
+                        <option value="distance_feet">
+                        <option value="AMRAP">
+                    </datalist>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
