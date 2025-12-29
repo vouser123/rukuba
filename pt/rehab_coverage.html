@@ -1277,42 +1277,141 @@
             menu.classList.toggle('active');
         }
 
-        // Export all data (4 separate files: library + roles + schema + vocab)
+        // Export all data (single zip: library + roles + schema + vocab)
         function exportAllData() {
             const dateStr = new Date().toISOString().split('T')[0];
 
-            // Helper to download a file
-            function downloadJSON(data, filename) {
-                const dataStr = JSON.stringify(data, null, 2);
-                const blob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            }
+            const files = [
+                {
+                    name: `exercise_library-${dateStr}.json`,
+                    data: JSON.stringify({ exercises: exerciseLibrary }, null, 2)
+                },
+                {
+                    name: `exercise_roles-${dateStr}.json`,
+                    data: JSON.stringify(rolesData, null, 2)
+                },
+                {
+                    name: `exercise_roles.schema-${dateStr}.json`,
+                    data: JSON.stringify(schema, null, 2)
+                },
+                {
+                    name: `exercise_roles_vocabulary-${dateStr}.json`,
+                    data: JSON.stringify(vocabulary, null, 2)
+                }
+            ];
 
-            // Export each file separately
-            downloadJSON({ exercises: exerciseLibrary }, `exercise_library-${dateStr}.json`);
-
-            setTimeout(() => {
-                downloadJSON(rolesData, `exercise_roles-${dateStr}.json`);
-            }, 300);
-
-            setTimeout(() => {
-                downloadJSON(schema, `exercise_roles.schema-${dateStr}.json`);
-            }, 600);
-
-            setTimeout(() => {
-                downloadJSON(vocabulary, `exercise_roles_vocabulary-${dateStr}.json`);
-            }, 900);
+            const zipBlob = createZipBlob(files);
+            const url = URL.createObjectURL(zipBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `rehab-coverage-export-${dateStr}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
 
             toggleMenu();
-            alert('Exported 4 files! Upload to GitHub:\n1. exercise_library.json\n2. exercise_roles.json\n3. exercise_roles.schema.json\n4. exercise_roles_vocabulary.json');
+            alert('Exported a zip file! Upload these to GitHub:\n1. exercise_library.json\n2. exercise_roles.json\n3. exercise_roles.schema.json\n4. exercise_roles_vocabulary.json');
         }
+
+        function createZipBlob(files) {
+            const encoder = new TextEncoder();
+            const chunks = [];
+            const centralDirectory = [];
+            const fileRecords = [];
+            let offset = 0;
+            let centralSize = 0;
+
+            files.forEach((file) => {
+                const nameBytes = encoder.encode(file.name);
+                const dataBytes = encoder.encode(file.data);
+                const crc = crc32(dataBytes);
+
+                const localHeader = new Uint8Array(30 + nameBytes.length);
+                const localView = new DataView(localHeader.buffer);
+                localView.setUint32(0, 0x04034b50, true);
+                localView.setUint16(4, 20, true);
+                localView.setUint16(6, 0, true);
+                localView.setUint16(8, 0, true);
+                localView.setUint16(10, 0, true);
+                localView.setUint16(12, 0, true);
+                localView.setUint32(14, crc, true);
+                localView.setUint32(18, dataBytes.length, true);
+                localView.setUint32(22, dataBytes.length, true);
+                localView.setUint16(26, nameBytes.length, true);
+                localView.setUint16(28, 0, true);
+                localHeader.set(nameBytes, 30);
+
+                chunks.push(localHeader, dataBytes);
+
+                fileRecords.push({
+                    nameBytes,
+                    crc,
+                    size: dataBytes.length,
+                    offset
+                });
+
+                offset += localHeader.length + dataBytes.length;
+            });
+
+            fileRecords.forEach((record) => {
+                const header = new Uint8Array(46 + record.nameBytes.length);
+                const view = new DataView(header.buffer);
+                view.setUint32(0, 0x02014b50, true);
+                view.setUint16(4, 20, true);
+                view.setUint16(6, 20, true);
+                view.setUint16(8, 0, true);
+                view.setUint16(10, 0, true);
+                view.setUint16(12, 0, true);
+                view.setUint16(14, 0, true);
+                view.setUint32(16, record.crc, true);
+                view.setUint32(20, record.size, true);
+                view.setUint32(24, record.size, true);
+                view.setUint16(28, record.nameBytes.length, true);
+                view.setUint16(30, 0, true);
+                view.setUint16(32, 0, true);
+                view.setUint16(34, 0, true);
+                view.setUint16(36, 0, true);
+                view.setUint32(38, 0, true);
+                view.setUint32(42, record.offset, true);
+                header.set(record.nameBytes, 46);
+                centralDirectory.push(header);
+                centralSize += header.length;
+            });
+
+            const end = new Uint8Array(22);
+            const endView = new DataView(end.buffer);
+            endView.setUint32(0, 0x06054b50, true);
+            endView.setUint16(4, 0, true);
+            endView.setUint16(6, 0, true);
+            endView.setUint16(8, fileRecords.length, true);
+            endView.setUint16(10, fileRecords.length, true);
+            endView.setUint32(12, centralSize, true);
+            endView.setUint32(16, offset, true);
+            endView.setUint16(20, 0, true);
+
+            return new Blob([...chunks, ...centralDirectory, end], { type: 'application/zip' });
+        }
+
+        function crc32(bytes) {
+            let crc = 0xffffffff;
+            for (let i = 0; i < bytes.length; i++) {
+                crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ bytes[i]) & 0xff];
+            }
+            return (crc ^ 0xffffffff) >>> 0;
+        }
+
+        const CRC32_TABLE = (() => {
+            const table = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let j = 0; j < 8; j++) {
+                    c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                table[i] = c >>> 0;
+            }
+            return table;
+        })();
 
         // Import data
         function importData() {
