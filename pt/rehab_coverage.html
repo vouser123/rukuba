@@ -360,8 +360,14 @@
         <h1>Rehab Coverage</h1>
         <div style="display: flex; gap: 8px;">
             <button class="header-btn" onclick="location.reload()" style="padding: 8px 12px;">🔄</button>
+            <button class="header-btn" onclick="toggleDebug()">🐛</button>
             <button class="header-btn" onclick="openVocabulary()">📚 Terms</button>
         </div>
+    </div>
+
+    <div id="debug-panel" style="display: none; background: var(--bg-secondary); padding: 12px; margin-bottom: 16px; border-radius: 8px; border: 1px solid var(--ios-yellow); font-size: 11px; font-family: monospace;">
+        <div style="font-weight: 600; margin-bottom: 8px; color: var(--ios-yellow);">Debug Info</div>
+        <div id="debug-content"></div>
     </div>
 
     <div id="coverage-content" class="loading">Loading...</div>
@@ -829,6 +835,64 @@
             document.getElementById('term-modal').classList.remove('active');
         }
 
+
+        // Toggle debug panel
+        function toggleDebug() {
+            const panel = document.getElementById('debug-panel');
+            const isVisible = panel.style.display !== 'none';
+
+            if (!isVisible) {
+                // Populate debug info
+                let debugHtml = '';
+
+                // Session history info
+                debugHtml += `<div style="margin-bottom: 8px;">`;
+                debugHtml += `<strong>Sessions:</strong> ${sessionHistory.length}<br>`;
+
+                if (sessionHistory.length > 0) {
+                    const uniqueIds = [...new Set(sessionHistory.map(s => s.exerciseId))];
+                    debugHtml += `<strong>Unique exercises:</strong> ${uniqueIds.length}<br>`;
+                    debugHtml += `<strong>Sample IDs:</strong><br>`;
+                    uniqueIds.slice(0, 5).forEach(id => {
+                        debugHtml += `&nbsp;&nbsp;${id}<br>`;
+                    });
+                } else {
+                    debugHtml += `<span style="color: var(--ios-red);">NO SESSION HISTORY!</span><br>`;
+                }
+                debugHtml += `</div>`;
+
+                // Roles info
+                const roleExerciseIds = Object.keys(rolesData.exercise_roles || {});
+                debugHtml += `<div style="margin-bottom: 8px;">`;
+                debugHtml += `<strong>Exercises with roles:</strong> ${roleExerciseIds.length}<br>`;
+                debugHtml += `<strong>Sample IDs:</strong><br>`;
+                roleExerciseIds.slice(0, 5).forEach(id => {
+                    debugHtml += `&nbsp;&nbsp;${id}<br>`;
+                });
+                debugHtml += `</div>`;
+
+                // Check for matches
+                if (sessionHistory.length > 0 && roleExerciseIds.length > 0) {
+                    const sessionIds = new Set(sessionHistory.map(s => s.exerciseId));
+                    const matches = roleExerciseIds.filter(id => sessionIds.has(id));
+                    debugHtml += `<div style="color: ${matches.length > 0 ? 'var(--ios-green)' : 'var(--ios-red)'};">`;
+                    debugHtml += `<strong>Matching IDs:</strong> ${matches.length}<br>`;
+                    if (matches.length > 0) {
+                        debugHtml += `<strong>Matches:</strong><br>`;
+                        matches.slice(0, 3).forEach(id => {
+                            const sessions = sessionHistory.filter(s => s.exerciseId === id);
+                            debugHtml += `&nbsp;&nbsp;${rolesData.exercise_roles[id].name} (${sessions.length} sessions)<br>`;
+                        });
+                    }
+                    debugHtml += `</div>`;
+                }
+
+                document.getElementById('debug-content').innerHTML = debugHtml;
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
 
         // Go back to PT Tracker
         function goBack() {
