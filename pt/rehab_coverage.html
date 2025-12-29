@@ -1431,8 +1431,14 @@
             });
             html += '</datalist></div>';
 
-            // Get all unique focus values from existing roles
+            // Get all unique focus values from schema + existing roles
             const allFocuses = new Set();
+            // Add schema focus values if they exist
+            if (schema && schema.definitions && schema.definitions.role && schema.definitions.role.properties.focus) {
+                const schemaFocuses = schema.definitions.role.properties.focus.enum || [];
+                schemaFocuses.forEach(f => allFocuses.add(f));
+            }
+            // Add focus values from existing roles
             Object.values(rolesData.exercise_roles).forEach(ex => {
                 ex.roles.forEach(role => {
                     if (role.focus) allFocuses.add(role.focus);
