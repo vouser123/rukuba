@@ -1370,9 +1370,11 @@
 
             // Add exercises from library
             exerciseLibrary.forEach(ex => {
-                const hasRoles = rolesData.exercise_roles[ex.id];
-                const label = `${ex.title || ex.name}${hasRoles ? ' ✓' : ''}`;
-                html += `<option value="${ex.id}">${label}</option>`;
+                const exerciseId = ex.exercise_id || ex.id;
+                const hasRoles = exerciseId && rolesData.exercise_roles[exerciseId];
+                const baseLabel = ex.canonical_name || ex.title || ex.name || exerciseId || 'Unknown exercise';
+                const label = `${baseLabel}${hasRoles ? ' ✓' : ''}`;
+                html += `<option value="${exerciseId || ''}">${label}</option>`;
             });
 
             html += '</select></div>';
@@ -1394,10 +1396,13 @@
             }
 
             currentEditExerciseId = exerciseId;
-            const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+            const exercise = exerciseLibrary.find(e => (e.exercise_id || e.id) === exerciseId);
             const rolesForExercise = rolesData.exercise_roles[exerciseId];
 
-            let html = `<h3 style="margin: 20px 0 12px; font-size: 16px;">${exercise.title || exercise.name}</h3>`;
+            const exerciseLabel = exercise
+                ? (exercise.canonical_name || exercise.title || exercise.name || exerciseId)
+                : exerciseId;
+            let html = `<h3 style="margin: 20px 0 12px; font-size: 16px;">${exerciseLabel}</h3>`;
 
             // Show existing roles
             if (rolesForExercise && rolesForExercise.roles && rolesForExercise.roles.length > 0) {
@@ -1485,9 +1490,12 @@
 
             // Initialize exercise in rolesData if it doesn't exist
             if (!rolesData.exercise_roles[currentEditExerciseId]) {
-                const exercise = exerciseLibrary.find(e => e.id === currentEditExerciseId);
+                const exercise = exerciseLibrary.find(e => (e.exercise_id || e.id) === currentEditExerciseId);
+                const exerciseName = exercise
+                    ? (exercise.canonical_name || exercise.title || exercise.name || currentEditExerciseId)
+                    : currentEditExerciseId;
                 rolesData.exercise_roles[currentEditExerciseId] = {
-                    name: exercise.title || exercise.name,
+                    name: exerciseName,
                     roles: []
                 };
             }
