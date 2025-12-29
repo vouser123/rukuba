@@ -898,7 +898,7 @@
             let mostRecentDays = null;
             if (sessionHistory.length > 0) {
                 const validDates = sessionHistory
-                    .map(session => session.timestamp)
+                    .map(session => session.timestamp ?? session.date)
                     .filter(timestamp => timestamp)
                     .map(timestamp => new Date(timestamp))
                     .filter(date => !isNaN(date));
