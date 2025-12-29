@@ -1044,8 +1044,10 @@
             // Populate pattern dropdown from schema
             const patternSelect = document.getElementById('ex-pattern');
             patternSelect.innerHTML = '<option value="">-- Select --</option>';
+            console.log('[Editor] Populating pattern dropdown, schema:', schema);
             if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern) {
                 const patterns = schema.$defs.exercise.properties.pattern.enum || [];
+                console.log('[Editor] Found pattern enum values:', patterns);
                 patterns.forEach(p => {
                     const option = document.createElement('option');
                     option.value = p;
@@ -1058,6 +1060,13 @@
                         option.textContent = p;
                     }
                     patternSelect.appendChild(option);
+                });
+            } else {
+                console.warn('[Editor] Schema path not found for pattern enum. Schema structure:', {
+                    hasSchema: !!schema,
+                    hasDefs: !!(schema && schema.$defs),
+                    hasExercise: !!(schema && schema.$defs && schema.$defs.exercise),
+                    hasPattern: !!(schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern)
                 });
             }
 
@@ -1089,7 +1098,7 @@
                         <div style="margin-bottom: 20px;">
                             <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Pattern Modifiers</h4>
                             <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
-                                <ul style="margin: 8px 0 0 20px; color: var(--text-secondary);">
+                                <ul style="margin: 8px 0 0 20px; color: var(--text-primary);">
                     `;
                     Object.keys(vocabulary.pattern_modifiers).forEach(key => {
                         guideHTML += `<li><strong>${key}:</strong> ${vocabulary.pattern_modifiers[key]}</li>`;
@@ -1107,7 +1116,7 @@
                         <div style="margin-bottom: 20px;">
                             <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Regions</h4>
                             <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
-                                <div style="font-size: 13px; color: var(--text-secondary); padding-left: 10px;">
+                                <div style="font-size: 13px; color: var(--text-primary); padding-left: 10px;">
                     `;
                     Object.keys(vocabulary.regions).forEach(key => {
                         guideHTML += `• <strong>${key}:</strong> ${vocabulary.regions[key]}<br>`;
@@ -1125,7 +1134,7 @@
                         <div style="margin-bottom: 20px;">
                             <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Capacities</h4>
                             <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
-                                <div style="font-size: 13px; color: var(--text-secondary); padding-left: 10px;">
+                                <div style="font-size: 13px; color: var(--text-primary); padding-left: 10px;">
                     `;
                     Object.keys(vocabulary.capacities).forEach(key => {
                         guideHTML += `• <strong>${key}:</strong> ${vocabulary.capacities[key]}<br>`;
@@ -1174,21 +1183,20 @@
             const container = document.getElementById('pattern-modifiers-list');
             const index = container.children.length;
 
-            // Build datalist from schema
-            let datalistOptions = '';
+            // Build select options from schema enum
+            let selectOptions = '<option value="">-- Select --</option>';
             if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern_modifiers && schema.$defs.exercise.properties.pattern_modifiers.items) {
                 const modifiers = schema.$defs.exercise.properties.pattern_modifiers.items.enum || [];
-                datalistOptions = modifiers.map(m => `<option value="${m}">`).join('');
+                selectOptions += modifiers.map(m => `<option value="${m}">${m}</option>`).join('');
             }
 
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="Select or type custom" list="pattern-modifier-options-${index}" style="flex: 1;">
-                    <datalist id="pattern-modifier-options-${index}">
-                        ${datalistOptions}
-                    </datalist>
+                    <select class="form-select" id="pattern-mod-${index}" style="flex: 1;">
+                        ${selectOptions}
+                    </select>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
