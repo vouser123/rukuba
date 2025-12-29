@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Rehab Coverage</title>
+    <style>
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #1c1c1e;
+            --bg-tertiary: #2c2c2e;
+            --text-primary: #ffffff;
+            --text-secondary: #98989d;
+            --border-color: #38383a;
+            --ios-blue: #0a84ff;
+            --ios-green: #30d158;
+            --ios-orange: #ff9f0a;
+            --ios-red: #ff453a;
+            --ios-yellow: #ffd60a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 16px;
+            padding-bottom: 80px;
+            line-height: 1.4;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-btn {
+            background: var(--bg-secondary);
+            color: var(--ios-blue);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .header-btn:active {
+            opacity: 0.7;
+        }
+
+        /* Region Accordion */
+        .region-section {
+            margin-bottom: 16px;
+        }
+
+        .region-header {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .region-header:active {
+            opacity: 0.8;
+        }
+
+        .region-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .region-chevron {
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .region-section.expanded .region-chevron {
+            transform: rotate(90deg);
+        }
+
+        .region-content {
+            display: none;
+            padding: 12px 0;
+        }
+
+        .region-section.expanded .region-content {
+            display: block;
+        }
+
+        /* Capacity Row */
+        .capacity-row {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .capacity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .capacity-header:active {
+            opacity: 0.8;
+        }
+
+        .capacity-name {
+            font-size: 16px;
+            font-weight: 500;
+            text-transform: capitalize;
+            flex: 1;
+        }
+
+        .capacity-term {
+            color: var(--ios-blue);
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        .capacity-metrics {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .effort-display {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .effort-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .effort-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .effort-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: opacity 0.3s;
+        }
+
+        .effort-minimal { background: var(--text-secondary); }
+        .effort-light { background: var(--ios-blue); }
+        .effort-moderate { background: var(--ios-yellow); }
+        .effort-heavy { background: var(--ios-orange); }
+        .effort-maximal { background: var(--ios-red); }
+
+        .coverage-display {
+            font-size: 14px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            white-space: nowrap;
+        }
+
+        .coverage-full { color: var(--ios-green); }
+        .coverage-partial { color: var(--ios-yellow); }
+        .coverage-none { color: var(--ios-red); }
+        .coverage-na { color: var(--text-secondary); }
+
+        .capacity-chevron {
+            font-size: 14px;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+            margin-left: 8px;
+        }
+
+        .capacity-row.expanded .capacity-chevron {
+            transform: rotate(90deg);
+        }
+
+        /* Focus Rows */
+        .focus-list {
+            display: none;
+            margin-top: 12px;
+            padding-left: 16px;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .capacity-row.expanded .focus-list {
+            display: block;
+        }
+
+        .focus-row {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .focus-name {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            text-transform: capitalize;
+        }
+
+        .focus-term {
+            color: var(--ios-blue);
+            font-size: 12px;
+        }
+
+        .exercises-link {
+            color: var(--ios-blue);
+            font-size: 13px;
+            text-decoration: none;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
+        .exercises-link:active {
+            opacity: 0.7;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .modal-close:active {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .vocab-section {
+            margin-bottom: 20px;
+        }
+
+        .vocab-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--ios-blue);
+            text-transform: capitalize;
+        }
+
+        .vocab-item {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .vocab-term {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-transform: capitalize;
+        }
+
+        .vocab-def {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .exercise-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .exercise-item:active {
+            opacity: 0.8;
+        }
+
+        .exercise-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .exercise-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .back-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .back-button:active {
+            opacity: 0.8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            background: rgba(255, 69, 58, 0.1);
+            border: 1px solid var(--ios-red);
+            color: var(--ios-red);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Rehab Coverage</h1>
+        <button class="header-btn" onclick="openVocabulary()">📚 Terms</button>
+    </div>
+
+    <div id="coverage-content" class="loading">Loading...</div>
+
+    <!-- Vocabulary Modal -->
+    <div id="vocab-modal" class="modal" onclick="if(event.target === this) closeVocabulary()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Vocabulary</div>
+                <button class="modal-close" onclick="closeVocabulary()">Done</button>
+            </div>
+            <div class="modal-body" id="vocab-content"></div>
+        </div>
+    </div>
+
+    <!-- Exercise List Modal -->
+    <div id="exercise-modal" class="modal" onclick="if(event.target === this) closeExerciseList()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="exercise-modal-title">Exercises</div>
+                <button class="modal-close" onclick="closeExerciseList()">Done</button>
+            </div>
+            <div class="modal-body" id="exercise-list-content"></div>
+        </div>
+    </div>
+
+    <!-- Term Definition Modal -->
+    <div id="term-modal" class="modal" onclick="if(event.target === this) closeTermDefinition()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="term-modal-title"></div>
+                <button class="modal-close" onclick="closeTermDefinition()">Close</button>
+            </div>
+            <div class="modal-body" id="term-modal-content"></div>
+        </div>
+    </div>
+
+    <button class="back-button" onclick="goBack()">← Back to PT Tracker</button>
+
+    <script>
+        // Global data stores
+        let schema = null;
+        let rolesData = null;
+        let vocabulary = null;
+        let exerciseLibrary = null;
+        let sessionHistory = null;
+
+        // Derived lists (runtime only - NO HARDCODED ENUMS)
+        let regions = [];
+        let capacities = [];
+        let contributions = [];
+
+        // Initialize
+        async function init() {
+            try {
+                // Load all data files
+                await Promise.all([
+                    loadSchema(),
+                    loadRoles(),
+                    loadVocabulary(),
+                    loadExerciseLibrary(),
+                    loadSessionHistory()
+                ]);
+
+                // Derive enums from schema
+                deriveEnums();
+
+                // Render coverage view
+                renderCoverageView();
+            } catch (error) {
+                document.getElementById('coverage-content').innerHTML =
+                    `<div class="error">Error loading data: ${error.message}</div>`;
+                console.error('Init error:', error);
+            }
+        }
+
+        async function loadSchema() {
+            const response = await fetch('schema/exercise_roles.schema.json');
+            schema = await response.json();
+        }
+
+        async function loadRoles() {
+            const response = await fetch('exercise_roles.json');
+            rolesData = await response.json();
+        }
+
+        async function loadVocabulary() {
+            const response = await fetch('exercise_roles_vocabulary.json');
+            vocabulary = await response.json();
+        }
+
+        async function loadExerciseLibrary() {
+            const response = await fetch('exercise_library.json');
+            const data = await response.json();
+            exerciseLibrary = data.exercises || [];
+        }
+
+        function loadSessionHistory() {
+            // Load from PT Tracker localStorage
+            const historyJSON = localStorage.getItem('session_history');
+            sessionHistory = historyJSON ? JSON.parse(historyJSON) : [];
+        }
+
+        function deriveEnums() {
+            // Extract enums from schema - NO HARDCODING
+            const roleSchema = schema.$defs.role;
+            regions = roleSchema.properties.region.enum || [];
+            capacities = roleSchema.properties.capacity.enum || [];
+            contributions = roleSchema.properties.contribution.enum || [];
+        }
+
+        // Get unique focuses for a (region, capacity) pair
+        function getFocuses(region, capacity) {
+            const focuses = new Set();
+            rolesData.roles.forEach(role => {
+                if (role.region === region && role.capacity === capacity && role.focus) {
+                    focuses.add(role.focus);
+                }
+            });
+            return Array.from(focuses);
+        }
+
+        // Calculate effort and coverage metrics for a bucket
+        function calculateMetrics(region, capacity, focus = null) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Find all matching roles
+            const matchingRoles = rolesData.roles.filter(role => {
+                if (role.region !== region || role.capacity !== capacity) return false;
+                if (focus !== null && role.focus !== focus) return false;
+                return true;
+            });
+
+            if (matchingRoles.length === 0) {
+                return { lastDate: null, effortLevel: null, daysSince: null, exercises: [] };
+            }
+
+            // Find all logged exercises for these roles
+            const exerciseIds = matchingRoles.map(r => r.exercise_id);
+            const loggedExercises = [];
+
+            sessionHistory.forEach(session => {
+                const sessionDate = new Date(session.date);
+                session.exercises.forEach(ex => {
+                    if (exerciseIds.includes(ex.exercise_id)) {
+                        // Find the role contribution for this exercise
+                        const role = matchingRoles.find(r =>
+                            r.exercise_id === ex.exercise_id &&
+                            (!focus || r.focus === focus)
+                        );
+                        if (role) {
+                            loggedExercises.push({
+                                exercise_id: ex.exercise_id,
+                                date: sessionDate,
+                                contribution: role.contribution
+                            });
+                        }
+                    }
+                });
+            });
+
+            if (loggedExercises.length === 0) {
+                return { lastDate: null, effortLevel: null, daysSince: null, exercises: [] };
+            }
+
+            // Sort by date descending
+            loggedExercises.sort((a, b) => b.date - a.date);
+
+            // Get last date
+            const lastDate = loggedExercises[0].date;
+            const daysSince = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
+
+            // Get max contribution on last date
+            const lastDateExercises = loggedExercises.filter(e =>
+                e.date.getTime() === lastDate.getTime()
+            );
+            const contributionLevels = ['minimal', 'light', 'moderate', 'heavy', 'maximal'];
+            let maxContribution = 'minimal';
+            let maxIndex = 0;
+            lastDateExercises.forEach(e => {
+                const index = contributionLevels.indexOf(e.contribution);
+                if (index > maxIndex) {
+                    maxIndex = index;
+                    maxContribution = e.contribution;
+                }
+            });
+
+            return {
+                lastDate,
+                effortLevel: maxContribution,
+                daysSince,
+                exercises: loggedExercises
+            };
+        }
+
+        // Calculate coverage for a capacity (checks all focuses)
+        function calculateCoverage(region, capacity) {
+            const focuses = getFocuses(region, capacity);
+
+            if (focuses.length === 0) {
+                return { status: 'na', maxGap: null };
+            }
+
+            const focusMetrics = focuses.map(focus => ({
+                focus,
+                metrics: calculateMetrics(region, capacity, focus)
+            }));
+
+            const focusesWithData = focusMetrics.filter(f => f.metrics.lastDate !== null);
+            const focusesWithoutData = focusMetrics.filter(f => f.metrics.lastDate === null);
+
+            let status;
+            if (focusesWithData.length === focuses.length) {
+                status = 'full'; // ✓
+            } else if (focusesWithData.length > 0) {
+                status = 'partial'; // ⚠
+            } else {
+                status = 'none'; // ✗
+            }
+
+            // Calculate max gap
+            let maxGap = 0;
+            if (focusesWithoutData.length > 0) {
+                maxGap = Infinity; // No data = infinite gap
+            } else {
+                focusMetrics.forEach(f => {
+                    if (f.metrics.daysSince > maxGap) {
+                        maxGap = f.metrics.daysSince;
+                    }
+                });
+            }
+
+            return { status, maxGap: maxGap === Infinity ? null : maxGap };
+        }
+
+        // Render effort display
+        function renderEffortDisplay(metrics) {
+            if (!metrics.lastDate) {
+                return `
+                    <div class="effort-display">
+                        <div class="effort-label">No data</div>
+                        <div class="effort-bar-container">
+                            <div class="effort-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const effortClass = `effort-${metrics.effortLevel}`;
+            const opacity = calculateOpacity(metrics.daysSince);
+
+            return `
+                <div class="effort-display">
+                    <div class="effort-label">${metrics.effortLevel} • ${metrics.daysSince}d ago</div>
+                    <div class="effort-bar-container">
+                        <div class="effort-bar ${effortClass}" style="width: 100%; opacity: ${opacity};"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Calculate opacity based on days since (simple linear fade)
+        function calculateOpacity(daysSince) {
+            if (daysSince === 0) return 1.0;
+            if (daysSince >= 14) return 0.2;
+            return 1.0 - (daysSince / 14) * 0.8;
+        }
+
+        // Render coverage display
+        function renderCoverageDisplay(coverage) {
+            const icons = {
+                full: '✓',
+                partial: '⚠',
+                none: '✗',
+                na: '—'
+            };
+
+            const statusClass = `coverage-${coverage.status}`;
+            const icon = icons[coverage.status];
+
+            let text = icon;
+            if (coverage.status !== 'na' && coverage.maxGap !== null) {
+                text += ` ${coverage.maxGap}d`;
+            }
+
+            return `<div class="coverage-display ${statusClass}">${text}</div>`;
+        }
+
+        // Render coverage view
+        function renderCoverageView() {
+            let html = '';
+
+            regions.forEach(region => {
+                html += `
+                    <div class="region-section" id="region-${region}">
+                        <div class="region-header" onclick="toggleRegion('${region}')">
+                            <h2>${region}</h2>
+                            <span class="region-chevron">›</span>
+                        </div>
+                        <div class="region-content">
+                            ${renderRegionCapacities(region)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('coverage-content').innerHTML = html;
+        }
+
+        function renderRegionCapacities(region) {
+            let html = '';
+
+            capacities.forEach(capacity => {
+                const metrics = calculateMetrics(region, capacity);
+                const coverage = calculateCoverage(region, capacity);
+                const focuses = getFocuses(region, capacity);
+                const hasChevron = focuses.length > 0;
+
+                html += `
+                    <div class="capacity-row ${hasChevron ? '' : 'no-expand'}" id="capacity-${region}-${capacity}">
+                        <div class="capacity-header" onclick="${hasChevron ? `toggleCapacity('${region}', '${capacity}')` : ''}">
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <span class="capacity-name">${capacity}</span>
+                                <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacities', '${capacity}')">ⓘ</span>
+                            </div>
+                            ${hasChevron ? '<span class="capacity-chevron">›</span>' : ''}
+                        </div>
+                        <div class="capacity-metrics">
+                            ${renderEffortDisplay(metrics)}
+                            ${renderCoverageDisplay(coverage)}
+                        </div>
+                        <a href="#" class="exercises-link" onclick="event.preventDefault(); showExercises('${region}', '${capacity}', null)">
+                            View Exercises
+                        </a>
+                        ${hasChevron ? `
+                            <div class="focus-list">
+                                ${renderFocuses(region, capacity, focuses)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        function renderFocuses(region, capacity, focuses) {
+            let html = '';
+
+            focuses.forEach(focus => {
+                const metrics = calculateMetrics(region, capacity, focus);
+
+                html += `
+                    <div class="focus-row">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="focus-name">${focus.replace(/_/g, ' ')}</span>
+                            <span class="focus-term" onclick="showTermDefinition('focus_terms', '${focus}')">ⓘ</span>
+                        </div>
+                        ${renderEffortDisplay(metrics)}
+                        <a href="#" class="exercises-link" onclick="event.preventDefault(); showExercises('${region}', '${capacity}', '${focus}')">
+                            View Exercises
+                        </a>
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        // Toggle region accordion
+        function toggleRegion(region) {
+            const section = document.getElementById(`region-${region}`);
+            section.classList.toggle('expanded');
+        }
+
+        // Toggle capacity accordion
+        function toggleCapacity(region, capacity) {
+            const row = document.getElementById(`capacity-${region}-${capacity}`);
+            row.classList.toggle('expanded');
+        }
+
+        // Show vocabulary modal
+        function openVocabulary() {
+            let html = '';
+
+            // Regions
+            html += '<div class="vocab-section"><h3>Regions</h3>';
+            Object.keys(vocabulary.regions).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.regions[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Capacities
+            html += '<div class="vocab-section"><h3>Capacities</h3>';
+            Object.keys(vocabulary.capacities).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.capacities[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Contributions
+            html += '<div class="vocab-section"><h3>Contributions</h3>';
+            Object.keys(vocabulary.contributions).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.contributions[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Focus Terms
+            html += '<div class="vocab-section"><h3>Focus Terms</h3>';
+            Object.keys(vocabulary.focus_terms).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.focus_terms[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            document.getElementById('vocab-content').innerHTML = html;
+            document.getElementById('vocab-modal').classList.add('active');
+        }
+
+        function closeVocabulary() {
+            document.getElementById('vocab-modal').classList.remove('active');
+        }
+
+        // Show term definition inline
+        function showTermDefinition(category, term) {
+            const definitions = vocabulary[category];
+            const definition = definitions && definitions[term];
+
+            document.getElementById('term-modal-title').textContent = term.replace(/_/g, ' ');
+            document.getElementById('term-modal-content').innerHTML = definition
+                ? `<div class="vocab-def">${definition}</div>`
+                : `<div class="vocab-def" style="color: var(--ios-red);">Definition not found (undefined)</div>`;
+
+            document.getElementById('term-modal').classList.add('active');
+        }
+
+        function closeTermDefinition() {
+            document.getElementById('term-modal').classList.remove('active');
+        }
+
+        // Show exercises for a bucket
+        function showExercises(region, capacity, focus) {
+            const metrics = calculateMetrics(region, capacity, focus);
+
+            const title = focus
+                ? `${region} › ${capacity} › ${focus.replace(/_/g, ' ')}`
+                : `${region} › ${capacity}`;
+
+            document.getElementById('exercise-modal-title').textContent = title;
+
+            if (!metrics.exercises || metrics.exercises.length === 0) {
+                document.getElementById('exercise-list-content').innerHTML =
+                    '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No exercises logged</div>';
+            } else {
+                // Group by exercise_id and get most recent
+                const exerciseMap = new Map();
+                metrics.exercises.forEach(ex => {
+                    if (!exerciseMap.has(ex.exercise_id)) {
+                        exerciseMap.set(ex.exercise_id, ex);
+                    }
+                });
+
+                let html = '';
+                exerciseMap.forEach((ex, exerciseId) => {
+                    const exercise = exerciseLibrary.find(e => e.exercise_id === exerciseId);
+                    const name = exercise ? exercise.canonical_name : exerciseId;
+                    const daysSince = Math.floor((new Date() - ex.date) / (1000 * 60 * 60 * 24));
+
+                    html += `
+                        <div class="exercise-item" onclick="openExerciseDetail('${exerciseId}')">
+                            <div class="exercise-name">${name}</div>
+                            <div class="exercise-meta">
+                                ${ex.contribution} • ${daysSince}d ago
+                            </div>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('exercise-list-content').innerHTML = html;
+            }
+
+            document.getElementById('exercise-modal').classList.add('active');
+        }
+
+        function closeExerciseList() {
+            document.getElementById('exercise-modal').classList.remove('active');
+        }
+
+        // Open exercise detail (redirect to PT Tracker with exercise detail)
+        function openExerciseDetail(exerciseId) {
+            // For now, just show an alert - in full implementation would open PT Tracker detail view
+            const exercise = exerciseLibrary.find(e => e.exercise_id === exerciseId);
+            if (exercise) {
+                alert(`Exercise Detail:\n\n${exercise.canonical_name}\n\n${exercise.description}\n\n(Full detail view would open in PT Tracker)`);
+            }
+        }
+
+        // Go back to PT Tracker
+        function goBack() {
+            window.location.href = 'pt_tracker.html';
+        }
+
+        // Start app
+        init();
+    </script>
+</body>
+</html>
