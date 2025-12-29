@@ -294,6 +294,30 @@
                     <label class="form-label" for="new-ex-video">Video URL</label>
                     <input type="url" id="new-ex-video" class="form-input" placeholder="https://...">
                 </div>
+
+                <!-- Dosage/Prescription Section -->
+                <div style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin: 15px 0;">
+                    <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📋 Recommended Dosage (Optional)</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="new-ex-sets" style="font-size: 14px;">Sets</label>
+                            <input type="number" id="new-ex-sets" class="form-input" placeholder="3" min="1" style="padding: 10px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="new-ex-reps" style="font-size: 14px;">Reps</label>
+                            <input type="number" id="new-ex-reps" class="form-input" placeholder="10" min="1" style="padding: 10px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="new-ex-freq" style="font-size: 14px;">Per Week</label>
+                            <input type="number" id="new-ex-freq" class="form-input" placeholder="3" min="1" max="7" style="padding: 10px;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="new-ex-dose-notes" style="font-size: 14px;">Dosage Notes</label>
+                        <textarea id="new-ex-dose-notes" class="form-input" rows="2" placeholder="e.g., Start with bodyweight, progress to 10lb dumbbell" style="padding: 10px; font-size: 14px;"></textarea>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-primary" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
                     <button class="btn-danger" onclick="archiveExercise()" id="archive-btn" style="display: none;">🗑️ Archive</button>
@@ -798,6 +822,10 @@
                 document.getElementById('new-ex-desc').value = '';
                 document.getElementById('new-ex-instructions').value = '';
                 document.getElementById('new-ex-video').value = '';
+                document.getElementById('new-ex-sets').value = '';
+                document.getElementById('new-ex-reps').value = '';
+                document.getElementById('new-ex-freq').value = '';
+                document.getElementById('new-ex-dose-notes').value = '';
                 archiveBtn.style.display = 'none';
                 currentEditingExerciseId = null;
                 return;
@@ -816,6 +844,12 @@
             document.getElementById('new-ex-instructions').value = exercise.instructions || '';
             document.getElementById('new-ex-video').value = exercise.videoUrl || '';
 
+            // Populate dosage fields if they exist
+            document.getElementById('new-ex-sets').value = exercise.dosage?.sets || '';
+            document.getElementById('new-ex-reps').value = exercise.dosage?.reps || '';
+            document.getElementById('new-ex-freq').value = exercise.dosage?.frequency || '';
+            document.getElementById('new-ex-dose-notes').value = exercise.dosage?.notes || '';
+
             // Show archive button
             archiveBtn.style.display = 'block';
             currentEditingExerciseId = exerciseId;
@@ -827,9 +861,25 @@
             const instructions = document.getElementById('new-ex-instructions').value.trim();
             const videoUrl = document.getElementById('new-ex-video').value.trim();
 
+            // Dosage fields
+            const sets = document.getElementById('new-ex-sets').value;
+            const reps = document.getElementById('new-ex-reps').value;
+            const frequency = document.getElementById('new-ex-freq').value;
+            const doseNotes = document.getElementById('new-ex-dose-notes').value.trim();
+
             if (!name) {
                 alert('Please enter an exercise name');
                 return;
+            }
+
+            // Build dosage object if any fields are filled
+            let dosage = null;
+            if (sets || reps || frequency || doseNotes) {
+                dosage = {};
+                if (sets) dosage.sets = parseInt(sets);
+                if (reps) dosage.reps = parseInt(reps);
+                if (frequency) dosage.frequency = parseInt(frequency);
+                if (doseNotes) dosage.notes = doseNotes;
             }
 
             if (currentEditingExerciseId) {
@@ -842,6 +892,10 @@
                     instructions: instructions || '',
                     videoUrl: videoUrl || ''
                 };
+
+                if (dosage) {
+                    exercise.dosage = dosage;
+                }
 
                 // Update in modifications
                 modifications.editedExercises[currentEditingExerciseId] = exercise;
@@ -864,6 +918,10 @@
                     videoUrl: videoUrl || ''
                 };
 
+                if (dosage) {
+                    newExercise.dosage = dosage;
+                }
+
                 // Add to modifications
                 modifications.newExercises.push(newExercise);
 
@@ -878,6 +936,10 @@
             document.getElementById('new-ex-desc').value = '';
             document.getElementById('new-ex-instructions').value = '';
             document.getElementById('new-ex-video').value = '';
+            document.getElementById('new-ex-sets').value = '';
+            document.getElementById('new-ex-reps').value = '';
+            document.getElementById('new-ex-freq').value = '';
+            document.getElementById('new-ex-dose-notes').value = '';
             document.getElementById('edit-ex-select').value = '';
             document.getElementById('archive-btn').style.display = 'none';
             currentEditingExerciseId = null;
