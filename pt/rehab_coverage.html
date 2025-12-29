@@ -468,8 +468,8 @@
         }
 
         function loadSessionHistory() {
-            // Load from PT Tracker localStorage
-            const historyJSON = localStorage.getItem('session_history');
+            // Load from PT Tracker localStorage (uses 'pt_tracker_data' key, NOT 'session_history')
+            const historyJSON = localStorage.getItem('pt_tracker_data');
             sessionHistory = historyJSON ? JSON.parse(historyJSON) : [];
             console.log('[History] Loaded:', sessionHistory.length, 'sessions');
 
@@ -479,7 +479,7 @@
                 console.log('[History] Unique exercise IDs in session history:', uniqueIds);
                 console.log('[History] Sample session objects:', sessionHistory.slice(0, 3));
             } else {
-                console.warn('[History] NO SESSION HISTORY FOUND! localStorage key "session_history" is empty or missing.');
+                console.warn('[History] NO SESSION HISTORY FOUND! localStorage key "pt_tracker_data" is empty or missing.');
             }
         }
 
