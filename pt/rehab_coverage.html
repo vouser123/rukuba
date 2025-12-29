@@ -869,7 +869,10 @@
 
             // Rolling 7-day activity
             const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-            const recentSessions = sessionHistory.filter(s => s.timestamp >= sevenDaysAgo);
+            const recentSessions = sessionHistory.filter(s => {
+                const sessionDate = s.date ? new Date(s.date).getTime() : (s.timestamp || 0);
+                return sessionDate >= sevenDaysAgo;
+            });
             const recentExerciseIds = [...new Set(recentSessions.map(s => s.exerciseId))];
             const recentExercisesInLibrary = uniqueExercises.filter(e => recentExerciseIds.includes(e.id));
             const weeklyDone = recentExercisesInLibrary.length;
