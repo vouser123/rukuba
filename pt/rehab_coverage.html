@@ -897,16 +897,27 @@
             // Find most recent session
             let mostRecentDays = null;
             if (sessionHistory.length > 0) {
-                const mostRecentTimestamp = Math.max(...sessionHistory.map(s => s.timestamp));
-                const daysSince = Math.floor((Date.now() - mostRecentTimestamp) / (1000 * 60 * 60 * 24));
-                mostRecentDays = daysSince;
+                const validDates = sessionHistory
+                    .map(session => session.timestamp)
+                    .filter(timestamp => timestamp)
+                    .map(timestamp => new Date(timestamp))
+                    .filter(date => !isNaN(date));
+
+                if (validDates.length > 0) {
+                    const mostRecentTimestamp = Math.max(...validDates.map(date => date.getTime()));
+                    const mostRecentDate = new Date(mostRecentTimestamp);
+                    if (!isNaN(mostRecentDate)) {
+                        const daysSince = Math.floor((Date.now() - mostRecentDate.getTime()) / (1000 * 60 * 60 * 24));
+                        mostRecentDays = daysSince;
+                    }
+                }
             }
 
             const recencyColor = mostRecentDays === null ? 'var(--text-secondary)' :
                                  mostRecentDays === 0 ? 'var(--ios-green)' :
                                  mostRecentDays <= 3 ? 'var(--ios-green)' :
                                  mostRecentDays <= 7 ? 'var(--ios-yellow)' : 'var(--ios-red)';
-            const recencyText = mostRecentDays === null ? 'No sessions yet' :
+            const recencyText = mostRecentDays === null ? '—' :
                                mostRecentDays === 0 ? 'Today' : `${mostRecentDays}d ago`;
 
             // Rolling 7-day activity
