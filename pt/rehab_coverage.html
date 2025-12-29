@@ -1235,7 +1235,7 @@
             menu.classList.toggle('active');
         }
 
-        // Export all data (3 separate files: roles + schema + vocab)
+        // Export all data (4 separate files: library + roles + schema + vocab)
         function exportAllData() {
             const dateStr = new Date().toISOString().split('T')[0];
 
@@ -1254,18 +1254,22 @@
             }
 
             // Export each file separately
-            downloadJSON(rolesData, `exercise_roles-${dateStr}.json`);
+            downloadJSON({ exercises: exerciseLibrary }, `exercise_library-${dateStr}.json`);
 
             setTimeout(() => {
-                downloadJSON(schema, `exercise_roles.schema-${dateStr}.json`);
+                downloadJSON(rolesData, `exercise_roles-${dateStr}.json`);
             }, 300);
 
             setTimeout(() => {
-                downloadJSON(vocabulary, `exercise_roles_vocabulary-${dateStr}.json`);
+                downloadJSON(schema, `exercise_roles.schema-${dateStr}.json`);
             }, 600);
 
+            setTimeout(() => {
+                downloadJSON(vocabulary, `exercise_roles_vocabulary-${dateStr}.json`);
+            }, 900);
+
             toggleMenu();
-            alert('Exported 3 files! Upload to GitHub:\n1. exercise_roles.json\n2. exercise_roles.schema.json\n3. exercise_roles_vocabulary.json');
+            alert('Exported 4 files! Upload to GitHub:\n1. exercise_library.json\n2. exercise_roles.json\n3. exercise_roles.schema.json\n4. exercise_roles_vocabulary.json');
         }
 
         // Import data
