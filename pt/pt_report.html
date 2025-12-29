@@ -1159,37 +1159,144 @@
 
             if (!exerciseId) {
                 // Clear form for new exercise
-                document.getElementById('new-ex-name').value = '';
-                document.getElementById('new-ex-desc').value = '';
-                document.getElementById('new-ex-instructions').value = '';
-                document.getElementById('new-ex-video').value = '';
-                document.getElementById('new-ex-sets').value = '';
-                document.getElementById('new-ex-reps').value = '';
-                document.getElementById('new-ex-freq').value = '';
-                document.getElementById('new-ex-dose-notes').value = '';
+                document.getElementById('ex-name').value = '';
+                document.getElementById('ex-category').value = '';
+                document.getElementById('ex-desc').value = '';
+                document.getElementById('ex-pattern').value = '';
+                clearAllArrayFields();
                 archiveBtn.style.display = 'none';
                 currentEditingExerciseId = null;
                 return;
             }
 
             // Load exercise data
-            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId || ex.exercise_id === exerciseId);
             if (!exercise) {
                 alert('Exercise not found');
                 return;
             }
 
-            // Populate form
-            document.getElementById('new-ex-name').value = exercise.title || exercise.name || '';
-            document.getElementById('new-ex-desc').value = exercise.description || '';
-            document.getElementById('new-ex-instructions').value = exercise.instructions || '';
-            document.getElementById('new-ex-video').value = exercise.videoUrl || '';
+            console.log('[Editor] Loading exercise for edit:', exercise);
 
-            // Populate dosage fields if they exist
-            document.getElementById('new-ex-sets').value = exercise.dosage?.sets || '';
-            document.getElementById('new-ex-reps').value = exercise.dosage?.reps || '';
-            document.getElementById('new-ex-freq').value = exercise.dosage?.frequency || '';
-            document.getElementById('new-ex-dose-notes').value = exercise.dosage?.notes || '';
+            // Clear all array fields first
+            clearAllArrayFields();
+
+            // Populate basic fields
+            document.getElementById('ex-name').value = exercise.canonical_name || exercise.title || exercise.name || '';
+            document.getElementById('ex-category').value = exercise.pt_category || '';
+            document.getElementById('ex-desc').value = exercise.description || '';
+            document.getElementById('ex-pattern').value = exercise.pattern || '';
+
+            // Populate primary muscles
+            if (exercise.primary_muscles && exercise.primary_muscles.length > 0) {
+                exercise.primary_muscles.forEach((muscle, idx) => {
+                    addMuscleField('primary');
+                    const input = document.getElementById(`primary-muscle-${idx}`);
+                    if (input) input.value = muscle;
+                });
+            }
+
+            // Populate secondary muscles
+            if (exercise.secondary_muscles && exercise.secondary_muscles.length > 0) {
+                exercise.secondary_muscles.forEach((muscle, idx) => {
+                    addMuscleField('secondary');
+                    const input = document.getElementById(`secondary-muscle-${idx}`);
+                    if (input) input.value = muscle;
+                });
+            }
+
+            // Populate pattern modifiers
+            if (exercise.pattern_modifiers && exercise.pattern_modifiers.length > 0) {
+                exercise.pattern_modifiers.forEach((mod, idx) => {
+                    addPatternModifier();
+                    const input = document.getElementById(`pattern-mod-${idx}`);
+                    if (input) input.value = mod;
+                });
+            }
+
+            // Populate equipment
+            if (exercise.equipment) {
+                if (exercise.equipment.required && exercise.equipment.required.length > 0) {
+                    exercise.equipment.required.forEach((eq, idx) => {
+                        addEquipmentField('required');
+                        const input = document.getElementById(`equipment-required-${idx}`);
+                        if (input) input.value = eq;
+                    });
+                }
+                if (exercise.equipment.optional && exercise.equipment.optional.length > 0) {
+                    exercise.equipment.optional.forEach((eq, idx) => {
+                        addEquipmentField('optional');
+                        const input = document.getElementById(`equipment-optional-${idx}`);
+                        if (input) input.value = eq;
+                    });
+                }
+            }
+
+            // Populate form parameters
+            if (exercise.form_parameters_required && exercise.form_parameters_required.length > 0) {
+                exercise.form_parameters_required.forEach((param, idx) => {
+                    addFormParamField();
+                    const input = document.getElementById(`form-param-${idx}`);
+                    if (input) input.value = param;
+                });
+            }
+
+            // Populate guidance
+            if (exercise.guidance) {
+                if (exercise.guidance.external_cues && exercise.guidance.external_cues.length > 0) {
+                    exercise.guidance.external_cues.forEach((cue, idx) => {
+                        addGuidanceField('external');
+                        const input = document.getElementById(`external-${idx}`);
+                        if (input) input.value = cue;
+                    });
+                }
+                if (exercise.guidance.motor_cues && exercise.guidance.motor_cues.length > 0) {
+                    exercise.guidance.motor_cues.forEach((cue, idx) => {
+                        addGuidanceField('motor');
+                        const input = document.getElementById(`motor-${idx}`);
+                        if (input) input.value = cue;
+                    });
+                }
+                if (exercise.guidance.compensation_warnings && exercise.guidance.compensation_warnings.length > 0) {
+                    exercise.guidance.compensation_warnings.forEach((warning, idx) => {
+                        addGuidanceField('compensation');
+                        const input = document.getElementById(`compensation-${idx}`);
+                        if (input) input.value = warning;
+                    });
+                }
+                if (exercise.guidance.safety_flags && exercise.guidance.safety_flags.length > 0) {
+                    exercise.guidance.safety_flags.forEach((flag, idx) => {
+                        addGuidanceField('safety');
+                        const input = document.getElementById(`safety-${idx}`);
+                        if (input) input.value = flag;
+                    });
+                }
+            }
+
+            // Populate tags
+            if (exercise.tags) {
+                if (exercise.tags.functional && exercise.tags.functional.length > 0) {
+                    exercise.tags.functional.forEach((tag, idx) => {
+                        addTagField('functional');
+                        const input = document.getElementById(`tag-functional-${idx}`);
+                        if (input) input.value = tag;
+                    });
+                }
+                if (exercise.tags.format && exercise.tags.format.length > 0) {
+                    exercise.tags.format.forEach((tag, idx) => {
+                        addTagField('format');
+                        const input = document.getElementById(`tag-format-${idx}`);
+                        if (input) input.value = tag;
+                    });
+                }
+                if (exercise.tags.heatmap && exercise.tags.heatmap.length > 0) {
+                    exercise.tags.heatmap.forEach((tag, idx) => {
+                        addTagField('heatmap');
+                        const input = document.getElementById(`tag-heatmap-${idx}`);
+                        if (input) input.value = tag;
+                    });
+                }
+            }
 
             // Show archive button
             archiveBtn.style.display = 'block';
@@ -1197,95 +1304,181 @@
         }
 
         function saveExercise() {
-            const name = document.getElementById('new-ex-name').value.trim();
-            const description = document.getElementById('new-ex-desc').value.trim();
-            const instructions = document.getElementById('new-ex-instructions').value.trim();
-            const videoUrl = document.getElementById('new-ex-video').value.trim();
+            // Collect basic fields
+            const name = document.getElementById('ex-name').value.trim();
+            const category = document.getElementById('ex-category').value.trim();
+            const description = document.getElementById('ex-desc').value.trim();
+            const pattern = document.getElementById('ex-pattern').value;
 
-            // Dosage fields
-            const sets = document.getElementById('new-ex-sets').value;
-            const reps = document.getElementById('new-ex-reps').value;
-            const frequency = document.getElementById('new-ex-freq').value;
-            const doseNotes = document.getElementById('new-ex-dose-notes').value.trim();
+            // Collect array fields
+            const primary_muscles = [];
+            document.querySelectorAll('[id^="primary-muscle-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) primary_muscles.push(val);
+            });
 
-            if (!name) {
-                alert('Please enter an exercise name');
+            const secondary_muscles = [];
+            document.querySelectorAll('[id^="secondary-muscle-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) secondary_muscles.push(val);
+            });
+
+            const pattern_modifiers = [];
+            document.querySelectorAll('[id^="pattern-mod-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) pattern_modifiers.push(val);
+            });
+
+            const equipmentRequired = [];
+            document.querySelectorAll('[id^="equipment-required-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) equipmentRequired.push(val);
+            });
+
+            const equipmentOptional = [];
+            document.querySelectorAll('[id^="equipment-optional-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) equipmentOptional.push(val);
+            });
+
+            const form_parameters_required = [];
+            document.querySelectorAll('[id^="form-param-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) form_parameters_required.push(val);
+            });
+
+            // Collect guidance
+            const external_cues = [];
+            document.querySelectorAll('[id^="external-"]').forEach(textarea => {
+                const val = textarea.value.trim();
+                if (val) external_cues.push(val);
+            });
+
+            const motor_cues = [];
+            document.querySelectorAll('[id^="motor-"]').forEach(textarea => {
+                const val = textarea.value.trim();
+                if (val) motor_cues.push(val);
+            });
+
+            const compensation_warnings = [];
+            document.querySelectorAll('[id^="compensation-"]').forEach(textarea => {
+                const val = textarea.value.trim();
+                if (val) compensation_warnings.push(val);
+            });
+
+            const safety_flags = [];
+            document.querySelectorAll('[id^="safety-"]').forEach(textarea => {
+                const val = textarea.value.trim();
+                if (val) safety_flags.push(val);
+            });
+
+            // Collect tags
+            const tags_functional = [];
+            document.querySelectorAll('[id^="tag-functional-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) tags_functional.push(val);
+            });
+
+            const tags_format = [];
+            document.querySelectorAll('[id^="tag-format-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) tags_format.push(val);
+            });
+
+            const tags_heatmap = [];
+            document.querySelectorAll('[id^="tag-heatmap-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) tags_heatmap.push(val);
+            });
+
+            // Validate schema required fields - BLOCK if missing
+            const errors = [];
+            const requiredFields = schema?.$defs?.exercise?.required || [];
+
+            if (requiredFields.includes('canonical_name') && !name) {
+                errors.push('- Canonical Name is required');
+            }
+            if (requiredFields.includes('pt_category') && !category) {
+                errors.push('- PT Category is required');
+            }
+            if (requiredFields.includes('description') && !description) {
+                errors.push('- Description is required');
+            }
+            if (requiredFields.includes('pattern') && !pattern) {
+                errors.push('- Pattern is required');
+            }
+            if (requiredFields.includes('primary_muscles') && primary_muscles.length === 0) {
+                errors.push('- At least one Primary Muscle is required');
+            }
+
+            if (errors.length > 0) {
+                alert('Cannot save - required fields missing:\n\n' + errors.join('\n'));
                 return;
             }
 
-            // Build dosage object if any fields are filled
-            let dosage = null;
-            if (sets || reps || frequency || doseNotes) {
-                dosage = {};
-                if (sets) dosage.sets = parseInt(sets);
-                if (reps) dosage.reps = parseInt(reps);
-                if (frequency) dosage.frequency = parseInt(frequency);
-                if (doseNotes) dosage.notes = doseNotes;
-            }
+            // Build exercise object in exercise_library.json format
+            const exercise = {
+                exercise_id: currentEditingExerciseId || generateULID(),
+                canonical_name: name,
+                pt_category: category || null,
+                description: description || null,
+                primary_muscles: primary_muscles,
+                secondary_muscles: secondary_muscles,
+                pattern: pattern,
+                pattern_modifiers: pattern_modifiers,
+                equipment: {
+                    required: equipmentRequired,
+                    optional: equipmentOptional
+                },
+                form_parameters_required: form_parameters_required,
+                tags: {
+                    functional: tags_functional,
+                    format: tags_format,
+                    heatmap: tags_heatmap
+                },
+                guidance: {
+                    external_cues: external_cues,
+                    motor_cues: motor_cues,
+                    compensation_warnings: compensation_warnings,
+                    safety_flags: safety_flags
+                },
+                lifecycle: {
+                    status: 'active',
+                    effective_start_date: null,
+                    effective_end_date: null
+                },
+                added_date: null,
+                updated_date: null
+            };
+
+            // Add legacy format for backward compatibility
+            exercise.id = exercise.exercise_id;
+            exercise.name = name;
+            exercise.title = name;
 
             if (currentEditingExerciseId) {
-                // Editing existing exercise
-                const exercise = {
-                    id: currentEditingExerciseId,
-                    name: name,
-                    title: name,
-                    description: description || '',
-                    instructions: instructions || '',
-                    videoUrl: videoUrl || ''
-                };
-
-                if (dosage) {
-                    exercise.dosage = dosage;
-                }
-
-                // Update in modifications
                 modifications.editedExercises[currentEditingExerciseId] = exercise;
-
-                // Update in local exerciseLibrary
-                const index = exerciseLibrary.findIndex(ex => ex.id === currentEditingExerciseId);
+                const index = exerciseLibrary.findIndex(ex => (ex.id || ex.exercise_id) === currentEditingExerciseId);
                 if (index !== -1) {
                     exerciseLibrary[index] = exercise;
                 }
-
-                alert(`Exercise "${name}" updated! Remember to export modifications when done.`);
+                alert(`Exercise "${name}" updated! Remember to export modifications.`);
             } else {
-                // Adding new exercise
-                const newExercise = {
-                    id: generateULID(),
-                    name: name,
-                    title: name,
-                    description: description || '',
-                    instructions: instructions || '',
-                    videoUrl: videoUrl || ''
-                };
-
-                if (dosage) {
-                    newExercise.dosage = dosage;
-                }
-
-                // Add to modifications
-                modifications.newExercises.push(newExercise);
-
-                // Add to local exerciseLibrary for immediate use
-                exerciseLibrary.push(newExercise);
-
-                alert(`Exercise "${name}" added! Remember to export modifications when done.`);
+                modifications.newExercises.push(exercise);
+                exerciseLibrary.push(exercise);
+                alert(`Exercise "${name}" added! Remember to export modifications.`);
             }
 
             // Clear form
-            document.getElementById('new-ex-name').value = '';
-            document.getElementById('new-ex-desc').value = '';
-            document.getElementById('new-ex-instructions').value = '';
-            document.getElementById('new-ex-video').value = '';
-            document.getElementById('new-ex-sets').value = '';
-            document.getElementById('new-ex-reps').value = '';
-            document.getElementById('new-ex-freq').value = '';
-            document.getElementById('new-ex-dose-notes').value = '';
+            document.getElementById('ex-name').value = '';
+            document.getElementById('ex-category').value = '';
+            document.getElementById('ex-desc').value = '';
+            document.getElementById('ex-pattern').value = '';
+            clearAllArrayFields();
             document.getElementById('edit-ex-select').value = '';
             document.getElementById('archive-btn').style.display = 'none';
             currentEditingExerciseId = null;
 
-            // Refresh dropdowns
             initializeEditorMode();
             updateModificationSummary();
         }
