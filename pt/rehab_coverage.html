@@ -845,6 +845,19 @@
                 // Populate debug info
                 let debugHtml = '';
 
+                // localStorage inspection
+                debugHtml += `<div style="margin-bottom: 8px; padding: 8px; background: var(--bg-tertiary); border-radius: 4px;">`;
+                debugHtml += `<strong>localStorage status:</strong><br>`;
+                debugHtml += `<strong>Total keys:</strong> ${localStorage.length}<br>`;
+                debugHtml += `<strong>All keys:</strong><br>`;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+                    const valuePreview = value.length > 50 ? value.substring(0, 50) + '...' : value;
+                    debugHtml += `&nbsp;&nbsp;${key}: ${value.length} chars<br>`;
+                }
+                debugHtml += `</div>`;
+
                 // Session history info
                 debugHtml += `<div style="margin-bottom: 8px;">`;
                 debugHtml += `<strong>Sessions:</strong> ${sessionHistory.length}<br>`;
@@ -858,6 +871,10 @@
                     });
                 } else {
                     debugHtml += `<span style="color: var(--ios-red);">NO SESSION HISTORY!</span><br>`;
+                    debugHtml += `<br><strong style="color: var(--ios-yellow);">Troubleshooting:</strong><br>`;
+                    debugHtml += `1. Close this page<br>`;
+                    debugHtml += `2. Open PT Tracker<br>`;
+                    debugHtml += `3. Scroll down and tap Coverage button<br>`;
                 }
                 debugHtml += `</div>`;
 
