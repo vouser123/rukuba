@@ -347,11 +347,6 @@
                     </select>
                 </div>
 
-                <!-- Dynamic Form Container (populated from schema) -->
-                <div id="dynamic-exercise-form">
-                    <!-- Fields generated dynamically from schema in initializeEditorMode() -->
-                </div>
-
                 <!-- Basic Info (Always Visible) -->
                 <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
                     <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📝 Basic Information</h4>
@@ -362,8 +357,11 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="ex-category">PT Category</label>
-                        <input type="text" id="ex-category" class="form-input" placeholder="e.g., back_sij, hip, knee">
+                        <label class="form-label" for="ex-category">PT Category <span style="font-size: 11px; color: var(--text-secondary);">(select from schema)</span></label>
+                        <input type="text" id="ex-category" class="form-input" list="pt-category-options" placeholder="Select or type">
+                        <datalist id="pt-category-options">
+                            <!-- Populated from schema dynamically -->
+                        </datalist>
                     </div>
 
                     <div class="form-group">
@@ -1128,6 +1126,13 @@
                 patternModifiersHelp.innerHTML = helpLines.join('<br>');
             }
 
+            // Populate pt_category datalist from schema
+            const ptCategoryDatalist = document.getElementById('pt-category-options');
+            if (ptCategoryDatalist && schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pt_category) {
+                const categories = schema.$defs.exercise.properties.pt_category.enum || [];
+                ptCategoryDatalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
+            }
+
             updateModificationSummary();
         }
 
@@ -1203,11 +1208,21 @@
             const container = document.getElementById('form-params-list');
             const index = container.children.length;
 
+            // Build datalist from schema
+            let datalistOptions = '';
+            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.form_parameters_required && schema.$defs.exercise.properties.form_parameters_required.items) {
+                const params = schema.$defs.exercise.properties.form_parameters_required.items.enum || [];
+                datalistOptions = params.map(p => `<option value="${p}">`).join('');
+            }
+
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="form-param-${index}" placeholder="e.g., band_color, step_height_inches" style="flex: 1;">
+                    <input type="text" class="form-input" id="form-param-${index}" placeholder="Select from schema or type custom" list="form-param-options-${index}" style="flex: 1;">
+                    <datalist id="form-param-options-${index}">
+                        ${datalistOptions}
+                    </datalist>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
