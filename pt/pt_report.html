@@ -497,7 +497,7 @@
 
                 // Hide import screen, show report
                 document.getElementById('import-screen').style.display = 'none';
-                document.querySelectorAll('.section').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'block');
                 document.querySelector('.report-header').style.display = 'block';
                 document.getElementById('action-buttons').style.display = 'flex';
 
@@ -528,15 +528,15 @@
 
         function resetReport() {
             document.getElementById('import-screen').style.display = 'flex';
-            document.querySelectorAll('.section').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('body > .section').forEach(el => el.style.display = 'none');
             document.querySelector('.report-header').style.display = 'none';
             document.getElementById('action-buttons').style.display = 'none';
             document.getElementById('file-input').value = '';
         }
 
         function init() {
-            // Hide report sections initially
-            document.querySelectorAll('.section').forEach(el => el.style.display = 'none');
+            // Hide report sections initially (but not editor-mode sections)
+            document.querySelectorAll('body > .section').forEach(el => el.style.display = 'none');
             document.querySelector('.report-header').style.display = 'none';
         }
 
