@@ -335,53 +335,161 @@
             <!-- Add/Edit Exercise Section -->
             <div class="section">
                 <h3 class="section-title">Add or Edit Exercise</h3>
+
+                <!-- Exercise Selector -->
                 <div class="form-group">
                     <label class="form-label" for="edit-ex-select">Select Existing Exercise to Edit (optional)</label>
                     <select id="edit-ex-select" class="form-select" onchange="loadExerciseForEdit()">
                         <option value="">-- Add new exercise (leave blank) --</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="new-ex-name">Exercise Name *</label>
-                    <input type="text" id="new-ex-name" class="form-input" placeholder="e.g., Single Leg Bridge" onkeydown="if(event.key==='Enter')saveExercise()">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="new-ex-desc">Description</label>
-                    <textarea id="new-ex-desc" class="form-input" rows="3" placeholder="Brief description of the exercise"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="new-ex-instructions">Instructions</label>
-                    <textarea id="new-ex-instructions" class="form-input" rows="4" placeholder="Step-by-step instructions"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="new-ex-video">Video URL</label>
-                    <input type="url" id="new-ex-video" class="form-input" placeholder="https://...">
-                </div>
 
-                <!-- Dosage/Prescription Section -->
-                <div style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin: 15px 0;">
-                    <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📋 Recommended Dosage (Optional)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" for="new-ex-sets" style="font-size: 14px;">Sets</label>
-                            <input type="number" id="new-ex-sets" class="form-input" placeholder="3" min="1" style="padding: 10px;">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" for="new-ex-reps" style="font-size: 14px;">Reps</label>
-                            <input type="number" id="new-ex-reps" class="form-input" placeholder="10" min="1" style="padding: 10px;">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" for="new-ex-freq" style="font-size: 14px;">Per Week</label>
-                            <input type="number" id="new-ex-freq" class="form-input" placeholder="3" min="1" max="7" style="padding: 10px;">
-                        </div>
+                <!-- Basic Info (Always Visible) -->
+                <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📝 Basic Information</h4>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-name">Canonical Name *</label>
+                        <input type="text" id="ex-name" class="form-input" placeholder="e.g., Single Leg Bridge">
                     </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" for="new-ex-dose-notes" style="font-size: 14px;">Dosage Notes</label>
-                        <textarea id="new-ex-dose-notes" class="form-input" rows="2" placeholder="e.g., Start with bodyweight, progress to 10lb dumbbell" style="padding: 10px; font-size: 14px;"></textarea>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-category">PT Category</label>
+                        <input type="text" id="ex-category" class="form-input" placeholder="e.g., back_sij, hip, knee">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-desc">Description *</label>
+                        <textarea id="ex-desc" class="form-input" rows="3" placeholder="Clear description of the exercise and how to perform it"></textarea>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 10px;">
+                <!-- Muscles Section (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">💪 Muscles</summary>
+
+                    <div id="primary-muscles-container">
+                        <label class="form-label">Primary Muscles</label>
+                        <div id="primary-muscles-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addMuscleField('primary')" style="width: 100%; margin-top: 8px;">+ Add Primary Muscle</button>
+                    </div>
+
+                    <div id="secondary-muscles-container" style="margin-top: 15px;">
+                        <label class="form-label">Secondary Muscles</label>
+                        <div id="secondary-muscles-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addMuscleField('secondary')" style="width: 100%; margin-top: 8px;">+ Add Secondary Muscle</button>
+                    </div>
+                </details>
+
+                <!-- Movement Pattern (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🔄 Movement Pattern</summary>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-pattern">Pattern *</label>
+                        <select id="ex-pattern" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="side">Side (Unilateral)</option>
+                            <option value="bilateral">Bilateral</option>
+                            <option value="unilateral">Unilateral</option>
+                            <option value="alternating">Alternating</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label">Pattern Modifiers</label>
+                        <div id="pattern-modifiers-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addPatternModifier()" style="width: 100%; margin-top: 8px;">+ Add Modifier</button>
+                    </div>
+                </details>
+
+                <!-- Equipment (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🏋️ Equipment</summary>
+
+                    <div>
+                        <label class="form-label">Required Equipment</label>
+                        <div id="equipment-required-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addEquipmentField('required')" style="width: 100%; margin-top: 8px;">+ Add Required</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Optional Equipment</label>
+                        <div id="equipment-optional-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addEquipmentField('optional')" style="width: 100%; margin-top: 8px;">+ Add Optional</button>
+                    </div>
+                </details>
+
+                <!-- Form Parameters (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">📊 Form Parameters</summary>
+
+                    <div>
+                        <label class="form-label">Form Parameters Required</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Parameters that vary per session (e.g., band color, step height, ball size)</p>
+                        <div id="form-params-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addFormParamField()" style="width: 100%; margin-top: 8px;">+ Add Parameter</button>
+                    </div>
+                </details>
+
+                <!-- Guidance (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🎯 Guidance & Cues</summary>
+
+                    <div>
+                        <label class="form-label">External Cues</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Visual checks, setup instructions</p>
+                        <div id="external-cues-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addGuidanceField('external')" style="width: 100%; margin-top: 8px;">+ Add External Cue</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Motor Cues</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Internal movement cues, what to feel</p>
+                        <div id="motor-cues-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addGuidanceField('motor')" style="width: 100%; margin-top: 8px;">+ Add Motor Cue</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Compensation Warnings</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Common form breakdowns to watch for</p>
+                        <div id="compensation-warnings-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addGuidanceField('compensation')" style="width: 100%; margin-top: 8px;">+ Add Warning</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Safety Flags</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">When to stop immediately</p>
+                        <div id="safety-flags-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addGuidanceField('safety')" style="width: 100%; margin-top: 8px;">+ Add Safety Flag</button>
+                    </div>
+                </details>
+
+                <!-- Tags (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🏷️ Tags</summary>
+
+                    <div>
+                        <label class="form-label">Functional Tags</label>
+                        <div id="tags-functional-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addTagField('functional')" style="width: 100%; margin-top: 8px;">+ Add Functional Tag</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Format Tags</label>
+                        <div id="tags-format-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addTagField('format')" style="width: 100%; margin-top: 8px;">+ Add Format Tag</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Heatmap Tags</label>
+                        <div id="tags-heatmap-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addTagField('heatmap')" style="width: 100%; margin-top: 8px;">+ Add Heatmap Tag</button>
+                    </div>
+                </details>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn-primary" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
                     <button class="btn-danger" onclick="archiveExercise()" id="archive-btn" style="display: none;">🗑️ Archive</button>
                 </div>
@@ -926,43 +1034,269 @@
 
         let currentEditingExerciseId = null; // Track which exercise is being edited
 
+        // ========== ARRAY FIELD HELPERS ==========
+
+        function addMuscleField(type) {
+            const containerId = type === 'primary' ? 'primary-muscles-list' : 'secondary-muscles-list';
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="${type}-muscle-${index}" placeholder="e.g., Gluteus Maximus" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addPatternModifier() {
+            const container = document.getElementById('pattern-modifiers-list');
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="e.g., loaded, eccentric_emphasis" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addEquipmentField(type) {
+            const containerId = type === 'required' ? 'equipment-required-list' : 'equipment-optional-list';
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="equipment-${type}-${index}" placeholder="e.g., swiss_ball, resistance_band" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addFormParamField() {
+            const container = document.getElementById('form-params-list');
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="form-param-${index}" placeholder="e.g., band_color, step_height_inches" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addGuidanceField(type) {
+            const typeMap = {
+                'external': 'external-cues-list',
+                'motor': 'motor-cues-list',
+                'compensation': 'compensation-warnings-list',
+                'safety': 'safety-flags-list'
+            };
+
+            const container = document.getElementById(typeMap[type]);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <textarea class="form-input" id="${type}-${index}" rows="2" placeholder="Enter ${type} cue/warning..." style="flex: 1;"></textarea>
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px; height: fit-content;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addTagField(type) {
+            const containerId = `tags-${type}-list`;
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="tag-${type}-${index}" placeholder="e.g., gait, balance" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function clearAllArrayFields() {
+            // Clear all dynamic array field containers
+            document.getElementById('primary-muscles-list').innerHTML = '';
+            document.getElementById('secondary-muscles-list').innerHTML = '';
+            document.getElementById('pattern-modifiers-list').innerHTML = '';
+            document.getElementById('equipment-required-list').innerHTML = '';
+            document.getElementById('equipment-optional-list').innerHTML = '';
+            document.getElementById('form-params-list').innerHTML = '';
+            document.getElementById('external-cues-list').innerHTML = '';
+            document.getElementById('motor-cues-list').innerHTML = '';
+            document.getElementById('compensation-warnings-list').innerHTML = '';
+            document.getElementById('safety-flags-list').innerHTML = '';
+            document.getElementById('tags-functional-list').innerHTML = '';
+            document.getElementById('tags-format-list').innerHTML = '';
+            document.getElementById('tags-heatmap-list').innerHTML = '';
+        }
+
         function loadExerciseForEdit() {
             const exerciseId = document.getElementById('edit-ex-select').value;
             const archiveBtn = document.getElementById('archive-btn');
 
             if (!exerciseId) {
                 // Clear form for new exercise
-                document.getElementById('new-ex-name').value = '';
-                document.getElementById('new-ex-desc').value = '';
-                document.getElementById('new-ex-instructions').value = '';
-                document.getElementById('new-ex-video').value = '';
-                document.getElementById('new-ex-sets').value = '';
-                document.getElementById('new-ex-reps').value = '';
-                document.getElementById('new-ex-freq').value = '';
-                document.getElementById('new-ex-dose-notes').value = '';
+                document.getElementById('ex-name').value = '';
+                document.getElementById('ex-category').value = '';
+                document.getElementById('ex-desc').value = '';
+                document.getElementById('ex-pattern').value = '';
+                clearAllArrayFields();
                 archiveBtn.style.display = 'none';
                 currentEditingExerciseId = null;
                 return;
             }
 
             // Load exercise data
-            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId || ex.exercise_id === exerciseId);
             if (!exercise) {
                 alert('Exercise not found');
                 return;
             }
 
-            // Populate form
-            document.getElementById('new-ex-name').value = exercise.title || exercise.name || '';
-            document.getElementById('new-ex-desc').value = exercise.description || '';
-            document.getElementById('new-ex-instructions').value = exercise.instructions || '';
-            document.getElementById('new-ex-video').value = exercise.videoUrl || '';
+            console.log('[Editor] Loading exercise for edit:', exercise);
 
-            // Populate dosage fields if they exist
-            document.getElementById('new-ex-sets').value = exercise.dosage?.sets || '';
-            document.getElementById('new-ex-reps').value = exercise.dosage?.reps || '';
-            document.getElementById('new-ex-freq').value = exercise.dosage?.frequency || '';
-            document.getElementById('new-ex-dose-notes').value = exercise.dosage?.notes || '';
+            // Clear all array fields first
+            clearAllArrayFields();
+
+            // Populate basic fields
+            document.getElementById('ex-name').value = exercise.canonical_name || exercise.title || exercise.name || '';
+            document.getElementById('ex-category').value = exercise.pt_category || '';
+            document.getElementById('ex-desc').value = exercise.description || '';
+            document.getElementById('ex-pattern').value = exercise.pattern || '';
+
+            // Populate primary muscles
+            if (exercise.primary_muscles && exercise.primary_muscles.length > 0) {
+                exercise.primary_muscles.forEach((muscle, idx) => {
+                    addMuscleField('primary');
+                    const input = document.getElementById(`primary-muscle-${idx}`);
+                    if (input) input.value = muscle;
+                });
+            }
+
+            // Populate secondary muscles
+            if (exercise.secondary_muscles && exercise.secondary_muscles.length > 0) {
+                exercise.secondary_muscles.forEach((muscle, idx) => {
+                    addMuscleField('secondary');
+                    const input = document.getElementById(`secondary-muscle-${idx}`);
+                    if (input) input.value = muscle;
+                });
+            }
+
+            // Populate pattern modifiers
+            if (exercise.pattern_modifiers && exercise.pattern_modifiers.length > 0) {
+                exercise.pattern_modifiers.forEach((mod, idx) => {
+                    addPatternModifier();
+                    const input = document.getElementById(`pattern-mod-${idx}`);
+                    if (input) input.value = mod;
+                });
+            }
+
+            // Populate equipment
+            if (exercise.equipment) {
+                if (exercise.equipment.required && exercise.equipment.required.length > 0) {
+                    exercise.equipment.required.forEach((eq, idx) => {
+                        addEquipmentField('required');
+                        const input = document.getElementById(`equipment-required-${idx}`);
+                        if (input) input.value = eq;
+                    });
+                }
+                if (exercise.equipment.optional && exercise.equipment.optional.length > 0) {
+                    exercise.equipment.optional.forEach((eq, idx) => {
+                        addEquipmentField('optional');
+                        const input = document.getElementById(`equipment-optional-${idx}`);
+                        if (input) input.value = eq;
+                    });
+                }
+            }
+
+            // Populate form parameters
+            if (exercise.form_parameters_required && exercise.form_parameters_required.length > 0) {
+                exercise.form_parameters_required.forEach((param, idx) => {
+                    addFormParamField();
+                    const input = document.getElementById(`form-param-${idx}`);
+                    if (input) input.value = param;
+                });
+            }
+
+            // Populate guidance
+            if (exercise.guidance) {
+                if (exercise.guidance.external_cues && exercise.guidance.external_cues.length > 0) {
+                    exercise.guidance.external_cues.forEach((cue, idx) => {
+                        addGuidanceField('external');
+                        const input = document.getElementById(`external-${idx}`);
+                        if (input) input.value = cue;
+                    });
+                }
+                if (exercise.guidance.motor_cues && exercise.guidance.motor_cues.length > 0) {
+                    exercise.guidance.motor_cues.forEach((cue, idx) => {
+                        addGuidanceField('motor');
+                        const input = document.getElementById(`motor-${idx}`);
+                        if (input) input.value = cue;
+                    });
+                }
+                if (exercise.guidance.compensation_warnings && exercise.guidance.compensation_warnings.length > 0) {
+                    exercise.guidance.compensation_warnings.forEach((warning, idx) => {
+                        addGuidanceField('compensation');
+                        const input = document.getElementById(`compensation-${idx}`);
+                        if (input) input.value = warning;
+                    });
+                }
+                if (exercise.guidance.safety_flags && exercise.guidance.safety_flags.length > 0) {
+                    exercise.guidance.safety_flags.forEach((flag, idx) => {
+                        addGuidanceField('safety');
+                        const input = document.getElementById(`safety-${idx}`);
+                        if (input) input.value = flag;
+                    });
+                }
+            }
+
+            // Populate tags
+            if (exercise.tags) {
+                if (exercise.tags.functional && exercise.tags.functional.length > 0) {
+                    exercise.tags.functional.forEach((tag, idx) => {
+                        addTagField('functional');
+                        const input = document.getElementById(`tag-functional-${idx}`);
+                        if (input) input.value = tag;
+                    });
+                }
+                if (exercise.tags.format && exercise.tags.format.length > 0) {
+                    exercise.tags.format.forEach((tag, idx) => {
+                        addTagField('format');
+                        const input = document.getElementById(`tag-format-${idx}`);
+                        if (input) input.value = tag;
+                    });
+                }
+                if (exercise.tags.heatmap && exercise.tags.heatmap.length > 0) {
+                    exercise.tags.heatmap.forEach((tag, idx) => {
+                        addTagField('heatmap');
+                        const input = document.getElementById(`tag-heatmap-${idx}`);
+                        if (input) input.value = tag;
+                    });
+                }
+            }
 
             // Show archive button
             archiveBtn.style.display = 'block';
@@ -970,95 +1304,227 @@
         }
 
         function saveExercise() {
-            const name = document.getElementById('new-ex-name').value.trim();
-            const description = document.getElementById('new-ex-desc').value.trim();
-            const instructions = document.getElementById('new-ex-instructions').value.trim();
-            const videoUrl = document.getElementById('new-ex-video').value.trim();
+            // Collect basic fields
+            const name = document.getElementById('ex-name').value.trim();
+            const category = document.getElementById('ex-category').value.trim();
+            const description = document.getElementById('ex-desc').value.trim();
+            const pattern = document.getElementById('ex-pattern').value;
 
-            // Dosage fields
-            const sets = document.getElementById('new-ex-sets').value;
-            const reps = document.getElementById('new-ex-reps').value;
-            const frequency = document.getElementById('new-ex-freq').value;
-            const doseNotes = document.getElementById('new-ex-dose-notes').value.trim();
+            // Collect array fields
+            const primary_muscles = [];
+            document.querySelectorAll('[id^="primary-muscle-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) primary_muscles.push(val);
+            });
 
-            if (!name) {
-                alert('Please enter an exercise name');
+            const secondary_muscles = [];
+            document.querySelectorAll('[id^="secondary-muscle-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) secondary_muscles.push(val);
+            });
+
+            const pattern_modifiers = [];
+            document.querySelectorAll('[id^="pattern-mod-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) pattern_modifiers.push(val);
+            });
+
+            const equipmentRequired = [];
+            document.querySelectorAll('[id^="equipment-required-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) equipmentRequired.push(val);
+            });
+
+            const equipmentOptional = [];
+            document.querySelectorAll('[id^="equipment-optional-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) equipmentOptional.push(val);
+            });
+
+            const form_parameters_required = [];
+            document.querySelectorAll('[id^="form-param-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) form_parameters_required.push(val);
+            });
+
+            // Collect guidance
+            const external_cues = [];
+            document.querySelectorAll('[id^="external-"]').forEach(textarea => {
+                const val = textarea.value.trim();
+                if (val) external_cues.push(val);
+            });
+
+            const motor_cues = [];
+            document.querySelectorAll('[id^="motor-"]').forEach(textarea => {
+                const val = textarea.value.trim();
+                if (val) motor_cues.push(val);
+            });
+
+            const compensation_warnings = [];
+            document.querySelectorAll('[id^="compensation-"]').forEach(textarea => {
+                const val = textarea.value.trim();
+                if (val) compensation_warnings.push(val);
+            });
+
+            const safety_flags = [];
+            document.querySelectorAll('[id^="safety-"]').forEach(textarea => {
+                const val = textarea.value.trim();
+                if (val) safety_flags.push(val);
+            });
+
+            // Collect tags
+            const tags_functional = [];
+            document.querySelectorAll('[id^="tag-functional-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) tags_functional.push(val);
+            });
+
+            const tags_format = [];
+            document.querySelectorAll('[id^="tag-format-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) tags_format.push(val);
+            });
+
+            const tags_heatmap = [];
+            document.querySelectorAll('[id^="tag-heatmap-"]').forEach(input => {
+                const val = input.value.trim();
+                if (val) tags_heatmap.push(val);
+            });
+
+            // Schema-driven validation: only block fields that are required AND don't allow null AND have no default
+            const errors = [];
+
+            if (schema && schema.$defs && schema.$defs.exercise) {
+                const requiredFields = schema.$defs.exercise.required || [];
+                const properties = schema.$defs.exercise.properties || {};
+
+                // Map field names to collected values
+                const fieldValues = {
+                    'exercise_id': currentEditingExerciseId || 'will-be-generated',
+                    'canonical_name': name,
+                    'pt_category': category,
+                    'description': description,
+                    'primary_muscles': primary_muscles,
+                    'secondary_muscles': secondary_muscles,
+                    'pattern': pattern,
+                    'pattern_modifiers': pattern_modifiers,
+                    'equipment': { required: equipmentRequired, optional: equipmentOptional },
+                    'form_parameters_required': form_parameters_required,
+                    'tags': { functional: tags_functional, format: tags_format, heatmap: tags_heatmap },
+                    'guidance': { external_cues, motor_cues, compensation_warnings, safety_flags },
+                    'lifecycle': { status: 'active', effective_start_date: null, effective_end_date: null },
+                    'added_date': null,
+                    'updated_date': null
+                };
+
+                requiredFields.forEach(fieldName => {
+                    const property = properties[fieldName];
+                    if (!property) return;
+
+                    // Check if field allows null
+                    const allowsNull = Array.isArray(property.type) ? property.type.includes('null') : false;
+                    // Check if field has default value
+                    const hasDefault = property.hasOwnProperty('default');
+
+                    // Only validate if required AND doesn't allow null AND has no default
+                    if (!allowsNull && !hasDefault) {
+                        const value = fieldValues[fieldName];
+                        let isEmpty = false;
+
+                        if (value === null || value === undefined || value === '') {
+                            isEmpty = true;
+                        } else if (Array.isArray(value) && value.length === 0) {
+                            // Check minItems for arrays
+                            if (property.minItems && property.minItems > 0) {
+                                isEmpty = true;
+                            }
+                        } else if (typeof value === 'object' && !Array.isArray(value)) {
+                            // For nested objects (equipment, tags, guidance, lifecycle), check their properties
+                            const nestedDef = schema.$defs[fieldName];
+                            if (nestedDef && nestedDef.required) {
+                                // Will be validated when building the object
+                            }
+                        }
+
+                        if (isEmpty) {
+                            // Convert snake_case to readable name
+                            const readableName = fieldName.split('_').map(word =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            ).join(' ');
+                            errors.push(`- ${readableName} is required`);
+                        }
+                    }
+                });
+            }
+
+            if (errors.length > 0) {
+                alert('Cannot save - required fields missing:\n\n' + errors.join('\n'));
                 return;
             }
 
-            // Build dosage object if any fields are filled
-            let dosage = null;
-            if (sets || reps || frequency || doseNotes) {
-                dosage = {};
-                if (sets) dosage.sets = parseInt(sets);
-                if (reps) dosage.reps = parseInt(reps);
-                if (frequency) dosage.frequency = parseInt(frequency);
-                if (doseNotes) dosage.notes = doseNotes;
-            }
+            // Build exercise object in exercise_library.json format
+            const exercise = {
+                exercise_id: currentEditingExerciseId || generateULID(),
+                canonical_name: name,
+                pt_category: category || null,
+                description: description || null,
+                primary_muscles: primary_muscles,
+                secondary_muscles: secondary_muscles,
+                pattern: pattern,
+                pattern_modifiers: pattern_modifiers,
+                equipment: {
+                    required: equipmentRequired,
+                    optional: equipmentOptional
+                },
+                form_parameters_required: form_parameters_required,
+                tags: {
+                    functional: tags_functional,
+                    format: tags_format,
+                    heatmap: tags_heatmap
+                },
+                guidance: {
+                    external_cues: external_cues,
+                    motor_cues: motor_cues,
+                    compensation_warnings: compensation_warnings,
+                    safety_flags: safety_flags
+                },
+                lifecycle: {
+                    status: 'active',
+                    effective_start_date: null,
+                    effective_end_date: null
+                },
+                added_date: null,
+                updated_date: null
+            };
+
+            // Add legacy format for backward compatibility
+            exercise.id = exercise.exercise_id;
+            exercise.name = name;
+            exercise.title = name;
 
             if (currentEditingExerciseId) {
-                // Editing existing exercise
-                const exercise = {
-                    id: currentEditingExerciseId,
-                    name: name,
-                    title: name,
-                    description: description || '',
-                    instructions: instructions || '',
-                    videoUrl: videoUrl || ''
-                };
-
-                if (dosage) {
-                    exercise.dosage = dosage;
-                }
-
-                // Update in modifications
                 modifications.editedExercises[currentEditingExerciseId] = exercise;
-
-                // Update in local exerciseLibrary
-                const index = exerciseLibrary.findIndex(ex => ex.id === currentEditingExerciseId);
+                const index = exerciseLibrary.findIndex(ex => (ex.id || ex.exercise_id) === currentEditingExerciseId);
                 if (index !== -1) {
                     exerciseLibrary[index] = exercise;
                 }
-
-                alert(`Exercise "${name}" updated! Remember to export modifications when done.`);
+                alert(`Exercise "${name}" updated! Remember to export modifications.`);
             } else {
-                // Adding new exercise
-                const newExercise = {
-                    id: generateULID(),
-                    name: name,
-                    title: name,
-                    description: description || '',
-                    instructions: instructions || '',
-                    videoUrl: videoUrl || ''
-                };
-
-                if (dosage) {
-                    newExercise.dosage = dosage;
-                }
-
-                // Add to modifications
-                modifications.newExercises.push(newExercise);
-
-                // Add to local exerciseLibrary for immediate use
-                exerciseLibrary.push(newExercise);
-
-                alert(`Exercise "${name}" added! Remember to export modifications when done.`);
+                modifications.newExercises.push(exercise);
+                exerciseLibrary.push(exercise);
+                alert(`Exercise "${name}" added! Remember to export modifications.`);
             }
 
             // Clear form
-            document.getElementById('new-ex-name').value = '';
-            document.getElementById('new-ex-desc').value = '';
-            document.getElementById('new-ex-instructions').value = '';
-            document.getElementById('new-ex-video').value = '';
-            document.getElementById('new-ex-sets').value = '';
-            document.getElementById('new-ex-reps').value = '';
-            document.getElementById('new-ex-freq').value = '';
-            document.getElementById('new-ex-dose-notes').value = '';
+            document.getElementById('ex-name').value = '';
+            document.getElementById('ex-category').value = '';
+            document.getElementById('ex-desc').value = '';
+            document.getElementById('ex-pattern').value = '';
+            clearAllArrayFields();
             document.getElementById('edit-ex-select').value = '';
             document.getElementById('archive-btn').style.display = 'none';
             currentEditingExerciseId = null;
 
-            // Refresh dropdowns
             initializeEditorMode();
             updateModificationSummary();
         }
