@@ -1,1353 +1,988 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Rehab Coverage</title>
-  <meta name="theme-color" content="#0b0b0f" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Rehab Coverage</title>
+    <style>
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #1c1c1e;
+            --bg-tertiary: #2c2c2e;
+            --text-primary: #ffffff;
+            --text-secondary: #98989d;
+            --border-color: #38383a;
+            --ios-blue: #0a84ff;
+            --ios-green: #30d158;
+            --ios-orange: #ff9f0a;
+            --ios-red: #ff453a;
+            --ios-yellow: #ffd60a;
+        }
 
-  <style>
-    :root{
-      --bg: #0b0b0f;
-      --card: rgba(255,255,255,0.08);
-      --card2: rgba(255,255,255,0.06);
-      --stroke: rgba(255,255,255,0.10);
-      --text: rgba(255,255,255,0.92);
-      --muted: rgba(255,255,255,0.62);
-      --muted2: rgba(255,255,255,0.42);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-      /* semantic status colors (only for ✓/⚠/✗) */
-      --ok: #32D74B;     /* iOS green */
-      --warn: #FF9F0A;   /* iOS orange */
-      --bad: #FF453A;    /* iOS red */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 16px;
+            padding-bottom: 80px;
+            line-height: 1.4;
+        }
 
-      --radius: 18px;
-      --radius2: 14px;
-      --shadow: 0 10px 30px rgba(0,0,0,0.40);
-      --shadow2: 0 6px 18px rgba(0,0,0,0.28);
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
 
-      --pad: 14px;
-      --pad2: 10px;
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
 
-      --barH: 10px;
-      --barBg: rgba(255,255,255,0.10);
-      --barFill: rgba(255,255,255,0.80);
+        .header-btn {
+            background: var(--bg-secondary);
+            color: var(--ios-blue);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-      --hairline: 1px solid rgba(255,255,255,0.10);
+        .header-btn:active {
+            opacity: 0.7;
+        }
 
-      --tap: rgba(255,255,255,0.06);
-      --tap2: rgba(255,255,255,0.10);
-    }
+        /* Region Accordion */
+        .region-section {
+            margin-bottom: 16px;
+        }
 
-    html, body { height: 100%; }
-    body{
-      margin:0;
-      background: radial-gradient(1200px 800px at 50% -10%, rgba(255,255,255,0.08), transparent 60%),
-                  radial-gradient(900px 600px at 90% 10%, rgba(90,200,250,0.12), transparent 55%),
-                  var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, system-ui, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      overflow-x: hidden;
-    }
+        .region-header {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-color);
+        }
 
-    a{ color: inherit; text-decoration: none; }
+        .region-header:active {
+            opacity: 0.8;
+        }
 
-    .safe{
-      padding-top: max(14px, env(safe-area-inset-top));
-      padding-left: max(12px, env(safe-area-inset-left));
-      padding-right: max(12px, env(safe-area-inset-right));
-      padding-bottom: max(14px, env(safe-area-inset-bottom));
-      max-width: 820px;
-      margin: 0 auto;
-    }
+        .region-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
 
-    .topbar{
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      padding: 10px 0 10px 0;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      background: rgba(11,11,15,0.55);
-      border-bottom: var(--hairline);
-    }
+        .region-chevron {
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
 
-    .toprow{
-      display:flex;
-      align-items: center;
-      gap: 10px;
-      justify-content: space-between;
-      padding: 0 2px;
-    }
+        .region-section.expanded .region-chevron {
+            transform: rotate(90deg);
+        }
 
-    .title{
-      display:flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 0;
-    }
-    .title .t1{
-      font-size: 17px;
-      font-weight: 650;
-      letter-spacing: 0.2px;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .title .t2{
-      font-size: 12.5px;
-      color: var(--muted);
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+        .region-content {
+            display: none;
+            padding: 12px 0;
+        }
 
-    .actions{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
+        .region-section.expanded .region-content {
+            display: block;
+        }
 
-    .btn{
-      border: var(--hairline);
-      background: rgba(255,255,255,0.07);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 8px 11px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.15px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active{ background: var(--tap2); }
+        /* Capacity Row */
+        .capacity-row {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
 
-    .btn .dot{
-      width: 6px; height: 6px; border-radius: 50%;
-      background: rgba(255,255,255,0.65);
-    }
+        .capacity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
 
-    .back{
-      padding: 10px 0 0 2px;
-      color: var(--muted);
-      font-size: 13px;
-      display:flex;
-      align-items:center;
-      gap: 8px;
-    }
-    .back span{ opacity: 0.9; }
+        .capacity-header:active {
+            opacity: 0.8;
+        }
 
-    .content{ padding: 12px 0 18px 0; }
+        .capacity-name {
+            font-size: 16px;
+            font-weight: 500;
+            text-transform: capitalize;
+            flex: 1;
+        }
 
-    /* Region header bars (collapsible, multi-open) */
-    .region{
-      border-radius: var(--radius);
-      background: rgba(255,255,255,0.04);
-      border: var(--hairline);
-      box-shadow: var(--shadow2);
-      overflow: hidden;
-      margin: 10px 0;
-    }
+        .capacity-term {
+            color: var(--ios-blue);
+            font-size: 14px;
+            margin-left: 8px;
+        }
 
-    .regionHeader{
-      width: 100%;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      padding: 12px 12px;
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 12px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .regionHeader:active{ background: rgba(255,255,255,0.05); }
+        .capacity-metrics {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 8px;
+        }
 
-    .regionLeft{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      min-width: 0;
-    }
-    .chev{
-      width: 20px;
-      height: 20px;
-      display:grid;
-      place-items:center;
-      opacity: 0.75;
-      flex-shrink: 0;
-      transform: rotate(0deg);
-      transition: transform 140ms ease;
-    }
-    .region.open .chev{ transform: rotate(90deg); }
+        .effort-display {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
 
-    .regionName{
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      text-transform: uppercase;
-      opacity: 0.95;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+        .effort-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
 
-    .regionRight{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-    .pill{
-      border: var(--hairline);
-      background: rgba(255,255,255,0.06);
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: var(--muted);
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      white-space: nowrap;
-    }
-    .status{
-      font-weight: 800;
-      font-size: 13px;
-      line-height: 1;
-    }
-    .status.ok{ color: var(--ok); }
-    .status.warn{ color: var(--warn); }
-    .status.bad{ color: var(--bad); }
-    .status.na{ color: var(--muted2); }
+        .effort-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
 
-    .regionBody{
-      display:none;
-      padding: 0 12px 12px 12px;
-    }
-    .region.open .regionBody{ display:block; }
+        .effort-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: opacity 0.3s;
+        }
 
-    .capRow{
-      background: var(--card2);
-      border: var(--hairline);
-      border-radius: var(--radius2);
-      padding: 10px 10px;
-      margin-top: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.22);
-    }
+        .effort-low { background: var(--ios-blue); }
+        .effort-medium { background: var(--ios-yellow); }
+        .effort-high { background: var(--ios-red); }
 
-    .capTop{
-      display:flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-    .capName{
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.15px;
-      text-transform: uppercase;
-      opacity: 0.92;
-      min-width: 0;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-    }
-    .capMeta{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      flex-shrink:0;
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
+        .coverage-display {
+            font-size: 14px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            white-space: nowrap;
+        }
 
-    .barWrap{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-    }
-    .bar{
-      position: relative;
-      height: var(--barH);
-      border-radius: 999px;
-      flex: 1;
-      min-width: 90px;
-      background: var(--barBg);
-      overflow:hidden;
-      border: 1px solid rgba(255,255,255,0.07);
-    }
-    .bar > i{
-      display:block;
-      height: 100%;
-      width: 100%;
-      background: var(--barFill);
-      border-radius: 999px;
-      opacity: 1;
-      transform: translateZ(0);
-    }
-    .barLabel{
-      font-size: 12px;
-      color: var(--muted);
-      flex-shrink: 0;
-      width: 84px;
-      text-align: right;
-    }
+        .coverage-full { color: var(--ios-green); }
+        .coverage-partial { color: var(--ios-yellow); }
+        .coverage-none { color: var(--ios-red); }
+        .coverage-na { color: var(--text-secondary); }
 
-    .capBottom{
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 10px;
-    }
+        .capacity-chevron {
+            font-size: 14px;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+            margin-left: 8px;
+        }
 
-    .coverageLine{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 12.5px;
-      min-width: 0;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-    }
+        .capacity-row.expanded .capacity-chevron {
+            transform: rotate(90deg);
+        }
 
-    .miniBtn{
-      border: var(--hairline);
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.15px;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      flex-shrink: 0;
-    }
-    .miniBtn:active{ background: var(--tap2); }
+        /* Focus Rows */
+        .focus-list {
+            display: none;
+            margin-top: 12px;
+            padding-left: 16px;
+            border-left: 2px solid var(--border-color);
+        }
 
-    .empty{
-      margin: 14px 0;
-      padding: 14px;
-      border-radius: var(--radius);
-      border: var(--hairline);
-      background: rgba(255,255,255,0.04);
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-    }
+        .capacity-row.expanded .focus-list {
+            display: block;
+        }
 
-    /* Bottom sheet modal */
-    .sheetOverlay{
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.50);
-      display:none;
-      z-index: 50;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    }
-    .sheetOverlay.open{ display:block; }
+        .focus-row {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
 
-    .sheet{
-      position: absolute;
-      left: 0; right: 0;
-      bottom: 0;
-      border-top-left-radius: 22px;
-      border-top-right-radius: 22px;
-      background: rgba(22,22,28,0.92);
-      border-top: 1px solid rgba(255,255,255,0.14);
-      box-shadow: var(--shadow);
-      max-height: 82vh;
-      overflow: hidden;
-      transform: translateY(12px);
-    }
+        .focus-name {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            text-transform: capitalize;
+        }
 
-    .sheetHandle{
-      width: 42px;
-      height: 5px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.22);
-      margin: 10px auto 6px auto;
-    }
-    .sheetHeader{
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 10px 14px 10px 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.10);
-    }
-    .sheetTitle{
-      font-weight: 800;
-      font-size: 15px;
-      letter-spacing: 0.2px;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-    }
-    .sheetClose{
-      border: var(--hairline);
-      background: rgba(255,255,255,0.07);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 12px;
-      font-weight: 800;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .sheetClose:active{ background: var(--tap2); }
+        .focus-term {
+            color: var(--ios-blue);
+            font-size: 12px;
+        }
 
-    .sheetBody{
-      padding: 12px 14px 14px 14px;
-      overflow: auto;
-      max-height: calc(82vh - 54px);
-    }
+        .exercises-link {
+            color: var(--ios-blue);
+            font-size: 13px;
+            text-decoration: none;
+            margin-top: 8px;
+            display: inline-block;
+        }
 
-    .kv{
-      display:flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .kvRow{
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.05);
-      border-radius: 14px;
-      padding: 10px 10px;
-    }
-    .kvKey{
-      font-size: 12px;
-      letter-spacing: 0.25px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.72);
-      font-weight: 800;
-      margin-bottom: 6px;
-    }
-    .kvVal{
-      font-size: 13px;
-      color: rgba(255,255,255,0.88);
-      line-height: 1.35;
-    }
+        .exercises-link:active {
+            opacity: 0.7;
+        }
 
-    .list{
-      display:flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .item{
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.05);
-      border-radius: 14px;
-      padding: 10px 10px;
-    }
-    .itemTop{
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
-    .itemName{
-      font-size: 14px;
-      font-weight: 800;
-      letter-spacing: 0.1px;
-      min-width: 0;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .itemMeta{
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .itemSub{
-      font-size: 12.5px;
-      color: rgba(255,255,255,0.78);
-      line-height: 1.35;
-      word-break: break-word;
-    }
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
 
-    .hint{
-      margin-top: 10px;
-      font-size: 12.5px;
-      color: var(--muted2);
-      line-height: 1.35;
-    }
+        .modal.active {
+            display: flex;
+        }
 
-    .termTap{
-      text-decoration: underline;
-      text-decoration-color: rgba(255,255,255,0.30);
-      text-decoration-thickness: 1px;
-      text-underline-offset: 3px;
-      cursor: pointer;
-    }
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
 
-    /* Reduce motion */
-    @media (prefers-reduced-motion: reduce){
-      .chev{ transition: none; }
-      .sheet{ transform: none; }
-    }
-  </style>
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .modal-close:active {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .vocab-section {
+            margin-bottom: 20px;
+        }
+
+        .vocab-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--ios-blue);
+            text-transform: capitalize;
+        }
+
+        .vocab-item {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .vocab-term {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-transform: capitalize;
+        }
+
+        .vocab-def {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .exercise-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .exercise-item:active {
+            opacity: 0.8;
+        }
+
+        .exercise-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .exercise-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .back-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .back-button:active {
+            opacity: 0.8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            background: rgba(255, 69, 58, 0.1);
+            border: 1px solid var(--ios-red);
+            color: var(--ios-red);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+    </style>
 </head>
-
 <body>
-  <div class="topbar">
-    <div class="safe">
-      <div class="toprow">
-        <div class="title">
-          <div class="t1">Rehab Coverage</div>
-          <div class="t2" id="subtitle">Loading…</div>
-        </div>
-        <div class="actions">
-          <button class="btn" id="btnVocab" type="button" title="Vocabulary">
-            <span class="dot"></span> Vocab
-          </button>
-        </div>
-      </div>
-
-      <a class="back" href="pt_tracker.html">
-        <span aria-hidden="true">←</span><span>Back to PT Tracker</span>
-      </a>
+    <div class="header">
+        <h1>Rehab Coverage</h1>
+        <button class="header-btn" onclick="openVocabulary()">📚 Terms</button>
     </div>
-  </div>
 
-  <div class="safe">
-    <div class="content" id="app">
-      <div class="empty">Loading coverage view…</div>
-    </div>
-  </div>
+    <div id="coverage-content" class="loading">Loading...</div>
 
-  <!-- Bottom Sheet -->
-  <div class="sheetOverlay" id="sheetOverlay" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="sheet" role="document">
-      <div class="sheetHandle" aria-hidden="true"></div>
-      <div class="sheetHeader">
-        <div class="sheetTitle" id="sheetTitle">Details</div>
-        <button class="sheetClose" id="sheetClose" type="button">Close</button>
-      </div>
-      <div class="sheetBody" id="sheetBody"></div>
-    </div>
-  </div>
-
-  <script>
-    // ---------- Utilities ----------
-    const $ = (sel, el=document) => el.querySelector(sel);
-    const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
-    const todayLocalISO = () => {
-      const d = new Date();
-      d.setHours(0,0,0,0);
-      return d.toISOString().slice(0,10);
-    };
-    const parseISODate = (iso) => {
-      // Accept YYYY-MM-DD or full ISO; normalize to local midnight
-      if (!iso) return null;
-      const s = String(iso);
-      const d = s.length >= 10 ? new Date(s.slice(0,10) + "T00:00:00") : new Date(s);
-      if (Number.isNaN(d.getTime())) return null;
-      d.setHours(0,0,0,0);
-      return d;
-    };
-    const daysBetween = (d1, d2) => {
-      // d2 - d1 in days
-      const ms = 24*60*60*1000;
-      return Math.round((d2.getTime() - d1.getTime())/ms);
-    };
-    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-
-    function safeText(s){
-      return (s === null || s === undefined) ? "" : String(s);
-    }
-
-    // ---------- Bottom sheet ----------
-    const sheet = {
-      overlay: $("#sheetOverlay"),
-      title: $("#sheetTitle"),
-      body: $("#sheetBody"),
-      closeBtn: $("#sheetClose"),
-      open(title, nodeOrHTML){
-        this.title.textContent = title;
-        this.body.innerHTML = "";
-        if (typeof nodeOrHTML === "string") this.body.innerHTML = nodeOrHTML;
-        else if (nodeOrHTML instanceof Node) this.body.appendChild(nodeOrHTML);
-        this.overlay.classList.add("open");
-        this.overlay.setAttribute("aria-hidden", "false");
-      },
-      close(){
-        this.overlay.classList.remove("open");
-        this.overlay.setAttribute("aria-hidden", "true");
-      }
-    };
-    sheet.closeBtn.addEventListener("click", ()=>sheet.close());
-    sheet.overlay.addEventListener("click", (e)=>{
-      if (e.target === sheet.overlay) sheet.close();
-    });
-
-    // ---------- Loading ----------
-    async function fetchJSON(path){
-      const res = await fetch(path, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Failed to load ${path}: ${res.status}`);
-      return await res.json();
-    }
-
-    function findEnum(schemaObj, propName){
-      // Robust-ish: traverse schema and return the first enum array for a property named propName.
-      const seen = new Set();
-      const queue = [schemaObj];
-      while (queue.length){
-        const cur = queue.shift();
-        if (!cur || typeof cur !== "object") continue;
-        if (seen.has(cur)) continue;
-        seen.add(cur);
-
-        // Pattern A: { properties: { region: { enum: [...] } } }
-        if (cur.properties && cur.properties[propName] && Array.isArray(cur.properties[propName].enum)){
-          return cur.properties[propName].enum.slice();
-        }
-        // Pattern B: { $defs: { ... { properties: { region: { enum: [...] } }}}}
-        // handled by traversal.
-
-        for (const k of Object.keys(cur)){
-          const v = cur[k];
-          if (v && typeof v === "object") queue.push(v);
-        }
-      }
-      return null;
-    }
-
-    function vocabLookup(vocab, group, key){
-      // Supports both string and {description: "..."} styles.
-      const g = vocab?.[group];
-      if (!g) return null;
-      const val = g?.[key];
-      if (!val) return null;
-      if (typeof val === "string") return val;
-      if (typeof val === "object" && val !== null){
-        return val.description ?? val.desc ?? val.definition ?? null;
-      }
-      return null;
-    }
-
-    function contributionRank(contrib, contributionsEnum){
-      // No hardcoded enum values. Rank by schema enum order if present, else alphabetical.
-      if (Array.isArray(contributionsEnum)){
-        const idx = contributionsEnum.indexOf(contrib);
-        return idx === -1 ? contributionsEnum.length : idx;
-      }
-      return safeText(contrib).toLowerCase();
-    }
-
-    async function loadLogsBestEffort(){
-      // Phase 1 needs: [{exercise_id, date}] at minimum.
-      // Try common localStorage keys first (project-specific). If missing, return [].
-      const candidates = [
-        "pt_logs",
-        "ptLogs",
-        "exercise_logs",
-        "exerciseLogs",
-        "rehabLogs",
-        "therapy_tracker_logs"
-      ];
-      for (const k of candidates){
-        try{
-          const raw = localStorage.getItem(k);
-          if (!raw) continue;
-          const parsed = JSON.parse(raw);
-          const norm = normalizeLogs(parsed);
-          if (norm.length) return norm;
-        }catch{}
-      }
-
-      // Try common JSON files (optional). If not found, ignore.
-      const urlCandidates = [
-        "/pt/exercise_logs.json",
-        "/pt/logs.json",
-        "/pt/pt_logs.json"
-      ];
-      for (const url of urlCandidates){
-        try{
-          const j = await fetchJSON(url);
-          const norm = normalizeLogs(j);
-          if (norm.length) return norm;
-        }catch{}
-      }
-      return [];
-    }
-
-    function normalizeLogs(input){
-      // Accept arrays or {logs:[...]} or {entries:[...]}
-      const arr = Array.isArray(input) ? input
-                : Array.isArray(input?.logs) ? input.logs
-                : Array.isArray(input?.entries) ? input.entries
-                : [];
-      const out = [];
-      for (const row of arr){
-        const exercise_id = row?.exercise_id ?? row?.id ?? row?.exerciseId ?? row?.exerciseID;
-        const dateRaw = row?.date ?? row?.performed_on ?? row?.performedOn ?? row?.timestamp ?? row?.time;
-        const d = parseISODate(dateRaw);
-        if (!exercise_id || !d) continue;
-        out.push({ exercise_id: String(exercise_id), date: d });
-      }
-      // sort newest first
-      out.sort((a,b)=> b.date.getTime() - a.date.getTime());
-      return out;
-    }
-
-    // ---------- Coverage computation (Phase 1) ----------
-    function buildRoleIndex(exerciseRoles){
-      // Supports either {exercises:[{id, roles:[...]}]} or {exercise_id:{roles:[...]}} style.
-      // We only need: exercise_id -> roles[]
-      const map = new Map();
-
-      if (Array.isArray(exerciseRoles?.exercises)){
-        for (const ex of exerciseRoles.exercises){
-          const id = ex?.id ?? ex?.exercise_id ?? ex?.exerciseId;
-          const roles = Array.isArray(ex?.roles) ? ex.roles : [];
-          if (!id) continue;
-          map.set(String(id), roles.map(r => normalizeRole(r)).filter(Boolean));
-        }
-        return map;
-      }
-
-      // If it's a dict keyed by exercise id
-      if (exerciseRoles && typeof exerciseRoles === "object"){
-        for (const [k,v] of Object.entries(exerciseRoles)){
-          if (k === "$schema" || k === "schema" || k === "version") continue;
-          const roles = Array.isArray(v?.roles) ? v.roles : Array.isArray(v) ? v : [];
-          map.set(String(k), roles.map(r => normalizeRole(r)).filter(Boolean));
-        }
-      }
-      return map;
-    }
-
-    function normalizeRole(r){
-      if (!r || typeof r !== "object") return null;
-      const region = r.region ?? r.Region;
-      const capacity = r.capacity ?? r.Capacity;
-      const contribution = r.contribution ?? r.Contribution;
-      const focus = r.focus ?? r.Focus ?? null;
-      if (!region || !capacity || !contribution) return null;
-      return {
-        region: String(region),
-        capacity: String(capacity),
-        contribution: String(contribution),
-        focus: (focus === null || focus === undefined || focus === "") ? null : String(focus)
-      };
-    }
-
-    function computeBuckets({regions, capacities, contributionsEnum, roleIndex, logs}){
-      // For each region+capacity, and region+capacity+focus, compute last_date and effort_level.
-      // Also compute coverage summary per region+capacity based on focus presence in roles.
-      const today = parseISODate(todayLocalISO());
-
-      // Which focuses exist in roles per region+capacity (not hardcoded)
-      const focusByRC = new Map(); // key rc -> Set(focus)
-      for (const roles of roleIndex.values()){
-        for (const role of roles){
-          const rc = `${role.region}::${role.capacity}`;
-          if (!focusByRC.has(rc)) focusByRC.set(rc, new Set());
-          if (role.focus) focusByRC.get(rc).add(role.focus);
-        }
-      }
-
-      // Prepare containers
-      const cap = new Map();   // key rc -> { lastDate, effortContribution, byDateMaxContribution: Map(dateStr->maxContrib), contributors: [...] }
-      const foc = new Map();   // key rcf -> same
-
-      function upsert(map, key){
-        if (!map.has(key)){
-          map.set(key, {
-            lastDate: null,
-            lastDateStr: null,
-            lastDateMaxContrib: null,
-            contributorsOnLastDate: [], // [{exercise_id, contribution, dateStr, focus?}]
-          });
-        }
-        return map.get(key);
-      }
-
-      // Iterate logs newest->oldest; first time we hit a bucket establishes lastDate, but we still need max contrib on that date.
-      // We'll do two-pass:
-      // Pass 1: find lastDate for each bucket.
-      for (const entry of logs){
-        const dateStr = entry.date.toISOString().slice(0,10);
-        const roles = roleIndex.get(entry.exercise_id) || [];
-        for (const role of roles){
-          const rc = `${role.region}::${role.capacity}`;
-          const rcf = role.focus ? `${role.region}::${role.capacity}::${role.focus}` : null;
-
-          const capRec = upsert(cap, rc);
-          if (!capRec.lastDate){
-            capRec.lastDate = entry.date;
-            capRec.lastDateStr = dateStr;
-          }
-
-          if (rcf){
-            const focRec = upsert(foc, rcf);
-            if (!focRec.lastDate){
-              focRec.lastDate = entry.date;
-              focRec.lastDateStr = dateStr;
-            }
-          }
-        }
-      }
-
-      // Pass 2: compute max contribution and contributor list for the lastDate only.
-      for (const entry of logs){
-        const dateStr = entry.date.toISOString().slice(0,10);
-        const roles = roleIndex.get(entry.exercise_id) || [];
-        for (const role of roles){
-          const rc = `${role.region}::${role.capacity}`;
-          const capRec = cap.get(rc);
-          if (capRec?.lastDateStr === dateStr){
-            const prev = capRec.lastDateMaxContrib;
-            if (!prev || contributionRank(role.contribution, contributionsEnum) > contributionRank(prev, contributionsEnum)){
-              capRec.lastDateMaxContrib = role.contribution;
-            }
-            capRec.contributorsOnLastDate.push({ exercise_id: entry.exercise_id, contribution: role.contribution, dateStr, focus: role.focus });
-          }
-
-          if (role.focus){
-            const rcf = `${role.region}::${role.capacity}::${role.focus}`;
-            const focRec = foc.get(rcf);
-            if (focRec?.lastDateStr === dateStr){
-              const prev = focRec.lastDateMaxContrib;
-              if (!prev || contributionRank(role.contribution, contributionsEnum) > contributionRank(prev, contributionsEnum)){
-                focRec.lastDateMaxContrib = role.contribution;
-              }
-              focRec.contributorsOnLastDate.push({ exercise_id: entry.exercise_id, contribution: role.contribution, dateStr, focus: role.focus });
-            }
-          }
-        }
-      }
-
-      // Coverage per region+capacity
-      const coverageByRC = new Map(); // rc -> {status:'na'|'ok'|'warn'|'bad', maxGapDays:number|null, missingFocuses:[{focus, daysSince, lastDateStr|null}] }
-      for (const region of regions){
-        for (const capacity of capacities){
-          const rc = `${region}::${capacity}`;
-          const focusSet = focusByRC.get(rc);
-          if (!focusSet || focusSet.size === 0){
-            coverageByRC.set(rc, { status: "na", maxGapDays: null, missingFocuses: [] });
-            continue;
-          }
-          const focuses = Array.from(focusSet);
-          let hitCount = 0;
-          const missing = [];
-          for (const fKey of focuses){
-            const rcf = `${region}::${capacity}::${fKey}`;
-            const rec = foc.get(rcf);
-            if (rec && rec.lastDate){
-              hitCount += 1;
-            } else {
-              // missing focus: lastDate unknown -> treat as very old; show blank lastDateStr but daysSince as null until asked
-              missing.push({ focus: fKey, daysSince: null, lastDateStr: null });
-            }
-          }
-          let status = "bad";
-          if (hitCount === 0) status = "bad";
-          else if (hitCount === focuses.length) status = "ok";
-          else status = "warn";
-
-          // max gap in days: among missing focuses, use last-known date if available (not in Phase 1); here missing focuses have no date → null.
-          // We'll compute max gap from PRESENT focuses as a proxy? No — keep truthful. If focus has never been hit, show “max gap —”.
-          let maxGapDays = null;
-          if (missing.length === 0){
-            maxGapDays = 0;
-          } else {
-            maxGapDays = null;
-          }
-
-          coverageByRC.set(rc, { status, maxGapDays, missingFocuses: missing });
-        }
-      }
-
-      // Region summary: worst status across capacities + max gap if available
-      const regionSummary = new Map(); // region -> {worst:'ok'|'warn'|'bad'|'na', maxGap:number|null}
-      const statusRank = { bad: 3, warn: 2, ok: 1, na: 0 };
-      for (const region of regions){
-        let worst = "na";
-        let maxGap = null;
-        for (const capacity of capacities){
-          const rc = `${region}::${capacity}`;
-          const cov = coverageByRC.get(rc);
-          if (!cov) continue;
-          if (statusRank[cov.status] > statusRank[worst]) worst = cov.status;
-          if (typeof cov.maxGapDays === "number"){
-            if (maxGap === null) maxGap = cov.maxGapDays;
-            else maxGap = Math.max(maxGap, cov.maxGapDays);
-          }
-        }
-        regionSummary.set(region, { worst, maxGap });
-      }
-
-      // Effort presentation helpers
-      function daysSinceDate(d){
-        if (!d) return null;
-        return daysBetween(d, today);
-      }
-      function opacityFromDays(ds){
-        // linear fade: 0 days -> 1.0, 14+ days -> 0.25
-        if (ds === null) return 0.25;
-        const o = 1.0 - (ds / 14);
-        return clamp(o, 0.25, 1.0);
-      }
-
-      return { cap, foc, coverageByRC, regionSummary, focusByRC, daysSinceDate, opacityFromDays, today };
-    }
-
-    // ---------- Rendering ----------
-    function prettyKey(key){
-      return safeText(key).replace(/_/g, " ");
-    }
-
-    function formatDays(ds){
-      if (ds === null || ds === undefined) return "—";
-      if (ds === 0) return "0d";
-      return `${ds}d`;
-    }
-
-    function statusSymbol(status){
-      if (status === "ok") return "✓";
-      if (status === "warn") return "⚠";
-      if (status === "bad") return "✗";
-      return "—";
-    }
-
-    function statusClass(status){
-      if (status === "ok") return "ok";
-      if (status === "warn") return "warn";
-      if (status === "bad") return "bad";
-      return "na";
-    }
-
-    function buildVocabSheet(vocab){
-      const root = document.createElement("div");
-      root.className = "kv";
-
-      const sections = [
-        ["region", "Regions"],
-        ["capacity", "Capacities"],
-        ["focus", "Focus"],
-        ["contribution", "Contribution"]
-      ];
-
-      for (const [group, label] of sections){
-        const g = vocab?.[group];
-        if (!g || typeof g !== "object") continue;
-
-        const keys = Object.keys(g).sort((a,b)=> a.localeCompare(b));
-        for (const k of keys){
-          const def = vocabLookup(vocab, group, k) ?? "(no definition)";
-          const row = document.createElement("div");
-          row.className = "kvRow";
-          row.innerHTML = `<div class="kvKey">${label}: ${escapeHTML(k)}</div><div class="kvVal">${escapeHTML(def)}</div>`;
-          root.appendChild(row);
-        }
-      }
-      if (!root.childElementCount){
-        root.innerHTML = `<div class="empty">No vocabulary loaded from <code>/pt/exercise_roles_vocabulary.json</code>.</div>`;
-      }
-      return root;
-    }
-
-    function buildExercisesSheet({title, items, vocab, exerciseNameById, focusMode=false}){
-      const root = document.createElement("div");
-      root.className = "list";
-
-      if (!items.length){
-        root.innerHTML = `<div class="empty">No contributing exercises found.</div>`;
-        return root;
-      }
-
-      // Group by dateStr desc
-      const byDate = new Map();
-      for (const it of items){
-        const d = it.dateStr || "—";
-        if (!byDate.has(d)) byDate.set(d, []);
-        byDate.get(d).push(it);
-      }
-      const dates = Array.from(byDate.keys()).sort((a,b)=> b.localeCompare(a));
-
-      for (const d of dates){
-        const block = document.createElement("div");
-        block.className = "item";
-        const list = byDate.get(d);
-
-        const top = document.createElement("div");
-        top.className = "itemTop";
-        top.innerHTML = `<div class="itemName">${escapeHTML(d)}</div><div class="itemMeta">${escapeHTML(String(list.length))} item(s)</div>`;
-        block.appendChild(top);
-
-        const lines = document.createElement("div");
-        lines.className = "itemSub";
-
-        for (const row of list){
-          const name = exerciseNameById.get(row.exercise_id) || row.exercise_id;
-          const focusTxt = row.focus ? ` • focus: ${row.focus}` : "";
-          lines.innerHTML += `• ${escapeHTML(name)} (${escapeHTML(row.contribution)})${escapeHTML(focusTxt)}\n`;
-        }
-
-        block.appendChild(lines);
-        root.appendChild(block);
-      }
-
-      const hint = document.createElement("div");
-      hint.className = "hint";
-      hint.textContent = "Tip: tap an exercise in PT Tracker to view full guidance (this view reuses that existing detail screen).";
-      root.appendChild(hint);
-
-      return root;
-    }
-
-    function escapeHTML(s){
-      return safeText(s)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function renderApp(state){
-      const app = $("#app");
-      app.innerHTML = "";
-
-      const { regions, capacities, vocab, score, contributionsEnum, roleIndex, logs } = state;
-      const { cap, coverageByRC, regionSummary, focusByRC, daysSinceDate, opacityFromDays } = score;
-
-      if (!regions.length || !capacities.length){
-        app.innerHTML = `<div class="empty">Could not derive enums from <code>/pt/schema/exercise_roles.schema.json</code>. Make sure the schema includes enums for <code>region</code> and <code>capacity</code>.</div>`;
-        return;
-      }
-
-      const totalLogs = logs.length;
-      const subtitle = totalLogs
-        ? `Logs: ${totalLogs} • Today: ${todayLocalISO()}`
-        : `No logs found • Today: ${todayLocalISO()}`;
-      $("#subtitle").textContent = subtitle;
-
-      // Regions
-      for (const region of regions){
-        const reg = document.createElement("div");
-        reg.className = "region";
-
-        // Region summary status: worst coverage across capacities (ignores Effort)
-        const rs = regionSummary.get(region) || { worst: "na", maxGap: null };
-        const sym = statusSymbol(rs.worst);
-        const cls = statusClass(rs.worst);
-        const maxGapTxt = (typeof rs.maxGap === "number") ? `${rs.maxGap}d` : "—";
-
-        const header = document.createElement("button");
-        header.type = "button";
-        header.className = "regionHeader";
-        header.innerHTML = `
-          <div class="regionLeft">
-            <div class="chev" aria-hidden="true">›</div>
-            <div class="regionName">${escapeHTML(prettyKey(region))}</div>
-          </div>
-          <div class="regionRight">
-            <div class="pill">
-              <span class="status ${cls}">${escapeHTML(sym)}</span>
-              <span>max gap</span>
-              <span>${escapeHTML(maxGapTxt)}</span>
+    <!-- Vocabulary Modal -->
+    <div id="vocab-modal" class="modal" onclick="if(event.target === this) closeVocabulary()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Vocabulary</div>
+                <button class="modal-close" onclick="closeVocabulary()">Done</button>
             </div>
-          </div>
-        `;
-        header.addEventListener("click", ()=>{
-          reg.classList.toggle("open");
-        });
-
-        const body = document.createElement("div");
-        body.className = "regionBody";
-
-        // Capacity rows
-        let anyCapRendered = false;
-        for (const capacity of capacities){
-          const rc = `${region}::${capacity}`;
-          const capRec = cap.get(rc);
-          const cov = coverageByRC.get(rc) || { status:"na", maxGapDays:null, missingFocuses:[] };
-
-          // Determine Effort days-since and label from most recent date
-          const ds = capRec?.lastDate ? daysSinceDate(capRec.lastDate) : null;
-          const dsTxt = formatDays(ds);
-          const effortLevel = capRec?.lastDateMaxContrib || "—";
-          const opacity = opacityFromDays(ds);
-
-          const row = document.createElement("div");
-          row.className = "capRow";
-
-          const covSym = statusSymbol(cov.status);
-          const covCls = statusClass(cov.status);
-
-          // max gap text: if focus tracked but missing any and never hit => show "—"
-          let maxGapText = "—";
-          const focusSet = focusByRC.get(rc);
-          const hasFocus = focusSet && focusSet.size > 0;
-          if (!hasFocus){
-            maxGapText = "—";
-          } else {
-            // If any focus is missing and has never been hit, max gap is unknown in Phase 1 → show "—".
-            // If none missing, max gap 0d.
-            if (cov.status === "ok") maxGapText = "0d";
-            else maxGapText = "—";
-          }
-
-          row.innerHTML = `
-            <div class="capTop">
-              <div class="capName"><span class="termTap" data-term="capacity:${escapeHTML(capacity)}">${escapeHTML(prettyKey(capacity))}</span></div>
-              <div class="capMeta">${escapeHTML(dsTxt)} ago</div>
-            </div>
-
-            <div class="barWrap">
-              <div class="bar" aria-label="Effort bar">
-                <i style="opacity:${opacity.toFixed(3)}"></i>
-              </div>
-              <div class="barLabel">${escapeHTML(prettyKey(effortLevel))}</div>
-            </div>
-
-            <div class="capBottom" style="margin-top:10px">
-              <div class="coverageLine">
-                <span class="status ${covCls}">${escapeHTML(covSym)}</span>
-                <span>Coverage</span>
-                <span style="color:rgba(255,255,255,0.55)">•</span>
-                <span>max gap</span>
-                <span>${escapeHTML(maxGapText)}</span>
-              </div>
-              <button class="miniBtn" type="button">Exercises</button>
-            </div>
-          `;
-
-          // term definition taps (capacity)
-          for (const t of $$(".termTap", row)){
-            t.addEventListener("click", (e)=>{
-              const term = t.getAttribute("data-term") || "";
-              openTermDefinition(term, state);
-            });
-          }
-
-          // Exercises drill-down (capacity level)
-          const btn = $(".miniBtn", row);
-          btn.addEventListener("click", ()=>{
-            openCapacityDetails({ region, capacity }, state);
-          });
-
-          body.appendChild(row);
-          anyCapRendered = true;
-        }
-
-        if (!anyCapRendered){
-          body.innerHTML = `<div class="empty">No capacities available from the schema.</div>`;
-        }
-
-        reg.appendChild(header);
-        reg.appendChild(body);
-        app.appendChild(reg);
-      }
-
-      // Open regions with any warn/bad by default
-      for (const regEl of $$(".region", app)){
-        const name = $(".regionName", regEl)?.textContent?.trim()?.toLowerCase();
-        // heuristic: open all by default if few regions, else open only non-OK
-        // We'll open non-OK by reading the pill symbol class.
-        const st = $(".pill .status", regEl);
-        if (st?.classList.contains("warn") || st?.classList.contains("bad")){
-          regEl.classList.add("open");
-        }
-      }
-    }
-
-    function openTermDefinition(term, state){
-      // term format: "capacity:control" or "region:ankle" etc.
-      const [group, key] = term.split(":");
-      const vocabGroup =
-        group === "region" ? "region" :
-        group === "capacity" ? "capacity" :
-        group === "focus" ? "focus" :
-        group === "contribution" ? "contribution" : null;
-
-      if (!vocabGroup){
-        sheet.open("Definition", `<div class="empty">Unknown term group: ${escapeHTML(group)}</div>`);
-        return;
-      }
-      const def = vocabLookup(state.vocab, vocabGroup, key);
-      const html = `
-        <div class="kv">
-          <div class="kvRow">
-            <div class="kvKey">${escapeHTML(vocabGroup)}: ${escapeHTML(key)}</div>
-            <div class="kvVal">${escapeHTML(def ?? "(no definition in /pt/exercise_roles_vocabulary.json)")}</div>
-          </div>
+            <div class="modal-body" id="vocab-content"></div>
         </div>
-      `;
-      sheet.open("Definition", html);
-    }
+    </div>
 
-    function openCapacityDetails({region, capacity}, state){
-      const { score, vocab, exerciseNameById } = state;
-      const rc = `${region}::${capacity}`;
-      const capRec = score.cap.get(rc);
-      const focusSet = score.focusByRC.get(rc);
-      const focuses = focusSet ? Array.from(focusSet).sort((a,b)=>a.localeCompare(b)) : [];
+    <!-- Exercise List Modal -->
+    <div id="exercise-modal" class="modal" onclick="if(event.target === this) closeExerciseList()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="exercise-modal-title">Exercises</div>
+                <button class="modal-close" onclick="closeExerciseList()">Done</button>
+            </div>
+            <div class="modal-body" id="exercise-list-content"></div>
+        </div>
+    </div>
 
-      const container = document.createElement("div");
-      container.className = "kv";
+    <!-- Term Definition Modal -->
+    <div id="term-modal" class="modal" onclick="if(event.target === this) closeTermDefinition()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="term-modal-title"></div>
+                <button class="modal-close" onclick="closeTermDefinition()">Close</button>
+            </div>
+            <div class="modal-body" id="term-modal-content"></div>
+        </div>
+    </div>
 
-      // Summary block
-      const sum = document.createElement("div");
-      sum.className = "kvRow";
-      const capDef = vocabLookup(vocab, "capacity", capacity) ?? "";
-      sum.innerHTML = `
-        <div class="kvKey">${escapeHTML(prettyKey(region))} • ${escapeHTML(prettyKey(capacity))}</div>
-        <div class="kvVal">${escapeHTML(capDef)}</div>
-      `;
-      container.appendChild(sum);
+    <button class="back-button" onclick="goBack()">← Back to PT Tracker</button>
 
-      // Focus gaps listing (Phase 1: last-hit exists or never)
-      if (focuses.length){
-        const focusBlock = document.createElement("div");
-        focusBlock.className = "kvRow";
-        focusBlock.innerHTML = `<div class="kvKey">Focus</div>`;
-        const lines = document.createElement("div");
-        lines.className = "kvVal";
-        for (const f of focuses){
-          const def = vocabLookup(vocab, "focus", f);
-          const rcf = `${region}::${capacity}::${f}`;
-          const focRec = score.foc.get(rcf);
-          const ds = focRec?.lastDate ? score.daysSinceDate(focRec.lastDate) : null;
-          lines.innerHTML += `• <span class="termTap" data-term="focus:${escapeHTML(f)}">${escapeHTML(f)}</span> — last: ${escapeHTML(formatDays(ds))} ago\n`;
-          if (!def){
-            lines.innerHTML += `  <span style="color:rgba(255,255,255,0.45)">undefined in vocab</span>\n`;
-          }
-        }
-        focusBlock.appendChild(lines);
-        container.appendChild(focusBlock);
-      }
-
-      // Contributing exercises (only on last contributing date for this capacity)
-      const exTitle = document.createElement("div");
-      exTitle.className = "kvRow";
-      exTitle.innerHTML = `<div class="kvKey">Contributing exercises</div><div class="kvVal">Only exercises performed on the most recent date that contributed to this bucket.</div>`;
-      container.appendChild(exTitle);
-
-      const items = capRec?.contributorsOnLastDate || [];
-      const listNode = buildExercisesSheet({
-        title: "Exercises",
-        items,
-        vocab,
-        exerciseNameById
-      });
-      container.appendChild(listNode);
-
-      // wire term taps
-      for (const t of $$(".termTap", container)){
-        t.addEventListener("click", ()=>{
-          const term = t.getAttribute("data-term") || "";
-          openTermDefinition(term, state);
-        });
-      }
-
-      sheet.open(`${prettyKey(region)} • ${prettyKey(capacity)}`, container);
-    }
-
-    // ---------- Boot ----------
-    async function main(){
-      const app = $("#app");
-      try{
-        // Required files
-        const [rolesJSON, schemaJSON, vocabJSON] = await Promise.all([
-          fetchJSON("/pt/exercise_roles.json"),
-          fetchJSON("/pt/schema/exercise_roles.schema.json"),
-          fetchJSON("/pt/exercise_roles_vocabulary.json")
-        ]);
-
-        // Optional: exercise library to map ids -> names (best-effort)
+    <script>
+        // Global data stores
+        let schema = null;
+        let rolesData = null;
+        let vocabulary = null;
         let exerciseLibrary = null;
-        try{
-          exerciseLibrary = await fetchJSON("/pt/exercise_library.json");
-        }catch{
-          // ignore; we can still show exercise_id
+        let sessionHistory = null;
+
+        // Derived lists (runtime only - NO HARDCODED ENUMS)
+        let regions = [];
+        let capacities = [];
+        let contributions = [];
+
+        // Initialize
+        async function init() {
+            try {
+                // Load all data files
+                await Promise.all([
+                    loadSchema(),
+                    loadRoles(),
+                    loadVocabulary(),
+                    loadExerciseLibrary(),
+                    loadSessionHistory()
+                ]);
+
+                // Derive enums from schema
+                deriveEnums();
+
+                // Render coverage view
+                renderCoverageView();
+            } catch (error) {
+                document.getElementById('coverage-content').innerHTML =
+                    `<div class="error">Error loading data: ${error.message}</div>`;
+                console.error('Init error:', error);
+            }
         }
 
-        // Derive enums dynamically (no hardcoding)
-        const regions = findEnum(schemaJSON, "region") || [];
-        const capacities = findEnum(schemaJSON, "capacity") || [];
-        const contributionsEnum = findEnum(schemaJSON, "contribution") || null;
-
-        // Index roles
-        const roleIndex = buildRoleIndex(rolesJSON);
-
-        // Logs
-        const logs = await loadLogsBestEffort();
-
-        // Exercise name map
-        const exerciseNameById = new Map();
-        if (exerciseLibrary?.exercises && Array.isArray(exerciseLibrary.exercises)){
-          for (const ex of exerciseLibrary.exercises){
-            const id = ex?.id ?? ex?.exercise_id ?? ex?.exerciseId;
-            const name = ex?.name ?? ex?.title ?? ex?.label;
-            if (id && name) exerciseNameById.set(String(id), String(name));
-          }
+        async function loadSchema() {
+            const response = await fetch('schema/exercise_roles.schema.json');
+            if (!response.ok) throw new Error(`Schema fetch failed: ${response.status}`);
+            schema = await response.json();
+            console.log('[Schema] Loaded:', schema);
         }
 
-        // Compute buckets
-        const score = computeBuckets({ regions, capacities, contributionsEnum, roleIndex, logs });
-
-        const state = {
-          rolesJSON, schemaJSON, vocab: vocabJSON,
-          regions, capacities, contributionsEnum,
-          roleIndex, logs,
-          exerciseNameById,
-          score
-        };
-
-        // Vocab global
-        $("#btnVocab").addEventListener("click", ()=>{
-          const node = buildVocabSheet(vocabJSON);
-          sheet.open("Vocabulary", node);
-        });
-
-        renderApp(state);
-
-        if (!logs.length){
-          app.insertAdjacentHTML("afterbegin", `
-            <div class="empty">
-              No logs were found. This page will still render your Region/Capacity structure, but it will show “—” until logs exist.
-              <div class="hint">If your logs are stored only inside PT Tracker localStorage under a different key, update <code>loadLogsBestEffort()</code> in this file to include that key name.</div>
-            </div>
-          `);
+        async function loadRoles() {
+            const response = await fetch('exercise_roles.json');
+            if (!response.ok) throw new Error(`Roles fetch failed: ${response.status}`);
+            rolesData = await response.json();
+            console.log('[Roles] Loaded:', Object.keys(rolesData.exercise_roles || {}).length, 'exercises with roles');
         }
 
-      }catch(err){
-        app.innerHTML = `
-          <div class="empty">
-            Could not load required files.<br><br>
-            <div style="color:rgba(255,255,255,0.85); font-weight:700; margin-bottom:6px">Error</div>
-            <div style="word-break:break-word">${escapeHTML(err?.message || String(err))}</div>
-            <div class="hint">
-              This page requires these public paths to be accessible:<br>
-              <code>/pt/exercise_roles.json</code><br>
-              <code>/pt/schema/exercise_roles.schema.json</code><br>
-              <code>/pt/exercise_roles_vocabulary.json</code>
-            </div>
-          </div>
-        `;
-      }
-    }
+        async function loadVocabulary() {
+            const response = await fetch('exercise_roles_vocabulary.json');
+            if (!response.ok) throw new Error(`Vocabulary fetch failed: ${response.status}`);
+            vocabulary = await response.json();
+        }
 
-    main();
-  </script>
+        async function loadExerciseLibrary() {
+            const response = await fetch('exercise_library.json');
+            if (!response.ok) throw new Error(`Library fetch failed: ${response.status}`);
+            const data = await response.json();
+            exerciseLibrary = data.exercises || [];
+            console.log('[Library] Loaded:', exerciseLibrary.length, 'exercises');
+        }
+
+        function loadSessionHistory() {
+            // Load from PT Tracker localStorage
+            const historyJSON = localStorage.getItem('session_history');
+            sessionHistory = historyJSON ? JSON.parse(historyJSON) : [];
+            console.log('[History] Loaded:', sessionHistory.length, 'sessions');
+        }
+
+        function deriveEnums() {
+            // Extract enums from schema - NO HARDCODING
+            // Schema uses 'definitions' (not $defs)
+            if (!schema || !schema.definitions || !schema.definitions.role) {
+                throw new Error('Schema not properly loaded or missing definitions.role');
+            }
+            const roleSchema = schema.definitions.role;
+            regions = roleSchema.properties.region.enum || [];
+            capacities = roleSchema.properties.capacity.enum || [];
+            contributions = roleSchema.properties.contribution.enum || [];
+            console.log('[Enums] Derived:', { regions, capacities, contributions });
+        }
+
+        // Get unique focuses for a (region, capacity) pair
+        function getFocuses(region, capacity) {
+            const focuses = new Set();
+            // Data structure: rolesData.exercise_roles[exerciseId].roles[]
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region === region && role.capacity === capacity && role.focus) {
+                        focuses.add(role.focus);
+                    }
+                });
+            });
+            return Array.from(focuses);
+        }
+
+        // Calculate effort and coverage metrics for a bucket
+        function calculateMetrics(region, capacity, focus = null) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Find all exercises with matching roles
+            // Data structure: rolesData.exercise_roles[exerciseId].roles[]
+            const matchingExercises = [];
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region !== region || role.capacity !== capacity) return;
+                    // If focus is null, match roles without focus field
+                    // If focus is specified, match only that focus
+                    if (focus === null) {
+                        if (!role.focus) {
+                            matchingExercises.push({ exerciseId, role });
+                        }
+                    } else {
+                        if (role.focus === focus) {
+                            matchingExercises.push({ exerciseId, role });
+                        }
+                    }
+                });
+            });
+
+            if (matchingExercises.length === 0) {
+                return { lastDate: null, effortLevel: null, daysSince: null, exercises: [] };
+            }
+
+            // Find all logged exercises for these roles
+            // Note: PT Tracker saves one session per exercise (not session.exercises[])
+            const loggedExercises = [];
+
+            sessionHistory.forEach(session => {
+                const sessionDate = new Date(session.date);
+                // Check if this session's exercise has a matching role
+                const match = matchingExercises.find(m => m.exerciseId === session.exerciseId);
+                if (match) {
+                    loggedExercises.push({
+                        exercise_id: session.exerciseId,
+                        date: sessionDate,
+                        contribution: match.role.contribution
+                    });
+                }
+            });
+
+            if (loggedExercises.length === 0) {
+                return { lastDate: null, effortLevel: null, daysSince: null, exercises: [] };
+            }
+
+            // Sort by date descending
+            loggedExercises.sort((a, b) => b.date - a.date);
+
+            // Get last date
+            const lastDate = loggedExercises[0].date;
+            const daysSince = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
+
+            // Get max contribution on last date
+            const lastDateExercises = loggedExercises.filter(e =>
+                e.date.getTime() === lastDate.getTime()
+            );
+            const contributionLevels = ['low', 'medium', 'high'];
+            let maxContribution = 'low';
+            let maxIndex = 0;
+            lastDateExercises.forEach(e => {
+                const index = contributionLevels.indexOf(e.contribution);
+                if (index > maxIndex) {
+                    maxIndex = index;
+                    maxContribution = e.contribution;
+                }
+            });
+
+            return {
+                lastDate,
+                effortLevel: maxContribution,
+                daysSince,
+                exercises: loggedExercises
+            };
+        }
+
+        // Calculate coverage for a capacity (checks all focuses + no-focus roles)
+        function calculateCoverage(region, capacity) {
+            const focuses = getFocuses(region, capacity);
+
+            // Check if there are roles without focus for this region+capacity
+            let hasNoFocusRoles = false;
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region === region && role.capacity === capacity && !role.focus) {
+                        hasNoFocusRoles = true;
+                    }
+                });
+            });
+
+            // Build list of all buckets to check
+            const bucketsToCheck = [];
+
+            // Add no-focus bucket if it exists
+            if (hasNoFocusRoles) {
+                bucketsToCheck.push({
+                    name: '(general)',
+                    focus: null,
+                    metrics: calculateMetrics(region, capacity, null)
+                });
+            }
+
+            // Add all focuses
+            focuses.forEach(focus => {
+                bucketsToCheck.push({
+                    name: focus,
+                    focus: focus,
+                    metrics: calculateMetrics(region, capacity, focus)
+                });
+            });
+
+            // If no buckets exist, coverage is N/A
+            if (bucketsToCheck.length === 0) {
+                return { status: 'na', maxGap: null };
+            }
+
+            const bucketsWithData = bucketsToCheck.filter(b => b.metrics.lastDate !== null);
+            const bucketsWithoutData = bucketsToCheck.filter(b => b.metrics.lastDate === null);
+
+            let status;
+            if (bucketsWithData.length === bucketsToCheck.length) {
+                status = 'full'; // ✓ All buckets exercised
+            } else if (bucketsWithData.length > 0) {
+                status = 'partial'; // ⚠ Some buckets exercised
+            } else {
+                status = 'none'; // ✗ No buckets exercised
+            }
+
+            // Calculate max gap (days since least recent bucket)
+            let maxGap = 0;
+            if (bucketsWithoutData.length > 0) {
+                maxGap = Infinity; // Some buckets never exercised
+            } else {
+                bucketsToCheck.forEach(b => {
+                    if (b.metrics.daysSince > maxGap) {
+                        maxGap = b.metrics.daysSince;
+                    }
+                });
+            }
+
+            return { status, maxGap: maxGap === Infinity ? null : maxGap };
+        }
+
+        // Render effort display
+        function renderEffortDisplay(metrics) {
+            if (!metrics.lastDate) {
+                return `
+                    <div class="effort-display">
+                        <div class="effort-label">No data</div>
+                        <div class="effort-bar-container">
+                            <div class="effort-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const effortClass = `effort-${metrics.effortLevel}`;
+            const opacity = calculateOpacity(metrics.daysSince);
+
+            return `
+                <div class="effort-display">
+                    <div class="effort-label">${metrics.effortLevel} • ${metrics.daysSince}d ago</div>
+                    <div class="effort-bar-container">
+                        <div class="effort-bar ${effortClass}" style="width: 100%; opacity: ${opacity};"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Calculate opacity based on days since (simple linear fade)
+        function calculateOpacity(daysSince) {
+            if (daysSince === 0) return 1.0;
+            if (daysSince >= 14) return 0.2;
+            return 1.0 - (daysSince / 14) * 0.8;
+        }
+
+        // Render coverage display
+        function renderCoverageDisplay(coverage) {
+            const icons = {
+                full: '✓',
+                partial: '⚠',
+                none: '✗',
+                na: '—'
+            };
+
+            const statusClass = `coverage-${coverage.status}`;
+            const icon = icons[coverage.status];
+
+            let text = icon;
+            if (coverage.status !== 'na' && coverage.maxGap !== null) {
+                text += ` ${coverage.maxGap}d`;
+            }
+
+            return `<div class="coverage-display ${statusClass}">${text}</div>`;
+        }
+
+        // Render coverage view
+        function renderCoverageView() {
+            let html = '';
+
+            regions.forEach(region => {
+                html += `
+                    <div class="region-section" id="region-${region}">
+                        <div class="region-header" onclick="toggleRegion('${region}')">
+                            <h2>${region}</h2>
+                            <span class="region-chevron">›</span>
+                        </div>
+                        <div class="region-content">
+                            ${renderRegionCapacities(region)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('coverage-content').innerHTML = html;
+        }
+
+        function renderRegionCapacities(region) {
+            let html = '';
+
+            capacities.forEach(capacity => {
+                const metrics = calculateMetrics(region, capacity);
+                const coverage = calculateCoverage(region, capacity);
+                const focuses = getFocuses(region, capacity);
+                const hasChevron = focuses.length > 0;
+
+                html += `
+                    <div class="capacity-row ${hasChevron ? '' : 'no-expand'}" id="capacity-${region}-${capacity}">
+                        <div class="capacity-header" onclick="${hasChevron ? `toggleCapacity('${region}', '${capacity}')` : ''}">
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <span class="capacity-name">${capacity}</span>
+                                <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')">ⓘ</span>
+                            </div>
+                            ${hasChevron ? '<span class="capacity-chevron">›</span>' : ''}
+                        </div>
+                        <div class="capacity-metrics">
+                            ${renderEffortDisplay(metrics)}
+                            ${renderCoverageDisplay(coverage)}
+                        </div>
+                        <a href="#" class="exercises-link" onclick="event.preventDefault(); showExercises('${region}', '${capacity}', null)">
+                            View Exercises
+                        </a>
+                        ${hasChevron ? `
+                            <div class="focus-list">
+                                ${renderFocuses(region, capacity, focuses)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        function renderFocuses(region, capacity, focuses) {
+            let html = '';
+
+            focuses.forEach(focus => {
+                const metrics = calculateMetrics(region, capacity, focus);
+
+                html += `
+                    <div class="focus-row">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="focus-name">${focus.replace(/_/g, ' ')}</span>
+                            <span class="focus-term" onclick="showTermDefinition('focus', '${focus}')">ⓘ</span>
+                        </div>
+                        ${renderEffortDisplay(metrics)}
+                        <a href="#" class="exercises-link" onclick="event.preventDefault(); showExercises('${region}', '${capacity}', '${focus}')">
+                            View Exercises
+                        </a>
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        // Toggle region accordion
+        function toggleRegion(region) {
+            const section = document.getElementById(`region-${region}`);
+            section.classList.toggle('expanded');
+        }
+
+        // Toggle capacity accordion
+        function toggleCapacity(region, capacity) {
+            const row = document.getElementById(`capacity-${region}-${capacity}`);
+            row.classList.toggle('expanded');
+        }
+
+        // Show vocabulary modal
+        function openVocabulary() {
+            let html = '';
+
+            // Regions
+            html += '<div class="vocab-section"><h3>Regions</h3>';
+            Object.keys(vocabulary.region || {}).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.region[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Capacities
+            html += '<div class="vocab-section"><h3>Capacities</h3>';
+            Object.keys(vocabulary.capacity || {}).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.capacity[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Contributions
+            html += '<div class="vocab-section"><h3>Contributions</h3>';
+            Object.keys(vocabulary.contribution || {}).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.contribution[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Focus Terms
+            html += '<div class="vocab-section"><h3>Focus Terms</h3>';
+            Object.keys(vocabulary.focus || {}).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.focus[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            document.getElementById('vocab-content').innerHTML = html;
+            document.getElementById('vocab-modal').classList.add('active');
+        }
+
+        function closeVocabulary() {
+            document.getElementById('vocab-modal').classList.remove('active');
+        }
+
+        // Show term definition inline
+        function showTermDefinition(category, term) {
+            const definitions = vocabulary[category];
+            const definition = definitions && definitions[term];
+
+            document.getElementById('term-modal-title').textContent = term.replace(/_/g, ' ');
+            document.getElementById('term-modal-content').innerHTML = definition
+                ? `<div class="vocab-def">${definition}</div>`
+                : `<div class="vocab-def" style="color: var(--ios-red);">Definition not found (undefined)</div>`;
+
+            document.getElementById('term-modal').classList.add('active');
+        }
+
+        function closeTermDefinition() {
+            document.getElementById('term-modal').classList.remove('active');
+        }
+
+        // Show exercises for a bucket
+        function showExercises(region, capacity, focus) {
+            const metrics = calculateMetrics(region, capacity, focus);
+
+            const title = focus
+                ? `${region} › ${capacity} › ${focus.replace(/_/g, ' ')}`
+                : `${region} › ${capacity}`;
+
+            document.getElementById('exercise-modal-title').textContent = title;
+
+            if (!metrics.exercises || metrics.exercises.length === 0) {
+                document.getElementById('exercise-list-content').innerHTML =
+                    '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No exercises logged</div>';
+            } else {
+                // Group by exercise_id and get most recent
+                const exerciseMap = new Map();
+                metrics.exercises.forEach(ex => {
+                    if (!exerciseMap.has(ex.exercise_id)) {
+                        exerciseMap.set(ex.exercise_id, ex);
+                    }
+                });
+
+                let html = '';
+                exerciseMap.forEach((ex, exerciseId) => {
+                    const exercise = exerciseLibrary.find(e => e.exercise_id === exerciseId);
+                    const name = exercise ? exercise.canonical_name : exerciseId;
+                    const daysSince = Math.floor((new Date() - ex.date) / (1000 * 60 * 60 * 24));
+
+                    html += `
+                        <div class="exercise-item" onclick="openExerciseDetail('${exerciseId}')">
+                            <div class="exercise-name">${name}</div>
+                            <div class="exercise-meta">
+                                ${ex.contribution} • ${daysSince}d ago
+                            </div>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('exercise-list-content').innerHTML = html;
+            }
+
+            document.getElementById('exercise-modal').classList.add('active');
+        }
+
+        function closeExerciseList() {
+            document.getElementById('exercise-modal').classList.remove('active');
+        }
+
+        // Open exercise detail (redirect to PT Tracker with exercise detail)
+        function openExerciseDetail(exerciseId) {
+            // For now, just show an alert - in full implementation would open PT Tracker detail view
+            const exercise = exerciseLibrary.find(e => e.exercise_id === exerciseId);
+            if (exercise) {
+                alert(`Exercise Detail:\n\n${exercise.canonical_name}\n\n${exercise.description}\n\n(Full detail view would open in PT Tracker)`);
+            }
+        }
+
+        // Go back to PT Tracker
+        function goBack() {
+            window.location.href = 'pt_tracker.html';
+        }
+
+        // Start app
+        init();
+    </script>
 </body>
 </html>
