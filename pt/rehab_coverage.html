@@ -467,10 +467,13 @@
             sessionHistory = historyJSON ? JSON.parse(historyJSON) : [];
             console.log('[History] Loaded:', sessionHistory.length, 'sessions');
 
-            // Debug: Show sample session IDs
+            // Debug: Show ALL unique exercise IDs in session history
             if (sessionHistory.length > 0) {
-                const sampleIds = sessionHistory.slice(0, 5).map(s => s.exerciseId);
-                console.log('[History] Sample exercise IDs:', sampleIds);
+                const uniqueIds = [...new Set(sessionHistory.map(s => s.exerciseId))];
+                console.log('[History] Unique exercise IDs in session history:', uniqueIds);
+                console.log('[History] Sample session objects:', sessionHistory.slice(0, 3));
+            } else {
+                console.warn('[History] NO SESSION HISTORY FOUND! localStorage key "session_history" is empty or missing.');
             }
         }
 
@@ -508,8 +511,6 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            console.log(`[getExercisesForBucket] region=${region}, capacity=${capacity}, focus=${focus}`);
-
             // Find all exercises with matching roles
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
                 const exerciseData = rolesData.exercise_roles[exerciseId];
@@ -523,11 +524,15 @@
                         if (role.focus !== focus) return; // Skip if focus doesn't match
                     }
 
-                    console.log(`[getExercisesForBucket] Found matching role for ${exerciseId}:`, role);
-
                     // Find most recent session for this exercise
-                    const sessions = sessionHistory.filter(s => s.exerciseId === exerciseId);
-                    console.log(`[getExercisesForBucket] Sessions for ${exerciseId}:`, sessions.length);
+                    const sessions = sessionHistory.filter(s => {
+                        const match = s.exerciseId === exerciseId;
+                        if (!match && exerciseId.startsWith('01K')) {
+                            // Debug ULID exercises only
+                            console.log(`[Match] Checking ${exerciseId.substring(0, 10)}... vs session ${s.exerciseId?.substring(0, 10)}... = ${match}`);
+                        }
+                        return match;
+                    });
                     sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
                     const lastSession = sessions[0];
 
@@ -547,8 +552,6 @@
                     }
                 });
             });
-
-            console.log(`[getExercisesForBucket] Total exercises found: ${exercises.length}`);
 
             // Sort: done exercises first (by recency), then not done (by name)
             exercises.sort((a, b) => {
@@ -573,21 +576,21 @@
                 low: 'var(--ios-blue)'
             };
 
-            let html = '<div style="padding: 8px 0;">';
+            let html = '<div style="padding: 4px 0;">';
             exercises.forEach(ex => {
                 const statusIcon = ex.done ? '✓' : '⚠';
                 const statusColor = ex.done ? 'var(--ios-green)' : 'var(--ios-orange)';
-                const statusText = ex.done ? `${ex.daysSince}d ago` : 'not done';
+                const statusText = ex.done ? `${ex.daysSince}d` : 'not done';
                 const contribColor = contributionColors[ex.contribution] || 'var(--text-secondary)';
 
                 html += `
-                    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin: 4px 0; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid ${contribColor};">
-                        <span style="color: ${statusColor}; font-size: 16px; min-width: 20px;">${statusIcon}</span>
-                        <div style="flex: 1;">
-                            <div style="font-size: 14px; font-weight: 500;">${ex.name}</div>
-                            <div style="font-size: 12px; color: var(--text-secondary);">
+                    <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin: 3px 0; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid ${contribColor};">
+                        <span style="color: ${statusColor}; font-size: 14px; min-width: 16px;">${statusIcon}</span>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${ex.name}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">
                                 <span style="color: ${contribColor}; font-weight: 600;">${ex.contribution}</span>
-                                <span style="margin: 0 6px;">•</span>
+                                <span style="margin: 0 4px;">•</span>
                                 <span style="color: ${statusColor};">${statusText}</span>
                             </div>
                         </div>
@@ -676,24 +679,27 @@
                     lastActivity = doneExercises[0].daysSince;
                 }
 
-                // Build summary
+                // Build summary with progress bar
                 const doneIcon = doneCount === totalCount ? '✓' : (doneCount > 0 ? '⚠' : '✗');
                 const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
+                const progress = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
                 const summary = `
-                    <span style="color: ${doneColor};">${doneIcon}</span>
-                    <span style="margin: 0 6px;">${doneCount}/${totalCount}</span>
-                    ${lastActivity !== null ? `<span style="color: var(--text-secondary);">• last ${lastActivity}d ago</span>` : ''}
+                    <div style="display: flex; align-items: center; gap: 6px; min-width: 100px;">
+                        <span style="color: ${doneColor}; font-size: 12px;">${doneIcon}</span>
+                        <span style="font-size: 11px; min-width: 30px;">${doneCount}/${totalCount}</span>
+                        <div style="flex: 1; min-width: 40px; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden;">
+                            <div style="height: 100%; width: ${progress}%; background: ${doneColor}; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
                 `;
 
                 html += `
                     <div class="capacity-row ${hasChevron ? '' : 'no-expand'}" id="capacity-${region}-${capacity}">
-                        <div class="capacity-header" onclick="${hasChevron ? `toggleCapacity('${region}', '${capacity}')` : ''}">
-                            <div style="display: flex; align-items: center; flex: 1;">
-                                <span class="capacity-name">${capacity}</span>
-                                <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')">ⓘ</span>
-                            </div>
-                            <div style="font-size: 13px; display: flex; align-items: center; gap: 4px; margin-right: 8px;">${summary}</div>
-                            ${hasChevron ? '<span class="capacity-chevron">›</span>' : ''}
+                        <div class="capacity-header" onclick="${hasChevron ? `toggleCapacity('${region}', '${capacity}')` : ''}" style="display: flex; align-items: center; gap: 8px;">
+                            <span class="capacity-name" style="flex: 0 0 auto; min-width: 80px;">${capacity}</span>
+                            <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')" style="flex: 0 0 auto;">ⓘ</span>
+                            <div style="flex: 1; min-width: 0;">${summary}</div>
+                            ${hasChevron ? '<span class="capacity-chevron" style="flex: 0 0 auto;">›</span>' : ''}
                         </div>
                         ${hasChevron ? `
                             <div class="focus-list">
@@ -720,11 +726,11 @@
                 const totalCount = focusExercises.length;
 
                 html += `
-                    <div style="margin: 12px 0; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--ios-blue);">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                            <span style="font-size: 14px; font-weight: 600; text-transform: capitalize;">${focus.replace(/_/g, ' ')}</span>
-                            <span class="focus-term" onclick="showTermDefinition('focus', '${focus}')" style="color: var(--ios-blue); font-size: 13px; cursor: pointer;">ⓘ</span>
-                            <span style="margin-left: auto; font-size: 12px; color: var(--text-secondary);">${doneCount}/${totalCount} done</span>
+                    <div style="margin: 8px 0; padding: 8px; background: var(--bg-secondary); border-radius: 6px; border-left: 3px solid var(--ios-blue);">
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <span style="font-size: 13px; font-weight: 600; text-transform: capitalize; flex: 1;">${focus.replace(/_/g, ' ')}</span>
+                            <span class="focus-term" onclick="showTermDefinition('focus', '${focus}')" style="color: var(--ios-blue); font-size: 12px; cursor: pointer;">ⓘ</span>
+                            <span style="font-size: 11px; color: var(--text-secondary);">${doneCount}/${totalCount} done</span>
                         </div>
                         ${renderExerciseList(focusExercises)}
                     </div>
