@@ -269,12 +269,18 @@
                 <button class="btn-primary" style="margin-top: 15px; width: 100%; min-height: 52px; font-size: 17px;" onclick="exportModifications()" accesskey="e">💾 Export Modifications for Patient (Alt+E)</button>
             </div>
 
-            <!-- Add Exercise Section -->
+            <!-- Add/Edit Exercise Section -->
             <div class="section">
-                <h3 class="section-title">Add New Exercise</h3>
+                <h3 class="section-title">Add or Edit Exercise</h3>
+                <div class="form-group">
+                    <label class="form-label" for="edit-ex-select">Select Existing Exercise to Edit (optional)</label>
+                    <select id="edit-ex-select" class="form-select" onchange="loadExerciseForEdit()">
+                        <option value="">-- Add new exercise (leave blank) --</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label class="form-label" for="new-ex-name">Exercise Name *</label>
-                    <input type="text" id="new-ex-name" class="form-input" placeholder="e.g., Single Leg Bridge" onkeydown="if(event.key==='Enter')addExercise()">
+                    <input type="text" id="new-ex-name" class="form-input" placeholder="e.g., Single Leg Bridge" onkeydown="if(event.key==='Enter')saveExercise()">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="new-ex-desc">Description</label>
@@ -288,7 +294,10 @@
                     <label class="form-label" for="new-ex-video">Video URL</label>
                     <input type="url" id="new-ex-video" class="form-input" placeholder="https://...">
                 </div>
-                <button class="btn-primary" onclick="addExercise()" accesskey="a">➕ Add Exercise (Alt+A)</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-primary" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
+                    <button class="btn-danger" onclick="archiveExercise()" id="archive-btn" style="display: none;">🗑️ Archive</button>
+                </div>
             </div>
 
             <!-- Assign Roles Section -->
@@ -325,6 +334,9 @@
                         </select>
                     </div>
                     <button class="btn-primary" onclick="addRoleToExercise()" accesskey="r">➕ Add Role (Alt+R)</button>
+                </div>
+                <div id="role-editing-note" style="margin-top: 15px; padding: 10px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px; display: none;">
+                    <strong>Note:</strong> Click on any role below to edit or remove it.
                 </div>
             </div>
 
@@ -366,7 +378,10 @@
         // Track PT modifications
         let modifications = {
             newExercises: [],
-            newRoles: {},  // exerciseId: [roles]
+            editedExercises: {},  // exerciseId: updated exercise object
+            archivedExercises: [], // exerciseId array
+            newRoles: {},  // exerciseId: [roles to add]
+            editedRoles: {},  // exerciseId: [complete new role set - replaces all]
             updatedVocab: {}  // category: { term: definition }
         };
 
@@ -721,7 +736,7 @@
         }
 
         function initializeEditorMode() {
-            // Populate exercise dropdown
+            // Populate exercise dropdown for role assignment
             const exerciseSelect = document.getElementById('role-exercise-select');
             exerciseSelect.innerHTML = '<option value="">-- Choose an exercise --</option>';
             exerciseLibrary.forEach(ex => {
@@ -729,6 +744,16 @@
                 option.value = ex.id;
                 option.textContent = ex.title || ex.name;
                 exerciseSelect.appendChild(option);
+            });
+
+            // Populate exercise dropdown for editing
+            const editExerciseSelect = document.getElementById('edit-ex-select');
+            editExerciseSelect.innerHTML = '<option value="">-- Add new exercise (leave blank) --</option>';
+            exerciseLibrary.forEach(ex => {
+                const option = document.createElement('option');
+                option.value = ex.id;
+                option.textContent = ex.title || ex.name;
+                editExerciseSelect.appendChild(option);
             });
 
             // Populate region dropdown
@@ -761,7 +786,42 @@
             return (timestamp + random).padEnd(26, '0').substring(0, 26);
         }
 
-        function addExercise() {
+        let currentEditingExerciseId = null; // Track which exercise is being edited
+
+        function loadExerciseForEdit() {
+            const exerciseId = document.getElementById('edit-ex-select').value;
+            const archiveBtn = document.getElementById('archive-btn');
+
+            if (!exerciseId) {
+                // Clear form for new exercise
+                document.getElementById('new-ex-name').value = '';
+                document.getElementById('new-ex-desc').value = '';
+                document.getElementById('new-ex-instructions').value = '';
+                document.getElementById('new-ex-video').value = '';
+                archiveBtn.style.display = 'none';
+                currentEditingExerciseId = null;
+                return;
+            }
+
+            // Load exercise data
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+            if (!exercise) {
+                alert('Exercise not found');
+                return;
+            }
+
+            // Populate form
+            document.getElementById('new-ex-name').value = exercise.title || exercise.name || '';
+            document.getElementById('new-ex-desc').value = exercise.description || '';
+            document.getElementById('new-ex-instructions').value = exercise.instructions || '';
+            document.getElementById('new-ex-video').value = exercise.videoUrl || '';
+
+            // Show archive button
+            archiveBtn.style.display = 'block';
+            currentEditingExerciseId = exerciseId;
+        }
+
+        function saveExercise() {
             const name = document.getElementById('new-ex-name').value.trim();
             const description = document.getElementById('new-ex-desc').value.trim();
             const instructions = document.getElementById('new-ex-instructions').value.trim();
@@ -772,31 +832,99 @@
                 return;
             }
 
-            const newExercise = {
-                id: generateULID(),
-                name: name,
-                title: name,
-                description: description || '',
-                instructions: instructions || '',
-                videoUrl: videoUrl || ''
-            };
+            if (currentEditingExerciseId) {
+                // Editing existing exercise
+                const exercise = {
+                    id: currentEditingExerciseId,
+                    name: name,
+                    title: name,
+                    description: description || '',
+                    instructions: instructions || '',
+                    videoUrl: videoUrl || ''
+                };
 
-            // Add to modifications
-            modifications.newExercises.push(newExercise);
+                // Update in modifications
+                modifications.editedExercises[currentEditingExerciseId] = exercise;
 
-            // Add to local exerciseLibrary for immediate use
-            exerciseLibrary.push(newExercise);
+                // Update in local exerciseLibrary
+                const index = exerciseLibrary.findIndex(ex => ex.id === currentEditingExerciseId);
+                if (index !== -1) {
+                    exerciseLibrary[index] = exercise;
+                }
+
+                alert(`Exercise "${name}" updated! Remember to export modifications when done.`);
+            } else {
+                // Adding new exercise
+                const newExercise = {
+                    id: generateULID(),
+                    name: name,
+                    title: name,
+                    description: description || '',
+                    instructions: instructions || '',
+                    videoUrl: videoUrl || ''
+                };
+
+                // Add to modifications
+                modifications.newExercises.push(newExercise);
+
+                // Add to local exerciseLibrary for immediate use
+                exerciseLibrary.push(newExercise);
+
+                alert(`Exercise "${name}" added! Remember to export modifications when done.`);
+            }
 
             // Clear form
             document.getElementById('new-ex-name').value = '';
             document.getElementById('new-ex-desc').value = '';
             document.getElementById('new-ex-instructions').value = '';
             document.getElementById('new-ex-video').value = '';
+            document.getElementById('edit-ex-select').value = '';
+            document.getElementById('archive-btn').style.display = 'none';
+            currentEditingExerciseId = null;
 
-            // Refresh exercise dropdown
+            // Refresh dropdowns
             initializeEditorMode();
+            updateModificationSummary();
+        }
 
-            alert(`Exercise "${name}" added! Remember to export modifications when done.`);
+        function archiveExercise() {
+            if (!currentEditingExerciseId) {
+                alert('No exercise selected for archiving');
+                return;
+            }
+
+            const exercise = exerciseLibrary.find(ex => ex.id === currentEditingExerciseId);
+            const exerciseName = exercise ? (exercise.title || exercise.name) : 'this exercise';
+
+            if (!confirm(`Archive "${exerciseName}"?\n\nThis will mark the exercise as archived when you export modifications.`)) {
+                return;
+            }
+
+            // Add to archived list
+            if (!modifications.archivedExercises.includes(currentEditingExerciseId)) {
+                modifications.archivedExercises.push(currentEditingExerciseId);
+            }
+
+            // Remove from exerciseLibrary (locally only)
+            const index = exerciseLibrary.findIndex(ex => ex.id === currentEditingExerciseId);
+            if (index !== -1) {
+                exerciseLibrary.splice(index, 1);
+            }
+
+            // Clear form
+            document.getElementById('new-ex-name').value = '';
+            document.getElementById('new-ex-desc').value = '';
+            document.getElementById('new-ex-instructions').value = '';
+            document.getElementById('new-ex-video').value = '';
+            document.getElementById('edit-ex-select').value = '';
+            document.getElementById('archive-btn').style.display = 'none';
+            currentEditingExerciseId = null;
+
+            // Refresh dropdowns
+            initializeEditorMode();
+            updateModificationSummary();
+
+            alert(`Exercise "${exerciseName}" archived! Remember to export modifications when done.`);
         }
 
         function loadExerciseRoles() {
@@ -945,10 +1073,13 @@
             const contentDiv = document.getElementById('mod-summary-content');
 
             const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
             const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const editedRoleCount = Object.keys(modifications.editedRoles).length;
             const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
-            if (newExCount === 0 && newRoleCount === 0 && updatedVocabCount === 0) {
+            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && editedRoleCount === 0 && updatedVocabCount === 0) {
                 summaryDiv.style.display = 'none';
                 return;
             }
@@ -959,8 +1090,17 @@
             if (newExCount > 0) {
                 html += `<div style="margin-bottom: 6px;">✅ <strong>${newExCount}</strong> new exercise${newExCount > 1 ? 's' : ''} added</div>`;
             }
+            if (editedExCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✏️ <strong>${editedExCount}</strong> exercise${editedExCount > 1 ? 's' : ''} edited</div>`;
+            }
+            if (archivedExCount > 0) {
+                html += `<div style="margin-bottom: 6px;">🗑️ <strong>${archivedExCount}</strong> exercise${archivedExCount > 1 ? 's' : ''} archived</div>`;
+            }
             if (newRoleCount > 0) {
                 html += `<div style="margin-bottom: 6px;">✅ <strong>${newRoleCount}</strong> new role${newRoleCount > 1 ? 's' : ''} assigned</div>`;
+            }
+            if (editedRoleCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✏️ <strong>${editedRoleCount}</strong> exercise role${editedRoleCount > 1 ? 's' : ''} edited</div>`;
             }
             if (updatedVocabCount > 0) {
                 html += `<div style="margin-bottom: 6px;">✅ <strong>${updatedVocabCount}</strong> vocabulary definition${updatedVocabCount > 1 ? 's' : ''} updated</div>`;
@@ -972,10 +1112,13 @@
 
         function exportModifications() {
             const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
             const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const editedRoleCount = Object.keys(modifications.editedRoles).length;
             const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
-            if (newExCount === 0 && newRoleCount === 0 && updatedVocabCount === 0) {
+            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && editedRoleCount === 0 && updatedVocabCount === 0) {
                 alert('No modifications to export');
                 return;
             }
@@ -997,7 +1140,16 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            alert(`Modifications exported!\n\n${newExCount} exercises, ${newRoleCount} roles, ${updatedVocabCount} vocab updates\n\nEmail this file to your patient.`);
+            let summary = 'Modifications exported!\n\n';
+            if (newExCount > 0) summary += `✅ ${newExCount} new exercise${newExCount > 1 ? 's' : ''}\n`;
+            if (editedExCount > 0) summary += `✏️ ${editedExCount} edited exercise${editedExCount > 1 ? 's' : ''}\n`;
+            if (archivedExCount > 0) summary += `🗑️ ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}\n`;
+            if (newRoleCount > 0) summary += `✅ ${newRoleCount} new role${newRoleCount > 1 ? 's' : ''}\n`;
+            if (editedRoleCount > 0) summary += `✏️ ${editedRoleCount} edited role set${editedRoleCount > 1 ? 's' : ''}\n`;
+            if (updatedVocabCount > 0) summary += `✅ ${updatedVocabCount} vocab update${updatedVocabCount > 1 ? 's' : ''}\n`;
+            summary += '\nEmail this file to your patient.';
+
+            alert(summary);
         }
 
         // PT Mode - load base files without patient data
