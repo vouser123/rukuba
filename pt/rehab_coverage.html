@@ -984,12 +984,52 @@
                 const regionPercent = regionTotal > 0 ? Math.round((regionDone / regionTotal) * 100) : 0;
                 const regionColor = getPercentColor(regionPercent);
 
+                // Get most recent activity for the region (any exercise)
+                const regionDoneExercises = regionUniqueExercises.filter(e => e.done);
+                let regionRecentActivity = null;
+                if (regionDoneExercises.length > 0) {
+                    regionDoneExercises.sort((a, b) => a.daysSince - b.daysSince);
+                    regionRecentActivity = regionDoneExercises[0].daysSince;
+                }
+
+                // Get max gap (worst neglect) - only consider high/medium contribution
+                const regionHighMedExercises = regionUniqueExercises.filter(e => e.contribution === 'high' || e.contribution === 'medium');
+                const regionHighMedDone = regionHighMedExercises.filter(e => e.done);
+                let regionMaxGap = null;
+                let regionHasNeverDone = false;
+
+                if (regionHighMedExercises.length > 0) {
+                    // Check if any high/medium exercise has never been done
+                    regionHasNeverDone = regionHighMedExercises.some(e => !e.done);
+
+                    if (regionHasNeverDone) {
+                        regionMaxGap = 'never';
+                    } else if (regionHighMedDone.length > 0) {
+                        // Find the longest gap among done high/medium exercises
+                        regionMaxGap = Math.max(...regionHighMedDone.map(e => e.daysSince));
+                    }
+                }
+
+                // Fade based on max gap, not recent
+                let regionOpacity = 0.2;
+                if (regionMaxGap === 'never') {
+                    regionOpacity = 0.2; // Maximum guilt for never done
+                } else if (regionMaxGap !== null) {
+                    regionOpacity = Math.max(0.2, 1 - (regionMaxGap / 5));
+                }
+
+                const regionRecentText = regionRecentActivity !== null ? `${regionRecentActivity}d` : '—';
+                const regionMaxText = regionMaxGap === 'never' ? 'never' : (regionMaxGap !== null ? `max: ${regionMaxGap}d` : '—');
+
                 html += `
                     <div class="region-section" id="region-${region}">
                         <div class="region-header" onclick="toggleRegion('${region}')">
                             <h2>${region}</h2>
-                            <div class="flex-center gap-8">
-                                <span class="font-11 font-weight-600" style="color: ${regionColor};">${regionPercent}%</span>
+                            <div class="flex-center gap-8" style="flex: 1; min-width: 0; margin-left: 12px;">
+                                <div class="progress-bar flex-1" style="min-width: 40px; max-width: 200px;">
+                                    <div class="progress-fill" style="width: ${regionPercent}%; background: ${regionColor}; opacity: ${regionOpacity};"></div>
+                                </div>
+                                <span class="font-11 text-secondary nowrap">${regionRecentText} / ${regionMaxText}</span>
                                 <span class="region-chevron">›</span>
                             </div>
                         </div>
@@ -1052,11 +1092,29 @@
                 const totalCount = allExercises.length;
                 const doneCount = doneExercises.length;
 
-                // Get most recent activity
-                let lastActivity = null;
+                // Get most recent activity (any exercise)
+                let recentActivity = null;
                 if (doneExercises.length > 0) {
                     doneExercises.sort((a, b) => a.daysSince - b.daysSince);
-                    lastActivity = doneExercises[0].daysSince;
+                    recentActivity = doneExercises[0].daysSince;
+                }
+
+                // Get max gap (worst neglect) - only consider high/medium contribution
+                const highMedExercises = allExercises.filter(e => e.contribution === 'high' || e.contribution === 'medium');
+                const highMedDone = highMedExercises.filter(e => e.done);
+                let maxGap = null;
+                let hasNeverDone = false;
+
+                if (highMedExercises.length > 0) {
+                    // Check if any high/medium exercise has never been done
+                    hasNeverDone = highMedExercises.some(e => !e.done);
+
+                    if (hasNeverDone) {
+                        maxGap = 'never';
+                    } else if (highMedDone.length > 0) {
+                        // Find the longest gap among done high/medium exercises
+                        maxGap = Math.max(...highMedDone.map(e => e.daysSince));
+                    }
                 }
 
                 // Build summary with progress bar and recency indicator
@@ -1064,9 +1122,16 @@
                 const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
                 const progress = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
 
-                // Calculate opacity based on recency (fades over 5 days, obvious by 2, significant by 3)
-                const opacity = lastActivity !== null ? Math.max(0.2, 1 - (lastActivity / 5)) : 0.2;
-                const recencyText = lastActivity !== null ? `${lastActivity}d` : '—';
+                // Fade based on max gap, not recent
+                let opacity = 0.2;
+                if (maxGap === 'never') {
+                    opacity = 0.2; // Maximum guilt for never done
+                } else if (maxGap !== null) {
+                    opacity = Math.max(0.2, 1 - (maxGap / 5));
+                }
+
+                const recentText = recentActivity !== null ? `${recentActivity}d` : '—';
+                const maxText = maxGap === 'never' ? 'never' : (maxGap !== null ? `max: ${maxGap}d` : '—');
 
                 const summary = `
                     <div class="flex-center gap-4">
@@ -1075,7 +1140,7 @@
                         <div class="progress-bar flex-1" style="min-width: 20px;">
                             <div class="progress-fill" style="width: ${progress}%; background: ${doneColor}; opacity: ${opacity};"></div>
                         </div>
-                        <span class="font-11 text-secondary nowrap">${recencyText}</span>
+                        <span class="font-11 text-secondary nowrap">${recentText} / ${maxText}</span>
                     </div>
                 `;
 
@@ -1113,13 +1178,29 @@
                 const doneCount = focusExercises.filter(e => e.done).length;
                 const totalCount = focusExercises.length;
 
+                // Get max gap for this focus (only high/medium contribution)
+                const focusHighMedExercises = focusExercises.filter(e => e.contribution === 'high' || e.contribution === 'medium');
+                const focusHighMedDone = focusHighMedExercises.filter(e => e.done);
+                let focusMaxGap = null;
+
+                if (focusHighMedExercises.length > 0) {
+                    const focusHasNeverDone = focusHighMedExercises.some(e => !e.done);
+                    if (focusHasNeverDone) {
+                        focusMaxGap = 'never';
+                    } else if (focusHighMedDone.length > 0) {
+                        focusMaxGap = Math.max(...focusHighMedDone.map(e => e.daysSince));
+                    }
+                }
+
+                const focusMaxText = focusMaxGap === 'never' ? 'never' : (focusMaxGap !== null ? `max: ${focusMaxGap}d` : '—');
+
                 html += `
                     <div class="m-8 p-8 bg-secondary rounded-md border-l-3" style="border-left-color: var(--ios-blue);">
                         <div class="flex-center gap-6 mb-6 flex-wrap">
                             <span class="font-13 font-weight-600 flex-1" style="text-transform: capitalize; min-width: 0;">${focus.replace(/_/g, ' ')}</span>
                             <div class="flex-center gap-6" style="flex: 0 0 auto;">
                                 <span class="focus-term text-blue font-12" onclick="showTermDefinition('focus', '${focus}')" style="cursor: pointer;">ⓘ</span>
-                                <span class="font-11 text-secondary nowrap">${doneCount}/${totalCount} done</span>
+                                <span class="font-11 text-secondary nowrap">${doneCount}/${totalCount} • ${focusMaxText}</span>
                             </div>
                         </div>
                         ${renderExerciseList(focusExercises)}
