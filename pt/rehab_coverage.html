@@ -914,8 +914,16 @@
                 const regionExercises = [];
                 const capacities = getCapacitiesForRegion(region);
                 capacities.forEach(capacity => {
-                    const exercises = getExercisesForBucket(region, capacity, null);
-                    regionExercises.push(...exercises);
+                    // Get general exercises (no focus)
+                    const generalExercises = getExercisesForBucket(region, capacity, null);
+                    regionExercises.push(...generalExercises);
+
+                    // Also get focused exercises
+                    const focuses = getFocuses(region, capacity);
+                    focuses.forEach(focus => {
+                        const focusedExercises = getExercisesForBucket(region, capacity, focus);
+                        regionExercises.push(...focusedExercises);
+                    });
                 });
                 const regionUniqueExercises = getUniqueExercises(regionExercises);
                 const regionTotal = regionUniqueExercises.length;
