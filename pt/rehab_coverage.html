@@ -540,6 +540,10 @@
             <div class="menu-item-icon">🏥</div>
             <div class="menu-item-text">Export for PT</div>
         </div>
+        <div class="menu-item" onclick="importPTModifications(); toggleMenu();">
+            <div class="menu-item-icon">📨</div>
+            <div class="menu-item-text">Import PT Modifications</div>
+        </div>
         <div class="menu-item" onclick="exportAllData()">
             <div class="menu-item-icon">💾</div>
             <div class="menu-item-text">Export All Data</div>
@@ -1481,7 +1485,8 @@
                 sessionHistory: sessionHistory,
                 exerciseLibrary: exerciseLibrary,
                 rolesData: rolesData,
-                schema: schema
+                schema: schema,
+                vocabulary: vocabulary
             };
 
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -1496,6 +1501,105 @@
             URL.revokeObjectURL(url);
 
             alert('PT Report exported! Send this file to your PT. They can view it at pt_report.html');
+        }
+
+        // Import PT Modifications
+        function importPTModifications() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+
+                    if (data.modificationType !== 'PT_MODIFICATIONS') {
+                        alert('Invalid file: This is not a PT modifications file');
+                        return;
+                    }
+
+                    showModificationReview(data.modifications);
+                } catch (err) {
+                    alert('Error importing modifications: ' + err.message);
+                }
+            };
+            input.click();
+        }
+
+        function showModificationReview(mods) {
+            const newExCount = mods.newExercises.length;
+            const newRoleCount = Object.values(mods.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const updatedVocabCount = Object.values(mods.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+
+            let message = `PT Modifications Summary:\n\n`;
+            message += `• ${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
+            message += `• ${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+            message += `• ${updatedVocabCount} vocabulary update${updatedVocabCount !== 1 ? 's' : ''}\n\n`;
+            message += `Accept and merge all changes?`;
+
+            if (!confirm(message)) {
+                return;
+            }
+
+            // Merge modifications
+            let mergedCount = 0;
+
+            // 1. Add new exercises to library
+            if (mods.newExercises.length > 0) {
+                mods.newExercises.forEach(ex => {
+                    // Check if already exists
+                    if (!exerciseLibrary.find(e => e.id === ex.id)) {
+                        exerciseLibrary.push(ex);
+                        mergedCount++;
+                    }
+                });
+                console.log(`[Merge] Added ${mods.newExercises.length} new exercises`);
+            }
+
+            // 2. Add new roles to rolesData
+            if (Object.keys(mods.newRoles).length > 0) {
+                Object.keys(mods.newRoles).forEach(exerciseId => {
+                    const newRoles = mods.newRoles[exerciseId];
+
+                    // Initialize exercise in rolesData if doesn't exist
+                    if (!rolesData.exercise_roles[exerciseId]) {
+                        const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                        rolesData.exercise_roles[exerciseId] = {
+                            name: exercise ? (exercise.title || exercise.name) : 'Unknown',
+                            roles: []
+                        };
+                    }
+
+                    // Add new roles
+                    rolesData.exercise_roles[exerciseId].roles.push(...newRoles);
+                    mergedCount += newRoles.length;
+                });
+                console.log(`[Merge] Added ${newRoleCount} new roles`);
+            }
+
+            // 3. Update vocabulary
+            if (Object.keys(mods.updatedVocab).length > 0) {
+                Object.keys(mods.updatedVocab).forEach(category => {
+                    const terms = mods.updatedVocab[category];
+                    Object.keys(terms).forEach(term => {
+                        if (!vocabulary[category]) {
+                            vocabulary[category] = {};
+                        }
+                        vocabulary[category][term] = terms[term];
+                        mergedCount++;
+                    });
+                });
+                console.log(`[Merge] Updated ${updatedVocabCount} vocabulary definitions`);
+            }
+
+            // Re-derive enums and re-render
+            deriveEnums();
+            renderCoverageView();
+
+            alert(`✅ Merged successfully!\n\n${newExCount} exercises\n${newRoleCount} roles\n${updatedVocabCount} vocab updates\n\nRemember to export to GitHub when ready!`);
         }
 
         // Go back to PT Tracker

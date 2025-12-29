@@ -119,6 +119,40 @@
                 page-break-inside: avoid;
             }
         }
+
+        /* Form styles */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 60px;
+        }
     </style>
 </head>
 <body>
@@ -163,9 +197,112 @@
     </div>
 
     <div class="action-buttons" style="display: none;" id="action-buttons">
+        <button class="btn-secondary" onclick="toggleEditorMode()">✏️ Edit Mode</button>
         <button class="btn-secondary" onclick="window.print()">🖨️ Print</button>
         <button class="btn-secondary" onclick="resetReport()">📥 Load New</button>
         <button class="btn-secondary" onclick="window.location.href='rehab_coverage.html'">← Back</button>
+    </div>
+
+    <!-- PT Editor Mode -->
+    <div id="editor-mode" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-primary); z-index: 10000; overflow-y: auto; padding: 20px;">
+        <div style="max-width: 1000px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
+                <h2 style="font-size: 24px; font-weight: 600;">PT Editor Mode</h2>
+                <button class="btn-danger" onclick="toggleEditorMode()">Close Editor</button>
+            </div>
+
+            <!-- Modification Summary -->
+            <div id="mod-summary" style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none;">
+                <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--ios-blue);">Modifications Summary</h3>
+                <div id="mod-summary-content"></div>
+                <button class="btn-primary" style="margin-top: 15px; width: 100%;" onclick="exportModifications()">💾 Export Modifications for Patient</button>
+            </div>
+
+            <!-- Add Exercise Section -->
+            <div class="section">
+                <h3 class="section-title">Add New Exercise</h3>
+                <div class="form-group">
+                    <label class="form-label">Exercise Name *</label>
+                    <input type="text" id="new-ex-name" class="form-input" placeholder="e.g., Single Leg Bridge">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea id="new-ex-desc" class="form-input" rows="3" placeholder="Brief description of the exercise"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Instructions</label>
+                    <textarea id="new-ex-instructions" class="form-input" rows="4" placeholder="Step-by-step instructions"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Video URL</label>
+                    <input type="url" id="new-ex-video" class="form-input" placeholder="https://...">
+                </div>
+                <button class="btn-primary" onclick="addExercise()">➕ Add Exercise</button>
+            </div>
+
+            <!-- Assign Roles Section -->
+            <div class="section">
+                <h3 class="section-title">Assign Roles to Exercises</h3>
+                <div class="form-group">
+                    <label class="form-label">Select Exercise *</label>
+                    <select id="role-exercise-select" class="form-select" onchange="loadExerciseRoles()">
+                        <option value="">-- Choose an exercise --</option>
+                    </select>
+                </div>
+                <div id="current-roles" style="margin: 15px 0;"></div>
+                <div id="add-role-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
+                    <div class="form-group">
+                        <label class="form-label">Region *</label>
+                        <select id="new-role-region" class="form-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Capacity *</label>
+                        <select id="new-role-capacity" class="form-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Focus (optional)</label>
+                        <input type="text" id="new-role-focus" class="form-input" placeholder="e.g., sagittal, lateral, anti_rotation">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Contribution *</label>
+                        <select id="new-role-contribution" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="addRoleToExercise()">➕ Add Role</button>
+                </div>
+            </div>
+
+            <!-- Edit Vocabulary Section -->
+            <div class="section">
+                <h3 class="section-title">Update Vocabulary Definitions</h3>
+                <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <select id="vocab-category" class="form-select" onchange="loadVocabTerms()">
+                        <option value="">-- Choose category --</option>
+                        <option value="region">Region</option>
+                        <option value="capacity">Capacity</option>
+                        <option value="contribution">Contribution</option>
+                        <option value="focus">Focus</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Term *</label>
+                    <select id="vocab-term" class="form-select" onchange="loadVocabDefinition()">
+                        <option value="">-- Choose term --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Definition *</label>
+                    <textarea id="vocab-definition" class="form-input" rows="4" placeholder="Enter the definition"></textarea>
+                </div>
+                <button class="btn-primary" onclick="updateVocabulary()">💾 Update Definition</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -173,6 +310,14 @@
         let exerciseLibrary = [];
         let rolesData = null;
         let schema = null;
+        let vocabulary = null;
+
+        // Track PT modifications
+        let modifications = {
+            newExercises: [],
+            newRoles: {},  // exerciseId: [roles]
+            updatedVocab: {}  // category: { term: definition }
+        };
 
         async function handleFileImport(event) {
             const file = event.target.files[0];
@@ -192,6 +337,7 @@
                 exerciseLibrary = data.exerciseLibrary || [];
                 rolesData = data.rolesData;
                 schema = data.schema;
+                vocabulary = data.vocabulary || null;
 
                 // Hide import screen, show report
                 document.getElementById('import-screen').style.display = 'none';
@@ -507,6 +653,300 @@
                 });
 
             container.innerHTML = html;
+        }
+
+        // ========== PT EDITOR MODE FUNCTIONS ==========
+
+        function toggleEditorMode() {
+            const editorMode = document.getElementById('editor-mode');
+            const isVisible = editorMode.style.display !== 'none';
+
+            if (isVisible) {
+                editorMode.style.display = 'none';
+            } else {
+                editorMode.style.display = 'block';
+                initializeEditorMode();
+            }
+        }
+
+        function initializeEditorMode() {
+            // Populate exercise dropdown
+            const exerciseSelect = document.getElementById('role-exercise-select');
+            exerciseSelect.innerHTML = '<option value="">-- Choose an exercise --</option>';
+            exerciseLibrary.forEach(ex => {
+                const option = document.createElement('option');
+                option.value = ex.id;
+                option.textContent = ex.title || ex.name;
+                exerciseSelect.appendChild(option);
+            });
+
+            // Populate region dropdown
+            const regionSelect = document.getElementById('new-role-region');
+            regionSelect.innerHTML = '<option value="">-- Select --</option>';
+            if (schema && schema.definitions && schema.definitions.role) {
+                const regions = schema.definitions.role.properties.region.enum || [];
+                regions.forEach(r => {
+                    regionSelect.innerHTML += `<option value="${r}">${r}</option>`;
+                });
+            }
+
+            // Populate capacity dropdown
+            const capacitySelect = document.getElementById('new-role-capacity');
+            capacitySelect.innerHTML = '<option value="">-- Select --</option>';
+            if (schema && schema.definitions && schema.definitions.role) {
+                const capacities = schema.definitions.role.properties.capacity.enum || [];
+                capacities.forEach(c => {
+                    capacitySelect.innerHTML += `<option value="${c}">${c}</option>`;
+                });
+            }
+
+            updateModificationSummary();
+        }
+
+        function generateULID() {
+            // Simple ULID-like generator (timestamp + random)
+            const timestamp = Date.now().toString(36).toUpperCase();
+            const random = Math.random().toString(36).substring(2, 15).toUpperCase();
+            return (timestamp + random).padEnd(26, '0').substring(0, 26);
+        }
+
+        function addExercise() {
+            const name = document.getElementById('new-ex-name').value.trim();
+            const description = document.getElementById('new-ex-desc').value.trim();
+            const instructions = document.getElementById('new-ex-instructions').value.trim();
+            const videoUrl = document.getElementById('new-ex-video').value.trim();
+
+            if (!name) {
+                alert('Please enter an exercise name');
+                return;
+            }
+
+            const newExercise = {
+                id: generateULID(),
+                name: name,
+                title: name,
+                description: description || '',
+                instructions: instructions || '',
+                videoUrl: videoUrl || ''
+            };
+
+            // Add to modifications
+            modifications.newExercises.push(newExercise);
+
+            // Add to local exerciseLibrary for immediate use
+            exerciseLibrary.push(newExercise);
+
+            // Clear form
+            document.getElementById('new-ex-name').value = '';
+            document.getElementById('new-ex-desc').value = '';
+            document.getElementById('new-ex-instructions').value = '';
+            document.getElementById('new-ex-video').value = '';
+
+            // Refresh exercise dropdown
+            initializeEditorMode();
+
+            alert(`Exercise "${name}" added! Remember to export modifications when done.`);
+        }
+
+        function loadExerciseRoles() {
+            const exerciseId = document.getElementById('role-exercise-select').value;
+            const currentRolesDiv = document.getElementById('current-roles');
+            const addRoleForm = document.getElementById('add-role-form');
+
+            if (!exerciseId) {
+                currentRolesDiv.innerHTML = '';
+                addRoleForm.style.display = 'none';
+                return;
+            }
+
+            addRoleForm.style.display = 'block';
+
+            // Show current roles
+            const exerciseRoles = rolesData.exercise_roles[exerciseId];
+            const modifiedRoles = modifications.newRoles[exerciseId] || [];
+
+            let html = '<h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">Current Roles:</h4>';
+
+            if (exerciseRoles && exerciseRoles.roles && exerciseRoles.roles.length > 0) {
+                exerciseRoles.roles.forEach(role => {
+                    html += `
+                        <div style="padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
+                            <strong>${role.region}</strong> → ${role.capacity}
+                            ${role.focus ? ` (${role.focus})` : ''}
+                            • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            if (modifiedRoles.length > 0) {
+                html += '<h4 style="font-size: 14px; margin: 15px 0 10px; color: var(--ios-green);">New Roles (will be exported):</h4>';
+                modifiedRoles.forEach(role => {
+                    html += `
+                        <div style="padding: 8px; background: rgba(48, 209, 88, 0.1); border: 1px solid var(--ios-green); border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
+                            <strong>${role.region}</strong> → ${role.capacity}
+                            ${role.focus ? ` (${role.focus})` : ''}
+                            • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            if (!exerciseRoles && modifiedRoles.length === 0) {
+                html += '<div style="color: var(--text-secondary); font-size: 13px;">No roles assigned yet</div>';
+            }
+
+            currentRolesDiv.innerHTML = html;
+        }
+
+        function addRoleToExercise() {
+            const exerciseId = document.getElementById('role-exercise-select').value;
+            const region = document.getElementById('new-role-region').value;
+            const capacity = document.getElementById('new-role-capacity').value;
+            const focus = document.getElementById('new-role-focus').value.trim();
+            const contribution = document.getElementById('new-role-contribution').value;
+
+            if (!exerciseId || !region || !capacity || !contribution) {
+                alert('Please fill in exercise, region, capacity, and contribution');
+                return;
+            }
+
+            const newRole = {
+                region: region,
+                capacity: capacity,
+                contribution: contribution
+            };
+
+            if (focus) {
+                newRole.focus = focus;
+            }
+
+            // Add to modifications
+            if (!modifications.newRoles[exerciseId]) {
+                modifications.newRoles[exerciseId] = [];
+            }
+            modifications.newRoles[exerciseId].push(newRole);
+
+            // Clear form
+            document.getElementById('new-role-region').value = '';
+            document.getElementById('new-role-capacity').value = '';
+            document.getElementById('new-role-focus').value = '';
+            document.getElementById('new-role-contribution').value = '';
+
+            // Refresh display
+            loadExerciseRoles();
+            updateModificationSummary();
+
+            alert('Role added! Remember to export modifications when done.');
+        }
+
+        function loadVocabTerms() {
+            const category = document.getElementById('vocab-category').value;
+            const termSelect = document.getElementById('vocab-term');
+
+            termSelect.innerHTML = '<option value="">-- Choose term --</option>';
+            document.getElementById('vocab-definition').value = '';
+
+            if (!category || !vocabulary || !vocabulary[category]) {
+                return;
+            }
+
+            Object.keys(vocabulary[category]).forEach(term => {
+                termSelect.innerHTML += `<option value="${term}">${term.replace(/_/g, ' ')}</option>`;
+            });
+        }
+
+        function loadVocabDefinition() {
+            const category = document.getElementById('vocab-category').value;
+            const term = document.getElementById('vocab-term').value;
+
+            if (!category || !term || !vocabulary || !vocabulary[category]) {
+                document.getElementById('vocab-definition').value = '';
+                return;
+            }
+
+            const currentDef = vocabulary[category][term] || '';
+            document.getElementById('vocab-definition').value = currentDef;
+        }
+
+        function updateVocabulary() {
+            const category = document.getElementById('vocab-category').value;
+            const term = document.getElementById('vocab-term').value;
+            const definition = document.getElementById('vocab-definition').value.trim();
+
+            if (!category || !term || !definition) {
+                alert('Please select category, term, and enter a definition');
+                return;
+            }
+
+            // Add to modifications
+            if (!modifications.updatedVocab[category]) {
+                modifications.updatedVocab[category] = {};
+            }
+            modifications.updatedVocab[category][term] = definition;
+
+            updateModificationSummary();
+            alert(`Definition for "${term}" updated! Remember to export modifications when done.`);
+        }
+
+        function updateModificationSummary() {
+            const summaryDiv = document.getElementById('mod-summary');
+            const contentDiv = document.getElementById('mod-summary-content');
+
+            const newExCount = modifications.newExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+
+            if (newExCount === 0 && newRoleCount === 0 && updatedVocabCount === 0) {
+                summaryDiv.style.display = 'none';
+                return;
+            }
+
+            summaryDiv.style.display = 'block';
+
+            let html = '<div style="font-size: 14px;">';
+            if (newExCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✅ <strong>${newExCount}</strong> new exercise${newExCount > 1 ? 's' : ''} added</div>`;
+            }
+            if (newRoleCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✅ <strong>${newRoleCount}</strong> new role${newRoleCount > 1 ? 's' : ''} assigned</div>`;
+            }
+            if (updatedVocabCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✅ <strong>${updatedVocabCount}</strong> vocabulary definition${updatedVocabCount > 1 ? 's' : ''} updated</div>`;
+            }
+            html += '</div>';
+
+            contentDiv.innerHTML = html;
+        }
+
+        function exportModifications() {
+            const newExCount = modifications.newExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+
+            if (newExCount === 0 && newRoleCount === 0 && updatedVocabCount === 0) {
+                alert('No modifications to export');
+                return;
+            }
+
+            const exportData = {
+                exportDate: new Date().toISOString(),
+                modificationType: 'PT_MODIFICATIONS',
+                modifications: modifications
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PT-Modifications-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert(`Modifications exported!\n\n${newExCount} exercises, ${newRoleCount} roles, ${updatedVocabCount} vocab updates\n\nEmail this file to your patient.`);
         }
 
         // Initialize on load
