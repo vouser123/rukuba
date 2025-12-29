@@ -1391,23 +1391,23 @@
                 if (val) tags_heatmap.push(val);
             });
 
-            // Validate schema required fields - BLOCK if missing
+            // Validate truly required fields (those that don't allow null and have no default)
+            // Fields in schema.required that allow null or have defaults are not blocked
             const errors = [];
-            const requiredFields = schema?.$defs?.exercise?.required || [];
 
-            if (requiredFields.includes('canonical_name') && !name) {
+            if (!name) {
                 errors.push('- Canonical Name is required');
             }
-            if (requiredFields.includes('pt_category') && !category) {
+            if (!category) {
                 errors.push('- PT Category is required');
             }
-            if (requiredFields.includes('description') && !description) {
+            if (!description) {
                 errors.push('- Description is required');
             }
-            if (requiredFields.includes('pattern') && !pattern) {
+            if (!pattern) {
                 errors.push('- Pattern is required');
             }
-            if (requiredFields.includes('primary_muscles') && primary_muscles.length === 0) {
+            if (primary_muscles.length === 0) {
                 errors.push('- At least one Primary Muscle is required');
             }
 
