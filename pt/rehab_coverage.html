@@ -967,8 +967,16 @@
                 const regionExercises = [];
                 const capacities = getCapacitiesForRegion(region);
                 capacities.forEach(capacity => {
-                    const exercises = getExercisesForBucket(region, capacity, null);
-                    regionExercises.push(...exercises);
+                    // Get general exercises (no focus)
+                    const generalExercises = getExercisesForBucket(region, capacity, null);
+                    regionExercises.push(...generalExercises);
+
+                    // Also get focused exercises
+                    const focuses = getFocuses(region, capacity);
+                    focuses.forEach(focus => {
+                        const focusedExercises = getExercisesForBucket(region, capacity, focus);
+                        regionExercises.push(...focusedExercises);
+                    });
                 });
                 const regionUniqueExercises = getUniqueExercises(regionExercises);
                 const regionTotal = regionUniqueExercises.length;
@@ -1056,8 +1064,8 @@
                 const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
                 const progress = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
 
-                // Calculate opacity based on recency (fades over 14 days)
-                const opacity = lastActivity !== null ? Math.max(0.3, 1 - (lastActivity / 14)) : 0.3;
+                // Calculate opacity based on recency (fades over 5 days, obvious by 2, significant by 3)
+                const opacity = lastActivity !== null ? Math.max(0.2, 1 - (lastActivity / 5)) : 0.2;
                 const recencyText = lastActivity !== null ? `${lastActivity}d` : '—';
 
                 const summary = `
@@ -1546,28 +1554,62 @@
             html += '<div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color);">';
             html += '<div class="form-label">Add New Role</div>';
 
+            // Get all unique regions from existing roles
+            const allRegions = new Set(regions);
+            Object.values(rolesData.exercise_roles).forEach(ex => {
+                ex.roles.forEach(role => {
+                    if (role.region) allRegions.add(role.region);
+                });
+            });
+
             html += '<div class="form-group">';
-            html += '<label class="form-label">Region</label>';
-            html += '<select class="form-select" id="new-region">';
-            html += '<option value="">-- Select --</option>';
-            regions.forEach(r => {
+            html += '<label class="form-label">Region <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
+            html += '<input type="text" class="form-input" id="new-region" list="region-datalist-options" placeholder="Select or enter region">';
+            html += '<datalist id="region-datalist-options">';
+            Array.from(allRegions).sort().forEach(r => {
                 html += `<option value="${r}">${r}</option>`;
             });
-            html += '</select></div>';
+            html += '</datalist></div>';
+
+            // Get all unique capacities from existing roles
+            const allCapacities = new Set(capacities);
+            Object.values(rolesData.exercise_roles).forEach(ex => {
+                ex.roles.forEach(role => {
+                    if (role.capacity) allCapacities.add(role.capacity);
+                });
+            });
 
             html += '<div class="form-group">';
-            html += '<label class="form-label">Capacity</label>';
-            html += '<select class="form-select" id="new-capacity">';
-            html += '<option value="">-- Select --</option>';
-            capacities.forEach(c => {
+            html += '<label class="form-label">Capacity <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
+            html += '<input type="text" class="form-input" id="new-capacity" list="capacity-datalist-options" placeholder="Select or enter capacity">';
+            html += '<datalist id="capacity-datalist-options">';
+            Array.from(allCapacities).sort().forEach(c => {
                 html += `<option value="${c}">${c}</option>`;
             });
-            html += '</select></div>';
+            html += '</datalist></div>';
+
+            // Get all unique focus values from schema + existing roles
+            const allFocuses = new Set();
+            // Add schema focus values if they exist
+            if (schema && schema.definitions && schema.definitions.role && schema.definitions.role.properties.focus) {
+                const schemaFocuses = schema.definitions.role.properties.focus.enum || [];
+                schemaFocuses.forEach(f => allFocuses.add(f));
+            }
+            // Add focus values from existing roles
+            Object.values(rolesData.exercise_roles).forEach(ex => {
+                ex.roles.forEach(role => {
+                    if (role.focus) allFocuses.add(role.focus);
+                });
+            });
 
             html += '<div class="form-group">';
-            html += '<label class="form-label">Focus (optional)</label>';
-            html += '<input type="text" class="form-input" id="new-focus" placeholder="e.g., sagittal, lateral, anti_rotation">';
-            html += '</div>';
+            html += '<label class="form-label">Focus (optional) <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
+            html += '<input type="text" class="form-input" id="new-focus" list="focus-datalist-options" placeholder="Select or enter focus (e.g., sagittal, lateral)">';
+            html += '<datalist id="focus-datalist-options">';
+            Array.from(allFocuses).sort().forEach(f => {
+                html += `<option value="${f}">${f}</option>`;
+            });
+            html += '</datalist></div>';
 
             html += '<div class="form-group">';
             html += '<label class="form-label">Contribution</label>';
@@ -1585,8 +1627,8 @@
         }
 
         function addRole() {
-            const region = document.getElementById('new-region').value;
-            const capacity = document.getElementById('new-capacity').value;
+            const region = document.getElementById('new-region').value.trim();
+            const capacity = document.getElementById('new-capacity').value.trim();
             const focus = document.getElementById('new-focus').value.trim();
             const contribution = document.getElementById('new-contribution').value;
 

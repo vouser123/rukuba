@@ -711,6 +711,10 @@
                 <span style="font-size: 20px; width: 24px; text-align: center;">🏥</span>
                 <span>Export for PT</span>
             </div>
+            <div onclick="importPTModifications(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">📨</span>
+                <span>Import PT Modifications</span>
+            </div>
             <div onclick="location.reload()" style="padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">🔄</span>
                 <span>Reload</span>
@@ -5476,100 +5480,171 @@
 
         // PT Export Function
         function exportForPT() {
-            const sessions = loadHistory();
-            const entry = getLibraryEntryById(currentExercise.id);
-            const exerciseSessions = sessions.filter(s => s.exerciseId === currentExercise.id || s.exerciseName === currentExercise.name);
+            // Export full PT report as JSON for PT to import
+            const noteForPT = prompt('Optional: Add a note for your PT\n(Leave blank to skip)', '');
 
-            if (exerciseSessions.length === 0) {
-                alert('No sessions to export yet.');
+            const exportData = {
+                exportDate: new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                noteForPT: noteForPT && noteForPT.trim() ? noteForPT.trim() : null,
+                sessionHistory: loadHistory(),
+                exerciseLibrary: loadExerciseLibrary(),
+                rolesData: loadRolesData(),
+                schema: loadSchema(),
+                vocabulary: loadVocabulary()
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PT-Report-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            haptic('success');
+            alert('PT Report exported! Send this file to your PT. They can view it at pt_report.html');
+        }
+
+        // Import PT Modifications from PT
+        function importPTModifications() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+
+                    if (data.modificationType !== 'PT_MODIFICATIONS') {
+                        alert('Invalid file: This is not a PT modifications file');
+                        return;
+                    }
+
+                    showModificationReview(data.modifications);
+                } catch (err) {
+                    alert('Error importing modifications: ' + err.message);
+                }
+            };
+            input.click();
+        }
+
+        function showModificationReview(mods) {
+            const newExCount = mods.newExercises?.length || 0;
+            const editedExCount = Object.keys(mods.editedExercises || {}).length;
+            const archivedExCount = mods.archivedExercises?.length || 0;
+            const newRoleCount = Object.values(mods.newRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const editedRoleCount = Object.keys(mods.editedRoles || {}).length;
+            const updatedVocabCount = Object.values(mods.updatedVocab || {}).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+
+            let message = `PT Modifications Summary:\n\n`;
+            if (newExCount > 0) message += `• ${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
+            if (editedExCount > 0) message += `• ${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
+            if (archivedExCount > 0) message += `• ${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
+            if (newRoleCount > 0) message += `• ${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+            if (editedRoleCount > 0) message += `• ${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
+            if (updatedVocabCount > 0) message += `• ${updatedVocabCount} vocabulary update${updatedVocabCount !== 1 ? 's' : ''}\n`;
+            message += `\nAccept and merge all changes?`;
+
+            if (!confirm(message)) {
                 return;
             }
 
-            let report = `PHYSICAL THERAPY PROGRESS REPORT\n`;
-            report += `Generated: ${new Date().toLocaleDateString()}\n`;
-            report += `\n${'='.repeat(50)}\n\n`;
-            report += `EXERCISE: ${entry.name}\n`;
+            // Load current data
+            const exerciseLibrary = loadExerciseLibrary();
+            const rolesData = loadRolesData();
+            const vocabulary = loadVocabulary();
+            let mergedCount = 0;
 
-            // Exercise details
-            if (entry.details?.description) {
-                report += `Description: ${entry.details.description}\n`;
-            }
-            if (entry.details?.executionTips) {
-                report += `Form: ${entry.details.executionTips}\n`;
-            }
-            if (entry.tags && entry.tags.length) {
-                report += `Body parts: ${entry.tags.join(', ')}\n`;
-            }
-            if (entry.bilateral !== undefined) {
-                report += `Type: ${entry.bilateral ? 'Bilateral' : 'Unilateral'}\n`;
-            }
-
-            report += `\n${'='.repeat(50)}\n`;
-            report += `SESSION HISTORY (${exerciseSessions.length} sessions)\n`;
-            report += `${'='.repeat(50)}\n\n`;
-
-            exerciseSessions.reverse().forEach((session, idx) => {
-                const sessionDate = new Date(session.date);
-                report += `Session ${exerciseSessions.length - idx} - ${sessionDate.toLocaleDateString()} at ${sessionDate.toLocaleTimeString()}\n`;
-                report += `${'-'.repeat(50)}\n`;
-
-                session.sets.forEach((set, setIdx) => {
-                    const sideInfo = set.side ? ` (${set.side} side)` : '';
-                    const manualInfo = set.manualLog ? ' [manually logged]' : '';
-                    report += `  Set ${setIdx + 1}: ${set.reps} reps${sideInfo}${manualInfo}\n`;
+            // 1. Add new exercises to library
+            if (mods.newExercises && mods.newExercises.length > 0) {
+                mods.newExercises.forEach(ex => {
+                    if (!exerciseLibrary.find(e => e.id === ex.id)) {
+                        exerciseLibrary.push(ex);
+                        mergedCount++;
+                    }
                 });
-
-                const totalReps = session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
-                report += `  Total: ${session.sets.length} sets, ${totalReps} reps\n`;
-
-                if (session.notes) {
-                    report += `  Notes: "${session.notes}"\n`;
-                }
-
-                report += `\n`;
-            });
-
-            report += `${'='.repeat(50)}\n`;
-            report += `SUMMARY\n`;
-            report += `${'='.repeat(50)}\n`;
-            report += `Total sessions: ${exerciseSessions.length}\n`;
-
-            const allReps = exerciseSessions.flatMap(s => s.sets.map(set => set.reps || 0));
-            const avgReps = allReps.length ? (allReps.reduce((a, b) => a + b, 0) / allReps.length).toFixed(1) : 0;
-            const maxReps = allReps.length ? Math.max(...allReps) : 0;
-            const minReps = allReps.length ? Math.min(...allReps) : 0;
-
-            report += `Average reps per set: ${avgReps}\n`;
-            report += `Best set: ${maxReps} reps\n`;
-            report += `Lowest set: ${minReps} reps\n`;
-
-            const firstSession = exerciseSessions[exerciseSessions.length - 1];
-            const lastSession = exerciseSessions[0];
-            const firstAvg = firstSession.sets.reduce((sum, set) => sum + set.reps, 0) / firstSession.sets.length;
-            const lastAvg = lastSession.sets.reduce((sum, set) => sum + set.reps, 0) / lastSession.sets.length;
-            const improvement = ((lastAvg - firstAvg) / firstAvg * 100).toFixed(1);
-
-            if (exerciseSessions.length > 1) {
-                report += `\nProgress: ${improvement > 0 ? '+' : ''}${improvement}% from first to most recent session\n`;
             }
 
-            report += `\n${'='.repeat(50)}\n`;
-            report += `END OF REPORT\n`;
+            // 2. Update edited exercises in library
+            if (mods.editedExercises && Object.keys(mods.editedExercises).length > 0) {
+                Object.keys(mods.editedExercises).forEach(exerciseId => {
+                    const updatedExercise = mods.editedExercises[exerciseId];
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    if (index !== -1) {
+                        exerciseLibrary[index] = updatedExercise;
+                        mergedCount++;
+                    }
+                });
+            }
 
-            // Copy to clipboard
-            navigator.clipboard.writeText(report).then(() => {
-                speak('Report copied');
-                haptic('success');
-                alert('PT report copied to clipboard! You can paste it in a text message or email to your physical therapist.');
-            }).catch(() => {
-                // Fallback: show in a textarea for manual copy
-                const textarea = document.createElement('textarea');
-                textarea.value = report;
-                textarea.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; font-family: monospace; font-size: 12px; padding: 20px;';
-                document.body.appendChild(textarea);
-                textarea.select();
-                alert('Report generated! Copy this text and share with your PT.');
-            });
+            // 3. Archive exercises (remove from library)
+            if (mods.archivedExercises && mods.archivedExercises.length > 0) {
+                mods.archivedExercises.forEach(exerciseId => {
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    if (index !== -1) {
+                        exerciseLibrary.splice(index, 1);
+                        mergedCount++;
+                    }
+                    if (rolesData.exercise_roles && rolesData.exercise_roles[exerciseId]) {
+                        delete rolesData.exercise_roles[exerciseId];
+                    }
+                });
+            }
+
+            // 4. Add new roles
+            if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
+                Object.keys(mods.newRoles).forEach(exerciseId => {
+                    if (!rolesData.exercise_roles[exerciseId]) {
+                        rolesData.exercise_roles[exerciseId] = { name: '', roles: [] };
+                    }
+                    const newRoles = mods.newRoles[exerciseId];
+                    newRoles.forEach(role => {
+                        rolesData.exercise_roles[exerciseId].roles.push(role);
+                        mergedCount++;
+                    });
+                });
+            }
+
+            // 5. Update edited roles (replace entire role set for exercise)
+            if (mods.editedRoles && Object.keys(mods.editedRoles).length > 0) {
+                Object.keys(mods.editedRoles).forEach(exerciseId => {
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        rolesData.exercise_roles[exerciseId].roles = mods.editedRoles[exerciseId];
+                        mergedCount++;
+                    }
+                });
+            }
+
+            // 6. Update vocabulary
+            if (mods.updatedVocab && Object.keys(mods.updatedVocab).length > 0) {
+                Object.keys(mods.updatedVocab).forEach(category => {
+                    if (!vocabulary[category]) {
+                        vocabulary[category] = {};
+                    }
+                    Object.assign(vocabulary[category], mods.updatedVocab[category]);
+                    mergedCount++;
+                });
+            }
+
+            // Save all updated data
+            saveExerciseLibrary(exerciseLibrary);
+            saveRolesData(rolesData);
+            saveVocabulary(vocabulary);
+
+            haptic('success');
+            alert(`Successfully merged ${mergedCount} changes from your PT!\n\nThe app will now reload to apply all changes.`);
+            location.reload();
         }
 
         // Weekly Summary for PT - Quick Overview

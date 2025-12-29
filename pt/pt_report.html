@@ -400,16 +400,19 @@
                 <div id="add-role-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
                     <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
                     <div class="form-group">
-                        <label class="form-label" for="new-role-region">Region *</label>
-                        <select id="new-role-region" class="form-select"></select>
+                        <label class="form-label" for="new-role-region">Region * <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
+                        <input type="text" id="new-role-region" class="form-input" list="region-options" placeholder="Select or enter region">
+                        <datalist id="region-options"></datalist>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="new-role-capacity">Capacity *</label>
-                        <select id="new-role-capacity" class="form-select"></select>
+                        <label class="form-label" for="new-role-capacity">Capacity * <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
+                        <input type="text" id="new-role-capacity" class="form-input" list="capacity-options" placeholder="Select or enter capacity">
+                        <datalist id="capacity-options"></datalist>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="new-role-focus">Focus (optional)</label>
-                        <input type="text" id="new-role-focus" class="form-input" placeholder="e.g., sagittal, lateral, anti_rotation">
+                        <label class="form-label" for="new-role-focus">Focus (optional) <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
+                        <input type="text" id="new-role-focus" class="form-input" list="focus-options" placeholder="Select or enter focus (e.g., sagittal, lateral)">
+                        <datalist id="focus-options"></datalist>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="new-role-contribution">Contribution *</label>
@@ -816,6 +819,10 @@
 
             if (isVisible) {
                 editorMode.style.display = 'none';
+                // If no report has been loaded, show import screen
+                if (!sessionHistory || sessionHistory.length === 0) {
+                    document.getElementById('import-screen').style.display = 'flex';
+                }
             } else {
                 editorMode.style.display = 'block';
                 initializeEditorMode();
@@ -843,25 +850,56 @@
                 editExerciseSelect.appendChild(option);
             });
 
-            // Populate region dropdown
-            const regionSelect = document.getElementById('new-role-region');
-            regionSelect.innerHTML = '<option value="">-- Select --</option>';
+            // Populate region datalist with schema values + current values from rolesData
+            const regionDatalist = document.getElementById('region-options');
+            const regionSet = new Set();
             if (schema && schema.definitions && schema.definitions.role) {
                 const regions = schema.definitions.role.properties.region.enum || [];
-                regions.forEach(r => {
-                    regionSelect.innerHTML += `<option value="${r}">${r}</option>`;
+                regions.forEach(r => regionSet.add(r));
+            }
+            // Add regions from existing roles
+            if (rolesData && rolesData.exercise_roles) {
+                Object.values(rolesData.exercise_roles).forEach(ex => {
+                    ex.roles.forEach(role => {
+                        if (role.region) regionSet.add(role.region);
+                    });
                 });
             }
+            regionDatalist.innerHTML = Array.from(regionSet).map(r => `<option value="${r}">${r}</option>`).join('');
 
-            // Populate capacity dropdown
-            const capacitySelect = document.getElementById('new-role-capacity');
-            capacitySelect.innerHTML = '<option value="">-- Select --</option>';
+            // Populate capacity datalist with schema values + current values from rolesData
+            const capacityDatalist = document.getElementById('capacity-options');
+            const capacitySet = new Set();
             if (schema && schema.definitions && schema.definitions.role) {
                 const capacities = schema.definitions.role.properties.capacity.enum || [];
-                capacities.forEach(c => {
-                    capacitySelect.innerHTML += `<option value="${c}">${c}</option>`;
+                capacities.forEach(c => capacitySet.add(c));
+            }
+            // Add capacities from existing roles
+            if (rolesData && rolesData.exercise_roles) {
+                Object.values(rolesData.exercise_roles).forEach(ex => {
+                    ex.roles.forEach(role => {
+                        if (role.capacity) capacitySet.add(role.capacity);
+                    });
                 });
             }
+            capacityDatalist.innerHTML = Array.from(capacitySet).map(c => `<option value="${c}">${c}</option>`).join('');
+
+            // Populate focus datalist with schema values + current values from rolesData
+            const focusDatalist = document.getElementById('focus-options');
+            const focusSet = new Set();
+            if (schema && schema.definitions && schema.definitions.role && schema.definitions.role.properties.focus) {
+                const focuses = schema.definitions.role.properties.focus.enum || [];
+                focuses.forEach(f => focusSet.add(f));
+            }
+            // Add focus values from existing roles
+            if (rolesData && rolesData.exercise_roles) {
+                Object.values(rolesData.exercise_roles).forEach(ex => {
+                    ex.roles.forEach(role => {
+                        if (role.focus) focusSet.add(role.focus);
+                    });
+                });
+            }
+            focusDatalist.innerHTML = Array.from(focusSet).map(f => `<option value="${f}">${f}</option>`).join('');
 
             updateModificationSummary();
         }
@@ -1299,7 +1337,15 @@
 
                 // Set global data
                 sessionHistory = []; // Empty - no patient data
-                exerciseLibrary = libraryData.exercises || [];
+                // Map exercise_library.json format to expected format
+                exerciseLibrary = (libraryData.exercises || []).map(ex => ({
+                    id: ex.exercise_id,
+                    name: ex.canonical_name,
+                    title: ex.canonical_name,
+                    description: ex.description || '',
+                    instructions: ex.guidance?.external_cues?.join('\n') || '',
+                    videoUrl: ''
+                }));
                 rolesData = rolesDataRaw;
                 schema = schemaData;
                 vocabulary = vocabData;
