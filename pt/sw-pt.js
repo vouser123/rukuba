@@ -1,5 +1,5 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.16.0';
+const CACHE_NAME = 'pt-tracker-v1.17.0';
 const libraryUrl = new URL('exercise_library.json', self.location).pathname;
 const rolesUrl = new URL('exercise_roles.json', self.location).pathname;
 const vocabUrl = new URL('exercise_roles_vocabulary.json', self.location).pathname;
@@ -40,7 +40,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch strategy: Always fetch HTML fresh, never cache it
+// Fetch strategy: Network-first for JSON and HTML, cache-first for static assets
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
@@ -56,7 +56,27 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For other resources (CSS, JS, images), use cache-first strategy
+  // Network-first for JSON files - always get latest data
+  // This ensures updated roles, exercises, vocabulary propagate immediately
+  if (url.pathname.endsWith('.json')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(fetchResponse => {
+          // Update cache with fresh data
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, fetchResponse.clone());
+            return fetchResponse;
+          });
+        })
+        .catch(() => {
+          // Fall back to cache if offline
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // For other resources (CSS, images), use cache-first strategy
   event.respondWith(
     caches.match(event.request)
       .then(response => {

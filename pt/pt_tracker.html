@@ -682,7 +682,38 @@
             <div style="display: flex; gap: 4px;">
                 <button onclick="showWeeklyStats()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📈</button>
                 <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
-                <button onclick="showSettings()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">⚙️</button>
+                <button onclick="toggleHamburgerMenu()" style="background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 4px 8px;">☰</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hamburger Menu Overlay & Slide-out -->
+    <div id="hamburger-overlay" onclick="toggleHamburgerMenu()" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9998;"></div>
+    <div id="hamburger-menu" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; width: 280px; background: var(--bg-secondary); z-index: 9999; box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3); overflow-y: auto;">
+        <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 18px; font-weight: 600;">Menu</div>
+            <button onclick="toggleHamburgerMenu()" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Close</button>
+        </div>
+        <div style="padding: 0;">
+            <div onclick="window.location.href='pt_report.html'" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">✏️</span>
+                <span>PT Editor Mode</span>
+            </div>
+            <div onclick="window.location.href='rehab_coverage.html'" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">📊</span>
+                <span>Coverage View</span>
+            </div>
+            <div onclick="showSettings(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">⚙️</span>
+                <span>Settings</span>
+            </div>
+            <div onclick="exportForPT(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">🏥</span>
+                <span>Export for PT</span>
+            </div>
+            <div onclick="location.reload()" style="padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">🔄</span>
+                <span>Reload</span>
             </div>
         </div>
     </div>
@@ -1360,7 +1391,6 @@
         const APP_VERSION = 'v1.5.9'; // Updated: 2025-12-27 - Equipment editing with dynamic library and add-new capability
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
-        const ATLAS_REFERENCE_URL = 'https://github.com/vouser123/rukuba/tree/revert-5-claude/enable-page-code-writing-MNryw';
 
         /**
          * SESSION ID TRACKING
@@ -4401,6 +4431,21 @@
             haptic('medium');
         }
 
+        function toggleHamburgerMenu() {
+            const overlay = document.getElementById('hamburger-overlay');
+            const menu = document.getElementById('hamburger-menu');
+            const isVisible = overlay.style.display !== 'none';
+
+            if (isVisible) {
+                overlay.style.display = 'none';
+                menu.style.display = 'none';
+            } else {
+                overlay.style.display = 'block';
+                menu.style.display = 'block';
+            }
+            haptic('medium');
+        }
+
         function toggleHaptic() {
             preferences.hapticEnabled = document.getElementById('haptic-toggle').checked;
             savePreferences();
@@ -4557,7 +4602,6 @@
                 anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
                 difficulty: '',
                 supersedes: [],
-                atlasUrl: '',
                 current: dosageSpec,
                 history: [
                     {

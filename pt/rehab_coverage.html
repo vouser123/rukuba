@@ -582,6 +582,10 @@
             <div class="menu-item-icon">🏥</div>
             <div class="menu-item-text">Export for PT</div>
         </div>
+        <div class="menu-item" onclick="window.location.href='pt_report.html'; toggleMenu();">
+            <div class="menu-item-icon">✏️</div>
+            <div class="menu-item-text">PT Editor Mode</div>
+        </div>
         <div class="menu-item" onclick="importPTModifications(); toggleMenu();">
             <div class="menu-item-icon">📨</div>
             <div class="menu-item-text">Import PT Modifications</div>
@@ -922,7 +926,10 @@
 
             // Rolling 7-day activity
             const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-            const recentSessions = sessionHistory.filter(s => s.timestamp >= sevenDaysAgo);
+            const recentSessions = sessionHistory.filter(s => {
+                const sessionDate = s.date ? new Date(s.date).getTime() : (s.timestamp || 0);
+                return sessionDate >= sevenDaysAgo;
+            });
             const recentExerciseIds = [...new Set(recentSessions.map(s => s.exerciseId))];
             const recentExercisesInLibrary = uniqueExercises.filter(e => recentExerciseIds.includes(e.id));
             const weeklyDone = recentExercisesInLibrary.length;
@@ -1694,15 +1701,21 @@
         }
 
         function showModificationReview(mods) {
-            const newExCount = mods.newExercises.length;
-            const newRoleCount = Object.values(mods.newRoles).reduce((sum, roles) => sum + roles.length, 0);
-            const updatedVocabCount = Object.values(mods.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+            const newExCount = mods.newExercises?.length || 0;
+            const editedExCount = Object.keys(mods.editedExercises || {}).length;
+            const archivedExCount = mods.archivedExercises?.length || 0;
+            const newRoleCount = Object.values(mods.newRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const editedRoleCount = Object.keys(mods.editedRoles || {}).length;
+            const updatedVocabCount = Object.values(mods.updatedVocab || {}).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
             let message = `PT Modifications Summary:\n\n`;
-            message += `• ${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
-            message += `• ${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
-            message += `• ${updatedVocabCount} vocabulary update${updatedVocabCount !== 1 ? 's' : ''}\n\n`;
-            message += `Accept and merge all changes?`;
+            if (newExCount > 0) message += `• ${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
+            if (editedExCount > 0) message += `• ${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
+            if (archivedExCount > 0) message += `• ${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
+            if (newRoleCount > 0) message += `• ${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+            if (editedRoleCount > 0) message += `• ${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
+            if (updatedVocabCount > 0) message += `• ${updatedVocabCount} vocabulary update${updatedVocabCount !== 1 ? 's' : ''}\n`;
+            message += `\nAccept and merge all changes?`;
 
             if (!confirm(message)) {
                 return;
@@ -1712,9 +1725,8 @@
             let mergedCount = 0;
 
             // 1. Add new exercises to library
-            if (mods.newExercises.length > 0) {
+            if (mods.newExercises && mods.newExercises.length > 0) {
                 mods.newExercises.forEach(ex => {
-                    // Check if already exists
                     if (!exerciseLibrary.find(e => e.id === ex.id)) {
                         exerciseLibrary.push(ex);
                         mergedCount++;
@@ -1723,12 +1735,40 @@
                 console.log(`[Merge] Added ${mods.newExercises.length} new exercises`);
             }
 
-            // 2. Add new roles to rolesData
-            if (Object.keys(mods.newRoles).length > 0) {
+            // 2. Update edited exercises in library
+            if (mods.editedExercises && Object.keys(mods.editedExercises).length > 0) {
+                Object.keys(mods.editedExercises).forEach(exerciseId => {
+                    const updatedExercise = mods.editedExercises[exerciseId];
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    if (index !== -1) {
+                        exerciseLibrary[index] = updatedExercise;
+                        mergedCount++;
+                    }
+                });
+                console.log(`[Merge] Updated ${editedExCount} edited exercises`);
+            }
+
+            // 3. Archive exercises (remove from library)
+            if (mods.archivedExercises && mods.archivedExercises.length > 0) {
+                mods.archivedExercises.forEach(exerciseId => {
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    if (index !== -1) {
+                        exerciseLibrary.splice(index, 1);
+                        mergedCount++;
+                    }
+                    // Also remove from rolesData
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        delete rolesData.exercise_roles[exerciseId];
+                    }
+                });
+                console.log(`[Merge] Archived ${archivedExCount} exercises`);
+            }
+
+            // 4. Add new roles to rolesData
+            if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
                 Object.keys(mods.newRoles).forEach(exerciseId => {
                     const newRoles = mods.newRoles[exerciseId];
 
-                    // Initialize exercise in rolesData if doesn't exist
                     if (!rolesData.exercise_roles[exerciseId]) {
                         const exercise = exerciseLibrary.find(e => e.id === exerciseId);
                         rolesData.exercise_roles[exerciseId] = {
@@ -1737,15 +1777,26 @@
                         };
                     }
 
-                    // Add new roles
                     rolesData.exercise_roles[exerciseId].roles.push(...newRoles);
                     mergedCount += newRoles.length;
                 });
                 console.log(`[Merge] Added ${newRoleCount} new roles`);
             }
 
-            // 3. Update vocabulary
-            if (Object.keys(mods.updatedVocab).length > 0) {
+            // 5. Replace edited role sets
+            if (mods.editedRoles && Object.keys(mods.editedRoles).length > 0) {
+                Object.keys(mods.editedRoles).forEach(exerciseId => {
+                    const newRoleSet = mods.editedRoles[exerciseId];
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        rolesData.exercise_roles[exerciseId].roles = newRoleSet;
+                        mergedCount++;
+                    }
+                });
+                console.log(`[Merge] Replaced ${editedRoleCount} role sets`);
+            }
+
+            // 6. Update vocabulary
+            if (mods.updatedVocab && Object.keys(mods.updatedVocab).length > 0) {
                 Object.keys(mods.updatedVocab).forEach(category => {
                     const terms = mods.updatedVocab[category];
                     Object.keys(terms).forEach(term => {
@@ -1763,7 +1814,16 @@
             deriveEnums();
             renderCoverageView();
 
-            alert(`✅ Merged successfully!\n\n${newExCount} exercises\n${newRoleCount} roles\n${updatedVocabCount} vocab updates\n\nRemember to export to GitHub when ready!`);
+            let summary = '✅ Merged successfully!\n\n';
+            if (newExCount > 0) summary += `${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
+            if (editedExCount > 0) summary += `${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
+            if (archivedExCount > 0) summary += `${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
+            if (newRoleCount > 0) summary += `${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+            if (editedRoleCount > 0) summary += `${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
+            if (updatedVocabCount > 0) summary += `${updatedVocabCount} vocab update${updatedVocabCount !== 1 ? 's' : ''}\n`;
+            summary += '\nRemember to export to GitHub when ready!';
+
+            alert(summary);
         }
 
         // Go back to PT Tracker
