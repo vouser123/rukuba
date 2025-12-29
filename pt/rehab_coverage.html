@@ -6,48 +6,26 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Rehab Coverage</title>
+    <link rel="stylesheet" href="shared-styles.css">
     <style>
-        :root {
-            --bg-primary: #000000;
-            --bg-secondary: #1c1c1e;
-            --bg-tertiary: #2c2c2e;
-            --text-primary: #ffffff;
-            --text-secondary: #98989d;
-            --border-color: #38383a;
-            --ios-blue: #0a84ff;
-            --ios-green: #30d158;
-            --ios-orange: #ff9f0a;
-            --ios-red: #ff453a;
-            --ios-yellow: #ffd60a;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        /* Coverage-specific overrides */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            padding: 16px;
-            padding-bottom: 80px;
-            line-height: 1.4;
+            padding: 8px;
+            padding-bottom: 60px;
+            line-height: 1.3;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .header h1 {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 600;
         }
 
@@ -70,13 +48,13 @@
 
         /* Region Accordion */
         .region-section {
-            margin-bottom: 16px;
+            margin-bottom: 10px;
         }
 
         .region-header {
             background: var(--bg-secondary);
-            padding: 16px;
-            border-radius: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
@@ -89,7 +67,7 @@
         }
 
         .region-header h2 {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             text-transform: capitalize;
         }
@@ -105,7 +83,7 @@
 
         .region-content {
             display: none;
-            padding: 12px 0;
+            padding: 6px 0;
         }
 
         .region-section.expanded .region-content {
@@ -115,16 +93,13 @@
         /* Capacity Row */
         .capacity-row {
             background: var(--bg-tertiary);
-            padding: 12px 16px;
-            margin: 8px 0;
+            padding: 8px 10px;
+            margin: 6px 0;
             border-radius: 8px;
             border: 1px solid var(--border-color);
         }
 
         .capacity-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             cursor: pointer;
         }
 
@@ -132,8 +107,12 @@
             opacity: 0.8;
         }
 
+        .capacity-header.no-pointer {
+            cursor: default;
+        }
+
         .capacity-name {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 500;
             text-transform: capitalize;
             flex: 1;
@@ -141,8 +120,8 @@
 
         .capacity-term {
             color: var(--ios-blue);
-            font-size: 14px;
-            margin-left: 8px;
+            font-size: 13px;
+            margin-left: 6px;
         }
 
 
@@ -160,8 +139,8 @@
         /* Focus Rows */
         .focus-list {
             display: none;
-            margin-top: 12px;
-            padding-left: 16px;
+            margin-top: 6px;
+            padding-left: 10px;
             border-left: 2px solid var(--border-color);
         }
 
@@ -169,36 +148,9 @@
             display: block;
         }
 
-        .focus-row {
-            padding: 8px 12px;
-            margin: 4px 0;
-            background: var(--bg-secondary);
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
-
-        .focus-name {
-            font-size: 14px;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-            text-transform: capitalize;
-        }
-
         .focus-term {
             color: var(--ios-blue);
             font-size: 12px;
-        }
-
-        .exercises-link {
-            color: var(--ios-blue);
-            font-size: 13px;
-            text-decoration: none;
-            margin-top: 8px;
-            display: inline-block;
-        }
-
-        .exercises-link:active {
-            opacity: 0.7;
         }
 
         /* Modal */
@@ -353,15 +305,246 @@
             margin-bottom: 16px;
             font-size: 14px;
         }
+
+        /* Slide-out Menu */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 9998;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+
+        .slide-menu {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100%;
+            background: var(--bg-secondary);
+            transition: right 0.3s ease;
+            z-index: 9999;
+            overflow-y: auto;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-menu.active {
+            right: 0;
+        }
+
+        .menu-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .menu-close {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .menu-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-item:active {
+            background: var(--bg-tertiary);
+        }
+
+        .menu-item-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .menu-item-text {
+            font-size: 16px;
+        }
+
+        /* Roles Editor Modal */
+        .roles-editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .roles-editor-modal.active {
+            display: flex;
+        }
+
+        .roles-editor-content {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .editor-close {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .editor-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .form-select, .form-input {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-select:focus, .form-input:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+        }
+
+        /* Roles Editor Components */
+        .role-item {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .role-details {
+            flex: 1;
+        }
+
+        .role-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Rehab Coverage</h1>
-        <div style="display: flex; gap: 8px;">
-            <button class="header-btn" onclick="location.reload()" style="padding: 8px 12px;">🔄</button>
-            <button class="header-btn" onclick="toggleDebug()">🐛</button>
-            <button class="header-btn" onclick="openVocabulary()">📚 Terms</button>
+        <button class="header-btn" onclick="toggleMenu()">☰</button>
+    </div>
+
+    <!-- Slide-out Menu -->
+    <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+    <div class="slide-menu" id="slide-menu">
+        <div class="menu-header">
+            <div class="menu-title">Menu</div>
+            <button class="menu-close" onclick="toggleMenu()">Close</button>
+        </div>
+        <div class="menu-item" onclick="location.reload()">
+            <div class="menu-item-icon">🔄</div>
+            <div class="menu-item-text">Reload</div>
+        </div>
+        <div class="menu-item" onclick="toggleDebug(); toggleMenu();">
+            <div class="menu-item-icon">🐛</div>
+            <div class="menu-item-text">Debug Info</div>
+        </div>
+        <div class="menu-item" onclick="openVocabulary(); toggleMenu();">
+            <div class="menu-item-icon">📚</div>
+            <div class="menu-item-text">Vocabulary</div>
+        </div>
+        <div class="menu-item" onclick="openRolesEditor()">
+            <div class="menu-item-icon">✏️</div>
+            <div class="menu-item-text">Edit Roles</div>
+        </div>
+        <div class="menu-item" onclick="exportAllData()">
+            <div class="menu-item-icon">💾</div>
+            <div class="menu-item-text">Export All Data</div>
+        </div>
+        <div class="menu-item" onclick="importData()">
+            <div class="menu-item-icon">📥</div>
+            <div class="menu-item-text">Import Data</div>
+        </div>
+        <div class="menu-item" onclick="goBack()">
+            <div class="menu-item-icon">←</div>
+            <div class="menu-item-text">Back to PT Tracker</div>
+        </div>
+    </div>
+
+    <!-- Roles Editor Modal -->
+    <div class="roles-editor-modal" id="roles-editor">
+        <div class="roles-editor-content">
+            <div class="editor-header">
+                <div class="editor-title">Edit Roles</div>
+                <button class="editor-close" onclick="closeRolesEditor()">Done</button>
+            </div>
+            <div class="editor-body" id="editor-body">
+                <!-- Content filled by JavaScript -->
+            </div>
         </div>
     </div>
 
@@ -457,6 +640,13 @@
             const response = await fetch('exercise_roles_vocabulary.json');
             if (!response.ok) throw new Error(`Vocabulary fetch failed: ${response.status}`);
             vocabulary = await response.json();
+
+            // Validate schema version match
+            if (vocabulary.schema_version && schema.schema_version) {
+                if (vocabulary.schema_version !== schema.schema_version) {
+                    throw new Error(`Schema version mismatch! Vocabulary: ${vocabulary.schema_version}, Schema: ${schema.schema_version}`);
+                }
+            }
         }
 
         async function loadExerciseLibrary() {
@@ -570,6 +760,19 @@
             return exercises;
         }
 
+        // Get unique exercises from array (by ID)
+        function getUniqueExercises(exercises) {
+            return Array.from(new Set(exercises.map(e => e.id)))
+                .map(id => exercises.find(e => e.id === id));
+        }
+
+        // Get color for completion percentage
+        function getPercentColor(percent, goodThreshold = 70, okThreshold = 40) {
+            if (percent >= goodThreshold) return 'var(--ios-green)';
+            if (percent >= okThreshold) return 'var(--ios-yellow)';
+            return 'var(--ios-red)';
+        }
+
         // Render exercise list for a bucket
         function renderExerciseList(exercises) {
             if (exercises.length === 0) {
@@ -590,12 +793,12 @@
                 const contribColor = contributionColors[ex.contribution] || 'var(--text-secondary)';
 
                 html += `
-                    <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin: 3px 0; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid ${contribColor};">
-                        <span style="color: ${statusColor}; font-size: 14px; min-width: 16px;">${statusIcon}</span>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${ex.name}</div>
-                            <div style="font-size: 11px; color: var(--text-secondary);">
-                                <span style="color: ${contribColor}; font-weight: 600;">${ex.contribution}</span>
+                    <div class="exercise-card border-l-3" style="border-left-color: ${contribColor};">
+                        <span class="exercise-card-icon" style="color: ${statusColor};">${statusIcon}</span>
+                        <div class="exercise-card-content">
+                            <div class="exercise-card-title">${ex.name}</div>
+                            <div class="exercise-card-meta">
+                                <span class="font-weight-600" style="color: ${contribColor};">${ex.contribution}</span>
                                 <span style="margin: 0 4px;">•</span>
                                 <span style="color: ${statusColor};">${statusText}</span>
                             </div>
@@ -610,14 +813,94 @@
 
         // Render coverage view
         function renderCoverageView() {
-            let html = '';
+            // Calculate overall stats
+            const allExercises = [];
+            regions.forEach(region => {
+                const capacities = getCapacitiesForRegion(region);
+                capacities.forEach(capacity => {
+                    const exercises = getExercisesForBucket(region, capacity, null);
+                    allExercises.push(...exercises);
+                });
+            });
+
+            const uniqueExercises = getUniqueExercises(allExercises);
+
+            const totalExercises = uniqueExercises.length;
+            const doneExercises = uniqueExercises.filter(e => e.done).length;
+            const donePercent = totalExercises > 0 ? Math.round((doneExercises / totalExercises) * 100) : 0;
+
+            // Find most recent session
+            let mostRecentDays = null;
+            if (sessionHistory.length > 0) {
+                const mostRecentTimestamp = Math.max(...sessionHistory.map(s => s.timestamp));
+                const daysSince = Math.floor((Date.now() - mostRecentTimestamp) / (1000 * 60 * 60 * 24));
+                mostRecentDays = daysSince;
+            }
+
+            const recencyColor = mostRecentDays === null ? 'var(--text-secondary)' :
+                                 mostRecentDays === 0 ? 'var(--ios-green)' :
+                                 mostRecentDays <= 3 ? 'var(--ios-green)' :
+                                 mostRecentDays <= 7 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+            const recencyText = mostRecentDays === null ? 'No sessions yet' :
+                               mostRecentDays === 0 ? 'Today' : `${mostRecentDays}d ago`;
+
+            // Rolling 7-day activity
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            const recentSessions = sessionHistory.filter(s => s.timestamp >= sevenDaysAgo);
+            const recentExerciseIds = [...new Set(recentSessions.map(s => s.exerciseId))];
+            const recentExercisesInLibrary = uniqueExercises.filter(e => recentExerciseIds.includes(e.id));
+            const weeklyDone = recentExercisesInLibrary.length;
+            const weeklyPercent = totalExercises > 0 ? Math.round((weeklyDone / totalExercises) * 100) : 0;
+            const weeklyColor = getPercentColor(weeklyPercent, 50, 25);
+            const overallColor = getPercentColor(donePercent);
+
+            let html = `
+                <div class="overview-card">
+                    <div class="overview-header">
+                        <span class="font-13 font-weight-600 text-secondary">Coverage Overview</span>
+                        <span class="font-11" style="color: ${recencyColor};">Last session: ${recencyText}</span>
+                    </div>
+                    <div class="overview-stats">
+                        <span class="overview-percentage" style="color: ${overallColor};">${donePercent}%</span>
+                        <div class="flex-1">
+                            <div class="font-11 text-secondary mb-2">${doneExercises} of ${totalExercises} exercises done</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-fill-gradient" style="width: ${donePercent}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overview-weekly">
+                        <span class="font-11 text-secondary">Last 7 days (rolling)</span>
+                        <div class="flex-center gap-6">
+                            <span class="font-13 font-weight-600" style="color: ${weeklyColor};">${weeklyDone}/${totalExercises}</span>
+                            <span class="font-11" style="color: ${weeklyColor};">(${weeklyPercent}%)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
 
             regions.forEach(region => {
+                // Calculate region completion
+                const regionExercises = [];
+                const capacities = getCapacitiesForRegion(region);
+                capacities.forEach(capacity => {
+                    const exercises = getExercisesForBucket(region, capacity, null);
+                    regionExercises.push(...exercises);
+                });
+                const regionUniqueExercises = getUniqueExercises(regionExercises);
+                const regionTotal = regionUniqueExercises.length;
+                const regionDone = regionUniqueExercises.filter(e => e.done).length;
+                const regionPercent = regionTotal > 0 ? Math.round((regionDone / regionTotal) * 100) : 0;
+                const regionColor = getPercentColor(regionPercent);
+
                 html += `
                     <div class="region-section" id="region-${region}">
                         <div class="region-header" onclick="toggleRegion('${region}')">
                             <h2>${region}</h2>
-                            <span class="region-chevron">›</span>
+                            <div class="flex-center gap-8">
+                                <span class="font-11 font-weight-600" style="color: ${regionColor};">${regionPercent}%</span>
+                                <span class="region-chevron">›</span>
+                            </div>
                         </div>
                         <div class="region-content">
                             ${renderRegionCapacities(region)}
@@ -685,32 +968,40 @@
                     lastActivity = doneExercises[0].daysSince;
                 }
 
-                // Build summary with progress bar
+                // Build summary with progress bar and recency indicator
                 const doneIcon = doneCount === totalCount ? '✓' : (doneCount > 0 ? '⚠' : '✗');
                 const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
                 const progress = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
+
+                // Calculate opacity based on recency (fades over 14 days)
+                const opacity = lastActivity !== null ? Math.max(0.3, 1 - (lastActivity / 14)) : 0.3;
+                const recencyText = lastActivity !== null ? `${lastActivity}d` : '—';
+
                 const summary = `
-                    <div style="display: flex; align-items: center; gap: 6px; min-width: 100px;">
+                    <div class="flex-center gap-4">
                         <span style="color: ${doneColor}; font-size: 12px;">${doneIcon}</span>
-                        <span style="font-size: 11px; min-width: 30px;">${doneCount}/${totalCount}</span>
-                        <div style="flex: 1; min-width: 40px; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden;">
-                            <div style="height: 100%; width: ${progress}%; background: ${doneColor}; transition: width 0.3s;"></div>
+                        <span class="font-11 nowrap">${doneCount}/${totalCount}</span>
+                        <div class="progress-bar flex-1" style="min-width: 30px;">
+                            <div class="progress-fill" style="width: ${progress}%; background: ${doneColor}; opacity: ${opacity};"></div>
                         </div>
+                        <span class="font-11 text-secondary nowrap">${recencyText}</span>
                     </div>
                 `;
 
                 html += `
                     <div class="capacity-row ${hasChevron ? '' : 'no-expand'}" id="capacity-${region}-${capacity}">
-                        <div class="capacity-header" onclick="${hasChevron ? `toggleCapacity('${region}', '${capacity}')` : ''}" style="display: flex; align-items: center; gap: 8px;">
-                            <span class="capacity-name" style="flex: 0 0 auto; min-width: 80px;">${capacity}</span>
-                            <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')" style="flex: 0 0 auto;">ⓘ</span>
-                            <div style="flex: 1; min-width: 0;">${summary}</div>
+                        <div class="capacity-header${hasChevron ? '' : ' no-pointer'} flex-center gap-6 flex-wrap" ${hasChevron ? `onclick="toggleCapacity('${region}', '${capacity}')"` : ''}>
+                            <div class="flex-center gap-6" style="flex: 0 0 auto;">
+                                <span class="capacity-name">${capacity}</span>
+                                <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')" style="flex: 0 0 auto;">ⓘ</span>
+                            </div>
+                            <div class="flex-1" style="min-width: 100px;">${summary}</div>
                             ${hasChevron ? '<span class="capacity-chevron" style="flex: 0 0 auto;">›</span>' : ''}
                         </div>
                         ${hasChevron ? `
                             <div class="focus-list">
                                 ${generalExercises.length > 0 ? `
-                                    <div style="padding: 8px 12px; font-size: 13px; color: var(--text-secondary); font-weight: 500;">General</div>
+                                    <div class="px-12 py-8 font-13 text-secondary font-weight-500">General</div>
                                     ${renderExerciseList(generalExercises)}
                                 ` : ''}
                                 ${focuses.length > 0 ? renderFocuses(region, capacity, focuses) : ''}
@@ -732,11 +1023,13 @@
                 const totalCount = focusExercises.length;
 
                 html += `
-                    <div style="margin: 8px 0; padding: 8px; background: var(--bg-secondary); border-radius: 6px; border-left: 3px solid var(--ios-blue);">
-                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-                            <span style="font-size: 13px; font-weight: 600; text-transform: capitalize; flex: 1;">${focus.replace(/_/g, ' ')}</span>
-                            <span class="focus-term" onclick="showTermDefinition('focus', '${focus}')" style="color: var(--ios-blue); font-size: 12px; cursor: pointer;">ⓘ</span>
-                            <span style="font-size: 11px; color: var(--text-secondary);">${doneCount}/${totalCount} done</span>
+                    <div class="m-8 p-8 bg-secondary rounded-md border-l-3" style="border-left-color: var(--ios-blue);">
+                        <div class="flex-center gap-6 mb-6 flex-wrap">
+                            <span class="font-13 font-weight-600 flex-1" style="text-transform: capitalize; min-width: 0;">${focus.replace(/_/g, ' ')}</span>
+                            <div class="flex-center gap-6" style="flex: 0 0 auto;">
+                                <span class="focus-term text-blue font-12" onclick="showTermDefinition('focus', '${focus}')" style="cursor: pointer;">ⓘ</span>
+                                <span class="font-11 text-secondary nowrap">${doneCount}/${totalCount} done</span>
+                            </div>
                         </div>
                         ${renderExerciseList(focusExercises)}
                     </div>
@@ -909,6 +1202,248 @@
             } else {
                 panel.style.display = 'none';
             }
+        }
+
+        // Menu functions
+        function toggleMenu() {
+            const overlay = document.getElementById('menu-overlay');
+            const menu = document.getElementById('slide-menu');
+            overlay.classList.toggle('active');
+            menu.classList.toggle('active');
+        }
+
+        // Export all data (3 separate files: roles + schema + vocab)
+        function exportAllData() {
+            const dateStr = new Date().toISOString().split('T')[0];
+
+            // Helper to download a file
+            function downloadJSON(data, filename) {
+                const dataStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+
+            // Export each file separately
+            downloadJSON(rolesData, `exercise_roles-${dateStr}.json`);
+
+            setTimeout(() => {
+                downloadJSON(schema, `exercise_roles.schema-${dateStr}.json`);
+            }, 300);
+
+            setTimeout(() => {
+                downloadJSON(vocabulary, `exercise_roles_vocabulary-${dateStr}.json`);
+            }, 600);
+
+            toggleMenu();
+            alert('Exported 3 files! Upload to GitHub:\n1. exercise_roles.json\n2. exercise_roles.schema.json\n3. exercise_roles_vocabulary.json');
+        }
+
+        // Import data
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+
+                        // Validate structure
+                        if (!imported.exercise_roles || !imported.schema || !imported.vocabulary) {
+                            alert('Invalid import file: missing required sections');
+                            return;
+                        }
+
+                        // Update in-memory data
+                        rolesData = imported.exercise_roles;
+                        schema = imported.schema;
+                        vocabulary = imported.vocabulary;
+
+                        // Re-derive enums
+                        deriveEnums();
+
+                        // Re-render
+                        renderCoverageView();
+
+                        toggleMenu();
+                        alert('Data imported successfully! Reload to see changes.');
+                    } catch (err) {
+                        alert('Error importing file: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // Roles editor
+        let currentEditExerciseId = null;
+
+        function openRolesEditor() {
+            toggleMenu();
+
+            // Build exercise list
+            let html = '<div class="form-group">';
+            html += '<label class="form-label">Select Exercise</label>';
+            html += '<select class="form-select" id="exercise-selector" onchange="selectExerciseToEdit(this.value)">';
+            html += '<option value="">-- Choose an exercise --</option>';
+
+            // Add exercises from library
+            exerciseLibrary.forEach(ex => {
+                const hasRoles = rolesData.exercise_roles[ex.id];
+                const label = `${ex.title || ex.name}${hasRoles ? ' ✓' : ''}`;
+                html += `<option value="${ex.id}">${label}</option>`;
+            });
+
+            html += '</select></div>';
+            html += '<div id="roles-container"></div>';
+
+            document.getElementById('editor-body').innerHTML = html;
+            document.getElementById('roles-editor').classList.add('active');
+        }
+
+        function closeRolesEditor() {
+            document.getElementById('roles-editor').classList.remove('active');
+            currentEditExerciseId = null;
+        }
+
+        function selectExerciseToEdit(exerciseId) {
+            if (!exerciseId) {
+                document.getElementById('roles-container').innerHTML = '';
+                return;
+            }
+
+            currentEditExerciseId = exerciseId;
+            const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+            const rolesForExercise = rolesData.exercise_roles[exerciseId];
+
+            let html = `<h3 style="margin: 20px 0 12px; font-size: 16px;">${exercise.title || exercise.name}</h3>`;
+
+            // Show existing roles
+            if (rolesForExercise && rolesForExercise.roles && rolesForExercise.roles.length > 0) {
+                html += '<div style="margin-bottom: 16px;">';
+                html += '<div class="form-label">Current Roles</div>';
+                rolesForExercise.roles.forEach((role, idx) => {
+                    html += `
+                        <div class="role-item">
+                            <div class="role-details">
+                                <div><strong>${role.region}</strong> → ${role.capacity}</div>
+                                <div class="role-meta">
+                                    ${role.focus ? 'Focus: ' + role.focus + ' • ' : ''}
+                                    Contribution: ${role.contribution}
+                                </div>
+                            </div>
+                            <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteRole(${idx})">Delete</button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // Add new role form
+            html += '<div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color);">';
+            html += '<div class="form-label">Add New Role</div>';
+
+            html += '<div class="form-group">';
+            html += '<label class="form-label">Region</label>';
+            html += '<select class="form-select" id="new-region">';
+            html += '<option value="">-- Select --</option>';
+            regions.forEach(r => {
+                html += `<option value="${r}">${r}</option>`;
+            });
+            html += '</select></div>';
+
+            html += '<div class="form-group">';
+            html += '<label class="form-label">Capacity</label>';
+            html += '<select class="form-select" id="new-capacity">';
+            html += '<option value="">-- Select --</option>';
+            capacities.forEach(c => {
+                html += `<option value="${c}">${c}</option>`;
+            });
+            html += '</select></div>';
+
+            html += '<div class="form-group">';
+            html += '<label class="form-label">Focus (optional)</label>';
+            html += '<input type="text" class="form-input" id="new-focus" placeholder="e.g., sagittal, lateral, anti_rotation">';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label class="form-label">Contribution</label>';
+            html += '<select class="form-select" id="new-contribution">';
+            html += '<option value="">-- Select --</option>';
+            contributions.forEach(c => {
+                html += `<option value="${c}">${c}</option>`;
+            });
+            html += '</select></div>';
+
+            html += '<button class="btn btn-primary" style="width: 100%;" onclick="addRole()">Add Role</button>';
+            html += '</div>';
+
+            document.getElementById('roles-container').innerHTML = html;
+        }
+
+        function addRole() {
+            const region = document.getElementById('new-region').value;
+            const capacity = document.getElementById('new-capacity').value;
+            const focus = document.getElementById('new-focus').value.trim();
+            const contribution = document.getElementById('new-contribution').value;
+
+            if (!region || !capacity || !contribution) {
+                alert('Please fill in region, capacity, and contribution');
+                return;
+            }
+
+            const newRole = {
+                region,
+                capacity,
+                contribution
+            };
+
+            if (focus) {
+                newRole.focus = focus;
+            }
+
+            // Initialize exercise in rolesData if it doesn't exist
+            if (!rolesData.exercise_roles[currentEditExerciseId]) {
+                const exercise = exerciseLibrary.find(e => e.id === currentEditExerciseId);
+                rolesData.exercise_roles[currentEditExerciseId] = {
+                    name: exercise.title || exercise.name,
+                    roles: []
+                };
+            }
+
+            // Add the role
+            rolesData.exercise_roles[currentEditExerciseId].roles.push(newRole);
+
+            // Refresh the view
+            selectExerciseToEdit(currentEditExerciseId);
+            alert('Role added! Remember to export when done.');
+        }
+
+        function deleteRole(roleIndex) {
+            if (!confirm('Delete this role?')) return;
+
+            rolesData.exercise_roles[currentEditExerciseId].roles.splice(roleIndex, 1);
+
+            // If no roles left, remove the exercise entirely
+            if (rolesData.exercise_roles[currentEditExerciseId].roles.length === 0) {
+                delete rolesData.exercise_roles[currentEditExerciseId];
+            }
+
+            // Refresh the view
+            selectExerciseToEdit(currentEditExerciseId);
+            alert('Role deleted! Remember to export when done.');
         }
 
         // Go back to PT Tracker
