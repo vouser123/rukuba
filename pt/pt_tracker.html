@@ -680,7 +680,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="exercise-name" id="exercise-name" onclick="showQuickSwitcher()" style="cursor: pointer;">Goblet Squat ▾</div>
             <div style="display: flex; gap: 4px;">
-                <button onclick="showWeeklyStats()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📊</button>
+                <button onclick="showWeeklyStats()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📈</button>
                 <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
                 <button onclick="showSettings()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">⚙️</button>
             </div>
@@ -743,10 +743,10 @@
     </div>
 
     <div class="footer">
-        <button class="btn-primary" onclick="showExerciseList()">Exercises</button>
+        <button class="btn-secondary" onclick="showExerciseList()">Exercises</button>
         <button class="btn-secondary" onclick="showHistory()">History</button>
-        <button class="btn-secondary" onclick="window.location.href='rehab_coverage.html'" style="font-size: 15px;">📊 Coverage</button>
-        <button class="btn-success" onclick="togglePocketMode(true)">Pocket Tap</button>
+        <button class="btn-secondary" onclick="window.location.href='rehab_coverage.html'">Coverage</button>
+        <button class="btn-secondary" onclick="togglePocketMode(true)">Pocket Tap</button>
     </div>
 
     <!-- Exercise Selection Modal -->
@@ -949,7 +949,7 @@
                     <div class="history-list" id="session-history-list"></div>
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <button class="control-btn btn-secondary" onclick="exportWeeklySummary()" style="flex: 1;">📊 Weekly Summary</button>
+                    <button class="control-btn btn-secondary" onclick="exportWeeklySummary()" style="flex: 1;">📈 7-Day Summary</button>
                     <button class="control-btn btn-primary" onclick="exportForPT()" style="flex: 1;">Full Report</button>
                     <button class="control-btn btn-secondary" onclick="reloadApp()" style="flex: 1;">Reload app (use after updates)</button>
                 </div>
@@ -3417,25 +3417,24 @@
             haptic('medium');
         }
 
-        // Weekly Stats Functions
+        // Weekly Stats Functions (Rolling 7-Day Window)
         function showWeeklyStats() {
             const sessions = loadHistory();
             const now = new Date();
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay());
-            startOfWeek.setHours(0, 0, 0, 0);
+            const sevenDaysAgo = new Date(now - (7 * 24 * 60 * 60 * 1000));
+            sevenDaysAgo.setHours(0, 0, 0, 0);
 
-            const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
+            const weekSessions = sessions.filter(s => new Date(s.date) >= sevenDaysAgo);
 
             // Debug logging
             console.log('[Weekly Stats] Total sessions in history:', sessions.length);
-            console.log('[Weekly Stats] Week starts:', startOfWeek.toLocaleString());
-            console.log('[Weekly Stats] Sessions this week:', weekSessions.length);
+            console.log('[Weekly Stats] Rolling 7 days starts:', sevenDaysAgo.toLocaleString());
+            console.log('[Weekly Stats] Sessions in last 7 days:', weekSessions.length);
             if (weekSessions.length > 0) {
-                console.log('[Weekly Stats] Week session dates:', weekSessions.map(s => new Date(s.date).toLocaleString()));
+                console.log('[Weekly Stats] Session dates:', weekSessions.map(s => new Date(s.date).toLocaleString()));
             }
 
-            renderWeeklyOverview(weekSessions, startOfWeek);
+            renderWeeklyOverview(weekSessions, sevenDaysAgo);
             renderWeeklyVolumeChart(sessions);
             renderWeeklyExercises(weekSessions);
             renderWeeklyAdherence(sessions);
@@ -3457,20 +3456,18 @@
             const totalSets = weekSessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
             const totalReps = weekSessions.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
 
-            // Days trained this week
+            // Days trained in rolling 7-day window
             const daysWithSessions = new Set(weekSessions.map(s => new Date(s.date).toDateString())).size;
 
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(startOfWeek.getDate() + 6);
-            endOfWeek.setHours(23, 59, 59, 999);
+            const today = new Date();
 
             container.innerHTML = `
                 <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                     <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--ios-blue);">
-                        This Week
+                        Last 7 Days (Rolling)
                     </div>
                     <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">
-                        ${startOfWeek.toLocaleDateString()} - ${endOfWeek.toLocaleDateString()}
+                        ${startOfWeek.toLocaleDateString()} - ${today.toLocaleDateString()}
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px;">
                         <div>
@@ -3559,7 +3556,7 @@
             if (weekSessions.length === 0) {
                 container.innerHTML = `
                     <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center; color: var(--text-secondary);">
-                        No sessions this week yet. Start training!
+                        No sessions in the last 7 days. Start training!
                     </div>
                 `;
                 return;
@@ -3586,7 +3583,7 @@
 
             container.innerHTML = `
                 <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Exercises This Week</div>
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Exercises (Last 7 Days)</div>
                     ${sortedExercises.map(([exId, group]) => `
                         <div style="padding: 8px; border-bottom: 1px solid var(--border-color); cursor: pointer;" onclick="showExerciseProgress('${exId}')">
                             <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${group.name}</div>
@@ -5417,25 +5414,24 @@
         function exportWeeklySummary() {
             const sessions = loadHistory();
             const now = new Date();
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay());
-            startOfWeek.setHours(0, 0, 0, 0);
+            const sevenDaysAgo = new Date(now - (7 * 24 * 60 * 60 * 1000));
+            sevenDaysAgo.setHours(0, 0, 0, 0);
 
-            const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
+            const weekSessions = sessions.filter(s => new Date(s.date) >= sevenDaysAgo);
 
             if (weekSessions.length === 0) {
-                alert('No sessions this week yet.');
+                alert('No sessions in the last 7 days.');
                 return;
             }
 
-            let summary = `PT WEEKLY SUMMARY\n`;
-            summary += `Week of ${startOfWeek.toLocaleDateString()}\n`;
+            let summary = `PT 7-DAY SUMMARY (ROLLING)\n`;
+            summary += `${sevenDaysAgo.toLocaleDateString()} - ${now.toLocaleDateString()}\n`;
             summary += `Generated: ${new Date().toLocaleDateString()}\n\n`;
 
             summary += `${'='.repeat(40)}\n`;
             summary += `OVERVIEW\n`;
             summary += `${'='.repeat(40)}\n`;
-            summary += `Total sessions this week: ${weekSessions.length}\n`;
+            summary += `Total sessions (last 7 days): ${weekSessions.length}\n`;
 
             // Count unique exercises
             const uniqueExercises = new Set(weekSessions.map(s => s.exerciseId));
@@ -5470,7 +5466,7 @@
             Object.keys(exerciseGroups).sort().forEach(exName => {
                 const group = exerciseGroups[exName];
                 summary += `\n${exName}\n`;
-                summary += `  Sessions: ${group.sessions.length}× this week\n`;
+                summary += `  Sessions: ${group.sessions.length}× (last 7 days)\n`;
                 summary += `  Total: ${group.totalSets} sets, ${group.totalReps} reps\n`;
 
                 // Show dates
@@ -5501,27 +5497,27 @@
 
             if (Object.keys(bodyParts).length > 0) {
                 Object.keys(bodyParts).sort((a, b) => bodyParts[b] - bodyParts[a]).forEach(part => {
-                    summary += `  ${part}: ${bodyParts[part]}× this week\n`;
+                    summary += `  ${part}: ${bodyParts[part]}× (last 7 days)\n`;
                 });
             } else {
                 summary += `  (No body part tags set)\n`;
             }
 
             summary += `\n${'='.repeat(40)}\n`;
-            summary += `END OF WEEKLY SUMMARY\n`;
+            summary += `END OF 7-DAY SUMMARY\n`;
 
             // Copy to clipboard
             navigator.clipboard.writeText(summary).then(() => {
                 speak('Summary copied');
                 haptic('success');
-                alert('Weekly summary copied! Share with your PT.');
+                alert('7-day summary copied! Share with your PT.');
             }).catch(() => {
                 const textarea = document.createElement('textarea');
                 textarea.value = summary;
                 textarea.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; font-family: monospace; font-size: 12px; padding: 20px;';
                 document.body.appendChild(textarea);
                 textarea.select();
-                alert('Weekly summary generated! Copy and share with your PT.');
+                alert('7-day summary generated! Copy and share with your PT.');
             });
         }
 

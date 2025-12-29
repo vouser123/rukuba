@@ -9,23 +9,33 @@
     <link rel="stylesheet" href="shared-styles.css">
     <style>
         /* Coverage-specific overrides */
+        html, body {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
         body {
-            padding: 8px;
+            padding: 4px;
             padding-bottom: 60px;
             line-height: 1.3;
+        }
+
+        #coverage-content {
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .header h1 {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
         }
 
@@ -49,17 +59,20 @@
         /* Region Accordion */
         .region-section {
             margin-bottom: 10px;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         .region-header {
             background: var(--bg-secondary);
-            padding: 10px 12px;
+            padding: 8px 10px;
             border-radius: 10px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border: 1px solid var(--border-color);
+            max-width: 100%;
         }
 
         .region-header:active {
@@ -93,10 +106,12 @@
         /* Capacity Row */
         .capacity-row {
             background: var(--bg-tertiary);
-            padding: 8px 10px;
-            margin: 6px 0;
+            padding: 6px 8px;
+            margin: 4px 0;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         .capacity-header {
@@ -326,7 +341,7 @@
             position: fixed;
             top: 0;
             right: -300px;
-            width: 300px;
+            width: min(300px, 80vw);
             height: 100%;
             background: var(--bg-secondary);
             transition: right 0.3s ease;
@@ -520,6 +535,14 @@
         <div class="menu-item" onclick="openRolesEditor()">
             <div class="menu-item-icon">✏️</div>
             <div class="menu-item-text">Edit Roles</div>
+        </div>
+        <div class="menu-item" onclick="exportForPT(); toggleMenu();">
+            <div class="menu-item-icon">🏥</div>
+            <div class="menu-item-text">Export for PT</div>
+        </div>
+        <div class="menu-item" onclick="importPTModifications(); toggleMenu();">
+            <div class="menu-item-icon">📨</div>
+            <div class="menu-item-text">Import PT Modifications</div>
         </div>
         <div class="menu-item" onclick="exportAllData()">
             <div class="menu-item-icon">💾</div>
@@ -981,7 +1004,7 @@
                     <div class="flex-center gap-4">
                         <span style="color: ${doneColor}; font-size: 12px;">${doneIcon}</span>
                         <span class="font-11 nowrap">${doneCount}/${totalCount}</span>
-                        <div class="progress-bar flex-1" style="min-width: 30px;">
+                        <div class="progress-bar flex-1" style="min-width: 20px;">
                             <div class="progress-fill" style="width: ${progress}%; background: ${doneColor}; opacity: ${opacity};"></div>
                         </div>
                         <span class="font-11 text-secondary nowrap">${recencyText}</span>
@@ -995,7 +1018,7 @@
                                 <span class="capacity-name">${capacity}</span>
                                 <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')" style="flex: 0 0 auto;">ⓘ</span>
                             </div>
-                            <div class="flex-1" style="min-width: 100px;">${summary}</div>
+                            <div class="flex-1" style="min-width: 0;">${summary}</div>
                             ${hasChevron ? '<span class="capacity-chevron" style="flex: 0 0 auto;">›</span>' : ''}
                         </div>
                         ${hasChevron ? `
@@ -1212,7 +1235,7 @@
             menu.classList.toggle('active');
         }
 
-        // Export all data (3 separate files: roles + schema + vocab)
+        // Export all data (4 separate files: library + roles + schema + vocab)
         function exportAllData() {
             const dateStr = new Date().toISOString().split('T')[0];
 
@@ -1231,18 +1254,22 @@
             }
 
             // Export each file separately
-            downloadJSON(rolesData, `exercise_roles-${dateStr}.json`);
+            downloadJSON({ exercises: exerciseLibrary }, `exercise_library-${dateStr}.json`);
 
             setTimeout(() => {
-                downloadJSON(schema, `exercise_roles.schema-${dateStr}.json`);
+                downloadJSON(rolesData, `exercise_roles-${dateStr}.json`);
             }, 300);
 
             setTimeout(() => {
-                downloadJSON(vocabulary, `exercise_roles_vocabulary-${dateStr}.json`);
+                downloadJSON(schema, `exercise_roles.schema-${dateStr}.json`);
             }, 600);
 
+            setTimeout(() => {
+                downloadJSON(vocabulary, `exercise_roles_vocabulary-${dateStr}.json`);
+            }, 900);
+
             toggleMenu();
-            alert('Exported 3 files! Upload to GitHub:\n1. exercise_roles.json\n2. exercise_roles.schema.json\n3. exercise_roles_vocabulary.json');
+            alert('Exported 4 files! Upload to GitHub:\n1. exercise_library.json\n2. exercise_roles.json\n3. exercise_roles.schema.json\n4. exercise_roles_vocabulary.json');
         }
 
         // Import data
@@ -1444,6 +1471,139 @@
             // Refresh the view
             selectExerciseToEdit(currentEditExerciseId);
             alert('Role deleted! Remember to export when done.');
+        }
+
+        // Export for PT - creates a JSON file that PT can import and view
+        function exportForPT() {
+            // Ask for optional note to PT
+            const noteForPT = prompt('Optional: Add a note for your PT\n(Leave blank to skip)', '');
+
+            const exportData = {
+                exportDate: new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                noteForPT: noteForPT && noteForPT.trim() ? noteForPT.trim() : null,
+                sessionHistory: sessionHistory,
+                exerciseLibrary: exerciseLibrary,
+                rolesData: rolesData,
+                schema: schema,
+                vocabulary: vocabulary
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PT-Report-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert('PT Report exported! Send this file to your PT. They can view it at pt_report.html');
+        }
+
+        // Import PT Modifications
+        function importPTModifications() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+
+                    if (data.modificationType !== 'PT_MODIFICATIONS') {
+                        alert('Invalid file: This is not a PT modifications file');
+                        return;
+                    }
+
+                    showModificationReview(data.modifications);
+                } catch (err) {
+                    alert('Error importing modifications: ' + err.message);
+                }
+            };
+            input.click();
+        }
+
+        function showModificationReview(mods) {
+            const newExCount = mods.newExercises.length;
+            const newRoleCount = Object.values(mods.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const updatedVocabCount = Object.values(mods.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+
+            let message = `PT Modifications Summary:\n\n`;
+            message += `• ${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
+            message += `• ${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+            message += `• ${updatedVocabCount} vocabulary update${updatedVocabCount !== 1 ? 's' : ''}\n\n`;
+            message += `Accept and merge all changes?`;
+
+            if (!confirm(message)) {
+                return;
+            }
+
+            // Merge modifications
+            let mergedCount = 0;
+
+            // 1. Add new exercises to library
+            if (mods.newExercises.length > 0) {
+                mods.newExercises.forEach(ex => {
+                    // Check if already exists
+                    if (!exerciseLibrary.find(e => e.id === ex.id)) {
+                        exerciseLibrary.push(ex);
+                        mergedCount++;
+                    }
+                });
+                console.log(`[Merge] Added ${mods.newExercises.length} new exercises`);
+            }
+
+            // 2. Add new roles to rolesData
+            if (Object.keys(mods.newRoles).length > 0) {
+                Object.keys(mods.newRoles).forEach(exerciseId => {
+                    const newRoles = mods.newRoles[exerciseId];
+
+                    // Initialize exercise in rolesData if doesn't exist
+                    if (!rolesData.exercise_roles[exerciseId]) {
+                        const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                        rolesData.exercise_roles[exerciseId] = {
+                            name: exercise ? (exercise.title || exercise.name) : 'Unknown',
+                            roles: []
+                        };
+                    }
+
+                    // Add new roles
+                    rolesData.exercise_roles[exerciseId].roles.push(...newRoles);
+                    mergedCount += newRoles.length;
+                });
+                console.log(`[Merge] Added ${newRoleCount} new roles`);
+            }
+
+            // 3. Update vocabulary
+            if (Object.keys(mods.updatedVocab).length > 0) {
+                Object.keys(mods.updatedVocab).forEach(category => {
+                    const terms = mods.updatedVocab[category];
+                    Object.keys(terms).forEach(term => {
+                        if (!vocabulary[category]) {
+                            vocabulary[category] = {};
+                        }
+                        vocabulary[category][term] = terms[term];
+                        mergedCount++;
+                    });
+                });
+                console.log(`[Merge] Updated ${updatedVocabCount} vocabulary definitions`);
+            }
+
+            // Re-derive enums and re-render
+            deriveEnums();
+            renderCoverageView();
+
+            alert(`✅ Merged successfully!\n\n${newExCount} exercises\n${newRoleCount} roles\n${updatedVocabCount} vocab updates\n\nRemember to export to GitHub when ready!`);
         }
 
         // Go back to PT Tracker
