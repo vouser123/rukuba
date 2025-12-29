@@ -120,38 +120,78 @@
             }
         }
 
-        /* Form styles */
+        /* Form styles - Optimized for touchpad/keyboard */
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
 
         .form-label {
             display: block;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
         }
 
         .form-input, .form-select {
             width: 100%;
-            padding: 10px;
+            padding: 14px 12px;
             background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             color: var(--text-primary);
-            font-size: 14px;
+            font-size: 16px;
             font-family: inherit;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .form-input:hover, .form-select:hover {
+            border-color: var(--ios-blue);
+            background: var(--bg-secondary);
         }
 
         .form-input:focus, .form-select:focus {
             outline: none;
             border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+            background: var(--bg-secondary);
         }
 
         textarea.form-input {
             resize: vertical;
-            min-height: 60px;
+            min-height: 80px;
+            line-height: 1.5;
+        }
+
+        /* Larger buttons for touchpad */
+        .section .btn-primary {
+            padding: 14px 24px;
+            font-size: 16px;
+            min-height: 48px;
+            margin-top: 10px;
+        }
+
+        .section .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+        }
+
+        /* Better focus indicators */
+        button:focus, select:focus, input:focus, textarea:focus {
+            outline: 2px solid var(--ios-blue);
+            outline-offset: 2px;
+        }
+
+        /* Dropdown arrow larger */
+        select.form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
         }
     </style>
 </head>
@@ -208,43 +248,48 @@
         <div style="max-width: 1000px; margin: 0 auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
                 <h2 style="font-size: 24px; font-weight: 600;">PT Editor Mode</h2>
-                <button class="btn-danger" onclick="toggleEditorMode()">Close Editor</button>
+                <button class="btn-danger" onclick="toggleEditorMode()" accesskey="x">Close Editor (Alt+X)</button>
+            </div>
+
+            <!-- Keyboard Shortcuts Help -->
+            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary);">
+                <strong>Keyboard Shortcuts:</strong> Alt+A (Add Exercise), Alt+R (Add Role), Alt+V (Update Vocab), Alt+E (Export), Alt+X (Close)
             </div>
 
             <!-- Modification Summary -->
             <div id="mod-summary" style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none;">
                 <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--ios-blue);">Modifications Summary</h3>
                 <div id="mod-summary-content"></div>
-                <button class="btn-primary" style="margin-top: 15px; width: 100%;" onclick="exportModifications()">💾 Export Modifications for Patient</button>
+                <button class="btn-primary" style="margin-top: 15px; width: 100%; min-height: 52px; font-size: 17px;" onclick="exportModifications()" accesskey="e">💾 Export Modifications for Patient (Alt+E)</button>
             </div>
 
             <!-- Add Exercise Section -->
             <div class="section">
                 <h3 class="section-title">Add New Exercise</h3>
                 <div class="form-group">
-                    <label class="form-label">Exercise Name *</label>
-                    <input type="text" id="new-ex-name" class="form-input" placeholder="e.g., Single Leg Bridge">
+                    <label class="form-label" for="new-ex-name">Exercise Name *</label>
+                    <input type="text" id="new-ex-name" class="form-input" placeholder="e.g., Single Leg Bridge" onkeydown="if(event.key==='Enter')addExercise()">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Description</label>
+                    <label class="form-label" for="new-ex-desc">Description</label>
                     <textarea id="new-ex-desc" class="form-input" rows="3" placeholder="Brief description of the exercise"></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Instructions</label>
+                    <label class="form-label" for="new-ex-instructions">Instructions</label>
                     <textarea id="new-ex-instructions" class="form-input" rows="4" placeholder="Step-by-step instructions"></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Video URL</label>
+                    <label class="form-label" for="new-ex-video">Video URL</label>
                     <input type="url" id="new-ex-video" class="form-input" placeholder="https://...">
                 </div>
-                <button class="btn-primary" onclick="addExercise()">➕ Add Exercise</button>
+                <button class="btn-primary" onclick="addExercise()" accesskey="a">➕ Add Exercise (Alt+A)</button>
             </div>
 
             <!-- Assign Roles Section -->
             <div class="section">
                 <h3 class="section-title">Assign Roles to Exercises</h3>
                 <div class="form-group">
-                    <label class="form-label">Select Exercise *</label>
+                    <label class="form-label" for="role-exercise-select">Select Exercise *</label>
                     <select id="role-exercise-select" class="form-select" onchange="loadExerciseRoles()">
                         <option value="">-- Choose an exercise --</option>
                     </select>
@@ -253,19 +298,19 @@
                 <div id="add-role-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
                     <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
                     <div class="form-group">
-                        <label class="form-label">Region *</label>
+                        <label class="form-label" for="new-role-region">Region *</label>
                         <select id="new-role-region" class="form-select"></select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Capacity *</label>
+                        <label class="form-label" for="new-role-capacity">Capacity *</label>
                         <select id="new-role-capacity" class="form-select"></select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Focus (optional)</label>
+                        <label class="form-label" for="new-role-focus">Focus (optional)</label>
                         <input type="text" id="new-role-focus" class="form-input" placeholder="e.g., sagittal, lateral, anti_rotation">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Contribution *</label>
+                        <label class="form-label" for="new-role-contribution">Contribution *</label>
                         <select id="new-role-contribution" class="form-select">
                             <option value="">-- Select --</option>
                             <option value="high">High</option>
@@ -273,7 +318,7 @@
                             <option value="low">Low</option>
                         </select>
                     </div>
-                    <button class="btn-primary" onclick="addRoleToExercise()">➕ Add Role</button>
+                    <button class="btn-primary" onclick="addRoleToExercise()" accesskey="r">➕ Add Role (Alt+R)</button>
                 </div>
             </div>
 
@@ -281,7 +326,7 @@
             <div class="section">
                 <h3 class="section-title">Update Vocabulary Definitions</h3>
                 <div class="form-group">
-                    <label class="form-label">Category *</label>
+                    <label class="form-label" for="vocab-category">Category *</label>
                     <select id="vocab-category" class="form-select" onchange="loadVocabTerms()">
                         <option value="">-- Choose category --</option>
                         <option value="region">Region</option>
@@ -291,16 +336,16 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Term *</label>
+                    <label class="form-label" for="vocab-term">Term *</label>
                     <select id="vocab-term" class="form-select" onchange="loadVocabDefinition()">
                         <option value="">-- Choose term --</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Definition *</label>
+                    <label class="form-label" for="vocab-definition">Definition *</label>
                     <textarea id="vocab-definition" class="form-input" rows="4" placeholder="Enter the definition"></textarea>
                 </div>
-                <button class="btn-primary" onclick="updateVocabulary()">💾 Update Definition</button>
+                <button class="btn-primary" onclick="updateVocabulary()" accesskey="v">💾 Update Definition (Alt+V)</button>
             </div>
         </div>
     </div>
