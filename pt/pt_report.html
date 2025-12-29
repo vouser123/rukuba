@@ -1824,7 +1824,7 @@
             document.getElementById('import-paste-modal').style.display = 'none';
         }
 
-        function processPatientPaste() {
+        async function processPatientPaste() {
             const pastedContent = document.getElementById('import-paste-content').value;
 
             if (!pastedContent.trim()) {
@@ -1846,6 +1846,32 @@
                 }
 
                 const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
+
+                // Extract and verify checksum if present
+                const checksumMatch = pastedContent.match(/--CHECKSUM:([a-f0-9]{64})--/);
+                const sizeMatch = pastedContent.match(/--SIZE:(\d+)--/);
+
+                if (checksumMatch && sizeMatch) {
+                    const expectedChecksum = checksumMatch[1];
+                    const expectedSize = parseInt(sizeMatch[1]);
+
+                    // Verify size
+                    const actualSize = new TextEncoder().encode(jsonStr).length;
+                    if (actualSize !== expectedSize) {
+                        if (!confirm(`⚠️ Data size mismatch!\n\nExpected: ${expectedSize} bytes\nReceived: ${actualSize} bytes\n\nThe data may be incomplete or corrupted. Continue anyway?`)) {
+                            return;
+                        }
+                    }
+
+                    // Verify checksum
+                    const actualChecksum = await calculateSHA256(jsonStr);
+                    if (actualChecksum !== expectedChecksum) {
+                        if (!confirm(`⚠️ Checksum verification failed!\n\nThe data may have been corrupted during transfer. Continue anyway?`)) {
+                            return;
+                        }
+                    }
+                }
+
                 const reportData = JSON.parse(jsonStr);
 
                 // Load the data
@@ -1869,6 +1895,15 @@
                 alert('Error parsing data: ' + err.message + '\n\nMake sure you pasted the complete email content.');
                 console.error('Import error:', err);
             }
+        }
+
+        // Calculate SHA-256 checksum for data integrity
+        async function calculateSHA256(text) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
         function showExportEmailModal() {
@@ -1897,7 +1932,7 @@
             document.getElementById('export-email-modal').style.display = 'none';
         }
 
-        function sendModificationsToPatient() {
+        async function sendModificationsToPatient() {
             const patientEmail = document.getElementById('patient-email').value.trim();
             const message = document.getElementById('pt-message').value.trim();
 
@@ -1918,6 +1953,10 @@
             const jsonData = JSON.stringify(exportData, null, 2);
             const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
+            // Calculate checksum for data integrity
+            const checksum = await calculateSHA256(jsonData);
+            const byteLength = new TextEncoder().encode(jsonData).length;
+
             // Count modifications for summary
             const newExCount = modifications.newExercises.length;
             const editedExCount = Object.keys(modifications.editedExercises).length;
@@ -1928,7 +1967,7 @@
             if (editedExCount > 0) summary += `• ${editedExCount} edited exercise${editedExCount > 1 ? 's' : ''}\n`;
             if (archivedExCount > 0) summary += `• ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}\n`;
 
-            // Format email body with markers
+            // Format email body with markers and verification
             const emailBody = `Hi,
 
 ${message ? message + '\n\n' : ''}I've made the following modifications to your PT program:
@@ -1939,11 +1978,15 @@ Please paste the data below into your PT Tracker app to receive the updates.
 ════════════════════════════════════════
    PT MODIFICATIONS
    Date: ${dateStr}
+   Checksum: ${checksum.substring(0, 16)}
+   Size: ${byteLength} bytes
 ════════════════════════════════════════
 
 --START_PT_MODIFICATIONS--
 ${jsonData}
 --END_PT_MODIFICATIONS--
+--CHECKSUM:${checksum}--
+--SIZE:${byteLength}--
 
 ════════════════════════════════════════
    END OF PT MODIFICATIONS

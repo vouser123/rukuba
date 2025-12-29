@@ -5545,7 +5545,7 @@
             document.getElementById('export-pt-modal').classList.remove('active');
         }
 
-        function sendToPT() {
+        async function sendToPT() {
             const ptEmail = document.getElementById('pt-email-address').value.trim();
             const note = document.getElementById('pt-note').value.trim();
 
@@ -5575,7 +5575,11 @@
             const jsonData = JSON.stringify(exportData, null, 2);
             const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-            // Format email body with markers
+            // Calculate checksum for data integrity
+            const checksum = await calculateSHA256(jsonData);
+            const byteLength = new TextEncoder().encode(jsonData).length;
+
+            // Format email body with markers and verification
             const emailBody = `Hi,
 
 ${note ? note + '\n\n' : ''}Please paste the data below into the PT Editor to review my progress.
@@ -5583,11 +5587,15 @@ ${note ? note + '\n\n' : ''}Please paste the data below into the PT Editor to re
 ════════════════════════════════════════
    PT TRACKER - PATIENT REPORT
    Date: ${dateStr}
+   Checksum: ${checksum.substring(0, 16)}
+   Size: ${byteLength} bytes
 ════════════════════════════════════════
 
 --START_PT_DATA--
 ${jsonData}
 --END_PT_DATA--
+--CHECKSUM:${checksum}--
+--SIZE:${byteLength}--
 
 ════════════════════════════════════════
    END OF PT TRACKER DATA
@@ -5605,6 +5613,15 @@ ${jsonData}
             haptic('success');
         }
 
+        // Calculate SHA-256 checksum for data integrity
+        async function calculateSHA256(text) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         // Import PT Modifications from PT
         function importPTModifications() {
             document.getElementById('import-pt-content').value = '';
@@ -5616,7 +5633,7 @@ ${jsonData}
             document.getElementById('import-pt-modal').classList.remove('active');
         }
 
-        function processPastedImport() {
+        async function processPastedImport() {
             const pastedContent = document.getElementById('import-pt-content').value;
 
             if (!pastedContent.trim()) {
@@ -5638,6 +5655,32 @@ ${jsonData}
                 }
 
                 const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
+
+                // Extract and verify checksum if present
+                const checksumMatch = pastedContent.match(/--CHECKSUM:([a-f0-9]{64})--/);
+                const sizeMatch = pastedContent.match(/--SIZE:(\d+)--/);
+
+                if (checksumMatch && sizeMatch) {
+                    const expectedChecksum = checksumMatch[1];
+                    const expectedSize = parseInt(sizeMatch[1]);
+
+                    // Verify size
+                    const actualSize = new TextEncoder().encode(jsonStr).length;
+                    if (actualSize !== expectedSize) {
+                        if (!confirm(`⚠️ Data size mismatch!\n\nExpected: ${expectedSize} bytes\nReceived: ${actualSize} bytes\n\nThe data may be incomplete or corrupted. Continue anyway?`)) {
+                            return;
+                        }
+                    }
+
+                    // Verify checksum
+                    const actualChecksum = await calculateSHA256(jsonStr);
+                    if (actualChecksum !== expectedChecksum) {
+                        if (!confirm(`⚠️ Checksum verification failed!\n\nThe data may have been corrupted during transfer. Continue anyway?`)) {
+                            return;
+                        }
+                    }
+                }
+
                 const data = JSON.parse(jsonStr);
 
                 if (data.modificationType !== 'PT_MODIFICATIONS') {
