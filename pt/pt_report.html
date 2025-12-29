@@ -335,53 +335,161 @@
             <!-- Add/Edit Exercise Section -->
             <div class="section">
                 <h3 class="section-title">Add or Edit Exercise</h3>
+
+                <!-- Exercise Selector -->
                 <div class="form-group">
                     <label class="form-label" for="edit-ex-select">Select Existing Exercise to Edit (optional)</label>
                     <select id="edit-ex-select" class="form-select" onchange="loadExerciseForEdit()">
                         <option value="">-- Add new exercise (leave blank) --</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="new-ex-name">Exercise Name *</label>
-                    <input type="text" id="new-ex-name" class="form-input" placeholder="e.g., Single Leg Bridge" onkeydown="if(event.key==='Enter')saveExercise()">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="new-ex-desc">Description</label>
-                    <textarea id="new-ex-desc" class="form-input" rows="3" placeholder="Brief description of the exercise"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="new-ex-instructions">Instructions</label>
-                    <textarea id="new-ex-instructions" class="form-input" rows="4" placeholder="Step-by-step instructions"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="new-ex-video">Video URL</label>
-                    <input type="url" id="new-ex-video" class="form-input" placeholder="https://...">
-                </div>
 
-                <!-- Dosage/Prescription Section -->
-                <div style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin: 15px 0;">
-                    <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📋 Recommended Dosage (Optional)</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" for="new-ex-sets" style="font-size: 14px;">Sets</label>
-                            <input type="number" id="new-ex-sets" class="form-input" placeholder="3" min="1" style="padding: 10px;">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" for="new-ex-reps" style="font-size: 14px;">Reps</label>
-                            <input type="number" id="new-ex-reps" class="form-input" placeholder="10" min="1" style="padding: 10px;">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" for="new-ex-freq" style="font-size: 14px;">Per Week</label>
-                            <input type="number" id="new-ex-freq" class="form-input" placeholder="3" min="1" max="7" style="padding: 10px;">
-                        </div>
+                <!-- Basic Info (Always Visible) -->
+                <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📝 Basic Information</h4>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-name">Canonical Name *</label>
+                        <input type="text" id="ex-name" class="form-input" placeholder="e.g., Single Leg Bridge">
                     </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" for="new-ex-dose-notes" style="font-size: 14px;">Dosage Notes</label>
-                        <textarea id="new-ex-dose-notes" class="form-input" rows="2" placeholder="e.g., Start with bodyweight, progress to 10lb dumbbell" style="padding: 10px; font-size: 14px;"></textarea>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-category">PT Category</label>
+                        <input type="text" id="ex-category" class="form-input" placeholder="e.g., back_sij, hip, knee">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-desc">Description *</label>
+                        <textarea id="ex-desc" class="form-input" rows="3" placeholder="Clear description of the exercise and how to perform it"></textarea>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 10px;">
+                <!-- Muscles Section (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">💪 Muscles</summary>
+
+                    <div id="primary-muscles-container">
+                        <label class="form-label">Primary Muscles</label>
+                        <div id="primary-muscles-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addMuscleField('primary')" style="width: 100%; margin-top: 8px;">+ Add Primary Muscle</button>
+                    </div>
+
+                    <div id="secondary-muscles-container" style="margin-top: 15px;">
+                        <label class="form-label">Secondary Muscles</label>
+                        <div id="secondary-muscles-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addMuscleField('secondary')" style="width: 100%; margin-top: 8px;">+ Add Secondary Muscle</button>
+                    </div>
+                </details>
+
+                <!-- Movement Pattern (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🔄 Movement Pattern</summary>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-pattern">Pattern *</label>
+                        <select id="ex-pattern" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="side">Side (Unilateral)</option>
+                            <option value="bilateral">Bilateral</option>
+                            <option value="unilateral">Unilateral</option>
+                            <option value="alternating">Alternating</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label">Pattern Modifiers</label>
+                        <div id="pattern-modifiers-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addPatternModifier()" style="width: 100%; margin-top: 8px;">+ Add Modifier</button>
+                    </div>
+                </details>
+
+                <!-- Equipment (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🏋️ Equipment</summary>
+
+                    <div>
+                        <label class="form-label">Required Equipment</label>
+                        <div id="equipment-required-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addEquipmentField('required')" style="width: 100%; margin-top: 8px;">+ Add Required</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Optional Equipment</label>
+                        <div id="equipment-optional-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addEquipmentField('optional')" style="width: 100%; margin-top: 8px;">+ Add Optional</button>
+                    </div>
+                </details>
+
+                <!-- Form Parameters (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">📊 Form Parameters</summary>
+
+                    <div>
+                        <label class="form-label">Form Parameters Required</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Parameters that vary per session (e.g., band color, step height, ball size)</p>
+                        <div id="form-params-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addFormParamField()" style="width: 100%; margin-top: 8px;">+ Add Parameter</button>
+                    </div>
+                </details>
+
+                <!-- Guidance (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🎯 Guidance & Cues</summary>
+
+                    <div>
+                        <label class="form-label">External Cues</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Visual checks, setup instructions</p>
+                        <div id="external-cues-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addGuidanceField('external')" style="width: 100%; margin-top: 8px;">+ Add External Cue</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Motor Cues</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Internal movement cues, what to feel</p>
+                        <div id="motor-cues-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addGuidanceField('motor')" style="width: 100%; margin-top: 8px;">+ Add Motor Cue</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Compensation Warnings</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Common form breakdowns to watch for</p>
+                        <div id="compensation-warnings-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addGuidanceField('compensation')" style="width: 100%; margin-top: 8px;">+ Add Warning</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Safety Flags</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">When to stop immediately</p>
+                        <div id="safety-flags-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addGuidanceField('safety')" style="width: 100%; margin-top: 8px;">+ Add Safety Flag</button>
+                    </div>
+                </details>
+
+                <!-- Tags (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🏷️ Tags</summary>
+
+                    <div>
+                        <label class="form-label">Functional Tags</label>
+                        <div id="tags-functional-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addTagField('functional')" style="width: 100%; margin-top: 8px;">+ Add Functional Tag</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Format Tags</label>
+                        <div id="tags-format-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addTagField('format')" style="width: 100%; margin-top: 8px;">+ Add Format Tag</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Heatmap Tags</label>
+                        <div id="tags-heatmap-list"></div>
+                        <button type="button" class="btn-secondary" onclick="addTagField('heatmap')" style="width: 100%; margin-top: 8px;">+ Add Heatmap Tag</button>
+                    </div>
+                </details>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn-primary" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
                     <button class="btn-danger" onclick="archiveExercise()" id="archive-btn" style="display: none;">🗑️ Archive</button>
                 </div>
@@ -925,6 +1033,125 @@
         }
 
         let currentEditingExerciseId = null; // Track which exercise is being edited
+
+        // ========== ARRAY FIELD HELPERS ==========
+
+        function addMuscleField(type) {
+            const containerId = type === 'primary' ? 'primary-muscles-list' : 'secondary-muscles-list';
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="${type}-muscle-${index}" placeholder="e.g., Gluteus Maximus" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addPatternModifier() {
+            const container = document.getElementById('pattern-modifiers-list');
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="e.g., loaded, eccentric_emphasis" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addEquipmentField(type) {
+            const containerId = type === 'required' ? 'equipment-required-list' : 'equipment-optional-list';
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="equipment-${type}-${index}" placeholder="e.g., swiss_ball, resistance_band" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addFormParamField() {
+            const container = document.getElementById('form-params-list');
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="form-param-${index}" placeholder="e.g., band_color, step_height_inches" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addGuidanceField(type) {
+            const typeMap = {
+                'external': 'external-cues-list',
+                'motor': 'motor-cues-list',
+                'compensation': 'compensation-warnings-list',
+                'safety': 'safety-flags-list'
+            };
+
+            const container = document.getElementById(typeMap[type]);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <textarea class="form-input" id="${type}-${index}" rows="2" placeholder="Enter ${type} cue/warning..." style="flex: 1;"></textarea>
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px; height: fit-content;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function addTagField(type) {
+            const containerId = `tags-${type}-list`;
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="tag-${type}-${index}" placeholder="e.g., gait, balance" style="flex: 1;">
+                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function clearAllArrayFields() {
+            // Clear all dynamic array field containers
+            document.getElementById('primary-muscles-list').innerHTML = '';
+            document.getElementById('secondary-muscles-list').innerHTML = '';
+            document.getElementById('pattern-modifiers-list').innerHTML = '';
+            document.getElementById('equipment-required-list').innerHTML = '';
+            document.getElementById('equipment-optional-list').innerHTML = '';
+            document.getElementById('form-params-list').innerHTML = '';
+            document.getElementById('external-cues-list').innerHTML = '';
+            document.getElementById('motor-cues-list').innerHTML = '';
+            document.getElementById('compensation-warnings-list').innerHTML = '';
+            document.getElementById('safety-flags-list').innerHTML = '';
+            document.getElementById('tags-functional-list').innerHTML = '';
+            document.getElementById('tags-format-list').innerHTML = '';
+            document.getElementById('tags-heatmap-list').innerHTML = '';
+        }
 
         function loadExerciseForEdit() {
             const exerciseId = document.getElementById('edit-ex-select').value;
