@@ -1379,6 +1379,54 @@
         <button class="action-sheet-cancel" onclick="hideActionSheet()">Cancel</button>
     </div>
 
+    <!-- Export for PT Modal (Email) -->
+    <div class="modal" id="export-pt-modal" onclick="if(event.target === this) closeExportPTModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">📤 Send to PT</div>
+            <div class="modal-form">
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+                    Enter your PT's email address. The app will open your email client with the data ready to send.
+                </div>
+                <input type="email" class="modal-input" id="pt-email-address" placeholder="your.pt@example.com" style="margin-bottom: 12px;">
+                <textarea class="modal-input" id="pt-note" placeholder="Optional: Add a note for your PT" style="min-height: 80px; resize: vertical;"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeExportPTModal()">Cancel</button>
+                <button class="modal-save" onclick="sendToPT()">📧 Open Email</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import PT Modifications Modal (Paste) -->
+    <div class="modal" id="import-pt-modal" onclick="if(event.target === this) closeImportPTModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">📨 Import from PT</div>
+            <div class="modal-form" style="max-height: 60vh;">
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+                    Paste the text from your PT's email below. The app will automatically extract and import the data.
+                </div>
+                <textarea id="import-pt-content" placeholder="Paste the entire email content here (including markers)..." style="
+                    width: 100%;
+                    min-height: 300px;
+                    padding: 12px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 11px;
+                    background: var(--bg-tertiary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    resize: vertical;
+                    color: var(--text-primary);
+                "></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeImportPTModal()">Cancel</button>
+                <button class="modal-save" onclick="processPastedImport()">Import</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Eyes-free pocket tap overlay -->
     <div class="pocket-overlay" id="pocket-overlay" onclick="handlePocketTap()" aria-live="assertive">
         <button class="pocket-close" onclick="togglePocketMode(false); event.stopPropagation();" aria-label="Exit Pocket Mode">✕</button>
@@ -5483,8 +5531,31 @@
 
         // PT Export Function
         function exportForPT() {
-            // Export full PT report as JSON for PT to import
-            const noteForPT = prompt('Optional: Add a note for your PT\n(Leave blank to skip)', '');
+            // Load saved PT email if exists
+            const savedEmail = localStorage.getItem('pt_email_address');
+            if (savedEmail) {
+                document.getElementById('pt-email-address').value = savedEmail;
+            }
+            document.getElementById('pt-note').value = '';
+            document.getElementById('export-pt-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeExportPTModal() {
+            document.getElementById('export-pt-modal').classList.remove('active');
+        }
+
+        function sendToPT() {
+            const ptEmail = document.getElementById('pt-email-address').value.trim();
+            const note = document.getElementById('pt-note').value.trim();
+
+            if (!ptEmail) {
+                alert('Please enter your PT\'s email address');
+                return;
+            }
+
+            // Save PT email for next time
+            localStorage.setItem('pt_email_address', ptEmail);
 
             const exportData = {
                 exportDate: new Date().toLocaleDateString('en-US', {
@@ -5493,7 +5564,7 @@
                     month: 'long',
                     day: 'numeric'
                 }),
-                noteForPT: noteForPT && noteForPT.trim() ? noteForPT.trim() : null,
+                noteForPT: note || null,
                 sessionHistory: loadHistory(),
                 exerciseLibrary: loadExerciseLibrary(),
                 rolesData: loadRolesData(),
@@ -5501,45 +5572,85 @@
                 vocabulary: loadVocabulary()
             };
 
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `PT-Report-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const jsonData = JSON.stringify(exportData, null, 2);
+            const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
+            // Format email body with markers
+            const emailBody = `Hi,
+
+${note ? note + '\n\n' : ''}Please paste the data below into the PT Editor to review my progress.
+
+════════════════════════════════════════
+   PT TRACKER - PATIENT REPORT
+   Date: ${dateStr}
+════════════════════════════════════════
+
+--START_PT_DATA--
+${jsonData}
+--END_PT_DATA--
+
+════════════════════════════════════════
+   END OF PT TRACKER DATA
+════════════════════════════════════════`;
+
+            const subject = `PT Tracker Data - ${dateStr}`;
+
+            // Create mailto link
+            const mailtoLink = `mailto:${encodeURIComponent(ptEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+
+            // Open email client
+            window.location.href = mailtoLink;
+
+            closeExportPTModal();
             haptic('success');
-            alert('PT Report exported! Send this file to your PT. They can view it at pt_report.html');
         }
 
         // Import PT Modifications from PT
         function importPTModifications() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+            document.getElementById('import-pt-content').value = '';
+            document.getElementById('import-pt-modal').classList.add('active');
+            haptic('medium');
+        }
 
-                try {
-                    const text = await file.text();
-                    const data = JSON.parse(text);
+        function closeImportPTModal() {
+            document.getElementById('import-pt-modal').classList.remove('active');
+        }
 
-                    if (data.modificationType !== 'PT_MODIFICATIONS') {
-                        alert('Invalid file: This is not a PT modifications file');
-                        return;
-                    }
+        function processPastedImport() {
+            const pastedContent = document.getElementById('import-pt-content').value;
 
-                    showModificationReview(data.modifications);
-                } catch (err) {
-                    alert('Error importing modifications: ' + err.message);
+            if (!pastedContent.trim()) {
+                alert('Please paste the email content from your PT');
+                return;
+            }
+
+            try {
+                // Extract JSON between markers
+                const startMarker = '--START_PT_MODIFICATIONS--';
+                const endMarker = '--END_PT_MODIFICATIONS--';
+
+                const startIdx = pastedContent.indexOf(startMarker);
+                const endIdx = pastedContent.indexOf(endMarker);
+
+                if (startIdx === -1 || endIdx === -1) {
+                    alert('Invalid format: Could not find data markers.\n\nMake sure you pasted the entire email content including the markers.');
+                    return;
                 }
-            };
-            input.click();
+
+                const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
+                const data = JSON.parse(jsonStr);
+
+                if (data.modificationType !== 'PT_MODIFICATIONS') {
+                    alert('Invalid data: This is not a PT modifications file');
+                    return;
+                }
+
+                closeImportPTModal();
+                showModificationReview(data.modifications);
+            } catch (err) {
+                alert('Error parsing data: ' + err.message + '\n\nMake sure you pasted the complete email content.');
+                console.error('Import error:', err);
+            }
         }
 
         function showModificationReview(mods) {
