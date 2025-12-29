@@ -1391,24 +1391,70 @@
                 if (val) tags_heatmap.push(val);
             });
 
-            // Validate truly required fields (those that don't allow null and have no default)
-            // Fields in schema.required that allow null or have defaults are not blocked
+            // Schema-driven validation: only block fields that are required AND don't allow null AND have no default
             const errors = [];
 
-            if (!name) {
-                errors.push('- Canonical Name is required');
-            }
-            if (!category) {
-                errors.push('- PT Category is required');
-            }
-            if (!description) {
-                errors.push('- Description is required');
-            }
-            if (!pattern) {
-                errors.push('- Pattern is required');
-            }
-            if (primary_muscles.length === 0) {
-                errors.push('- At least one Primary Muscle is required');
+            if (schema && schema.$defs && schema.$defs.exercise) {
+                const requiredFields = schema.$defs.exercise.required || [];
+                const properties = schema.$defs.exercise.properties || {};
+
+                // Map field names to collected values
+                const fieldValues = {
+                    'exercise_id': currentEditingExerciseId || 'will-be-generated',
+                    'canonical_name': name,
+                    'pt_category': category,
+                    'description': description,
+                    'primary_muscles': primary_muscles,
+                    'secondary_muscles': secondary_muscles,
+                    'pattern': pattern,
+                    'pattern_modifiers': pattern_modifiers,
+                    'equipment': { required: equipmentRequired, optional: equipmentOptional },
+                    'form_parameters_required': form_parameters_required,
+                    'tags': { functional: tags_functional, format: tags_format, heatmap: tags_heatmap },
+                    'guidance': { external_cues, motor_cues, compensation_warnings, safety_flags },
+                    'lifecycle': { status: 'active', effective_start_date: null, effective_end_date: null },
+                    'added_date': null,
+                    'updated_date': null
+                };
+
+                requiredFields.forEach(fieldName => {
+                    const property = properties[fieldName];
+                    if (!property) return;
+
+                    // Check if field allows null
+                    const allowsNull = Array.isArray(property.type) ? property.type.includes('null') : false;
+                    // Check if field has default value
+                    const hasDefault = property.hasOwnProperty('default');
+
+                    // Only validate if required AND doesn't allow null AND has no default
+                    if (!allowsNull && !hasDefault) {
+                        const value = fieldValues[fieldName];
+                        let isEmpty = false;
+
+                        if (value === null || value === undefined || value === '') {
+                            isEmpty = true;
+                        } else if (Array.isArray(value) && value.length === 0) {
+                            // Check minItems for arrays
+                            if (property.minItems && property.minItems > 0) {
+                                isEmpty = true;
+                            }
+                        } else if (typeof value === 'object' && !Array.isArray(value)) {
+                            // For nested objects (equipment, tags, guidance, lifecycle), check their properties
+                            const nestedDef = schema.$defs[fieldName];
+                            if (nestedDef && nestedDef.required) {
+                                // Will be validated when building the object
+                            }
+                        }
+
+                        if (isEmpty) {
+                            // Convert snake_case to readable name
+                            const readableName = fieldName.split('_').map(word =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            ).join(' ');
+                            errors.push(`- ${readableName} is required`);
+                        }
+                    }
+                });
             }
 
             if (errors.length > 0) {
