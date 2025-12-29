@@ -493,6 +493,8 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
+            console.log(`[getExercisesForBucket] region=${region}, capacity=${capacity}, focus=${focus}`);
+
             // Find all exercises with matching roles
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
                 const exerciseData = rolesData.exercise_roles[exerciseId];
@@ -506,8 +508,11 @@
                         if (role.focus !== focus) return; // Skip if focus doesn't match
                     }
 
+                    console.log(`[getExercisesForBucket] Found matching role for ${exerciseId}:`, role);
+
                     // Find most recent session for this exercise
                     const sessions = sessionHistory.filter(s => s.exerciseId === exerciseId);
+                    console.log(`[getExercisesForBucket] Sessions for ${exerciseId}:`, sessions.length);
                     sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
                     const lastSession = sessions[0];
 
@@ -527,6 +532,8 @@
                     }
                 });
             });
+
+            console.log(`[getExercisesForBucket] Total exercises found: ${exercises.length}`);
 
             // Sort: done exercises first (by recency), then not done (by name)
             exercises.sort((a, b) => {
@@ -598,10 +605,34 @@
             document.getElementById('coverage-content').innerHTML = html;
         }
 
+        // Get capacities that actually have exercises for this region
+        function getCapacitiesForRegion(region) {
+            const capacitiesSet = new Set();
+
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region === region) {
+                        capacitiesSet.add(role.capacity);
+                    }
+                });
+            });
+
+            return Array.from(capacitiesSet);
+        }
+
         function renderRegionCapacities(region) {
             let html = '';
 
-            capacities.forEach(capacity => {
+            // Only show capacities that have exercises for this region
+            const regionCapacities = getCapacitiesForRegion(region);
+
+            if (regionCapacities.length === 0) {
+                html += '<div style="padding: 12px; color: var(--text-secondary); font-size: 13px;">No exercises for this region</div>';
+                return html;
+            }
+
+            regionCapacities.forEach(capacity => {
                 const focuses = getFocuses(region, capacity);
                 const generalExercises = getExercisesForBucket(region, capacity, null); // No specific focus
 
@@ -610,6 +641,11 @@
                 focuses.forEach(focus => {
                     allExercises = allExercises.concat(getExercisesForBucket(region, capacity, focus));
                 });
+
+                // Skip if no exercises at all
+                if (allExercises.length === 0) {
+                    return; // Skip this capacity
+                }
 
                 const hasChevron = focuses.length > 0 || generalExercises.length > 0;
 
@@ -626,18 +662,13 @@
                 }
 
                 // Build summary
-                let summary = '';
-                if (totalCount === 0) {
-                    summary = '<span style="color: var(--text-secondary);">no exercises</span>';
-                } else {
-                    const doneIcon = doneCount === totalCount ? '✓' : (doneCount > 0 ? '⚠' : '✗');
-                    const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
-                    summary = `
-                        <span style="color: ${doneColor};">${doneIcon}</span>
-                        <span style="margin: 0 6px;">${doneCount}/${totalCount}</span>
-                        ${lastActivity !== null ? `<span style="color: var(--text-secondary);">• last ${lastActivity}d ago</span>` : ''}
-                    `;
-                }
+                const doneIcon = doneCount === totalCount ? '✓' : (doneCount > 0 ? '⚠' : '✗');
+                const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
+                const summary = `
+                    <span style="color: ${doneColor};">${doneIcon}</span>
+                    <span style="margin: 0 6px;">${doneCount}/${totalCount}</span>
+                    ${lastActivity !== null ? `<span style="color: var(--text-secondary);">• last ${lastActivity}d ago</span>` : ''}
+                `;
 
                 html += `
                     <div class="capacity-row ${hasChevron ? '' : 'no-expand'}" id="capacity-${region}-${capacity}">
