@@ -931,12 +931,27 @@
                 const regionPercent = regionTotal > 0 ? Math.round((regionDone / regionTotal) * 100) : 0;
                 const regionColor = getPercentColor(regionPercent);
 
+                // Get most recent activity for the region
+                const regionDoneExercises = regionUniqueExercises.filter(e => e.done);
+                let regionLastActivity = null;
+                if (regionDoneExercises.length > 0) {
+                    regionDoneExercises.sort((a, b) => a.daysSince - b.daysSince);
+                    regionLastActivity = regionDoneExercises[0].daysSince;
+                }
+
+                // Calculate opacity based on recency (fade over 5 days)
+                const regionOpacity = regionLastActivity !== null ? Math.max(0.2, 1 - (regionLastActivity / 5)) : 0.2;
+                const regionRecencyText = regionLastActivity !== null ? `${regionLastActivity}d` : '—';
+
                 html += `
                     <div class="region-section" id="region-${region}">
                         <div class="region-header" onclick="toggleRegion('${region}')">
                             <h2>${region}</h2>
-                            <div class="flex-center gap-8">
-                                <span class="font-11 font-weight-600" style="color: ${regionColor};">${regionPercent}%</span>
+                            <div class="flex-center gap-8" style="flex: 1; min-width: 0; margin-left: 12px;">
+                                <div class="progress-bar flex-1" style="min-width: 40px; max-width: 200px;">
+                                    <div class="progress-fill" style="width: ${regionPercent}%; background: ${regionColor}; opacity: ${regionOpacity};"></div>
+                                </div>
+                                <span class="font-11 text-secondary nowrap">${regionRecencyText}</span>
                                 <span class="region-chevron">›</span>
                             </div>
                         </div>
