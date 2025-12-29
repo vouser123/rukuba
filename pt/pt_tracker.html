@@ -1808,6 +1808,39 @@
             }
         }
 
+        // Load roles data from JSON file (cached by service worker)
+        function loadRolesData() {
+            // Return a Promise that fetches the roles JSON
+            return fetch('exercise_roles.json')
+                .then(response => response.json())
+                .catch(err => {
+                    console.error('Failed to load roles data:', err);
+                    return { exercise_roles: {} }; // Return empty structure on error
+                });
+        }
+
+        // Load schema from JSON file (cached by service worker)
+        function loadSchema() {
+            // Return a Promise that fetches the exercise file schema
+            return fetch('schema/exercise_file.schema.json')
+                .then(response => response.json())
+                .catch(err => {
+                    console.error('Failed to load schema:', err);
+                    return {}; // Return empty object on error
+                });
+        }
+
+        // Load vocabulary from JSON file (cached by service worker)
+        function loadVocabulary() {
+            // Return a Promise that fetches the vocabulary JSON
+            return fetch('exercise_roles_vocabulary.json')
+                .then(response => response.json())
+                .catch(err => {
+                    console.error('Failed to load vocabulary:', err);
+                    return {}; // Return empty object on error
+                });
+        }
+
         /**
          * DATA LOSS PREVENTION - TEST CHECKLIST
          * --------------------------------------
@@ -5685,9 +5718,9 @@
                 noteForPT: note || null,
                 sessionHistory: loadHistory(),
                 exerciseLibrary: loadExerciseLibrary(),
-                rolesData: loadRolesData(),
-                schema: loadSchema(),
-                vocabulary: loadVocabulary()
+                rolesData: await loadRolesData(),
+                schema: await loadSchema(),
+                vocabulary: await loadVocabulary()
             };
 
             const jsonData = JSON.stringify(exportData, null, 2);

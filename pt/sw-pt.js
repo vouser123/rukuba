@@ -1,9 +1,10 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.18.0';
+const CACHE_NAME = 'pt-tracker-v1.20.0';
 const libraryUrl = new URL('exercise_library.json', self.location).pathname;
 const rolesUrl = new URL('exercise_roles.json', self.location).pathname;
 const vocabUrl = new URL('exercise_roles_vocabulary.json', self.location).pathname;
 const rolesSchemaUrl = new URL('schema/exercise_roles.schema.json', self.location).pathname;
+const exerciseSchemaUrl = new URL('schema/exercise_file.schema.json', self.location).pathname;
 const sharedStylesUrl = new URL('shared-styles.css', self.location).pathname;
 const scopeUrl = new URL('./', self.location).pathname;
 // Only cache assets, not the HTML (which might have updates)
@@ -13,6 +14,7 @@ const urlsToCache = [
   rolesUrl,
   vocabUrl,
   rolesSchemaUrl,
+  exerciseSchemaUrl,
   sharedStylesUrl
 ];
 

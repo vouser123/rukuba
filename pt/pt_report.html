@@ -267,64 +267,9 @@
 
             <!-- Reference Guide -->
             <details style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border-color);">
-                <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 0;">📖 Reference Guide - Parameters, Form Modifiers & Sided Exercises</summary>
-                <div style="margin-top: 15px; font-size: 14px; line-height: 1.6;">
-                    <!-- Form Parameters & Modifiers -->
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Form Parameters & Modifiers</h4>
-                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-                            <strong>When to use Instructions vs. Parameters:</strong>
-                            <ul style="margin: 8px 0 0 20px; color: var(--text-secondary);">
-                                <li><strong>Instructions:</strong> If location/setup is always the same (e.g., "Place hands on hips", "Stand on foam pad")</li>
-                                <li><strong>Parameters:</strong> If it varies and needs to be logged each session (e.g., band color/resistance, step height, ball size)</li>
-                            </ul>
-                        </div>
-                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
-                            <strong>Common form modifiers:</strong>
-                            <ul style="margin: 8px 0 0 20px; color: var(--text-secondary);">
-                                <li><strong>Alternating:</strong> Specify in instructions if sides alternate within each set</li>
-                                <li><strong>Duration vs. Hold:</strong> Duration (sec) = continuous movement time; Hold (sec) = static hold time</li>
-                                <li><strong>Tempo:</strong> Specify as "3-1-3" (3s down, 1s pause, 3s up) in dosage notes</li>
-                                <li><strong>Range:</strong> If range varies (e.g., "to tolerance", "partial"), note in dosage notes</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Sided Exercises -->
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Sets/Reps for Sided Exercises</h4>
-                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
-                            <ul style="margin: 8px 0 0 20px; color: var(--text-secondary);">
-                                <li><strong>Bilateral (both sides same set):</strong> Enter as "3 sets x 10 reps" - patient logs once</li>
-                                <li><strong>Unilateral (each side separate):</strong> Enter as "3 sets x 10 reps per side" in dosage notes - patient logs each side separately</li>
-                                <li><strong>Alternating:</strong> Specify in instructions (e.g., "Alternate legs each rep")</li>
-                                <li><strong>Example:</strong> "Single leg balance" → "3 sets x 30s per side" → patient logs L and R separately</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Vocabulary Definitions -->
-                    <div>
-                        <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Vocabulary Definitions</h4>
-                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 8px;">
-                            <strong>Regions:</strong>
-                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px; padding-left: 10px;">
-                                • <strong>Core:</strong> Trunk; deficits = trunk force/control/endurance limits<br>
-                                • <strong>Hip:</strong> Hip force or femoral control limits<br>
-                                • <strong>Ankle:</strong> Distal control, force, or balance limits<br>
-                                • <strong>Vestibular:</strong> Gaze stability, balance integration, motion tolerance
-                            </div>
-                        </div>
-                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
-                            <strong>Capacities:</strong>
-                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px; padding-left: 10px;">
-                                • <strong>Strength:</strong> Force generation (failure = can't hold/lift/resist)<br>
-                                • <strong>Control:</strong> Maintain alignment during movement (failure = loss of form)<br>
-                                • <strong>Stability:</strong> Maintain position under perturbation (failure = wobble)<br>
-                                • <strong>Tolerance:</strong> Sustain effort over time (failure = fatigue/symptoms)
-                            </div>
-                        </div>
-                    </div>
+                <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 0;">📖 Reference Guide - Vocabulary & Pattern Modifiers</summary>
+                <div id="vocabulary-reference-guide" style="margin-top: 15px; font-size: 14px; line-height: 1.6;">
+                    <!-- Populated from vocabulary dynamically -->
                 </div>
             </details>
 
@@ -1099,8 +1044,10 @@
             // Populate pattern dropdown from schema
             const patternSelect = document.getElementById('ex-pattern');
             patternSelect.innerHTML = '<option value="">-- Select --</option>';
+            console.log('[Editor] Populating pattern dropdown, schema:', schema);
             if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern) {
                 const patterns = schema.$defs.exercise.properties.pattern.enum || [];
+                console.log('[Editor] Found pattern enum values:', patterns);
                 patterns.forEach(p => {
                     const option = document.createElement('option');
                     option.value = p;
@@ -1113,6 +1060,13 @@
                         option.textContent = p;
                     }
                     patternSelect.appendChild(option);
+                });
+            } else {
+                console.warn('[Editor] Schema path not found for pattern enum. Schema structure:', {
+                    hasSchema: !!schema,
+                    hasDefs: !!(schema && schema.$defs),
+                    hasExercise: !!(schema && schema.$defs && schema.$defs.exercise),
+                    hasPattern: !!(schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern)
                 });
             }
 
@@ -1131,6 +1085,68 @@
             if (ptCategoryDatalist && schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pt_category) {
                 const categories = schema.$defs.exercise.properties.pt_category.enum || [];
                 ptCategoryDatalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
+            }
+
+            // Populate vocabulary reference guide
+            const vocabGuide = document.getElementById('vocabulary-reference-guide');
+            if (vocabGuide && vocabulary) {
+                let guideHTML = '';
+
+                // Pattern Modifiers
+                if (vocabulary.pattern_modifiers) {
+                    guideHTML += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Pattern Modifiers</h4>
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <ul style="margin: 8px 0 0 20px; color: var(--text-primary);">
+                    `;
+                    Object.keys(vocabulary.pattern_modifiers).forEach(key => {
+                        guideHTML += `<li><strong>${key}:</strong> ${vocabulary.pattern_modifiers[key]}</li>`;
+                    });
+                    guideHTML += `
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Regions
+                if (vocabulary.regions) {
+                    guideHTML += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Regions</h4>
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 13px; color: var(--text-primary); padding-left: 10px;">
+                    `;
+                    Object.keys(vocabulary.regions).forEach(key => {
+                        guideHTML += `• <strong>${key}:</strong> ${vocabulary.regions[key]}<br>`;
+                    });
+                    guideHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Capacities
+                if (vocabulary.capacities) {
+                    guideHTML += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Capacities</h4>
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 13px; color: var(--text-primary); padding-left: 10px;">
+                    `;
+                    Object.keys(vocabulary.capacities).forEach(key => {
+                        guideHTML += `• <strong>${key}:</strong> ${vocabulary.capacities[key]}<br>`;
+                    });
+                    guideHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                vocabGuide.innerHTML = guideHTML;
             }
 
             updateModificationSummary();
@@ -1167,21 +1183,20 @@
             const container = document.getElementById('pattern-modifiers-list');
             const index = container.children.length;
 
-            // Build datalist from schema
-            let datalistOptions = '';
+            // Build select options from schema enum
+            let selectOptions = '<option value="">-- Select --</option>';
             if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern_modifiers && schema.$defs.exercise.properties.pattern_modifiers.items) {
                 const modifiers = schema.$defs.exercise.properties.pattern_modifiers.items.enum || [];
-                datalistOptions = modifiers.map(m => `<option value="${m}">`).join('');
+                selectOptions += modifiers.map(m => `<option value="${m}">${m}</option>`).join('');
             }
 
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="pattern-mod-${index}" placeholder="Select or type custom" list="pattern-modifier-options-${index}" style="flex: 1;">
-                    <datalist id="pattern-modifier-options-${index}">
-                        ${datalistOptions}
-                    </datalist>
+                    <select class="form-select" id="pattern-mod-${index}" style="flex: 1;">
+                        ${selectOptions}
+                    </select>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
