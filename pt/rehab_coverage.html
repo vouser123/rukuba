@@ -927,11 +927,28 @@
             `;
 
             regions.forEach(region => {
+                // Calculate region completion
+                const regionExercises = [];
+                const capacities = getCapacitiesForRegion(region);
+                capacities.forEach(capacity => {
+                    const exercises = getExercisesForBucket(region, capacity, null);
+                    regionExercises.push(...exercises);
+                });
+                const regionUniqueExercises = Array.from(new Set(regionExercises.map(e => e.id)))
+                    .map(id => regionExercises.find(e => e.id === id));
+                const regionTotal = regionUniqueExercises.length;
+                const regionDone = regionUniqueExercises.filter(e => e.done).length;
+                const regionPercent = regionTotal > 0 ? Math.round((regionDone / regionTotal) * 100) : 0;
+                const regionColor = regionPercent >= 70 ? 'var(--ios-green)' : regionPercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+
                 html += `
                     <div class="region-section" id="region-${region}">
                         <div class="region-header" onclick="toggleRegion('${region}')">
                             <h2>${region}</h2>
-                            <span class="region-chevron">›</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 11px; color: ${regionColor}; font-weight: 600;">${regionPercent}%</span>
+                                <span class="region-chevron">›</span>
+                            </div>
                         </div>
                         <div class="region-content">
                             ${renderRegionCapacities(region)}
