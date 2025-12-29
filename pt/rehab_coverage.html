@@ -760,6 +760,19 @@
             return exercises;
         }
 
+        // Get unique exercises from array (by ID)
+        function getUniqueExercises(exercises) {
+            return Array.from(new Set(exercises.map(e => e.id)))
+                .map(id => exercises.find(e => e.id === id));
+        }
+
+        // Get color for completion percentage
+        function getPercentColor(percent, goodThreshold = 70, okThreshold = 40) {
+            if (percent >= goodThreshold) return 'var(--ios-green)';
+            if (percent >= okThreshold) return 'var(--ios-yellow)';
+            return 'var(--ios-red)';
+        }
+
         // Render exercise list for a bucket
         function renderExerciseList(exercises) {
             if (exercises.length === 0) {
@@ -810,8 +823,7 @@
                 });
             });
 
-            const uniqueExercises = Array.from(new Set(allExercises.map(e => e.id)))
-                .map(id => allExercises.find(e => e.id === id));
+            const uniqueExercises = getUniqueExercises(allExercises);
 
             const totalExercises = uniqueExercises.length;
             const doneExercises = uniqueExercises.filter(e => e.done).length;
@@ -839,9 +851,8 @@
             const recentExercisesInLibrary = uniqueExercises.filter(e => recentExerciseIds.includes(e.id));
             const weeklyDone = recentExercisesInLibrary.length;
             const weeklyPercent = totalExercises > 0 ? Math.round((weeklyDone / totalExercises) * 100) : 0;
-            const weeklyColor = weeklyPercent >= 50 ? 'var(--ios-green)' : weeklyPercent >= 25 ? 'var(--ios-yellow)' : 'var(--ios-red)';
-
-            const overallColor = donePercent >= 70 ? 'var(--ios-green)' : donePercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+            const weeklyColor = getPercentColor(weeklyPercent, 50, 25);
+            const overallColor = getPercentColor(donePercent);
 
             let html = `
                 <div class="overview-card">
@@ -876,12 +887,11 @@
                     const exercises = getExercisesForBucket(region, capacity, null);
                     regionExercises.push(...exercises);
                 });
-                const regionUniqueExercises = Array.from(new Set(regionExercises.map(e => e.id)))
-                    .map(id => regionExercises.find(e => e.id === id));
+                const regionUniqueExercises = getUniqueExercises(regionExercises);
                 const regionTotal = regionUniqueExercises.length;
                 const regionDone = regionUniqueExercises.filter(e => e.done).length;
                 const regionPercent = regionTotal > 0 ? Math.round((regionDone / regionTotal) * 100) : 0;
-                const regionColor = regionPercent >= 70 ? 'var(--ios-green)' : regionPercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+                const regionColor = getPercentColor(regionPercent);
 
                 html += `
                     <div class="region-section" id="region-${region}">
