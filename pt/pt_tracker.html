@@ -4018,38 +4018,45 @@
             const sessions = loadHistory();
             const exerciseHistoryList = document.getElementById('exercise-history-list');
             const sessionHistoryList = document.getElementById('session-history-list');
-            const exerciseEntry = getLibraryEntryById(currentExercise.id);
 
-            if (!exerciseEntry.history || exerciseEntry.history.length === 0) {
-                exerciseHistoryList.innerHTML = '<div class="history-item">No revisions logged yet.</div>';
+            // Exercise revisions - only show if an exercise is selected
+            if (!currentExercise) {
+                exerciseHistoryList.innerHTML = '<div class="history-item">Select an exercise to view its revision history.</div>';
             } else {
-                exerciseHistoryList.innerHTML = exerciseEntry.history
-                    .slice()
-                    .reverse()
-                    .map(revision => {
-                        const supersedesLabel = revision.supersedes && revision.supersedes.length
-                            ? `<span class="pill">Supersedes ${revision.supersedes.join(', ')}</span>`
-                            : '';
-                        return `
-                            <div class="history-item">
-                                <div>${revision.summary}</div>
-                                ${supersedesLabel}
-                                <div class="history-meta">${formatDateTime(revision.timestamp)} · ${describeSpec(revision.next)}</div>
-                            </div>
-                        `;
-                    })
-                    .join('');
+                const exerciseEntry = getLibraryEntryById(currentExercise.id);
+                if (!exerciseEntry.history || exerciseEntry.history.length === 0) {
+                    exerciseHistoryList.innerHTML = '<div class="history-item">No revisions logged yet.</div>';
+                } else {
+                    exerciseHistoryList.innerHTML = exerciseEntry.history
+                        .slice()
+                        .reverse()
+                        .map(revision => {
+                            const supersedesLabel = revision.supersedes && revision.supersedes.length
+                                ? `<span class="pill">Supersedes ${revision.supersedes.join(', ')}</span>`
+                                : '';
+                            return `
+                                <div class="history-item">
+                                    <div>${revision.summary}</div>
+                                    ${supersedesLabel}
+                                    <div class="history-meta">${formatDateTime(revision.timestamp)} · ${describeSpec(revision.next)}</div>
+                                </div>
+                            `;
+                        })
+                        .join('');
+                }
             }
 
-            const relevantSessions = sessions
-                .filter(s => (s.exerciseId && s.exerciseId === currentExercise.id) || s.exerciseName === currentExercise.name)
-                .slice()
-                .reverse();
+            // Session history - show all or filtered by current exercise
+            const relevantSessions = currentExercise
+                ? sessions.filter(s => (s.exerciseId && s.exerciseId === currentExercise.id) || s.exerciseName === currentExercise.name)
+                : sessions;
+
+            const reversedSessions = relevantSessions.slice().reverse();
 
             if (relevantSessions.length === 0) {
                 sessionHistoryList.innerHTML = '<div class="history-item">No sessions tracked yet.</div>';
             } else {
-                sessionHistoryList.innerHTML = relevantSessions
+                sessionHistoryList.innerHTML = reversedSessions
                     .slice(0, 10)
                     .map(session => {
                         const sessionSummary = formatSessionSummary(session, { includeDate: true, includeSets: true, includeFormParams: false });

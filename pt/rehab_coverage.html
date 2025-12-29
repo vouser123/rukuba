@@ -876,7 +876,55 @@
 
         // Render coverage view
         function renderCoverageView() {
-            let html = '';
+            // Calculate overall stats
+            const allExercises = [];
+            regions.forEach(region => {
+                const capacities = getCapacitiesForRegion(region);
+                capacities.forEach(capacity => {
+                    const exercises = getExercisesForBucket(region, capacity, null);
+                    allExercises.push(...exercises);
+                });
+            });
+
+            const uniqueExercises = Array.from(new Set(allExercises.map(e => e.id)))
+                .map(id => allExercises.find(e => e.id === id));
+
+            const totalExercises = uniqueExercises.length;
+            const doneExercises = uniqueExercises.filter(e => e.done).length;
+            const donePercent = totalExercises > 0 ? Math.round((doneExercises / totalExercises) * 100) : 0;
+
+            // Find most recent session
+            let mostRecentDays = null;
+            if (sessionHistory.length > 0) {
+                const mostRecentTimestamp = Math.max(...sessionHistory.map(s => s.timestamp));
+                const daysSince = Math.floor((Date.now() - mostRecentTimestamp) / (1000 * 60 * 60 * 24));
+                mostRecentDays = daysSince;
+            }
+
+            const recencyColor = mostRecentDays === null ? 'var(--text-secondary)' :
+                                 mostRecentDays === 0 ? 'var(--ios-green)' :
+                                 mostRecentDays <= 3 ? 'var(--ios-green)' :
+                                 mostRecentDays <= 7 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+            const recencyText = mostRecentDays === null ? 'No sessions yet' :
+                               mostRecentDays === 0 ? 'Today' : `${mostRecentDays}d ago`;
+
+            let html = `
+                <div style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Coverage Overview</span>
+                        <span style="font-size: 11px; color: ${recencyColor};">Last session: ${recencyText}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px; font-weight: 700; color: ${donePercent >= 70 ? 'var(--ios-green)' : donePercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)'};">${donePercent}%</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">${doneExercises} of ${totalExercises} exercises done</div>
+                            <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                                <div style="height: 100%; width: ${donePercent}%; background: linear-gradient(90deg, var(--ios-green), var(--ios-blue)); transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
 
             regions.forEach(region => {
                 html += `
