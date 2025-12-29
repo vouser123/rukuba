@@ -59,6 +59,9 @@
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
+            font-family: inherit;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .header-btn:active {
@@ -485,37 +488,49 @@
 
         async function loadSchema() {
             const response = await fetch('schema/exercise_roles.schema.json');
+            if (!response.ok) throw new Error(`Schema fetch failed: ${response.status}`);
             schema = await response.json();
+            console.log('[Schema] Loaded:', schema);
         }
 
         async function loadRoles() {
             const response = await fetch('exercise_roles.json');
+            if (!response.ok) throw new Error(`Roles fetch failed: ${response.status}`);
             rolesData = await response.json();
+            console.log('[Roles] Loaded:', rolesData.roles.length, 'roles');
         }
 
         async function loadVocabulary() {
             const response = await fetch('exercise_roles_vocabulary.json');
+            if (!response.ok) throw new Error(`Vocabulary fetch failed: ${response.status}`);
             vocabulary = await response.json();
         }
 
         async function loadExerciseLibrary() {
             const response = await fetch('exercise_library.json');
+            if (!response.ok) throw new Error(`Library fetch failed: ${response.status}`);
             const data = await response.json();
             exerciseLibrary = data.exercises || [];
+            console.log('[Library] Loaded:', exerciseLibrary.length, 'exercises');
         }
 
         function loadSessionHistory() {
             // Load from PT Tracker localStorage
             const historyJSON = localStorage.getItem('session_history');
             sessionHistory = historyJSON ? JSON.parse(historyJSON) : [];
+            console.log('[History] Loaded:', sessionHistory.length, 'sessions');
         }
 
         function deriveEnums() {
             // Extract enums from schema - NO HARDCODING
+            if (!schema || !schema.$defs || !schema.$defs.role) {
+                throw new Error('Schema not properly loaded or missing $defs.role');
+            }
             const roleSchema = schema.$defs.role;
             regions = roleSchema.properties.region.enum || [];
             capacities = roleSchema.properties.capacity.enum || [];
             contributions = roleSchema.properties.contribution.enum || [];
+            console.log('[Enums] Derived:', { regions, capacities, contributions });
         }
 
         // Get unique focuses for a (region, capacity) pair
@@ -537,8 +552,13 @@
             // Find all matching roles
             const matchingRoles = rolesData.roles.filter(role => {
                 if (role.region !== region || role.capacity !== capacity) return false;
-                if (focus !== null && role.focus !== focus) return false;
-                return true;
+                // If focus is null, match roles without focus field
+                // If focus is specified, match only that focus
+                if (focus === null) {
+                    return !role.focus; // Match roles without focus
+                } else {
+                    return role.focus === focus; // Match specific focus
+                }
             });
 
             if (matchingRoles.length === 0) {
@@ -546,27 +566,27 @@
             }
 
             // Find all logged exercises for these roles
+            // Note: PT Tracker saves one session per exercise (not session.exercises[])
             const exerciseIds = matchingRoles.map(r => r.exercise_id);
             const loggedExercises = [];
 
             sessionHistory.forEach(session => {
                 const sessionDate = new Date(session.date);
-                session.exercises.forEach(ex => {
-                    if (exerciseIds.includes(ex.exercise_id)) {
-                        // Find the role contribution for this exercise
-                        const role = matchingRoles.find(r =>
-                            r.exercise_id === ex.exercise_id &&
-                            (!focus || r.focus === focus)
-                        );
-                        if (role) {
-                            loggedExercises.push({
-                                exercise_id: ex.exercise_id,
-                                date: sessionDate,
-                                contribution: role.contribution
-                            });
-                        }
+                // PT Tracker structure: each session has exerciseId directly
+                if (exerciseIds.includes(session.exerciseId)) {
+                    // Find the role contribution for this exercise
+                    const role = matchingRoles.find(r =>
+                        r.exercise_id === session.exerciseId &&
+                        (!focus || r.focus === focus)
+                    );
+                    if (role) {
+                        loggedExercises.push({
+                            exercise_id: session.exerciseId,
+                            date: sessionDate,
+                            contribution: role.contribution
+                        });
                     }
-                });
+                }
             });
 
             if (loggedExercises.length === 0) {
@@ -603,39 +623,63 @@
             };
         }
 
-        // Calculate coverage for a capacity (checks all focuses)
+        // Calculate coverage for a capacity (checks all focuses + no-focus roles)
         function calculateCoverage(region, capacity) {
             const focuses = getFocuses(region, capacity);
 
-            if (focuses.length === 0) {
+            // Check if there are roles without focus for this region+capacity
+            const hasNoFocusRoles = rolesData.roles.some(role =>
+                role.region === region &&
+                role.capacity === capacity &&
+                !role.focus
+            );
+
+            // Build list of all buckets to check
+            const bucketsToCheck = [];
+
+            // Add no-focus bucket if it exists
+            if (hasNoFocusRoles) {
+                bucketsToCheck.push({
+                    name: '(general)',
+                    focus: null,
+                    metrics: calculateMetrics(region, capacity, null)
+                });
+            }
+
+            // Add all focuses
+            focuses.forEach(focus => {
+                bucketsToCheck.push({
+                    name: focus,
+                    focus: focus,
+                    metrics: calculateMetrics(region, capacity, focus)
+                });
+            });
+
+            // If no buckets exist, coverage is N/A
+            if (bucketsToCheck.length === 0) {
                 return { status: 'na', maxGap: null };
             }
 
-            const focusMetrics = focuses.map(focus => ({
-                focus,
-                metrics: calculateMetrics(region, capacity, focus)
-            }));
-
-            const focusesWithData = focusMetrics.filter(f => f.metrics.lastDate !== null);
-            const focusesWithoutData = focusMetrics.filter(f => f.metrics.lastDate === null);
+            const bucketsWithData = bucketsToCheck.filter(b => b.metrics.lastDate !== null);
+            const bucketsWithoutData = bucketsToCheck.filter(b => b.metrics.lastDate === null);
 
             let status;
-            if (focusesWithData.length === focuses.length) {
-                status = 'full'; // ✓
-            } else if (focusesWithData.length > 0) {
-                status = 'partial'; // ⚠
+            if (bucketsWithData.length === bucketsToCheck.length) {
+                status = 'full'; // ✓ All buckets exercised
+            } else if (bucketsWithData.length > 0) {
+                status = 'partial'; // ⚠ Some buckets exercised
             } else {
-                status = 'none'; // ✗
+                status = 'none'; // ✗ No buckets exercised
             }
 
-            // Calculate max gap
+            // Calculate max gap (days since least recent bucket)
             let maxGap = 0;
-            if (focusesWithoutData.length > 0) {
-                maxGap = Infinity; // No data = infinite gap
+            if (bucketsWithoutData.length > 0) {
+                maxGap = Infinity; // Some buckets never exercised
             } else {
-                focusMetrics.forEach(f => {
-                    if (f.metrics.daysSince > maxGap) {
-                        maxGap = f.metrics.daysSince;
+                bucketsToCheck.forEach(b => {
+                    if (b.metrics.daysSince > maxGap) {
+                        maxGap = b.metrics.daysSince;
                     }
                 });
             }
