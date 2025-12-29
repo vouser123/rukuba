@@ -685,17 +685,23 @@
                     lastActivity = doneExercises[0].daysSince;
                 }
 
-                // Build summary with progress bar
+                // Build summary with progress bar and recency indicator
                 const doneIcon = doneCount === totalCount ? '✓' : (doneCount > 0 ? '⚠' : '✗');
                 const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
                 const progress = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
+
+                // Calculate opacity based on recency (fades over 14 days)
+                const opacity = lastActivity !== null ? Math.max(0.3, 1 - (lastActivity / 14)) : 0.3;
+                const recencyText = lastActivity !== null ? `${lastActivity}d` : '—';
+
                 const summary = `
                     <div style="display: flex; align-items: center; gap: 6px; min-width: 100px;">
                         <span style="color: ${doneColor}; font-size: 12px;">${doneIcon}</span>
                         <span style="font-size: 11px; min-width: 30px;">${doneCount}/${totalCount}</span>
                         <div style="flex: 1; min-width: 40px; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden;">
-                            <div style="height: 100%; width: ${progress}%; background: ${doneColor}; transition: width 0.3s;"></div>
+                            <div style="height: 100%; width: ${progress}%; background: ${doneColor}; opacity: ${opacity}; transition: width 0.3s, opacity 0.3s;"></div>
                         </div>
+                        <span style="font-size: 10px; color: var(--text-secondary); min-width: 22px; text-align: right;">${recencyText}</span>
                     </div>
                 `;
 
