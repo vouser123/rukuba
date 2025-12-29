@@ -1467,6 +1467,9 @@
 
         // Export for PT - creates a JSON file that PT can import and view
         function exportForPT() {
+            // Ask for optional note to PT
+            const noteForPT = prompt('Optional: Add a note for your PT\n(Leave blank to skip)', '');
+
             const exportData = {
                 exportDate: new Date().toLocaleDateString('en-US', {
                     weekday: 'long',
@@ -1474,6 +1477,7 @@
                     month: 'long',
                     day: 'numeric'
                 }),
+                noteForPT: noteForPT && noteForPT.trim() ? noteForPT.trim() : null,
                 sessionHistory: sessionHistory,
                 exerciseLibrary: exerciseLibrary,
                 rolesData: rolesData,

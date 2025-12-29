@@ -127,6 +127,11 @@
         <div class="report-date" id="report-date"></div>
     </div>
 
+    <div class="section" id="patient-note-section" style="display: none;">
+        <div class="section-title">Note from Patient</div>
+        <div id="patient-note" style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; line-height: 1.6; font-style: italic;"></div>
+    </div>
+
     <div class="section">
         <div class="section-title">Overall Progress</div>
         <div class="metric-grid" id="overall-metrics"></div>
@@ -201,6 +206,12 @@
                     month: 'long',
                     day: 'numeric'
                 })}`;
+
+                // Show patient note if present
+                if (data.noteForPT) {
+                    document.getElementById('patient-note').textContent = data.noteForPT;
+                    document.getElementById('patient-note-section').style.display = 'block';
+                }
 
                 // Generate report
                 renderOverallMetrics();
@@ -446,8 +457,53 @@
                                 ${data.sessions.length} sessions • ${data.totalSets} sets • ${data.totalReps} reps
                                 <br>Last performed: ${daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`}
                             </div>
-                        </div>
                     `;
+
+                    // Show recent sessions with details (last 3)
+                    const recentSessions = data.sessions.slice(-3).reverse();
+                    if (recentSessions.length > 0) {
+                        html += '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">';
+                        recentSessions.forEach(session => {
+                            const sessionDate = new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                            // Extract parameters from sets
+                            const parameters = {};
+                            session.sets.forEach(set => {
+                                if (set.weight) parameters.weight = true;
+                                if (set.distance) parameters.distance = true;
+                                if (set.duration) parameters.duration = true;
+                                if (set.side) parameters.side = true;
+                            });
+
+                            html += `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">`;
+                            html += `<strong>${sessionDate}:</strong> ${session.sets.length} set${session.sets.length > 1 ? 's' : ''}`;
+
+                            // Show set details with parameters
+                            const setDetails = [];
+                            session.sets.forEach((set, idx) => {
+                                let detail = `${set.reps || '?'} reps`;
+                                if (set.side) detail += ` (${set.side})`;
+                                if (set.weight) detail += ` @ ${set.weight}lbs`;
+                                if (set.distance) detail += `, ${set.distance}m`;
+                                if (set.duration) detail += `, ${set.duration}s`;
+                                setDetails.push(detail);
+                            });
+
+                            if (setDetails.length > 0) {
+                                html += ` - ${setDetails.join(' | ')}`;
+                            }
+
+                            // Show session notes if present
+                            if (session.notes && session.notes.trim()) {
+                                html += `<br><span style="font-style: italic; color: var(--ios-blue);">Note: ${session.notes}</span>`;
+                            }
+
+                            html += `</div>`;
+                        });
+                        html += '</div>';
+                    }
+
+                    html += `</div>`;
                 });
 
             container.innerHTML = html;
