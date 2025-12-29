@@ -495,7 +495,7 @@
             const response = await fetch('exercise_roles.json');
             if (!response.ok) throw new Error(`Roles fetch failed: ${response.status}`);
             rolesData = await response.json();
-            console.log('[Roles] Loaded:', rolesData.roles.length, 'roles');
+            console.log('[Roles] Loaded:', Object.keys(rolesData.exercise_roles || {}).length, 'exercises with roles');
         }
 
         async function loadVocabulary() {
