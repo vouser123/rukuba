@@ -816,6 +816,10 @@
 
             if (isVisible) {
                 editorMode.style.display = 'none';
+                // If no report has been loaded, show import screen
+                if (!sessionHistory || sessionHistory.length === 0) {
+                    document.getElementById('import-screen').style.display = 'flex';
+                }
             } else {
                 editorMode.style.display = 'block';
                 initializeEditorMode();
