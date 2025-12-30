@@ -5915,7 +5915,9 @@ ${jsonData}
             const editedExCount = Object.keys(mods.editedExercises || {}).length;
             const archivedExCount = mods.archivedExercises?.length || 0;
             const newRoleCount = Object.values(mods.newRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(mods.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
             const editedRoleCount = Object.keys(mods.editedRoles || {}).length;
+            const dosageChangeCount = Object.keys(mods.dosageChanges || {}).length;
             const updatedVocabCount = Object.values(mods.updatedVocab || {}).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
             let message = `PT Modifications Summary:\n\n`;
@@ -5923,7 +5925,9 @@ ${jsonData}
             if (editedExCount > 0) message += `• ${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
             if (archivedExCount > 0) message += `• ${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
             if (newRoleCount > 0) message += `• ${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+            if (deletedRoleCount > 0) message += `• ${deletedRoleCount} deleted role${deletedRoleCount !== 1 ? 's' : ''}\n`;
             if (editedRoleCount > 0) message += `• ${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
+            if (dosageChangeCount > 0) message += `• ${dosageChangeCount} dosage${dosageChangeCount !== 1 ? 's' : ''} updated\n`;
             if (updatedVocabCount > 0) message += `• ${updatedVocabCount} vocabulary update${updatedVocabCount !== 1 ? 's' : ''}\n`;
             message += `\nAccept and merge all changes?`;
 
@@ -5987,7 +5991,27 @@ ${jsonData}
                 });
             }
 
-            // 5. Update edited roles (replace entire role set for exercise)
+            // 5. Delete roles
+            if (mods.deletedRoles && Object.keys(mods.deletedRoles).length > 0) {
+                Object.keys(mods.deletedRoles).forEach(exerciseId => {
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        const rolesToDelete = mods.deletedRoles[exerciseId];
+                        rolesToDelete.forEach(roleToDelete => {
+                            const index = rolesData.exercise_roles[exerciseId].roles.findIndex(r =>
+                                r.region === roleToDelete.region &&
+                                r.capacity === roleToDelete.capacity &&
+                                (r.focus || '') === (roleToDelete.focus || '')
+                            );
+                            if (index !== -1) {
+                                rolesData.exercise_roles[exerciseId].roles.splice(index, 1);
+                                mergedCount++;
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 6. Update edited roles (replace entire role set for exercise)
             if (mods.editedRoles && Object.keys(mods.editedRoles).length > 0) {
                 Object.keys(mods.editedRoles).forEach(exerciseId => {
                     if (rolesData.exercise_roles[exerciseId]) {
@@ -5997,7 +6021,29 @@ ${jsonData}
                 });
             }
 
-            // 6. Update vocabulary
+            // 7. Update dosages
+            if (mods.dosageChanges && Object.keys(mods.dosageChanges).length > 0) {
+                Object.keys(mods.dosageChanges).forEach(exerciseId => {
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                    if (exercise) {
+                        const previousSpec = exercise.current || {};
+                        exercise.current = mods.dosageChanges[exerciseId];
+
+                        // Add to history
+                        if (!exercise.history) exercise.history = [];
+                        exercise.history.push({
+                            timestamp: new Date().toISOString(),
+                            summary: `Dosage updated by PT`,
+                            previous: previousSpec,
+                            next: mods.dosageChanges[exerciseId],
+                            supersedes: []
+                        });
+                        mergedCount++;
+                    }
+                });
+            }
+
+            // 8. Update vocabulary
             if (mods.updatedVocab && Object.keys(mods.updatedVocab).length > 0) {
                 Object.keys(mods.updatedVocab).forEach(category => {
                     if (!vocabulary[category]) {
