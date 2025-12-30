@@ -1644,13 +1644,13 @@
             });
 
             html += '<div class="form-group">';
-            html += '<label class="form-label">Region <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
-            html += '<input type="text" class="form-input" id="new-region" list="region-datalist-options" placeholder="Select or enter region">';
-            html += '<datalist id="region-datalist-options">';
+            html += '<label class="form-label">Region</label>';
+            html += '<select class="form-select" id="new-region">';
+            html += '<option value="">-- Select region --</option>';
             Array.from(allRegions).sort().forEach(r => {
                 html += `<option value="${r}">${r}</option>`;
             });
-            html += '</datalist></div>';
+            html += '</select></div>';
 
             // Get all unique capacities from existing roles
             const allCapacities = new Set(capacities);
@@ -1661,13 +1661,13 @@
             });
 
             html += '<div class="form-group">';
-            html += '<label class="form-label">Capacity <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
-            html += '<input type="text" class="form-input" id="new-capacity" list="capacity-datalist-options" placeholder="Select or enter capacity">';
-            html += '<datalist id="capacity-datalist-options">';
+            html += '<label class="form-label">Capacity</label>';
+            html += '<select class="form-select" id="new-capacity">';
+            html += '<option value="">-- Select capacity --</option>';
             Array.from(allCapacities).sort().forEach(c => {
                 html += `<option value="${c}">${c}</option>`;
             });
-            html += '</datalist></div>';
+            html += '</select></div>';
 
             // Get all unique focus values from schema + existing roles
             const allFocuses = new Set();
@@ -1684,13 +1684,13 @@
             });
 
             html += '<div class="form-group">';
-            html += '<label class="form-label">Focus (optional) <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
-            html += '<input type="text" class="form-input" id="new-focus" list="focus-datalist-options" placeholder="Select or enter focus (e.g., sagittal, lateral)">';
-            html += '<datalist id="focus-datalist-options">';
+            html += '<label class="form-label">Focus (optional)</label>';
+            html += '<select class="form-select" id="new-focus">';
+            html += '<option value="">-- No focus (general) --</option>';
             Array.from(allFocuses).sort().forEach(f => {
                 html += `<option value="${f}">${f}</option>`;
             });
-            html += '</datalist></div>';
+            html += '</select></div>';
 
             html += '<div class="form-group">';
             html += '<label class="form-label">Contribution</label>';
