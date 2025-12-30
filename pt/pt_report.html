@@ -464,21 +464,24 @@
                     <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
                     <div class="form-group">
                         <label class="form-label" for="new-role-region">Region *</label>
-                        <select id="new-role-region" class="form-select">
+                        <select id="new-role-region" class="form-select" onchange="toggleCustomInput('region')">
                             <option value="">-- Select region --</option>
                         </select>
+                        <input type="text" id="new-role-region-custom" class="form-input" placeholder="Enter custom region" style="display: none; margin-top: 8px;">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="new-role-capacity">Capacity *</label>
-                        <select id="new-role-capacity" class="form-select">
+                        <select id="new-role-capacity" class="form-select" onchange="toggleCustomInput('capacity')">
                             <option value="">-- Select capacity --</option>
                         </select>
+                        <input type="text" id="new-role-capacity-custom" class="form-input" placeholder="Enter custom capacity" style="display: none; margin-top: 8px;">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="new-role-focus">Focus (optional)</label>
-                        <select id="new-role-focus" class="form-select">
+                        <select id="new-role-focus" class="form-select" onchange="toggleCustomInput('focus')">
                             <option value="">-- No focus (general) --</option>
                         </select>
+                        <input type="text" id="new-role-focus-custom" class="form-input" placeholder="Enter custom focus" style="display: none; margin-top: 8px;">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="new-role-contribution">Contribution *</label>
@@ -1057,7 +1060,8 @@
                 });
             }
             regionSelect.innerHTML = '<option value="">-- Select region --</option>' +
-                Array.from(regionSet).sort().map(r => `<option value="${r}">${r}</option>`).join('');
+                Array.from(regionSet).sort().map(r => `<option value="${r}">${r}</option>`).join('') +
+                '<option value="__custom__">➕ Other (custom)...</option>';
 
             // Populate capacity select with schema values + current values from rolesData
             const capacitySelect = document.getElementById('new-role-capacity');
@@ -1075,7 +1079,8 @@
                 });
             }
             capacitySelect.innerHTML = '<option value="">-- Select capacity --</option>' +
-                Array.from(capacitySet).sort().map(c => `<option value="${c}">${c}</option>`).join('');
+                Array.from(capacitySet).sort().map(c => `<option value="${c}">${c}</option>`).join('') +
+                '<option value="__custom__">➕ Other (custom)...</option>';
 
             // Populate focus select with schema values + current values from rolesData
             const focusSelect = document.getElementById('new-role-focus');
@@ -1093,7 +1098,8 @@
                 });
             }
             focusSelect.innerHTML = '<option value="">-- No focus (general) --</option>' +
-                Array.from(focusSet).sort().map(f => `<option value="${f}">${f}</option>`).join('');
+                Array.from(focusSet).sort().map(f => `<option value="${f}">${f}</option>`).join('') +
+                '<option value="__custom__">➕ Other (custom)...</option>';
 
             // Populate pattern dropdown from schema
             const patternSelect = document.getElementById('ex-pattern');
@@ -1846,11 +1852,42 @@
             currentRolesDiv.innerHTML = html;
         }
 
+        function toggleCustomInput(field) {
+            const selectElem = document.getElementById(`new-role-${field}`);
+            const customElem = document.getElementById(`new-role-${field}-custom`);
+
+            if (selectElem.value === '__custom__') {
+                customElem.style.display = 'block';
+                customElem.focus();
+            } else {
+                customElem.style.display = 'none';
+                customElem.value = '';
+            }
+        }
+
         function addRoleToExercise() {
             const exerciseId = document.getElementById('role-exercise-select').value;
-            const region = document.getElementById('new-role-region').value;
-            const capacity = document.getElementById('new-role-capacity').value;
-            const focus = document.getElementById('new-role-focus').value.trim();
+
+            // Get region value (from select or custom input)
+            let region = document.getElementById('new-role-region').value;
+            if (region === '__custom__') {
+                region = document.getElementById('new-role-region-custom').value.trim();
+            }
+
+            // Get capacity value (from select or custom input)
+            let capacity = document.getElementById('new-role-capacity').value;
+            if (capacity === '__custom__') {
+                capacity = document.getElementById('new-role-capacity-custom').value.trim();
+            }
+
+            // Get focus value (from select or custom input)
+            let focus = document.getElementById('new-role-focus').value;
+            if (focus === '__custom__') {
+                focus = document.getElementById('new-role-focus-custom').value.trim();
+            } else {
+                focus = focus.trim();
+            }
+
             const contribution = document.getElementById('new-role-contribution').value;
 
             if (!exerciseId || !region || !capacity || !contribution) {
@@ -1879,6 +1916,13 @@
             document.getElementById('new-role-capacity').value = '';
             document.getElementById('new-role-focus').value = '';
             document.getElementById('new-role-contribution').value = '';
+            // Hide and clear custom inputs
+            document.getElementById('new-role-region-custom').style.display = 'none';
+            document.getElementById('new-role-region-custom').value = '';
+            document.getElementById('new-role-capacity-custom').style.display = 'none';
+            document.getElementById('new-role-capacity-custom').value = '';
+            document.getElementById('new-role-focus-custom').style.display = 'none';
+            document.getElementById('new-role-focus-custom').value = '';
 
             // Refresh display
             loadExerciseRoles();

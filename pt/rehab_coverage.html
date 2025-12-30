@@ -1645,12 +1645,15 @@
 
             html += '<div class="form-group">';
             html += '<label class="form-label">Region</label>';
-            html += '<select class="form-select" id="new-region">';
+            html += '<select class="form-select" id="new-region" onchange="toggleCustomInput(\'region\')">';
             html += '<option value="">-- Select region --</option>';
             Array.from(allRegions).sort().forEach(r => {
                 html += `<option value="${r}">${r}</option>`;
             });
-            html += '</select></div>';
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-region-custom" placeholder="Enter custom region" style="display: none; margin-top: 8px;">';
+            html += '</div>';
 
             // Get all unique capacities from existing roles
             const allCapacities = new Set(capacities);
@@ -1662,12 +1665,15 @@
 
             html += '<div class="form-group">';
             html += '<label class="form-label">Capacity</label>';
-            html += '<select class="form-select" id="new-capacity">';
+            html += '<select class="form-select" id="new-capacity" onchange="toggleCustomInput(\'capacity\')">';
             html += '<option value="">-- Select capacity --</option>';
             Array.from(allCapacities).sort().forEach(c => {
                 html += `<option value="${c}">${c}</option>`;
             });
-            html += '</select></div>';
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-capacity-custom" placeholder="Enter custom capacity" style="display: none; margin-top: 8px;">';
+            html += '</div>';
 
             // Get all unique focus values from schema + existing roles
             const allFocuses = new Set();
@@ -1685,12 +1691,15 @@
 
             html += '<div class="form-group">';
             html += '<label class="form-label">Focus (optional)</label>';
-            html += '<select class="form-select" id="new-focus">';
+            html += '<select class="form-select" id="new-focus" onchange="toggleCustomInput(\'focus\')">';
             html += '<option value="">-- No focus (general) --</option>';
             Array.from(allFocuses).sort().forEach(f => {
                 html += `<option value="${f}">${f}</option>`;
             });
-            html += '</select></div>';
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-focus-custom" placeholder="Enter custom focus" style="display: none; margin-top: 8px;">';
+            html += '</div>';
 
             html += '<div class="form-group">';
             html += '<label class="form-label">Contribution</label>';
@@ -1707,10 +1716,40 @@
             document.getElementById('roles-container').innerHTML = html;
         }
 
+        function toggleCustomInput(field) {
+            const selectElem = document.getElementById(`new-${field}`);
+            const customElem = document.getElementById(`new-${field}-custom`);
+
+            if (selectElem.value === '__custom__') {
+                customElem.style.display = 'block';
+                customElem.focus();
+            } else {
+                customElem.style.display = 'none';
+                customElem.value = '';
+            }
+        }
+
         function addRole() {
-            const region = document.getElementById('new-region').value.trim();
-            const capacity = document.getElementById('new-capacity').value.trim();
-            const focus = document.getElementById('new-focus').value.trim();
+            // Get region value (from select or custom input)
+            let region = document.getElementById('new-region').value;
+            if (region === '__custom__') {
+                region = document.getElementById('new-region-custom').value.trim();
+            }
+
+            // Get capacity value (from select or custom input)
+            let capacity = document.getElementById('new-capacity').value;
+            if (capacity === '__custom__') {
+                capacity = document.getElementById('new-capacity-custom').value.trim();
+            }
+
+            // Get focus value (from select or custom input)
+            let focus = document.getElementById('new-focus').value;
+            if (focus === '__custom__') {
+                focus = document.getElementById('new-focus-custom').value.trim();
+            } else {
+                focus = focus.trim();
+            }
+
             const contribution = document.getElementById('new-contribution').value;
 
             if (!region || !capacity || !contribution) {
