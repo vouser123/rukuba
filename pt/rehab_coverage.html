@@ -12,6 +12,7 @@
         html, body {
             overflow-x: hidden;
             max-width: 100vw;
+            width: 100%;
         }
 
         body {
@@ -21,7 +22,12 @@
         }
 
         #coverage-content {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
             max-width: 100%;
+            box-sizing: border-box;
             overflow-x: hidden;
         }
 
@@ -32,6 +38,9 @@
             margin-bottom: 8px;
             padding-bottom: 6px;
             border-bottom: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .header h1 {
@@ -59,8 +68,10 @@
         /* Region Accordion */
         .region-section {
             margin-bottom: 10px;
+            width: 100%;
             max-width: 100%;
             overflow-x: hidden;
+            box-sizing: border-box;
         }
 
         .region-header {
@@ -72,7 +83,9 @@
             justify-content: space-between;
             align-items: center;
             border: 1px solid var(--border-color);
+            width: 100%;
             max-width: 100%;
+            box-sizing: border-box;
         }
 
         .region-header:active {
@@ -97,6 +110,9 @@
         .region-content {
             display: none;
             padding: 6px 0;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .region-section.expanded .region-content {
@@ -110,12 +126,17 @@
             margin: 4px 0;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+            width: 100%;
             max-width: 100%;
             overflow-x: hidden;
+            box-sizing: border-box;
         }
 
         .capacity-header {
             cursor: pointer;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .capacity-header:active {
@@ -157,6 +178,9 @@
             margin-top: 6px;
             padding-left: 10px;
             border-left: 2px solid var(--border-color);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .capacity-row.expanded .focus-list {
@@ -309,6 +333,24 @@
             text-align: center;
             padding: 40px;
             color: var(--text-secondary);
+        }
+
+        .overview-card,
+        .exercise-card {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .progress-bar {
+            max-width: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .progress-fill {
+            position: relative;
+            max-height: 6px;
         }
 
         .error {
@@ -859,16 +901,27 @@
             // Find most recent session
             let mostRecentDays = null;
             if (sessionHistory.length > 0) {
-                const mostRecentTimestamp = Math.max(...sessionHistory.map(s => s.timestamp));
-                const daysSince = Math.floor((Date.now() - mostRecentTimestamp) / (1000 * 60 * 60 * 24));
-                mostRecentDays = daysSince;
+                const validDates = sessionHistory
+                    .map(session => session.timestamp ?? session.date)
+                    .filter(timestamp => timestamp)
+                    .map(timestamp => new Date(timestamp))
+                    .filter(date => !isNaN(date));
+
+                if (validDates.length > 0) {
+                    const mostRecentTimestamp = Math.max(...validDates.map(date => date.getTime()));
+                    const mostRecentDate = new Date(mostRecentTimestamp);
+                    if (!isNaN(mostRecentDate)) {
+                        const daysSince = Math.floor((Date.now() - mostRecentDate.getTime()) / (1000 * 60 * 60 * 24));
+                        mostRecentDays = daysSince;
+                    }
+                }
             }
 
             const recencyColor = mostRecentDays === null ? 'var(--text-secondary)' :
                                  mostRecentDays === 0 ? 'var(--ios-green)' :
                                  mostRecentDays <= 3 ? 'var(--ios-green)' :
                                  mostRecentDays <= 7 ? 'var(--ios-yellow)' : 'var(--ios-red)';
-            const recencyText = mostRecentDays === null ? 'No sessions yet' :
+            const recencyText = mostRecentDays === null ? '—' :
                                mostRecentDays === 0 ? 'Today' : `${mostRecentDays}d ago`;
 
             // Rolling 7-day activity
@@ -1331,42 +1384,141 @@
             menu.classList.toggle('active');
         }
 
-        // Export all data (4 separate files: library + roles + schema + vocab)
+        // Export all data (single zip: library + roles + schema + vocab)
         function exportAllData() {
             const dateStr = new Date().toISOString().split('T')[0];
 
-            // Helper to download a file
-            function downloadJSON(data, filename) {
-                const dataStr = JSON.stringify(data, null, 2);
-                const blob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            }
+            const files = [
+                {
+                    name: `exercise_library-${dateStr}.json`,
+                    data: JSON.stringify({ exercises: exerciseLibrary }, null, 2)
+                },
+                {
+                    name: `exercise_roles-${dateStr}.json`,
+                    data: JSON.stringify(rolesData, null, 2)
+                },
+                {
+                    name: `exercise_roles.schema-${dateStr}.json`,
+                    data: JSON.stringify(schema, null, 2)
+                },
+                {
+                    name: `exercise_roles_vocabulary-${dateStr}.json`,
+                    data: JSON.stringify(vocabulary, null, 2)
+                }
+            ];
 
-            // Export each file separately
-            downloadJSON({ exercises: exerciseLibrary }, `exercise_library-${dateStr}.json`);
-
-            setTimeout(() => {
-                downloadJSON(rolesData, `exercise_roles-${dateStr}.json`);
-            }, 300);
-
-            setTimeout(() => {
-                downloadJSON(schema, `exercise_roles.schema-${dateStr}.json`);
-            }, 600);
-
-            setTimeout(() => {
-                downloadJSON(vocabulary, `exercise_roles_vocabulary-${dateStr}.json`);
-            }, 900);
+            const zipBlob = createZipBlob(files);
+            const url = URL.createObjectURL(zipBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `rehab-coverage-export-${dateStr}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
 
             toggleMenu();
-            alert('Exported 4 files! Upload to GitHub:\n1. exercise_library.json\n2. exercise_roles.json\n3. exercise_roles.schema.json\n4. exercise_roles_vocabulary.json');
+            alert('Exported a zip file! Upload these to GitHub:\n1. exercise_library.json\n2. exercise_roles.json\n3. exercise_roles.schema.json\n4. exercise_roles_vocabulary.json');
         }
+
+        function createZipBlob(files) {
+            const encoder = new TextEncoder();
+            const chunks = [];
+            const centralDirectory = [];
+            const fileRecords = [];
+            let offset = 0;
+            let centralSize = 0;
+
+            files.forEach((file) => {
+                const nameBytes = encoder.encode(file.name);
+                const dataBytes = encoder.encode(file.data);
+                const crc = crc32(dataBytes);
+
+                const localHeader = new Uint8Array(30 + nameBytes.length);
+                const localView = new DataView(localHeader.buffer);
+                localView.setUint32(0, 0x04034b50, true);
+                localView.setUint16(4, 20, true);
+                localView.setUint16(6, 0, true);
+                localView.setUint16(8, 0, true);
+                localView.setUint16(10, 0, true);
+                localView.setUint16(12, 0, true);
+                localView.setUint32(14, crc, true);
+                localView.setUint32(18, dataBytes.length, true);
+                localView.setUint32(22, dataBytes.length, true);
+                localView.setUint16(26, nameBytes.length, true);
+                localView.setUint16(28, 0, true);
+                localHeader.set(nameBytes, 30);
+
+                chunks.push(localHeader, dataBytes);
+
+                fileRecords.push({
+                    nameBytes,
+                    crc,
+                    size: dataBytes.length,
+                    offset
+                });
+
+                offset += localHeader.length + dataBytes.length;
+            });
+
+            fileRecords.forEach((record) => {
+                const header = new Uint8Array(46 + record.nameBytes.length);
+                const view = new DataView(header.buffer);
+                view.setUint32(0, 0x02014b50, true);
+                view.setUint16(4, 20, true);
+                view.setUint16(6, 20, true);
+                view.setUint16(8, 0, true);
+                view.setUint16(10, 0, true);
+                view.setUint16(12, 0, true);
+                view.setUint16(14, 0, true);
+                view.setUint32(16, record.crc, true);
+                view.setUint32(20, record.size, true);
+                view.setUint32(24, record.size, true);
+                view.setUint16(28, record.nameBytes.length, true);
+                view.setUint16(30, 0, true);
+                view.setUint16(32, 0, true);
+                view.setUint16(34, 0, true);
+                view.setUint16(36, 0, true);
+                view.setUint32(38, 0, true);
+                view.setUint32(42, record.offset, true);
+                header.set(record.nameBytes, 46);
+                centralDirectory.push(header);
+                centralSize += header.length;
+            });
+
+            const end = new Uint8Array(22);
+            const endView = new DataView(end.buffer);
+            endView.setUint32(0, 0x06054b50, true);
+            endView.setUint16(4, 0, true);
+            endView.setUint16(6, 0, true);
+            endView.setUint16(8, fileRecords.length, true);
+            endView.setUint16(10, fileRecords.length, true);
+            endView.setUint32(12, centralSize, true);
+            endView.setUint32(16, offset, true);
+            endView.setUint16(20, 0, true);
+
+            return new Blob([...chunks, ...centralDirectory, end], { type: 'application/zip' });
+        }
+
+        function crc32(bytes) {
+            let crc = 0xffffffff;
+            for (let i = 0; i < bytes.length; i++) {
+                crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ bytes[i]) & 0xff];
+            }
+            return (crc ^ 0xffffffff) >>> 0;
+        }
+
+        const CRC32_TABLE = (() => {
+            const table = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let j = 0; j < 8; j++) {
+                    c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                table[i] = c >>> 0;
+            }
+            return table;
+        })();
 
         // Import data
         function importData() {
@@ -1424,9 +1576,11 @@
 
             // Add exercises from library
             exerciseLibrary.forEach(ex => {
-                const hasRoles = rolesData.exercise_roles[ex.id];
-                const label = `${ex.title || ex.name}${hasRoles ? ' ✓' : ''}`;
-                html += `<option value="${ex.id}">${label}</option>`;
+                const exerciseId = ex.exercise_id || ex.id;
+                const hasRoles = exerciseId && rolesData.exercise_roles[exerciseId];
+                const baseLabel = ex.canonical_name || ex.title || ex.name || exerciseId || 'Unknown exercise';
+                const label = `${baseLabel}${hasRoles ? ' ✓' : ''}`;
+                html += `<option value="${exerciseId || ''}">${label}</option>`;
             });
 
             html += '</select></div>';
@@ -1448,10 +1602,13 @@
             }
 
             currentEditExerciseId = exerciseId;
-            const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+            const exercise = exerciseLibrary.find(e => (e.exercise_id || e.id) === exerciseId);
             const rolesForExercise = rolesData.exercise_roles[exerciseId];
 
-            let html = `<h3 style="margin: 20px 0 12px; font-size: 16px;">${exercise.title || exercise.name}</h3>`;
+            const exerciseLabel = exercise
+                ? (exercise.canonical_name || exercise.title || exercise.name || exerciseId)
+                : exerciseId;
+            let html = `<h3 style="margin: 20px 0 12px; font-size: 16px;">${exerciseLabel}</h3>`;
 
             // Show existing roles
             if (rolesForExercise && rolesForExercise.roles && rolesForExercise.roles.length > 0) {
@@ -1573,9 +1730,12 @@
 
             // Initialize exercise in rolesData if it doesn't exist
             if (!rolesData.exercise_roles[currentEditExerciseId]) {
-                const exercise = exerciseLibrary.find(e => e.id === currentEditExerciseId);
+                const exercise = exerciseLibrary.find(e => (e.exercise_id || e.id) === currentEditExerciseId);
+                const exerciseName = exercise
+                    ? (exercise.canonical_name || exercise.title || exercise.name || currentEditExerciseId)
+                    : currentEditExerciseId;
                 rolesData.exercise_roles[currentEditExerciseId] = {
-                    name: exercise.title || exercise.name,
+                    name: exerciseName,
                     roles: []
                 };
             }
