@@ -1353,6 +1353,41 @@
         </div>
     </div>
 
+    <!-- Edit Dosage Modal -->
+    <div class="modal" id="edit-dosage-modal" onclick="if(event.target === this) closeEditDosage()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">✏️ Edit Dosage</div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--text-primary); margin-bottom: 20px; text-align: center; font-weight: 600;" id="edit-dosage-exercise-name"></div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Sets</label>
+                    <input type="number" id="edit-dosage-sets" class="modal-input" placeholder="e.g., 3" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+
+                <div style="margin-bottom: 16px;" id="edit-dosage-reps-container">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Reps (per set)</label>
+                    <input type="number" id="edit-dosage-reps" class="modal-input" placeholder="e.g., 10" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+
+                <div id="edit-dosage-seconds-container" style="margin-bottom: 16px; display: none;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;" id="edit-dosage-seconds-label">Seconds (per rep)</label>
+                    <input type="number" id="edit-dosage-seconds" class="modal-input" placeholder="e.g., 30" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+
+                <div id="edit-dosage-distance-container" style="margin-bottom: 16px; display: none;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Distance (feet)</label>
+                    <input type="number" id="edit-dosage-distance" class="modal-input" placeholder="e.g., 100" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeEditDosage()">Cancel</button>
+                <button class="modal-save" onclick="saveEditedDosage()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Plan Session Modal -->
     <div class="modal" id="plan-session-modal" onclick="if(event.target === this) closePlanSessionModal()">
         <div class="modal-content">
@@ -4847,6 +4882,139 @@
             }
         }
 
+        // EDIT DOSAGE FUNCTIONS
+        let editingDosageExerciseId = null;
+
+        function showEditDosageModal(exerciseId) {
+            const ex = exerciseLibrary.find(e => e.id === exerciseId);
+            if (!ex) return;
+
+            editingDosageExerciseId = exerciseId;
+            const spec = ex.current || {};
+            const modifiers = ex.pattern_modifiers || [];
+
+            document.getElementById('edit-dosage-exercise-name').textContent = ex.name;
+            document.getElementById('edit-dosage-sets').value = spec.sets || '';
+            document.getElementById('edit-dosage-reps').value = spec.repsPerSet || '';
+            document.getElementById('edit-dosage-seconds').value = spec.secondsPerRep || '';
+            document.getElementById('edit-dosage-distance').value = spec.distanceFeet || '';
+
+            // Show/hide fields based on modifiers
+            const repsContainer = document.getElementById('edit-dosage-reps-container');
+            const secondsContainer = document.getElementById('edit-dosage-seconds-container');
+            const secondsLabel = document.getElementById('edit-dosage-seconds-label');
+            const distanceContainer = document.getElementById('edit-dosage-distance-container');
+
+            const hasHold = modifiers.includes('hold_seconds');
+            const hasDuration = modifiers.includes('duration_seconds');
+            const hasDistance = modifiers.includes('distance_feet');
+
+            if (hasDuration || hasDistance) {
+                repsContainer.style.display = 'none';
+            } else {
+                repsContainer.style.display = 'block';
+            }
+
+            if (hasHold || hasDuration) {
+                secondsContainer.style.display = 'block';
+                secondsLabel.textContent = hasHold ? 'Hold Seconds (per rep)' : 'Duration (seconds)';
+            } else {
+                secondsContainer.style.display = 'none';
+            }
+
+            distanceContainer.style.display = hasDistance ? 'block' : 'none';
+
+            document.getElementById('edit-dosage-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeEditDosage() {
+            document.getElementById('edit-dosage-modal').classList.remove('active');
+            editingDosageExerciseId = null;
+            haptic('medium');
+        }
+
+        function saveEditedDosage() {
+            if (!editingDosageExerciseId) return;
+
+            const sets = parseInt(document.getElementById('edit-dosage-sets').value);
+            let reps = parseInt(document.getElementById('edit-dosage-reps').value);
+            const seconds = parseInt(document.getElementById('edit-dosage-seconds').value) || 0;
+            const distance = parseInt(document.getElementById('edit-dosage-distance').value) || 0;
+
+            if (!sets || sets < 1) {
+                alert('Please enter valid sets');
+                return;
+            }
+
+            const ex = exerciseLibrary.find(e => e.id === editingDosageExerciseId);
+            if (!ex) return;
+
+            const modifiers = ex.pattern_modifiers || [];
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+            if (replacesReps) {
+                reps = 1;
+            } else {
+                if (!reps || reps < 1) {
+                    alert('Please enter valid reps');
+                    return;
+                }
+            }
+
+            // Validate required fields
+            if (modifiers.includes('hold_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid seconds for this hold exercise');
+                return;
+            }
+            if (modifiers.includes('duration_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid duration in seconds');
+                return;
+            }
+            if (modifiers.includes('distance_feet') && (!distance || distance < 1)) {
+                alert('Please enter valid distance in feet');
+                return;
+            }
+
+            const previousSpec = ex.current || {};
+            const newSpec = {
+                type: modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
+                sets: sets,
+                repsPerSet: reps,
+                secondsPerRep: seconds
+            };
+
+            if (modifiers.includes('distance_feet') && distance > 0) {
+                newSpec.distanceFeet = distance;
+            }
+
+            // Build dosage summary
+            let dosageSummary = `${sets} sets`;
+            if (!replacesReps) dosageSummary += ` × ${reps} reps`;
+            if (seconds > 0) dosageSummary += ` × ${seconds}s`;
+            if (distance > 0) dosageSummary += ` × ${distance}ft`;
+
+            // Update current spec
+            ex.current = newSpec;
+
+            // Add to history
+            if (!ex.history) ex.history = [];
+            ex.history.push({
+                timestamp: new Date().toISOString(),
+                summary: `Dosage updated to ${dosageSummary}`,
+                previous: previousSpec,
+                next: newSpec,
+                supersedes: []
+            });
+
+            persistExerciseLibrary();
+            closeEditDosage();
+            renderExerciseList();
+
+            alert(`Dosage updated!\n\n${dosageSummary}`);
+            haptic('success');
+        }
+
         function exportExerciseLibrary() {
             const stored = localStorage.getItem(LIBRARY_KEY);
             if (!stored) {
@@ -5264,9 +5432,9 @@
                         ${statsHtml}
                         <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
                             <button class="control-btn ${ex.favorite ? 'btn-primary' : 'btn-secondary'}" onclick="toggleFavorite('${ex.id}'); event.stopPropagation();" style="flex: 0 0 auto; padding: 8px 12px; font-size: 18px;">${ex.favorite ? '⭐' : '☆'}</button>
+                            <button class="control-btn btn-primary" onclick="showEditDosageModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">💊 Dosage</button>
                             ${totalSessions > 0 ? `<button class="control-btn btn-success" onclick="showExerciseProgress('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">📊 Progress</button>` : ''}
                             <button class="control-btn btn-secondary" onclick="showExerciseDetailsModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
-                            <button class="control-btn btn-secondary" onclick="window.open('./exercise_editor.html', '_blank'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">🛠️ Edit</button>
                             <button class="control-btn btn-danger" onclick="archiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Archive</button>
                         </div>
                     </div>
@@ -5612,11 +5780,24 @@
             const checksum = await calculateSHA256(jsonData);
             const byteLength = new TextEncoder().encode(jsonData).length;
 
+            // Build current dosage summary
+            const activeExercises = loadExerciseLibrary().filter(ex => !ex.archived);
+            let dosageSummary = '';
+            if (activeExercises.length > 0) {
+                dosageSummary = '\nCURRENT PROGRAM (Active Exercises):\n';
+                dosageSummary += '─────────────────────────────────\n';
+                activeExercises.forEach(ex => {
+                    const spec = ex.current || {};
+                    dosageSummary += `• ${ex.name}: ${describeSpec(spec)}\n`;
+                });
+                dosageSummary += '\n';
+            }
+
             // Format email body with markers and verification
             const emailBody = `Hi,
 
 ${note ? note + '\n\n' : ''}Please paste the data below into the PT Editor to review my progress.
-
+${dosageSummary}
 ════════════════════════════════════════
    PT TRACKER - PATIENT REPORT
    Date: ${dateStr}
