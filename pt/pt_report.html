@@ -340,13 +340,12 @@
                         <label class="form-label" for="ex-pattern">Pattern * <span style="font-size: 11px; color: var(--text-secondary);">(side=unilateral, both=bilateral)</span></label>
                         <select id="ex-pattern" class="form-select">
                             <option value="">-- Select --</option>
-                            <option value="side">side (unilateral - one side at a time)</option>
-                            <option value="both">both (bilateral - both sides together)</option>
+                            <!-- Populated from schema dynamically in initializeEditorMode() -->
                         </select>
                     </div>
 
                     <div>
-                        <label class="form-label">Pattern Modifiers <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
+                        <label class="form-label">Pattern Modifiers <span style="font-size: 11px; color: var(--text-secondary);">(select from schema)</span></label>
                         <p id="pattern-modifiers-help" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
                             <!-- Populated from vocabulary dynamically -->
                         </p>
@@ -598,6 +597,7 @@
             editedExercises: {},  // exerciseId: updated exercise object
             archivedExercises: [], // exerciseId array
             newRoles: {},  // exerciseId: [roles to add]
+            deletedRoles: {},  // exerciseId: [roles to delete]
             editedRoles: {},  // exerciseId: [complete new role set - replaces all]
             updatedVocab: {}  // category: { term: definition }
         };
@@ -1731,29 +1731,55 @@
             // Show current roles
             const exerciseRoles = rolesData.exercise_roles[exerciseId];
             const modifiedRoles = modifications.newRoles[exerciseId] || [];
+            const deletedRoles = modifications.deletedRoles?.[exerciseId] || [];
 
             let html = '<h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">Current Roles:</h4>';
 
             if (exerciseRoles && exerciseRoles.roles && exerciseRoles.roles.length > 0) {
-                exerciseRoles.roles.forEach(role => {
-                    html += `
-                        <div style="padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
-                            <strong>${role.region}</strong> → ${role.capacity}
-                            ${role.focus ? ` (${role.focus})` : ''}
-                            • <span style="color: var(--ios-yellow);">${role.contribution}</span>
-                        </div>
-                    `;
+                exerciseRoles.roles.forEach((role, idx) => {
+                    const isDeleted = deletedRoles.some(dr =>
+                        dr.region === role.region &&
+                        dr.capacity === role.capacity &&
+                        (dr.focus || '') === (role.focus || '')
+                    );
+
+                    if (!isDeleted) {
+                        html += `
+                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
+                                <div style="flex: 1;">
+                                    <strong>${role.region}</strong> → ${role.capacity}
+                                    ${role.focus ? ` (${role.focus})` : ''}
+                                    • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                                </div>
+                                <button onclick="deleteRole('${exerciseId}', ${idx}, 'existing')" class="btn-danger" style="padding: 6px 12px; font-size: 12px; min-height: unset;">✕</button>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 13px; opacity: 0.5; text-decoration: line-through;">
+                                <div style="flex: 1;">
+                                    <strong>${role.region}</strong> → ${role.capacity}
+                                    ${role.focus ? ` (${role.focus})` : ''}
+                                    • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                                </div>
+                                <span style="color: var(--ios-red); font-size: 11px;">WILL BE DELETED</span>
+                            </div>
+                        `;
+                    }
                 });
             }
 
             if (modifiedRoles.length > 0) {
                 html += '<h4 style="font-size: 14px; margin: 15px 0 10px; color: var(--ios-green);">New Roles (will be exported):</h4>';
-                modifiedRoles.forEach(role => {
+                modifiedRoles.forEach((role, idx) => {
                     html += `
-                        <div style="padding: 8px; background: rgba(48, 209, 88, 0.1); border: 1px solid var(--ios-green); border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
-                            <strong>${role.region}</strong> → ${role.capacity}
-                            ${role.focus ? ` (${role.focus})` : ''}
-                            • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(48, 209, 88, 0.1); border: 1px solid var(--ios-green); border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
+                            <div style="flex: 1;">
+                                <strong>${role.region}</strong> → ${role.capacity}
+                                ${role.focus ? ` (${role.focus})` : ''}
+                                • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                            </div>
+                            <button onclick="deleteRole('${exerciseId}', ${idx}, 'new')" class="btn-danger" style="padding: 6px 12px; font-size: 12px; min-height: unset;">✕</button>
                         </div>
                     `;
                 });
@@ -1805,6 +1831,35 @@
             updateModificationSummary();
 
             alert('Role added! Remember to export modifications when done.');
+        }
+
+        function deleteRole(exerciseId, roleIndex, roleType) {
+            if (!confirm('Delete this role?')) {
+                return;
+            }
+
+            if (roleType === 'new') {
+                // Remove from newRoles array
+                if (modifications.newRoles[exerciseId]) {
+                    modifications.newRoles[exerciseId].splice(roleIndex, 1);
+                    if (modifications.newRoles[exerciseId].length === 0) {
+                        delete modifications.newRoles[exerciseId];
+                    }
+                }
+            } else if (roleType === 'existing') {
+                // Add to deletedRoles
+                const exerciseRoles = rolesData.exercise_roles[exerciseId];
+                if (exerciseRoles && exerciseRoles.roles && exerciseRoles.roles[roleIndex]) {
+                    if (!modifications.deletedRoles[exerciseId]) {
+                        modifications.deletedRoles[exerciseId] = [];
+                    }
+                    modifications.deletedRoles[exerciseId].push(exerciseRoles.roles[roleIndex]);
+                }
+            }
+
+            // Refresh display
+            loadExerciseRoles();
+            updateModificationSummary();
         }
 
         function loadVocabTerms() {
@@ -1864,10 +1919,11 @@
             const editedExCount = Object.keys(modifications.editedExercises).length;
             const archivedExCount = modifications.archivedExercises.length;
             const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
             const editedRoleCount = Object.keys(modifications.editedRoles).length;
             const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
-            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && editedRoleCount === 0 && updatedVocabCount === 0) {
+            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && deletedRoleCount === 0 && editedRoleCount === 0 && updatedVocabCount === 0) {
                 summaryDiv.style.display = 'none';
                 return;
             }
@@ -1886,6 +1942,9 @@
             }
             if (newRoleCount > 0) {
                 html += `<div style="margin-bottom: 6px;">✅ <strong>${newRoleCount}</strong> new role${newRoleCount > 1 ? 's' : ''} assigned</div>`;
+            }
+            if (deletedRoleCount > 0) {
+                html += `<div style="margin-bottom: 6px;">🗑️ <strong>${deletedRoleCount}</strong> role${deletedRoleCount > 1 ? 's' : ''} deleted</div>`;
             }
             if (editedRoleCount > 0) {
                 html += `<div style="margin-bottom: 6px;">✏️ <strong>${editedRoleCount}</strong> exercise role${editedRoleCount > 1 ? 's' : ''} edited</div>`;
@@ -1994,10 +2053,11 @@
             const editedExCount = Object.keys(modifications.editedExercises).length;
             const archivedExCount = modifications.archivedExercises.length;
             const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
             const editedRoleCount = Object.keys(modifications.editedRoles).length;
             const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
-            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && editedRoleCount === 0 && updatedVocabCount === 0) {
+            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && deletedRoleCount === 0 && editedRoleCount === 0 && updatedVocabCount === 0) {
                 alert('No modifications to export');
                 return;
             }
@@ -2044,11 +2104,15 @@
             const newExCount = modifications.newExercises.length;
             const editedExCount = Object.keys(modifications.editedExercises).length;
             const archivedExCount = modifications.archivedExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
 
             let summary = '';
             if (newExCount > 0) summary += `• ${newExCount} new exercise${newExCount > 1 ? 's' : ''}\n`;
             if (editedExCount > 0) summary += `• ${editedExCount} edited exercise${editedExCount > 1 ? 's' : ''}\n`;
             if (archivedExCount > 0) summary += `• ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}\n`;
+            if (newRoleCount > 0) summary += `• ${newRoleCount} new role${newRoleCount > 1 ? 's' : ''} assigned\n`;
+            if (deletedRoleCount > 0) summary += `• ${deletedRoleCount} role${deletedRoleCount > 1 ? 's' : ''} deleted\n`;
 
             // Format email body with markers and verification
             const emailBody = `Hi,
