@@ -2,7 +2,7 @@
 
 **Started:** 2024-12-29 in CLI Claude Code
 **Status:** Phase 1 partially complete, ready for desktop Claude Code
-**Full Plan:** `C:\Users\cindi\.claude\plans\whimsical-conjuring-otter.md`
+**Full Plan:** `C:\Users\cindi\.claude\plans\whimsical-conjuring-otter.md` (also available on repo under /pt - use repo version)
 
 ---
 
