@@ -594,7 +594,7 @@
         <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%;">
             <h2 style="margin: 0 0 16px 0; font-size: 20px;">📤 Send to Patient</h2>
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
-                Enter patient's email address. The app will open your email client with the modifications ready to send.
+                Enter the patient's email address (optional). You can copy the payload only or open your email client with the modifications ready to send.
             </p>
             <input type="email" id="patient-email" placeholder="patient@example.com" style="
                 width: 100%;
@@ -620,11 +620,13 @@
             "></textarea>
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
                 <button class="btn-secondary" onclick="closeExportEmailModal()">Cancel</button>
-                <button class="btn-primary" onclick="sendModificationsToPatient()">📧 Open Email</button>
+                <button class="btn-primary" onclick="copyModificationsPayload()">📋 Copy Payload Only</button>
+                <button class="btn-primary" onclick="sendModificationsToPatient()">📧 Send Email</button>
             </div>
         </div>
     </div>
 
+    <script src="pt_payload_utils.js"></script>
     <script>
         let sessionHistory = [];
         let exerciseLibrary = [];
@@ -2233,46 +2235,18 @@
             }
 
             try {
-                // Extract JSON between markers
-                const startMarker = '--START_PT_DATA--';
-                const endMarker = '--END_PT_DATA--';
-
-                const startIdx = pastedContent.indexOf(startMarker);
-                const endIdx = pastedContent.indexOf(endMarker);
-
-                if (startIdx === -1 || endIdx === -1) {
-                    alert('Invalid format: Could not find data markers.\n\nMake sure you pasted the entire email content.');
+                const parsed = await ptPayloadUtils.parseV2FromText(pastedContent, 'PT_DATA');
+                if (parsed.errors.length > 0) {
+                    alert(parsed.errors.join('\n\n'));
                     return;
                 }
 
-                const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
-
-                // Extract and verify checksum if present
-                const checksumMatch = pastedContent.match(/--CHECKSUM:([a-f0-9]{64})--/);
-                const sizeMatch = pastedContent.match(/--SIZE:(\d+)--/);
-
-                if (checksumMatch && sizeMatch) {
-                    const expectedChecksum = checksumMatch[1];
-                    const expectedSize = parseInt(sizeMatch[1]);
-
-                    // Verify size
-                    const actualSize = new TextEncoder().encode(jsonStr).length;
-                    if (actualSize !== expectedSize) {
-                        if (!confirm(`⚠️ Data size mismatch!\n\nExpected: ${expectedSize} bytes\nReceived: ${actualSize} bytes\n\nThe data may be incomplete or corrupted. Continue anyway?`)) {
-                            return;
-                        }
-                    }
-
-                    // Verify checksum
-                    const actualChecksum = await calculateSHA256(jsonStr);
-                    if (actualChecksum !== expectedChecksum) {
-                        if (!confirm(`⚠️ Checksum verification failed!\n\nThe data may have been corrupted during transfer. Continue anyway?`)) {
-                            return;
-                        }
-                    }
+                if (parsed.type !== 'PT_DATA') {
+                    alert(`Invalid payload type: ${parsed.type}. Expected PT_DATA.`);
+                    return;
                 }
 
-                const reportData = JSON.parse(jsonStr);
+                const reportData = parsed.obj;
 
                 // Load the data
                 sessionHistory = reportData.sessionHistory || [];
@@ -2297,13 +2271,12 @@
             }
         }
 
-        // Calculate SHA-256 checksum for data integrity
-        async function calculateSHA256(text) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(text);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        async function buildModificationsExport() {
+            return {
+                exportDate: new Date().toISOString(),
+                modificationType: 'PT_MODIFICATIONS',
+                modifications: modifications
+            };
         }
 
         function showExportEmailModal() {
@@ -2334,30 +2307,30 @@
             document.getElementById('export-email-modal').style.display = 'none';
         }
 
+        async function copyModificationsPayload() {
+            const exportData = await buildModificationsExport();
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_MODIFICATIONS', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied. Paste it into the PT Tracker import screen.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
+
         async function sendModificationsToPatient() {
             const patientEmail = document.getElementById('patient-email').value.trim();
             const message = document.getElementById('pt-message').value.trim();
 
-            if (!patientEmail) {
-                alert('Please enter patient\'s email address');
-                return;
+            // Save patient email for next time
+            if (patientEmail) {
+                localStorage.setItem('patient_email_address', patientEmail);
             }
 
-            // Save patient email for next time
-            localStorage.setItem('patient_email_address', patientEmail);
-
-            const exportData = {
-                exportDate: new Date().toISOString(),
-                modificationType: 'PT_MODIFICATIONS',
-                modifications: modifications
-            };
-
-            const jsonData = JSON.stringify(exportData, null, 2);
+            const exportData = await buildModificationsExport();
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_MODIFICATIONS', obj: exportData });
             const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-            // Calculate checksum for data integrity
-            const checksum = await calculateSHA256(jsonData);
-            const byteLength = new TextEncoder().encode(jsonData).length;
 
             // Count modifications for summary
             const newExCount = modifications.newExercises.length;
@@ -2375,30 +2348,14 @@
             if (deletedRoleCount > 0) summary += `• ${deletedRoleCount} role${deletedRoleCount > 1 ? 's' : ''} deleted\n`;
             if (dosageChangeCount > 0) summary += `• ${dosageChangeCount} dosage${dosageChangeCount > 1 ? 's' : ''} updated\n`;
 
-            // Format email body with markers and verification
+            // Format email body with V2 payload block
             const emailBody = `Hi,
 
 ${message ? message + '\n\n' : ''}I've made the following modifications to your PT program:
 
 ${summary}
 Please paste the data below into your PT Tracker app to receive the updates.
-
-════════════════════════════════════════
-   PT MODIFICATIONS
-   Date: ${dateStr}
-   Checksum: ${checksum.substring(0, 16)}
-   Size: ${byteLength} bytes
-════════════════════════════════════════
-
---START_PT_MODIFICATIONS--
-${jsonData}
---END_PT_MODIFICATIONS--
---CHECKSUM:${checksum}--
---SIZE:${byteLength}--
-
-════════════════════════════════════════
-   END OF PT MODIFICATIONS
-════════════════════════════════════════`;
+${payload}`;
 
             const subject = `PT Program Updates - ${dateStr}`;
 

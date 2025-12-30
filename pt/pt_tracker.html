@@ -1421,14 +1421,15 @@
             <div class="modal-title">📤 Send to PT</div>
             <div class="modal-form">
                 <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
-                    Enter your PT's email address. The app will open your email client with the data ready to send.
+                    Enter your PT's email address (optional). You can copy the payload only or open your email client with the payload ready to send.
                 </div>
                 <input type="email" class="modal-input" id="pt-email-address" placeholder="your.pt@example.com" style="margin-bottom: 12px;">
                 <textarea class="modal-input" id="pt-note" placeholder="Optional: Add a note for your PT" style="min-height: 80px; resize: vertical;"></textarea>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeExportPTModal()">Cancel</button>
-                <button class="modal-save" onclick="sendToPT()">📧 Open Email</button>
+                <button class="modal-save" onclick="copyPtPayloadOnly()">📋 Copy Payload Only</button>
+                <button class="modal-save" onclick="sendToPT()">📧 Send Email</button>
             </div>
         </div>
     </div>
@@ -1471,6 +1472,7 @@
         </div>
     </div>
 
+    <script src="pt_payload_utils.js"></script>
     <script>
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
@@ -5864,19 +5866,8 @@
             document.getElementById('export-pt-modal').classList.remove('active');
         }
 
-        async function sendToPT() {
-            const ptEmail = document.getElementById('pt-email-address').value.trim();
-            const note = document.getElementById('pt-note').value.trim();
-
-            if (!ptEmail) {
-                alert('Please enter your PT\'s email address');
-                return;
-            }
-
-            // Save PT email for next time
-            localStorage.setItem('pt_email_address', ptEmail);
-
-            const exportData = {
+        async function buildPtDataExport(note) {
+            return {
                 exportDate: new Date().toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
@@ -5890,13 +5881,33 @@
                 schema: await loadSchema(),
                 vocabulary: await loadVocabulary()
             };
+        }
 
-            const jsonData = JSON.stringify(exportData, null, 2);
+        async function copyPtPayloadOnly() {
+            const note = document.getElementById('pt-note').value.trim();
+            const exportData = await buildPtDataExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied to clipboard. Paste it into your PT editor.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
+
+        async function sendToPT() {
+            const ptEmail = document.getElementById('pt-email-address').value.trim();
+            const note = document.getElementById('pt-note').value.trim();
+
+            // Save PT email for next time
+            if (ptEmail) {
+                localStorage.setItem('pt_email_address', ptEmail);
+            }
+
+            const exportData = await buildPtDataExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
             const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-            // Calculate checksum for data integrity
-            const checksum = await calculateSHA256(jsonData);
-            const byteLength = new TextEncoder().encode(jsonData).length;
 
             // Build current dosage summary
             const activeExercises = loadExerciseLibrary().filter(ex => !ex.archived);
@@ -5911,27 +5922,12 @@
                 dosageSummary += '\n';
             }
 
-            // Format email body with markers and verification
+            // Format email body with V2 block
             const emailBody = `Hi,
 
 ${note ? note + '\n\n' : ''}Please paste the data below into the PT Editor to review my progress.
 ${dosageSummary}
-════════════════════════════════════════
-   PT TRACKER - PATIENT REPORT
-   Date: ${dateStr}
-   Checksum: ${checksum.substring(0, 16)}
-   Size: ${byteLength} bytes
-════════════════════════════════════════
-
---START_PT_DATA--
-${jsonData}
---END_PT_DATA--
---CHECKSUM:${checksum}--
---SIZE:${byteLength}--
-
-════════════════════════════════════════
-   END OF PT TRACKER DATA
-════════════════════════════════════════`;
+${payload}`;
 
             const subject = `PT Tracker Data - ${dateStr}`;
 
@@ -5943,15 +5939,6 @@ ${jsonData}
 
             closeExportPTModal();
             haptic('success');
-        }
-
-        // Calculate SHA-256 checksum for data integrity
-        async function calculateSHA256(text) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(text);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
         // Import PT Modifications from PT
@@ -5974,49 +5961,21 @@ ${jsonData}
             }
 
             try {
-                // Extract JSON between markers
-                const startMarker = '--START_PT_MODIFICATIONS--';
-                const endMarker = '--END_PT_MODIFICATIONS--';
-
-                const startIdx = pastedContent.indexOf(startMarker);
-                const endIdx = pastedContent.indexOf(endMarker);
-
-                if (startIdx === -1 || endIdx === -1) {
-                    alert('Invalid format: Could not find data markers.\n\nMake sure you pasted the entire email content including the markers.');
+                const parsed = await ptPayloadUtils.parseV2FromText(pastedContent, 'PT_MODIFICATIONS');
+                if (parsed.errors.length > 0) {
+                    alert(parsed.errors.join('\n\n'));
                     return;
                 }
 
-                const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
-
-                // Extract and verify checksum if present
-                const checksumMatch = pastedContent.match(/--CHECKSUM:([a-f0-9]{64})--/);
-                const sizeMatch = pastedContent.match(/--SIZE:(\d+)--/);
-
-                if (checksumMatch && sizeMatch) {
-                    const expectedChecksum = checksumMatch[1];
-                    const expectedSize = parseInt(sizeMatch[1]);
-
-                    // Verify size
-                    const actualSize = new TextEncoder().encode(jsonStr).length;
-                    if (actualSize !== expectedSize) {
-                        if (!confirm(`⚠️ Data size mismatch!\n\nExpected: ${expectedSize} bytes\nReceived: ${actualSize} bytes\n\nThe data may be incomplete or corrupted. Continue anyway?`)) {
-                            return;
-                        }
-                    }
-
-                    // Verify checksum
-                    const actualChecksum = await calculateSHA256(jsonStr);
-                    if (actualChecksum !== expectedChecksum) {
-                        if (!confirm(`⚠️ Checksum verification failed!\n\nThe data may have been corrupted during transfer. Continue anyway?`)) {
-                            return;
-                        }
-                    }
+                if (parsed.type !== 'PT_MODIFICATIONS') {
+                    alert(`Invalid payload type: ${parsed.type}. Expected PT_MODIFICATIONS.`);
+                    return;
                 }
 
-                const data = JSON.parse(jsonStr);
+                const data = parsed.obj;
 
-                if (data.modificationType !== 'PT_MODIFICATIONS') {
-                    alert('Invalid data: This is not a PT modifications file');
+                if (!data || data.modificationType !== 'PT_MODIFICATIONS') {
+                    alert('Invalid data: This is not a PT modifications payload.');
                     return;
                 }
 
