@@ -79,6 +79,12 @@ self.addEventListener('fetch', event => {
   }
 
   // For other resources (CSS, images), use cache-first strategy
+  
+  // For other resources (CSS, images), use cache-first strategy
+  if (event.request.method !== 'GET') {
+    return; // do not try to cache POST/PUT/etc
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then(response => {
