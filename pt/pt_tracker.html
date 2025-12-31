@@ -4826,7 +4826,7 @@
             if (distance > 0) dosageSummary += ` × ${distance}ft`;
 
             const newExercise = {
-                id: ex.exercise_id,
+                id: ex.id,
                 name: ex.canonical_name,
                 description: ex.description,
                 pt_category: ex.pt_category,
@@ -5026,7 +5026,7 @@
                     : [];
 
                 return {
-                    exercise_id: ex.id,
+                    id: ex.id,
                     canonical_name: ex.name,
                     description: ex.description || '',
                     pt_category: ex.pt_category || 'other',
@@ -5987,29 +5987,6 @@ ${payload}`;
             }
         }
 
-        // Helper function to find role data by exercise ID (checks both id and exercise_id)
-        function findRoleDataKey(rolesData, targetId) {
-            // Direct match
-            if (rolesData.exercise_roles[targetId]) {
-                return targetId;
-            }
-
-            // Search for alternative ID format
-            for (const key in rolesData.exercise_roles) {
-                const roleEntry = rolesData.exercise_roles[key];
-                // Check if this entry is for an exercise with the target ID
-                const exercise = exerciseLibrary.find(e =>
-                    (e.id === targetId || e.exercise_id === targetId) &&
-                    (e.id === key || e.exercise_id === key)
-                );
-                if (exercise) {
-                    return key;
-                }
-            }
-
-            return null;
-        }
-
         function showModificationReview(mods) {
             const newExCount = mods.newExercises?.length || 0;
             const editedExCount = Object.keys(mods.editedExercises || {}).length;
@@ -6044,16 +6021,7 @@ ${payload}`;
             // 1. Add new exercises to library
             if (mods.newExercises && mods.newExercises.length > 0) {
                 mods.newExercises.forEach(ex => {
-                    // Check both id and exercise_id to avoid duplicates
-                    const exerciseId = ex.id || ex.exercise_id;
-                    const exists = exerciseLibrary.find(e =>
-                        e.id === exerciseId ||
-                        e.exercise_id === exerciseId ||
-                        e.id === ex.id ||
-                        e.id === ex.exercise_id ||
-                        e.exercise_id === ex.id ||
-                        e.exercise_id === ex.exercise_id
-                    );
+                    const exists = exerciseLibrary.find(e => e.id === ex.id);
                     if (!exists) {
                         exerciseLibrary.push(ex);
                         mergedCount++;
@@ -6065,7 +6033,7 @@ ${payload}`;
             if (mods.editedExercises && Object.keys(mods.editedExercises).length > 0) {
                 Object.keys(mods.editedExercises).forEach(exerciseId => {
                     const updatedExercise = mods.editedExercises[exerciseId];
-                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId || e.exercise_id === exerciseId);
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
                     if (index !== -1) {
                         exerciseLibrary[index] = updatedExercise;
                         mergedCount++;
@@ -6078,15 +6046,14 @@ ${payload}`;
             // 3. Archive exercises (remove from library)
             if (mods.archivedExercises && mods.archivedExercises.length > 0) {
                 mods.archivedExercises.forEach(exerciseId => {
-                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId || e.exercise_id === exerciseId);
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
                     if (index !== -1) {
                         exerciseLibrary.splice(index, 1);
                         mergedCount++;
                     }
-                    // Also remove role data - check both ID formats
-                    const roleKey = findRoleDataKey(rolesData, exerciseId);
-                    if (roleKey && rolesData.exercise_roles[roleKey]) {
-                        delete rolesData.exercise_roles[roleKey];
+                    // Also remove role data
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        delete rolesData.exercise_roles[exerciseId];
                     }
                 });
             }
@@ -6095,7 +6062,7 @@ ${payload}`;
             if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
                 Object.keys(mods.newRoles).forEach(exerciseId => {
                     // Find the exercise to get its name
-                    const exercise = exerciseLibrary.find(e => e.id === exerciseId || e.exercise_id === exerciseId);
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
                     const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
 
                     if (!rolesData.exercise_roles[exerciseId]) {
@@ -6112,18 +6079,16 @@ ${payload}`;
             // 5. Delete roles
             if (mods.deletedRoles && Object.keys(mods.deletedRoles).length > 0) {
                 Object.keys(mods.deletedRoles).forEach(exerciseId => {
-                    // Find the actual key in rolesData (may differ due to id vs exercise_id)
-                    const roleKey = findRoleDataKey(rolesData, exerciseId);
-                    if (roleKey && rolesData.exercise_roles[roleKey]) {
+                    if (rolesData.exercise_roles[exerciseId]) {
                         const rolesToDelete = mods.deletedRoles[exerciseId];
                         rolesToDelete.forEach(roleToDelete => {
-                            const index = rolesData.exercise_roles[roleKey].roles.findIndex(r =>
+                            const index = rolesData.exercise_roles[exerciseId].roles.findIndex(r =>
                                 r.region === roleToDelete.region &&
                                 r.capacity === roleToDelete.capacity &&
                                 (r.focus || '') === (roleToDelete.focus || '')
                             );
                             if (index !== -1) {
-                                rolesData.exercise_roles[roleKey].roles.splice(index, 1);
+                                rolesData.exercise_roles[exerciseId].roles.splice(index, 1);
                                 mergedCount++;
                             }
                         });
@@ -6136,14 +6101,12 @@ ${payload}`;
             // 6. Update edited roles (replace entire role set for exercise)
             if (mods.editedRoles && Object.keys(mods.editedRoles).length > 0) {
                 Object.keys(mods.editedRoles).forEach(exerciseId => {
-                    // Find the actual key in rolesData (may differ due to id vs exercise_id)
-                    const roleKey = findRoleDataKey(rolesData, exerciseId);
-                    if (roleKey && rolesData.exercise_roles[roleKey]) {
-                        rolesData.exercise_roles[roleKey].roles = mods.editedRoles[exerciseId];
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        rolesData.exercise_roles[exerciseId].roles = mods.editedRoles[exerciseId];
                         mergedCount++;
                     } else {
                         // Create new entry if it doesn't exist
-                        const exercise = exerciseLibrary.find(e => e.id === exerciseId || e.exercise_id === exerciseId);
+                        const exercise = exerciseLibrary.find(e => e.id === exerciseId);
                         const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
                         rolesData.exercise_roles[exerciseId] = {
                             name: exerciseName,
@@ -6157,7 +6120,7 @@ ${payload}`;
             // 7. Update dosages
             if (mods.dosageChanges && Object.keys(mods.dosageChanges).length > 0) {
                 Object.keys(mods.dosageChanges).forEach(exerciseId => {
-                    const exercise = exerciseLibrary.find(e => e.id === exerciseId || e.exercise_id === exerciseId);
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
                     if (exercise) {
                         const previousSpec = exercise.current || {};
                         exercise.current = mods.dosageChanges[exerciseId];
@@ -6665,14 +6628,14 @@ ${payload}`;
                         (ex.equipment && ex.equipment.required && ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm)));
                     return matchesSearch;
                 } catch (error) {
-                    console.error('Error filtering exercise:', ex.exercise_id, error);
+                    console.error('Error filtering exercise:', ex.id, error);
                     return false;
                 }
             });
 
             // Apply "show only new" filter
             if (showOnlyNewExercises) {
-                filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.exercise_id));
+                filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.id));
             }
 
             console.log(`Filtered exercises: ${filtered.length}`);
@@ -6696,20 +6659,20 @@ ${payload}`;
                             ? equipmentRequired.join(', ')
                             : 'No equipment';
 
-                        const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
-                        const isChecked = selectedExercisesForImport.has(ex.exercise_id);
+                        const alreadyImported = exerciseLibrary.find(e => e.id === ex.id);
+                        const isChecked = selectedExercisesForImport.has(ex.id);
                         const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
                         const primaryMuscles = ex.primary_muscles || [];
 
                         return `
                             <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
                                 <input type="checkbox"
-                                       id="ex-check-${ex.exercise_id}"
+                                       id="ex-check-${ex.id}"
                                        ${isChecked ? 'checked' : ''}
                                        ${checkboxDisabled ? 'disabled' : ''}
-                                       onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
+                                       onclick="toggleExerciseSelection('${ex.id}', event)"
                                        style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
-                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
+                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.id}')">
                                     <div style="font-weight: 600; margin-bottom: 4px;">
                                         ${ex.canonical_name}
                                         ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
@@ -6724,8 +6687,8 @@ ${payload}`;
                             </div>
                         `;
                     } catch (error) {
-                        console.error(`Error rendering exercise ${ex.exercise_id}:`, error);
-                        return `<div class="history-item" style="color: var(--ios-red);">Error rendering ${ex.exercise_id}</div>`;
+                        console.error(`Error rendering exercise ${ex.id}:`, error);
+                        return `<div class="history-item" style="color: var(--ios-red);">Error rendering ${ex.id}</div>`;
                     }
                 }).join('');
                 console.log('Library exercises rendered successfully');
@@ -6740,7 +6703,7 @@ ${payload}`;
         }
 
         function showExerciseDetail(exerciseId) {
-            selectedLibraryExercise = libraryExercises.find(ex => ex.exercise_id === exerciseId);
+            selectedLibraryExercise = libraryExercises.find(ex => ex.id === exerciseId);
             if (!selectedLibraryExercise) return;
 
             const ex = selectedLibraryExercise;
@@ -6851,7 +6814,7 @@ ${payload}`;
             const ex = selectedLibraryExercise;
 
             // Check if already imported
-            if (exerciseLibrary.find(e => e.id === ex.exercise_id)) {
+            if (exerciseLibrary.find(e => e.id === ex.id)) {
                 alert('This exercise is already in your library!');
                 return;
             }
@@ -6871,10 +6834,10 @@ ${payload}`;
 
             // Convert selected IDs to array and filter out already-imported
             bulkImportQueue = Array.from(selectedExercisesForImport).filter(exerciseId => {
-                const ex = libraryExercises.find(e => e.exercise_id === exerciseId);
+                const ex = libraryExercises.find(e => e.id === exerciseId);
                 if (!ex) return false;
                 // Skip if already imported
-                if (exerciseLibrary.find(e => e.id === ex.exercise_id)) return false;
+                if (exerciseLibrary.find(e => e.id === ex.id)) return false;
                 return true;
             });
 
@@ -6902,7 +6865,7 @@ ${payload}`;
 
             // Get next exercise ID and show dosage prompt
             const exerciseId = bulkImportQueue.shift();
-            const ex = libraryExercises.find(e => e.exercise_id === exerciseId);
+            const ex = libraryExercises.find(e => e.id === exerciseId);
             if (ex) {
                 showDosagePrompt(ex);
             } else {

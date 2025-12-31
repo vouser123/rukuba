@@ -406,11 +406,11 @@
 
         // Create empty exercise from schema
         function createEmptyExerciseFromSchema(exerciseId) {
-            const exercise = { exercise_id: exerciseId };
+            const exercise = { id: exerciseId };
             const props = resolvedExerciseSchema.properties;
 
             for (const fieldName in props) {
-                if (fieldName === 'exercise_id') continue; // Already set
+                if (fieldName === 'id') continue; // Already set
 
                 const fieldSchema = props[fieldName];
                 exercise[fieldName] = getDefaultValue(fieldSchema);
@@ -466,7 +466,7 @@
             const objectFields = {};
 
             for (const fieldName in props) {
-                if (fieldName === 'exercise_id') continue;
+                if (fieldName === 'id') continue;
 
                 const fieldSchema = props[fieldName];
                 const types = Array.isArray(fieldSchema.type) ? fieldSchema.type : [fieldSchema.type];
@@ -482,7 +482,7 @@
             // Exercise ID (readonly, special case)
             html += '<div class="section">';
             html += '<div class="label">Exercise ID (Auto-generated)</div>';
-            html += `<input type="text" class="input" value="${exercise.exercise_id}" readonly disabled style="opacity: 0.6;">`;
+            html += `<input type="text" class="input" value="${exercise.id}" readonly disabled style="opacity: 0.6;">`;
             html += '</div>';
 
             // Render top-level fields
@@ -653,7 +653,7 @@
             // Get list of all exercises except the current one
             const allExercises = [...baselineExercises];
             Object.keys(drafts).forEach(id => {
-                const existingIndex = allExercises.findIndex(ex => ex.exercise_id === id);
+                const existingIndex = allExercises.findIndex(ex => ex.id === id);
                 if (existingIndex >= 0) {
                     allExercises[existingIndex] = drafts[id];
                 } else {
@@ -662,7 +662,7 @@
             });
 
             // Filter out current exercise
-            const availableExercises = allExercises.filter(ex => ex.exercise_id !== currentExerciseId);
+            const availableExercises = allExercises.filter(ex => ex.id !== currentExerciseId);
 
             if (availableExercises.length === 0) {
                 html += `<div style="color: var(--text-secondary); font-size: 14px; margin: 8px 0;">No other exercises available</div>`;
@@ -686,7 +686,7 @@
             // Show selected count and button to open modal
             const selectedCount = (selectedIds || []).length;
             const selectedNames = (selectedIds || []).map(id => {
-                const ex = availableExercises.find(e => e.exercise_id === id);
+                const ex = availableExercises.find(e => e.id === id);
                 return ex ? (ex.canonical_name || ex.name || id) : id;
             });
 
@@ -830,7 +830,7 @@
         function renderSupersedesList(exercises) {
             const list = document.getElementById('supersedes-list');
             list.innerHTML = exercises.map(ex => {
-                const exerciseId = ex.exercise_id;
+                const exerciseId = ex.id;
                 const exerciseName = ex.canonical_name || ex.name || exerciseId;
                 const isSelected = tempSupersedesSelection.includes(exerciseId);
                 return `
@@ -888,7 +888,7 @@
             newSupersedes.forEach(supersededId => {
                 if (!oldSupersedes.includes(supersededId)) {
                     // This exercise is now superseded by current exercise
-                    const supersededEx = drafts[supersededId] || baselineExercises.find(ex => ex.exercise_id === supersededId);
+                    const supersededEx = drafts[supersededId] || baselineExercises.find(ex => ex.id === supersededId);
                     if (supersededEx) {
                         // Create draft if not already exists
                         if (!drafts[supersededId]) {
@@ -905,7 +905,7 @@
             oldSupersedes.forEach(supersededId => {
                 if (!newSupersedes.includes(supersededId)) {
                     // This exercise is no longer superseded by current exercise
-                    const supersededEx = drafts[supersededId] || baselineExercises.find(ex => ex.exercise_id === supersededId);
+                    const supersededEx = drafts[supersededId] || baselineExercises.find(ex => ex.id === supersededId);
                     if (supersededEx && supersededEx.superseded_by === currentExerciseId) {
                         // Create draft if not already exists
                         if (!drafts[supersededId]) {
@@ -938,7 +938,7 @@
 
         // Core functions
         function getCurrentExercise() {
-            return drafts[currentExerciseId] || baselineExercises.find(ex => ex.exercise_id === currentExerciseId);
+            return drafts[currentExerciseId] || baselineExercises.find(ex => ex.id === currentExerciseId);
         }
 
         function saveDrafts() {
@@ -961,10 +961,25 @@
                 const seedData = await seedResp.json();
                 baselineExercises = seedData.exercises || [];
 
+                // Migrate exercise_id → id (one-time, idempotent)
+                baselineExercises.forEach(ex => {
+                    if (ex.exercise_id && !ex.id) {
+                        ex.id = ex.exercise_id;
+                        delete ex.exercise_id;
+                    }
+                });
+
                 const stored = localStorage.getItem('pt_exercise_drafts');
                 if (stored) {
                     try {
                         drafts = JSON.parse(stored);
+                        // Migrate exercise_id → id in drafts
+                        Object.values(drafts).forEach(ex => {
+                            if (ex.exercise_id && !ex.id) {
+                                ex.id = ex.exercise_id;
+                                delete ex.exercise_id;
+                            }
+                        });
                     } catch (e) {
                         console.error('Failed to load drafts:', e);
                         drafts = {};
@@ -982,7 +997,7 @@
             const allExercises = [...baselineExercises];
 
             Object.keys(drafts).forEach(id => {
-                const existing = allExercises.findIndex(ex => ex.exercise_id === id);
+                const existing = allExercises.findIndex(ex => ex.id === id);
                 if (existing >= 0) {
                     allExercises[existing] = { ...allExercises[existing], ...drafts[id], _isDraft: true };
                 } else {
@@ -999,14 +1014,14 @@
             const nameField = Object.keys(resolvedExerciseSchema.properties).find(key => {
                 const prop = resolvedExerciseSchema.properties[key];
                 const types = Array.isArray(prop.type) ? prop.type : [prop.type];
-                return types.includes('string') && key !== 'exercise_id' && !prop.enum;
+                return types.includes('string') && key !== 'id' && !prop.enum;
             }) || 'canonical_name';
 
             container.innerHTML = allExercises.map(ex => `
-                <div class="exercise-list-item" onclick="editExercise('${ex.exercise_id}')">
+                <div class="exercise-list-item" onclick="editExercise('${ex.id}')">
                     <div style="font-weight: 600; font-size: 16px;">${ex[nameField] || 'Unnamed Exercise'}</div>
                     <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                        ${ex.exercise_id}
+                        ${ex.id}
                         ${ex._isDraft ? '<span style="color: var(--ios-orange); margin-left: 8px;">● DRAFT</span>' : ''}
                     </div>
                 </div>
@@ -1071,7 +1086,7 @@
 
             // Find and update baseline
             const draft = drafts[currentExerciseId];
-            const baselineIndex = baselineExercises.findIndex(ex => ex.exercise_id === currentExerciseId);
+            const baselineIndex = baselineExercises.findIndex(ex => ex.id === currentExerciseId);
 
             if (baselineIndex >= 0) {
                 baselineExercises[baselineIndex] = { ...draft };
@@ -1102,7 +1117,7 @@
             }
 
             // Remove from baseline
-            const baselineIndex = baselineExercises.findIndex(ex => ex.exercise_id === currentExerciseId);
+            const baselineIndex = baselineExercises.findIndex(ex => ex.id === currentExerciseId);
             if (baselineIndex >= 0) {
                 baselineExercises.splice(baselineIndex, 1);
             }
@@ -1128,6 +1143,14 @@
                 const seedData = await seedResp.json();
                 baselineExercises = seedData.exercises || [];
 
+                // Migrate exercise_id → id (one-time, idempotent)
+                baselineExercises.forEach(ex => {
+                    if (ex.exercise_id && !ex.id) {
+                        ex.id = ex.exercise_id;
+                        delete ex.exercise_id;
+                    }
+                });
+
                 renderExerciseList();
                 alert('✓ Reloaded from JSON!\n\nAll drafts discarded, exercises restored.');
             } catch (e) {
@@ -1140,7 +1163,7 @@
             const merged = [...baselineExercises];
 
             Object.keys(drafts).forEach(id => {
-                const existing = merged.findIndex(ex => ex.exercise_id === id);
+                const existing = merged.findIndex(ex => ex.id === id);
                 if (existing >= 0) {
                     merged[existing] = drafts[id];
                 } else {
@@ -1220,7 +1243,7 @@
             const props = resolvedExerciseSchema.properties;
 
             data.exercises.forEach((ex, idx) => {
-                const prefix = `Exercise ${idx + 1} (${ex.exercise_id}): `;
+                const prefix = `Exercise ${idx + 1} (${ex.id}): `;
 
                 // Check required fields from schema
                 required.forEach(fieldName => {
