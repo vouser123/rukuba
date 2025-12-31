@@ -5987,6 +5987,29 @@ ${payload}`;
             }
         }
 
+        // Helper function to find role data by exercise ID (checks both id and exercise_id)
+        function findRoleDataKey(rolesData, targetId) {
+            // Direct match
+            if (rolesData.exercise_roles[targetId]) {
+                return targetId;
+            }
+
+            // Search for alternative ID format
+            for (const key in rolesData.exercise_roles) {
+                const roleEntry = rolesData.exercise_roles[key];
+                // Check if this entry is for an exercise with the target ID
+                const exercise = exerciseLibrary.find(e =>
+                    (e.id === targetId || e.exercise_id === targetId) &&
+                    (e.id === key || e.exercise_id === key)
+                );
+                if (exercise) {
+                    return key;
+                }
+            }
+
+            return null;
+        }
+
         function showModificationReview(mods) {
             const newExCount = mods.newExercises?.length || 0;
             const editedExCount = Object.keys(mods.editedExercises || {}).length;
@@ -6021,7 +6044,17 @@ ${payload}`;
             // 1. Add new exercises to library
             if (mods.newExercises && mods.newExercises.length > 0) {
                 mods.newExercises.forEach(ex => {
-                    if (!exerciseLibrary.find(e => e.id === ex.id)) {
+                    // Check both id and exercise_id to avoid duplicates
+                    const exerciseId = ex.id || ex.exercise_id;
+                    const exists = exerciseLibrary.find(e =>
+                        e.id === exerciseId ||
+                        e.exercise_id === exerciseId ||
+                        e.id === ex.id ||
+                        e.id === ex.exercise_id ||
+                        e.exercise_id === ex.id ||
+                        e.exercise_id === ex.exercise_id
+                    );
+                    if (!exists) {
                         exerciseLibrary.push(ex);
                         mergedCount++;
                     }
@@ -6032,10 +6065,12 @@ ${payload}`;
             if (mods.editedExercises && Object.keys(mods.editedExercises).length > 0) {
                 Object.keys(mods.editedExercises).forEach(exerciseId => {
                     const updatedExercise = mods.editedExercises[exerciseId];
-                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId || e.exercise_id === exerciseId);
                     if (index !== -1) {
                         exerciseLibrary[index] = updatedExercise;
                         mergedCount++;
+                    } else {
+                        console.warn(`[Import] Edited exercise not found: ${exerciseId}`);
                     }
                 });
             }
@@ -6043,13 +6078,15 @@ ${payload}`;
             // 3. Archive exercises (remove from library)
             if (mods.archivedExercises && mods.archivedExercises.length > 0) {
                 mods.archivedExercises.forEach(exerciseId => {
-                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId || e.exercise_id === exerciseId);
                     if (index !== -1) {
                         exerciseLibrary.splice(index, 1);
                         mergedCount++;
                     }
-                    if (rolesData.exercise_roles && rolesData.exercise_roles[exerciseId]) {
-                        delete rolesData.exercise_roles[exerciseId];
+                    // Also remove role data - check both ID formats
+                    const roleKey = findRoleDataKey(rolesData, exerciseId);
+                    if (roleKey && rolesData.exercise_roles[roleKey]) {
+                        delete rolesData.exercise_roles[roleKey];
                     }
                 });
             }
@@ -6057,8 +6094,12 @@ ${payload}`;
             // 4. Add new roles
             if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
                 Object.keys(mods.newRoles).forEach(exerciseId => {
+                    // Find the exercise to get its name
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId || e.exercise_id === exerciseId);
+                    const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+
                     if (!rolesData.exercise_roles[exerciseId]) {
-                        rolesData.exercise_roles[exerciseId] = { name: '', roles: [] };
+                        rolesData.exercise_roles[exerciseId] = { name: exerciseName, roles: [] };
                     }
                     const newRoles = mods.newRoles[exerciseId];
                     newRoles.forEach(role => {
@@ -6071,19 +6112,23 @@ ${payload}`;
             // 5. Delete roles
             if (mods.deletedRoles && Object.keys(mods.deletedRoles).length > 0) {
                 Object.keys(mods.deletedRoles).forEach(exerciseId => {
-                    if (rolesData.exercise_roles[exerciseId]) {
+                    // Find the actual key in rolesData (may differ due to id vs exercise_id)
+                    const roleKey = findRoleDataKey(rolesData, exerciseId);
+                    if (roleKey && rolesData.exercise_roles[roleKey]) {
                         const rolesToDelete = mods.deletedRoles[exerciseId];
                         rolesToDelete.forEach(roleToDelete => {
-                            const index = rolesData.exercise_roles[exerciseId].roles.findIndex(r =>
+                            const index = rolesData.exercise_roles[roleKey].roles.findIndex(r =>
                                 r.region === roleToDelete.region &&
                                 r.capacity === roleToDelete.capacity &&
                                 (r.focus || '') === (roleToDelete.focus || '')
                             );
                             if (index !== -1) {
-                                rolesData.exercise_roles[exerciseId].roles.splice(index, 1);
+                                rolesData.exercise_roles[roleKey].roles.splice(index, 1);
                                 mergedCount++;
                             }
                         });
+                    } else {
+                        console.warn(`[Import] Role data not found for exercise: ${exerciseId}`);
                     }
                 });
             }
@@ -6091,8 +6136,19 @@ ${payload}`;
             // 6. Update edited roles (replace entire role set for exercise)
             if (mods.editedRoles && Object.keys(mods.editedRoles).length > 0) {
                 Object.keys(mods.editedRoles).forEach(exerciseId => {
-                    if (rolesData.exercise_roles[exerciseId]) {
-                        rolesData.exercise_roles[exerciseId].roles = mods.editedRoles[exerciseId];
+                    // Find the actual key in rolesData (may differ due to id vs exercise_id)
+                    const roleKey = findRoleDataKey(rolesData, exerciseId);
+                    if (roleKey && rolesData.exercise_roles[roleKey]) {
+                        rolesData.exercise_roles[roleKey].roles = mods.editedRoles[exerciseId];
+                        mergedCount++;
+                    } else {
+                        // Create new entry if it doesn't exist
+                        const exercise = exerciseLibrary.find(e => e.id === exerciseId || e.exercise_id === exerciseId);
+                        const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+                        rolesData.exercise_roles[exerciseId] = {
+                            name: exerciseName,
+                            roles: mods.editedRoles[exerciseId]
+                        };
                         mergedCount++;
                     }
                 });
@@ -6101,7 +6157,7 @@ ${payload}`;
             // 7. Update dosages
             if (mods.dosageChanges && Object.keys(mods.dosageChanges).length > 0) {
                 Object.keys(mods.dosageChanges).forEach(exerciseId => {
-                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId || e.exercise_id === exerciseId);
                     if (exercise) {
                         const previousSpec = exercise.current || {};
                         exercise.current = mods.dosageChanges[exerciseId];
@@ -6116,6 +6172,8 @@ ${payload}`;
                             supersedes: []
                         });
                         mergedCount++;
+                    } else {
+                        console.warn(`[Import] Dosage change for unknown exercise: ${exerciseId}`);
                     }
                 });
             }

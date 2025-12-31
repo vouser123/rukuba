@@ -2262,7 +2262,35 @@
 
                 closeImportPasteModal();
                 document.getElementById('import-screen').style.display = 'none';
-                init();
+
+                // Show patient note if present
+                if (reportData.noteForPT) {
+                    document.getElementById('patient-note').textContent = reportData.noteForPT;
+                    document.getElementById('patient-note-section').style.display = 'block';
+                } else {
+                    document.getElementById('patient-note-section').style.display = 'none';
+                }
+
+                // Show report header with export date
+                const reportHeader = document.querySelector('.report-header');
+                reportHeader.style.display = 'block';
+                document.getElementById('report-date').textContent = `Report Date: ${new Date(reportData.exportDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}`;
+
+                // Show action buttons
+                document.getElementById('action-buttons').style.display = 'flex';
+
+                // Show and render all report sections
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'block');
+
+                renderOverallMetrics();
+                renderCoverageSummary();
+                renderRecentActivity();
+                renderExerciseHistory();
 
                 alert(`Patient report loaded!\n\nDate: ${reportData.exportDate}\n${reportData.noteForPT ? 'Note: ' + reportData.noteForPT : ''}`);
             } catch (err) {

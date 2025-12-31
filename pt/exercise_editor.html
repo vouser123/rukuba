@@ -1179,6 +1179,35 @@
             document.getElementById('list-view').classList.remove('hidden');
         }
 
+        function downloadExport() {
+            if (!exportData) {
+                alert('No export data available');
+                return;
+            }
+
+            try {
+                const jsonStr = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const filename = `exercise_library_${dateStr}.json`;
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.rel = 'noopener';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                alert(`JSON file downloaded!\n\n${filename}\n\n${exportData.exercises.length} exercises`);
+            } catch (err) {
+                alert('Failed to download JSON:\n\n' + err.message);
+                console.error('Download error:', err);
+            }
+        }
+
         function validateExportAgainstSchema(data) {
             const errors = [];
 
@@ -1261,29 +1290,6 @@
             });
 
             return errors;
-        }
-
-        async function copyExercisePayloadOnly() {
-            if (!exportData) return;
-            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
-            try {
-                await navigator.clipboard.writeText(payload);
-                alert('Payload copied. Paste it into the recipient app.');
-            } catch (err) {
-                console.warn('Clipboard copy failed:', err);
-                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
-            }
-        }
-
-        async function sendExercisePayloadEmail() {
-            if (!exportData) return;
-            const recipient = document.getElementById('editor-email').value.trim();
-            const note = document.getElementById('editor-note').value.trim();
-            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
-            const subject = `PT Exercise Library Export - ${new Date().toLocaleDateString('en-US')}`;
-            const body = `${note ? note + '\\n\\n' : ''}Please paste the payload below into the PT app:\\n\\n${payload}`;
-            const mailtoLink = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            window.location.href = mailtoLink;
         }
 
         async function copyExercisePayloadOnly() {
