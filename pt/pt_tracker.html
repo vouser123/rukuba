@@ -1474,7 +1474,10 @@
 
     <script src="pt_payload_utils.js"></script>
     <script type="module" src="firebase.js"></script>
-    <script>
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, addDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
@@ -3376,6 +3379,18 @@
                 sets: currentExercise.sessionData
             });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+
+            // Write finalized session to Firestore
+            try {
+                const finalizedSession = sessions[sessions.length - 1];
+                addDoc(collection(db, "sessions"), finalizedSession).catch((error) => {
+                    console.error("Firestore write failed:", error);
+                    // Do not throw - allow localStorage flow to continue
+                });
+            } catch (error) {
+                console.error("Error preparing Firestore write:", error);
+                // Do not throw - allow localStorage flow to continue
+            }
 
             haptic('success');
             closeSessionNotesModal();
