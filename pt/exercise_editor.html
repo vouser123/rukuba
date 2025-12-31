@@ -318,11 +318,35 @@
         <div class="card">
             <h2 style="font-size: 20px; margin-bottom: 12px;">Export Data</h2>
             <div id="validation-results"></div>
+            <div style="font-size: 13px; color: var(--text-secondary); margin: 12px 0; line-height: 1.5;">
+                Email address is optional. Copy the payload only or open your email client with the payload ready to send.
+            </div>
+            <input type="email" id="editor-email" placeholder="recipient@example.com" style="
+                width: 100%;
+                padding: 10px;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                margin-bottom: 10px;
+                font-size: 14px;
+            ">
+            <textarea id="editor-note" placeholder="Optional: Add a note" style="
+                width: 100%;
+                min-height: 80px;
+                padding: 10px;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                font-size: 14px;
+                resize: vertical;
+                margin-bottom: 12px;
+            "></textarea>
             <button class="button button-success" onclick="downloadExport()" id="download-btn">📥 Download JSON</button>
+            <button class="button button-success" onclick="copyExercisePayloadOnly()" id="copy-btn">📋 Copy Payload Only</button>
+            <button class="button button-success" onclick="sendExercisePayloadEmail()" id="send-btn">📧 Send Email</button>
             <button class="button button-secondary" onclick="hideExportDialog()">Cancel</button>
         </div>
     </div>
 
+    <script src="pt_payload_utils.js"></script>
     <script>
         // ULID generation (Crockford Base32) - ONLY hard-coded exception
         function generateULID() {
@@ -1132,6 +1156,8 @@
             if (errors.length === 0) {
                 resultsDiv.innerHTML = '<div style="color: var(--ios-green); font-weight: 600; padding: 12px;">✓ Validation passed! Ready to export.</div>';
                 document.getElementById('download-btn').disabled = false;
+                document.getElementById('copy-btn').disabled = false;
+                document.getElementById('send-btn').disabled = false;
             } else {
                 resultsDiv.innerHTML = `
                     <div class="validation-errors">
@@ -1140,6 +1166,8 @@
                     </div>
                 `;
                 document.getElementById('download-btn').disabled = true;
+                document.getElementById('copy-btn').disabled = true;
+                document.getElementById('send-btn').disabled = true;
             }
 
             document.getElementById('list-view').classList.add('hidden');
@@ -1250,6 +1278,29 @@
             URL.revokeObjectURL(url);
 
             alert('Export downloaded successfully!');
+        }
+
+        async function copyExercisePayloadOnly() {
+            if (!exportData) return;
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied. Paste it into the recipient app.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
+
+        async function sendExercisePayloadEmail() {
+            if (!exportData) return;
+            const recipient = document.getElementById('editor-email').value.trim();
+            const note = document.getElementById('editor-note').value.trim();
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            const subject = `PT Exercise Library Export - ${new Date().toLocaleDateString('en-US')}`;
+            const body = `${note ? note + '\\n\\n' : ''}Please paste the payload below into the PT app:\\n\\n${payload}`;
+            const mailtoLink = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
         }
 
         init();
