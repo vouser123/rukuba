@@ -1481,6 +1481,7 @@
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
+        const FIRESTORE_QUEUE_KEY = 'pt_firestore_queue';
         const APP_VERSION = 'v1.5.9'; // Updated: 2025-12-27 - Equipment editing with dynamic library and add-new capability
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
@@ -1509,6 +1510,53 @@
         // Session planning
         let sessionPlan = []; // Array of exercise IDs planned for today
         let sessionPlanCompleted = new Set(); // IDs of completed exercises
+
+        function loadFirestoreQueue() {
+            const stored = localStorage.getItem(FIRESTORE_QUEUE_KEY);
+            if (!stored) return [];
+            try {
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                console.warn('Failed to parse Firestore queue:', e);
+                return [];
+            }
+        }
+
+        function saveFirestoreQueue(queue) {
+            localStorage.setItem(FIRESTORE_QUEUE_KEY, JSON.stringify(queue));
+        }
+
+        function enqueueFirestoreSession(session) {
+            const queue = loadFirestoreQueue();
+            queue.push(session);
+            saveFirestoreQueue(queue);
+        }
+
+        async function flushFirestoreQueue() {
+            const queue = loadFirestoreQueue();
+            if (queue.length === 0) return;
+
+            const remaining = [];
+            for (const session of queue) {
+                try {
+                    await addDoc(collection(db, "sessions"), session);
+                } catch (error) {
+                    console.error("Firestore queued write failed:", error);
+                    remaining.push(session);
+                }
+            }
+
+            saveFirestoreQueue(remaining);
+        }
+
+        window.addEventListener('online', () => {
+            void flushFirestoreQueue();
+        });
+
+        if (navigator.onLine) {
+            void flushFirestoreQueue();
+        }
 
         function reloadApp() {
             try {
@@ -3385,10 +3433,12 @@
                 const finalizedSession = sessions[sessions.length - 1];
                 addDoc(collection(db, "sessions"), finalizedSession).catch((error) => {
                     console.error("Firestore write failed:", error);
+                    enqueueFirestoreSession(finalizedSession);
                     // Do not throw - allow localStorage flow to continue
                 });
             } catch (error) {
                 console.error("Error preparing Firestore write:", error);
+                enqueueFirestoreSession(sessions[sessions.length - 1]);
                 // Do not throw - allow localStorage flow to continue
             }
 
@@ -7030,6 +7080,101 @@ ${payload}`;
             document.getElementById('library-browser-modal').classList.remove('active');
             haptic('medium');
         }
+
+        Object.assign(window, {
+            showQuickSwitcher,
+            showWeeklyStats,
+            showExerciseDetailsModal,
+            toggleHamburgerMenu,
+            showSettings,
+            exportForPT,
+            importPTModifications,
+            endSessionEarly,
+            incrementCounter,
+            startTimer,
+            stopTimer,
+            resetTimer,
+            logPartialTimerRep,
+            previousSet,
+            showLogSetModal,
+            completeSet,
+            showExerciseList,
+            showHistory,
+            togglePocketMode,
+            closeExerciseModal,
+            closeExerciseList,
+            saveExercise,
+            showPlanSessionModal,
+            showLibraryBrowser,
+            showArchivedExercises,
+            showDataBackup,
+            closeFormParamsModal,
+            skipFormParams,
+            saveFormParams,
+            closeSessionNotesModal,
+            confirmSkipNotes,
+            saveSessionWithNotes,
+            closeLogSetModal,
+            saveLoggedSet,
+            closeExerciseDetailsModal,
+            saveExerciseDetails,
+            skipRest,
+            closeRestTimer,
+            closeQuickSwitcher,
+            exportWeeklySummary,
+            reloadApp,
+            addSetToEditSession,
+            deleteSession,
+            closeEditSession,
+            saveEditedSession,
+            closeHistoryModal,
+            closeAllSessions,
+            closeWeeklyStats,
+            showAllSessions,
+            closeBodyHeatmap,
+            closeExerciseProgress,
+            closeLibraryBrowser,
+            bulkImportExercises,
+            closeExerciseDetail,
+            importLibraryExercise,
+            exportAllData,
+            exportExerciseLibrary,
+            exportExerciseHistory,
+            closeDataBackup,
+            closeSettings,
+            closeDosagePrompt,
+            confirmDosage,
+            closeEditDosage,
+            saveEditedDosage,
+            closePlanSessionModal,
+            startPlannedSession,
+            hideActionSheet,
+            confirmActionSheet,
+            closeExportPTModal,
+            copyPtPayloadOnly,
+            sendToPT,
+            closeImportPTModal,
+            processPastedImport,
+            handlePocketTap,
+            selectCurrentSide,
+            selectLogSetSide,
+            quickStartExercise,
+            toggleExerciseInPlan,
+            switchToPlannedExercise,
+            showExerciseProgress,
+            editSession,
+            deleteEditSessionSet,
+            selectExerciseFromList,
+            toggleFilterTag,
+            unarchiveExercise,
+            permanentlyDeleteExercise,
+            toggleFavorite,
+            showEditDosageModal,
+            archiveExercise,
+            quickSwitchTo,
+            toggleExerciseSelection,
+            showExerciseDetail
+        });
 
         // Initialize
         loadPreferences(); // Load user preferences
