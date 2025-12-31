@@ -21,7 +21,7 @@
       "type": "object",
       "description": "Single exercise definition.",
       "properties": {
-        "exercise_id": {
+        "id": {
           "type": "string",
           "pattern": "^(ex\\d{4}|[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26})$",
           "description": "Stable, non-human-readable ID. Legacy: ex0001 format. New: 26-character ULID (Crockford Base32)."
@@ -126,7 +126,7 @@
         },
         "supersedes": {
           "type": "array",
-          "description": "Array of exercise_ids that this exercise replaces/supersedes. When set, the superseded exercises should be automatically archived.",
+          "description": "Array of exercise IDs that this exercise replaces/supersedes. When set, the superseded exercises should be automatically archived.",
           "items": {
             "type": "string"
           },
@@ -135,7 +135,7 @@
         },
         "superseded_by": {
           "type": ["string", "null"],
-          "description": "The exercise_id of the exercise that replaced/superseded this one. Set automatically when this exercise appears in another exercise's 'supersedes' array.",
+          "description": "The ID of the exercise that replaced/superseded this one. Set automatically when this exercise appears in another exercise's 'supersedes' array.",
           "default": null
         },
         "superseded_date": {
@@ -146,7 +146,7 @@
         }
       },
       "required": [
-        "exercise_id",
+        "id",
         "canonical_name",
         "pt_category",
         "description",
