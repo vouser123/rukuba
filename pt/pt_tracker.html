@@ -5105,10 +5105,35 @@
             }
 
             try {
-                const parsed = JSON.parse(stored);
+                const sessions = JSON.parse(stored);
+
+                // Calculate summary statistics
+                const uniqueExercises = new Set(sessions.map(s => s.exerciseId)).size;
+                const totalSets = sessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+                const dateRange = sessions.length > 0 ? {
+                    first: sessions[0].date,
+                    last: sessions[sessions.length - 1].date
+                } : null;
+
+                // Build export with metadata
+                const exportData = {
+                    export_date: new Date().toISOString(),
+                    export_type: 'pt_exercise_history',
+                    data_version: localStorage.getItem(PT_VERSION_KEY) || PT_DATA_VERSION,
+                    stats: {
+                        total_sessions: sessions.length,
+                        unique_exercises: uniqueExercises,
+                        total_sets: totalSets,
+                        date_range: dateRange
+                    },
+                    sessions: sessions
+                };
+
                 const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
                 const filename = `pt_exercise_history-${dateStamp}.json`;
-                downloadJSON(parsed, filename);
+                downloadJSON(exportData, filename);
+
+                console.log(`[Export] History exported: ${sessions.length} sessions, ${uniqueExercises} exercises`);
                 haptic('success');
             } catch (e) {
                 console.error('Failed to export exercise history:', e);
@@ -5288,11 +5313,14 @@
                     if (data.pt_data_version !== undefined && data.pt_exercise_library !== undefined) {
                         // All-data export format
                         importAllData(data);
+                    } else if (data.export_type === 'pt_exercise_history' && data.sessions) {
+                        // New enhanced history format with metadata
+                        importHistory(data.sessions, data.stats);
                     } else if (Array.isArray(data)) {
-                        // Individual export format (library or history)
+                        // Legacy individual export format (library or history)
                         // Try to detect which one based on structure
                         if (data.length > 0 && data[0].exerciseId !== undefined) {
-                            // History format
+                            // History format (legacy)
                             importHistory(data);
                         } else {
                             // Library format
@@ -5346,15 +5374,114 @@
             });
         }
 
-        function importHistory(data) {
-            const message = `Import exercise history?\n\nThis will REPLACE your current history with ${data.length} sessions.\n\nCurrent history will be overwritten. Continue?`;
+        function importHistory(importedSessions, stats) {
+            const currentSessions = loadHistory();
+            const statsInfo = stats ? ` (${stats.total_sessions} sessions, ${stats.unique_exercises} exercises)` : '';
 
-            showActionSheet(message, () => {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            // Build action sheet with merge and replace options
+            const message = `Import ${importedSessions.length} sessions${statsInfo}?\n\nCurrent history: ${currentSessions.length} sessions\n\nChoose import method:`;
+
+            const actions = [
+                {
+                    label: '🔀 Merge (keep both, remove duplicates)',
+                    style: 'primary',
+                    callback: () => mergeHistory(currentSessions, importedSessions)
+                },
+                {
+                    label: '⚠️ Replace (delete current history)',
+                    style: 'destructive',
+                    callback: () => replaceHistory(importedSessions)
+                }
+            ];
+
+            showActionSheetWithOptions(message, actions);
+        }
+
+        function mergeHistory(currentSessions, importedSessions) {
+            // Create map of existing sessions by sessionId for fast lookup
+            const sessionMap = new Map();
+            currentSessions.forEach(s => {
+                if (s.sessionId) {
+                    sessionMap.set(s.sessionId, s);
+                }
+            });
+
+            // Add imported sessions, deduplicating by sessionId
+            let added = 0;
+            let duplicates = 0;
+
+            importedSessions.forEach(session => {
+                if (session.sessionId && sessionMap.has(session.sessionId)) {
+                    // Duplicate - keep newer one
+                    const existing = sessionMap.get(session.sessionId);
+                    if (new Date(session.date) > new Date(existing.date)) {
+                        sessionMap.set(session.sessionId, session);
+                        console.log(`[Import] Updated duplicate session: ${session.sessionId}`);
+                    }
+                    duplicates++;
+                } else {
+                    // New session
+                    sessionMap.set(session.sessionId || `import-${Date.now()}-${added}`, session);
+                    added++;
+                }
+            });
+
+            // Convert map back to array and sort by date
+            const mergedSessions = Array.from(sessionMap.values())
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Save merged history
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSessions));
+
+            closeDataBackup();
+            const message = `History merged successfully!\n\n• Added: ${added} new sessions\n• Duplicates skipped: ${duplicates}\n• Total sessions: ${mergedSessions.length}`;
+            alert(message);
+            console.log(`[Import] Merge complete - Added: ${added}, Skipped: ${duplicates}, Total: ${mergedSessions.length}`);
+            haptic('success');
+        }
+
+        function replaceHistory(importedSessions) {
+            const confirmMsg = `⚠️ Are you sure?\n\nThis will permanently delete your current ${loadHistory().length} sessions and replace with ${importedSessions.length} imported sessions.\n\nThis cannot be undone!`;
+
+            showActionSheet(confirmMsg, () => {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(importedSessions));
                 closeDataBackup();
-                alert('Exercise history imported successfully!');
+                alert(`History replaced!\n\n${importedSessions.length} sessions imported.`);
+                console.log(`[Import] History replaced with ${importedSessions.length} sessions`);
                 haptic('success');
             });
+        }
+
+        function showActionSheetWithOptions(message, actions) {
+            const sheet = document.createElement('div');
+            sheet.className = 'action-sheet active';
+            sheet.innerHTML = `
+                <div class="action-sheet-content">
+                    <div class="action-sheet-message">${message}</div>
+                    ${actions.map(action => `
+                        <button class="action-sheet-button ${action.style === 'destructive' ? 'destructive' : action.style === 'primary' ? 'primary' : ''}">${action.label}</button>
+                    `).join('')}
+                    <button class="action-sheet-button cancel">Cancel</button>
+                </div>
+            `;
+
+            document.body.appendChild(sheet);
+
+            const buttons = sheet.querySelectorAll('.action-sheet-button');
+            buttons.forEach((btn, idx) => {
+                btn.onclick = () => {
+                    if (idx < actions.length) {
+                        actions[idx].callback();
+                    }
+                    document.body.removeChild(sheet);
+                };
+            });
+
+            sheet.onclick = (e) => {
+                if (e.target === sheet) {
+                    document.body.removeChild(sheet);
+                }
+            };
         }
 
         function renderTagFilters() {

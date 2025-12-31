@@ -760,6 +760,44 @@
             }
         }
 
+        // Helper: Format dosage display based on exercise pattern_modifiers
+        function formatDosageMetric(exercise, set) {
+            if (!exercise || !set) return '? reps';
+
+            const modifiers = exercise.pattern_modifiers || [];
+
+            // Check pattern modifiers to determine primary metric
+            if (modifiers.includes('hold_seconds') && set.duration) {
+                return `${set.duration}s hold`;
+            }
+            if (modifiers.includes('duration_seconds') && set.duration) {
+                return `${set.duration}s`;
+            }
+            if (modifiers.includes('distance_feet') && set.distance) {
+                return `${set.distance}ft`;
+            }
+            if (modifiers.includes('AMRAP')) {
+                return set.reps ? `${set.reps} reps (AMRAP)` : 'AMRAP';
+            }
+
+            // Default: show reps
+            return `${set.reps || '?'} reps`;
+        }
+
+        // Helper: Get summary metric name for exercise
+        function getSummaryMetricName(exercise) {
+            if (!exercise) return 'reps';
+
+            const modifiers = exercise.pattern_modifiers || [];
+
+            if (modifiers.includes('hold_seconds')) return 'hold time';
+            if (modifiers.includes('duration_seconds')) return 'duration';
+            if (modifiers.includes('distance_feet')) return 'distance';
+            if (modifiers.includes('AMRAP')) return 'AMRAP sets';
+
+            return 'reps';
+        }
+
         function renderCoverageSummary() {
             const container = document.getElementById('coverage-summary');
 
@@ -877,11 +915,16 @@
             Object.entries(exerciseGroups)
                 .sort((a, b) => b[1].sessions - a[1].sessions)
                 .forEach(([id, data]) => {
+                    // Look up exercise to check if it's rep-based
+                    const exercise = exerciseLibrary.find(ex => ex.id === id);
+                    const metricName = getSummaryMetricName(exercise);
+                    const showReps = metricName === 'reps' && data.reps > 0;
+
                     html += `
                         <div style="padding: 10px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px;">
                             <div style="font-weight: 600; margin-bottom: 4px;">${data.name}</div>
                             <div style="font-size: 13px; color: var(--text-secondary);">
-                                ${data.sessions} sessions • ${data.sets} sets • ${data.reps} reps
+                                ${data.sessions} sessions • ${data.sets} sets${showReps ? ` • ${data.reps} reps` : ''}
                             </div>
                         </div>
                     `;
@@ -923,11 +966,16 @@
                     const lastDate = new Date(lastSession.date);
                     const daysAgo = Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24));
 
+                    // Look up exercise to check metric type
+                    const exercise = exerciseLibrary.find(ex => ex.id === id);
+                    const metricName = getSummaryMetricName(exercise);
+                    const showReps = metricName === 'reps' && data.totalReps > 0;
+
                     html += `
                         <div class="exercise-item">
                             <div class="exercise-name">${data.name}</div>
                             <div class="exercise-stats">
-                                ${data.sessions.length} sessions • ${data.totalSets} sets • ${data.totalReps} reps
+                                ${data.sessions.length} sessions • ${data.totalSets} sets${showReps ? ` • ${data.totalReps} reps` : ''}
                                 <br>Last performed: ${daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`}
                             </div>
                     `;
@@ -953,12 +1001,21 @@
 
                             // Show set details with parameters
                             const setDetails = [];
+                            // Look up exercise to get pattern_modifiers
+                            const exercise = exerciseLibrary.find(ex => ex.id === session.exerciseId);
+
                             session.sets.forEach((set, idx) => {
-                                let detail = `${set.reps || '?'} reps`;
-                                if (set.side) detail += ` (${set.side})`;
-                                if (set.weight) detail += ` @ ${set.weight}lbs`;
-                                if (set.distance) detail += `, ${set.distance}m`;
-                                if (set.duration) detail += `, ${set.duration}s`;
+                                // Use helper to format primary metric based on exercise type
+                                let detail = formatDosageMetric(exercise, set);
+
+                                // Add side if present (and not already shown in metric)
+                                if (set.side && !detail.includes(set.side)) {
+                                    detail += ` (${set.side})`;
+                                }
+                                // Add weight if present (and not already shown)
+                                if (set.weight && !detail.includes('lbs')) {
+                                    detail += ` @ ${set.weight}lbs`;
+                                }
                                 setDetails.push(detail);
                             });
 
