@@ -6032,10 +6032,12 @@ ${payload}`;
             if (mods.editedExercises && Object.keys(mods.editedExercises).length > 0) {
                 Object.keys(mods.editedExercises).forEach(exerciseId => {
                     const updatedExercise = mods.editedExercises[exerciseId];
-                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId || e.exercise_id === exerciseId);
                     if (index !== -1) {
                         exerciseLibrary[index] = updatedExercise;
                         mergedCount++;
+                    } else {
+                        console.warn(`[Import] Edited exercise not found: ${exerciseId}`);
                     }
                 });
             }
@@ -6043,7 +6045,7 @@ ${payload}`;
             // 3. Archive exercises (remove from library)
             if (mods.archivedExercises && mods.archivedExercises.length > 0) {
                 mods.archivedExercises.forEach(exerciseId => {
-                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId || e.exercise_id === exerciseId);
                     if (index !== -1) {
                         exerciseLibrary.splice(index, 1);
                         mergedCount++;
@@ -6057,8 +6059,12 @@ ${payload}`;
             // 4. Add new roles
             if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
                 Object.keys(mods.newRoles).forEach(exerciseId => {
+                    // Find the exercise to get its name
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId || e.exercise_id === exerciseId);
+                    const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+
                     if (!rolesData.exercise_roles[exerciseId]) {
-                        rolesData.exercise_roles[exerciseId] = { name: '', roles: [] };
+                        rolesData.exercise_roles[exerciseId] = { name: exerciseName, roles: [] };
                     }
                     const newRoles = mods.newRoles[exerciseId];
                     newRoles.forEach(role => {
@@ -6101,7 +6107,7 @@ ${payload}`;
             // 7. Update dosages
             if (mods.dosageChanges && Object.keys(mods.dosageChanges).length > 0) {
                 Object.keys(mods.dosageChanges).forEach(exerciseId => {
-                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId || e.exercise_id === exerciseId);
                     if (exercise) {
                         const previousSpec = exercise.current || {};
                         exercise.current = mods.dosageChanges[exerciseId];
@@ -6116,6 +6122,8 @@ ${payload}`;
                             supersedes: []
                         });
                         mergedCount++;
+                    } else {
+                        console.warn(`[Import] Dosage change for unknown exercise: ${exerciseId}`);
                     }
                 });
             }
