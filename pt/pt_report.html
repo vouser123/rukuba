@@ -1378,7 +1378,7 @@
             }
 
             // Load exercise data
-            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId || ex.exercise_id === exerciseId);
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
             if (!exercise) {
                 alert('Exercise not found');
                 return;
@@ -1711,7 +1711,7 @@
 
             if (currentEditingExerciseId) {
                 modifications.editedExercises[currentEditingExerciseId] = exercise;
-                const index = exerciseLibrary.findIndex(ex => (ex.id || ex.exercise_id) === currentEditingExerciseId);
+                const index = exerciseLibrary.findIndex(ex => ex.id === currentEditingExerciseId);
                 if (index !== -1) {
                     exerciseLibrary[index] = exercise;
                 }
