@@ -5921,6 +5921,15 @@
         const RECOVERY_KEY = 'pt_session_recovery';
 
         function saveSessionRecovery() {
+            //Escape if currentExercise is null or partially initialized
+            if (
+                !currentExercise ||
+                !Array.isArray(currentExercise.sessionData)
+            ) {
+                localStorage.removeItem(RECOVERY_KEY);
+                return;
+            }
+            
             if (currentExercise.sessionData.length > 0 || currentExercise.currentSet > 1 || currentExercise.currentRep > 0) {
                 const recovery = {
                     exerciseId: currentExercise.id,
