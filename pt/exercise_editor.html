@@ -1263,21 +1263,27 @@
             return errors;
         }
 
-        function downloadExport() {
+        async function copyExercisePayloadOnly() {
             if (!exportData) return;
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied. Paste it into the recipient app.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
 
-            const json = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `pt_exercises_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            alert('Export downloaded successfully!');
+        async function sendExercisePayloadEmail() {
+            if (!exportData) return;
+            const recipient = document.getElementById('editor-email').value.trim();
+            const note = document.getElementById('editor-note').value.trim();
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            const subject = `PT Exercise Library Export - ${new Date().toLocaleDateString('en-US')}`;
+            const body = `${note ? note + '\\n\\n' : ''}Please paste the payload below into the PT app:\\n\\n${payload}`;
+            const mailtoLink = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
         }
 
         async function copyExercisePayloadOnly() {
