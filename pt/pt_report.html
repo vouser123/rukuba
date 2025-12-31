@@ -1608,7 +1608,7 @@
 
                 // Map field names to collected values
                 const fieldValues = {
-                    'exercise_id': currentEditingExerciseId || 'will-be-generated',
+                    'id': currentEditingExerciseId || 'will-be-generated',
                     'canonical_name': name,
                     'pt_category': category,
                     'description': description,
@@ -1672,7 +1672,7 @@
 
             // Build exercise object in exercise_library.json format
             const exercise = {
-                exercise_id: currentEditingExerciseId || generateULID(),
+                id: currentEditingExerciseId || generateULID(),
                 canonical_name: name,
                 pt_category: category || null,
                 description: description || null,
@@ -1705,8 +1705,7 @@
                 updated_date: null
             };
 
-            // Add legacy format for backward compatibility
-            exercise.id = exercise.exercise_id;
+            // Add legacy name aliases for compatibility
             exercise.name = name;
             exercise.title = name;
 
@@ -2254,6 +2253,14 @@
                 rolesData = reportData.rolesData || {};
                 schema = reportData.schema || {};
                 vocabulary = reportData.vocabulary || {};
+
+                // Migrate exercise_id → id (one-time, idempotent)
+                exerciseLibrary.forEach(ex => {
+                    if (ex.exercise_id && !ex.id) {
+                        ex.id = ex.exercise_id;
+                        delete ex.exercise_id;
+                    }
+                });
 
                 console.log('[Import] Loaded report:', {
                     sessions: sessionHistory.length,

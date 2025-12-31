@@ -1,0 +1,106 @@
+ID UNIFICATION MIGRATION - ROLLBACK PLAN
+==========================================
+Date: 2025-12-31
+Branch: claude/read-handoff-docs-XzGTb
+
+WHAT WE'RE DOING:
+- Migrating all exercise_id → id throughout the codebase
+- This eliminates dual ID system that was causing import bugs
+- ULID collisions are impossible, so single ID is safe
+
+IF SOMETHING BREAKS:
+====================
+
+OPTION 1: Revert to last working commit
+----------------------------------------
+Run these commands:
+
+    cd /home/user/rukuba
+    git log --oneline -10
+    # Find the commit BEFORE migration started (look for message about "id migration")
+    git reset --hard <commit-hash>
+    git push -f origin claude/read-handoff-docs-XzGTb
+
+OPTION 2: Revert specific file
+-------------------------------
+If only ONE file is broken:
+
+    git checkout HEAD~1 -- pt/pt_report.html
+    # (or whichever file is broken)
+    git commit -m "Revert broken file"
+    git push
+
+OPTION 3: Use last known good commit hashes
+--------------------------------------------
+Before migration started:
+    65a829a - "Add custom value input for role dropdowns - iOS compatible"
+
+To restore this state:
+    git reset --hard 65a829a
+    git push -f origin claude/read-handoff-docs-XzGTb
+
+WHAT TO TEST AFTER MIGRATION:
+==============================
+1. PT Editor Mode:
+   - Load PT mode (should see exercise library)
+   - Create new exercise (should save with 'id' field)
+   - Edit existing exercise (should find it by id)
+   - Export modifications (should work)
+
+2. Patient Import:
+   - Import PT modifications
+   - Check: new exercises appear
+   - Check: dosages update correctly
+   - Check: roles show correct exercise names
+
+3. V2 Export/Import:
+   - Export from patient app
+   - Import to PT editor
+   - Should see patient data correctly
+
+MIGRATION STRATEGY:
+===================
+Working in stages with commits after each file:
+
+Stage 1: pt_report.html ✓ (migration code added)
+Stage 2: pt_report.html (update all references) ← IN PROGRESS
+Stage 3: exercise_editor.html (add migration + update refs)
+Stage 4: Schema file update
+Stage 5: Remove dual lookups from pt_tracker.html
+Stage 6: Final testing
+
+Each stage = separate commit = safe rollback point
+
+SIGNS OF SUCCESS:
+=================
+✓ No JavaScript errors in console
+✓ PT can create/edit exercises
+✓ Patient can import PT modifications
+✓ Dosages update correctly
+✓ Role names show correctly (not "Unknown")
+✓ V2 export/import still works
+
+SIGNS OF FAILURE:
+=================
+✗ White screen on PT report
+✗ "Exercise not found" errors
+✗ Import shows "Unknown" exercise names
+✗ Dosages ignored on import
+✗ JavaScript console errors about undefined properties
+
+TOKEN BUDGET:
+=============
+Current: ~162,000 remaining
+This migration: ~20,000 estimated
+Safe margin: Yes
+
+If I run low on tokens, I will:
+1. Commit current progress
+2. Leave TODO comment in code
+3. Update this file with next steps
+
+CURRENT STATUS:
+===============
+Last completed: Added migration code to pt_report.html
+Next: Update pt_report.html references (lines 1675, 1709)
+Then: exercise_editor.html
