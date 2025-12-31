@@ -646,8 +646,79 @@
         </div>
     </div>
 
+    <!-- Export for PT Modal -->
+    <div id="export-pt-modal" class="modal" onclick="if(event.target === this) closeExportPTModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📤 Send to PT</div>
+                <button class="modal-close" onclick="closeExportPTModal()">Close</button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+                    Email address is optional. Copy the payload only or open your email client with the payload ready to send.
+                </div>
+                <input type="email" id="pt-email-address" placeholder="your.pt@example.com" style="
+                    width: 100%;
+                    padding: 10px;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    margin-bottom: 10px;
+                    font-size: 14px;
+                ">
+                <textarea id="pt-note" placeholder="Optional: Add a note for your PT" style="
+                    width: 100%;
+                    min-height: 80px;
+                    padding: 10px;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    font-size: 14px;
+                    resize: vertical;
+                    margin-bottom: 12px;
+                "></textarea>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="closeExportPTModal()">Cancel</button>
+                    <button class="btn-primary" onclick="copyPtPayloadOnly()">📋 Copy Payload Only</button>
+                    <button class="btn-primary" onclick="sendToPT()">📧 Send Email</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import PT Modifications Modal -->
+    <div id="import-pt-modal" class="modal" onclick="if(event.target === this) closeImportPTModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📨 Import from PT</div>
+                <button class="modal-close" onclick="closeImportPTModal()">Close</button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+                    Paste the PT email content below. The app will automatically extract and verify the V2 payload.
+                </div>
+                <textarea id="import-pt-content" placeholder="Paste the entire email content here (including markers)..." style="
+                    width: 100%;
+                    min-height: 240px;
+                    padding: 10px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 11px;
+                    background: var(--bg-tertiary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    resize: vertical;
+                    color: var(--text-primary);
+                    margin-bottom: 12px;
+                "></textarea>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="closeImportPTModal()">Cancel</button>
+                    <button class="btn-primary" onclick="processPastedImport()">Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <button class="back-button" onclick="goBack()">← Back to PT Tracker</button>
 
+    <script src="pt_payload_utils.js"></script>
     <script>
         // Global data stores
         let schema = null;
@@ -1644,13 +1715,16 @@
             });
 
             html += '<div class="form-group">';
-            html += '<label class="form-label">Region <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
-            html += '<input type="text" class="form-input" id="new-region" list="region-datalist-options" placeholder="Select or enter region">';
-            html += '<datalist id="region-datalist-options">';
+            html += '<label class="form-label">Region</label>';
+            html += '<select class="form-select" id="new-region" onchange="toggleCustomInput(\'region\')">';
+            html += '<option value="">-- Select region --</option>';
             Array.from(allRegions).sort().forEach(r => {
                 html += `<option value="${r}">${r}</option>`;
             });
-            html += '</datalist></div>';
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-region-custom" placeholder="Enter custom region" style="display: none; margin-top: 8px;">';
+            html += '</div>';
 
             // Get all unique capacities from existing roles
             const allCapacities = new Set(capacities);
@@ -1661,13 +1735,16 @@
             });
 
             html += '<div class="form-group">';
-            html += '<label class="form-label">Capacity <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
-            html += '<input type="text" class="form-input" id="new-capacity" list="capacity-datalist-options" placeholder="Select or enter capacity">';
-            html += '<datalist id="capacity-datalist-options">';
+            html += '<label class="form-label">Capacity</label>';
+            html += '<select class="form-select" id="new-capacity" onchange="toggleCustomInput(\'capacity\')">';
+            html += '<option value="">-- Select capacity --</option>';
             Array.from(allCapacities).sort().forEach(c => {
                 html += `<option value="${c}">${c}</option>`;
             });
-            html += '</datalist></div>';
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-capacity-custom" placeholder="Enter custom capacity" style="display: none; margin-top: 8px;">';
+            html += '</div>';
 
             // Get all unique focus values from schema + existing roles
             const allFocuses = new Set();
@@ -1684,13 +1761,16 @@
             });
 
             html += '<div class="form-group">';
-            html += '<label class="form-label">Focus (optional) <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>';
-            html += '<input type="text" class="form-input" id="new-focus" list="focus-datalist-options" placeholder="Select or enter focus (e.g., sagittal, lateral)">';
-            html += '<datalist id="focus-datalist-options">';
+            html += '<label class="form-label">Focus (optional)</label>';
+            html += '<select class="form-select" id="new-focus" onchange="toggleCustomInput(\'focus\')">';
+            html += '<option value="">-- No focus (general) --</option>';
             Array.from(allFocuses).sort().forEach(f => {
                 html += `<option value="${f}">${f}</option>`;
             });
-            html += '</datalist></div>';
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-focus-custom" placeholder="Enter custom focus" style="display: none; margin-top: 8px;">';
+            html += '</div>';
 
             html += '<div class="form-group">';
             html += '<label class="form-label">Contribution</label>';
@@ -1707,10 +1787,40 @@
             document.getElementById('roles-container').innerHTML = html;
         }
 
+        function toggleCustomInput(field) {
+            const selectElem = document.getElementById(`new-${field}`);
+            const customElem = document.getElementById(`new-${field}-custom`);
+
+            if (selectElem.value === '__custom__') {
+                customElem.style.display = 'block';
+                customElem.focus();
+            } else {
+                customElem.style.display = 'none';
+                customElem.value = '';
+            }
+        }
+
         function addRole() {
-            const region = document.getElementById('new-region').value.trim();
-            const capacity = document.getElementById('new-capacity').value.trim();
-            const focus = document.getElementById('new-focus').value.trim();
+            // Get region value (from select or custom input)
+            let region = document.getElementById('new-region').value;
+            if (region === '__custom__') {
+                region = document.getElementById('new-region-custom').value.trim();
+            }
+
+            // Get capacity value (from select or custom input)
+            let capacity = document.getElementById('new-capacity').value;
+            if (capacity === '__custom__') {
+                capacity = document.getElementById('new-capacity-custom').value.trim();
+            }
+
+            // Get focus value (from select or custom input)
+            let focus = document.getElementById('new-focus').value;
+            if (focus === '__custom__') {
+                focus = document.getElementById('new-focus-custom').value.trim();
+            } else {
+                focus = focus.trim();
+            }
+
             const contribution = document.getElementById('new-contribution').value;
 
             if (!region || !capacity || !contribution) {
@@ -1763,64 +1873,106 @@
             alert('Role deleted! Remember to export when done.');
         }
 
-        // Export for PT - creates a JSON file that PT can import and view
+        // Export for PT - opens V2 export modal
         function exportForPT() {
-            // Ask for optional note to PT
-            const noteForPT = prompt('Optional: Add a note for your PT\n(Leave blank to skip)', '');
+            const savedEmail = localStorage.getItem('pt_email_address');
+            if (savedEmail) {
+                document.getElementById('pt-email-address').value = savedEmail;
+            }
+            document.getElementById('pt-note').value = '';
+            document.getElementById('export-pt-modal').classList.add('active');
+        }
 
-            const exportData = {
+        function closeExportPTModal() {
+            document.getElementById('export-pt-modal').classList.remove('active');
+        }
+
+        async function buildPtReportExport(note) {
+            return {
                 exportDate: new Date().toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                 }),
-                noteForPT: noteForPT && noteForPT.trim() ? noteForPT.trim() : null,
+                noteForPT: note || null,
                 sessionHistory: sessionHistory,
                 exerciseLibrary: exerciseLibrary,
                 rolesData: rolesData,
                 schema: schema,
                 vocabulary: vocabulary
             };
+        }
 
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `PT-Report-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        async function copyPtPayloadOnly() {
+            const note = document.getElementById('pt-note').value.trim();
+            const exportData = await buildPtReportExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied to clipboard. Paste it into the PT editor.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
 
-            alert('PT Report exported! Send this file to your PT. They can view it at pt_report.html');
+        async function sendToPT() {
+            const ptEmail = document.getElementById('pt-email-address').value.trim();
+            const note = document.getElementById('pt-note').value.trim();
+            if (ptEmail) {
+                localStorage.setItem('pt_email_address', ptEmail);
+            }
+
+            const exportData = await buildPtReportExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            const subject = `PT Tracker Data - ${new Date().toLocaleDateString('en-US')}`;
+            const body = `${note ? note + '\n\n' : ''}Please paste the data below into the PT editor:\n\n${payload}`;
+            const mailtoLink = `mailto:${encodeURIComponent(ptEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+            closeExportPTModal();
         }
 
         // Import PT Modifications
         function importPTModifications() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+            document.getElementById('import-pt-content').value = '';
+            document.getElementById('import-pt-modal').classList.add('active');
+        }
 
-                try {
-                    const text = await file.text();
-                    const data = JSON.parse(text);
+        function closeImportPTModal() {
+            document.getElementById('import-pt-modal').classList.remove('active');
+        }
 
-                    if (data.modificationType !== 'PT_MODIFICATIONS') {
-                        alert('Invalid file: This is not a PT modifications file');
-                        return;
-                    }
+        async function processPastedImport() {
+            const pastedContent = document.getElementById('import-pt-content').value;
 
-                    showModificationReview(data.modifications);
-                } catch (err) {
-                    alert('Error importing modifications: ' + err.message);
+            if (!pastedContent.trim()) {
+                alert('Please paste the email content from your PT');
+                return;
+            }
+
+            try {
+                const parsed = await ptPayloadUtils.parseV2FromText(pastedContent, 'PT_MODIFICATIONS');
+                if (parsed.errors.length > 0) {
+                    alert(parsed.errors.join('\n\n'));
+                    return;
                 }
-            };
-            input.click();
+
+                if (parsed.type !== 'PT_MODIFICATIONS') {
+                    alert(`Invalid payload type: ${parsed.type}. Expected PT_MODIFICATIONS.`);
+                    return;
+                }
+
+                if (!parsed.obj || parsed.obj.modificationType !== 'PT_MODIFICATIONS') {
+                    alert('Invalid data: This is not a PT modifications payload.');
+                    return;
+                }
+
+                closeImportPTModal();
+                showModificationReview(parsed.obj.modifications);
+            } catch (err) {
+                alert('Error importing modifications: ' + err.message);
+            }
         }
 
         function showModificationReview(mods) {

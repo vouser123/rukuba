@@ -1353,6 +1353,41 @@
         </div>
     </div>
 
+    <!-- Edit Dosage Modal -->
+    <div class="modal" id="edit-dosage-modal" onclick="if(event.target === this) closeEditDosage()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">✏️ Edit Dosage</div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--text-primary); margin-bottom: 20px; text-align: center; font-weight: 600;" id="edit-dosage-exercise-name"></div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Sets</label>
+                    <input type="number" id="edit-dosage-sets" class="modal-input" placeholder="e.g., 3" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+
+                <div style="margin-bottom: 16px;" id="edit-dosage-reps-container">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Reps (per set)</label>
+                    <input type="number" id="edit-dosage-reps" class="modal-input" placeholder="e.g., 10" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+
+                <div id="edit-dosage-seconds-container" style="margin-bottom: 16px; display: none;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;" id="edit-dosage-seconds-label">Seconds (per rep)</label>
+                    <input type="number" id="edit-dosage-seconds" class="modal-input" placeholder="e.g., 30" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+
+                <div id="edit-dosage-distance-container" style="margin-bottom: 16px; display: none;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Distance (feet)</label>
+                    <input type="number" id="edit-dosage-distance" class="modal-input" placeholder="e.g., 100" min="1" style="font-size: 20px; text-align: center; font-weight: 600;">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeEditDosage()">Cancel</button>
+                <button class="modal-save" onclick="saveEditedDosage()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Plan Session Modal -->
     <div class="modal" id="plan-session-modal" onclick="if(event.target === this) closePlanSessionModal()">
         <div class="modal-content">
@@ -1386,14 +1421,15 @@
             <div class="modal-title">📤 Send to PT</div>
             <div class="modal-form">
                 <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
-                    Enter your PT's email address. The app will open your email client with the data ready to send.
+                    Enter your PT's email address (optional). You can copy the payload only or open your email client with the payload ready to send.
                 </div>
                 <input type="email" class="modal-input" id="pt-email-address" placeholder="your.pt@example.com" style="margin-bottom: 12px;">
                 <textarea class="modal-input" id="pt-note" placeholder="Optional: Add a note for your PT" style="min-height: 80px; resize: vertical;"></textarea>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeExportPTModal()">Cancel</button>
-                <button class="modal-save" onclick="sendToPT()">📧 Open Email</button>
+                <button class="modal-save" onclick="copyPtPayloadOnly()">📋 Copy Payload Only</button>
+                <button class="modal-save" onclick="sendToPT()">📧 Send Email</button>
             </div>
         </div>
     </div>
@@ -1436,6 +1472,7 @@
         </div>
     </div>
 
+    <script src="pt_payload_utils.js"></script>
     <script>
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
@@ -4789,7 +4826,7 @@
             if (distance > 0) dosageSummary += ` × ${distance}ft`;
 
             const newExercise = {
-                id: ex.exercise_id,
+                id: ex.id,
                 name: ex.canonical_name,
                 description: ex.description,
                 pt_category: ex.pt_category,
@@ -4847,6 +4884,139 @@
             }
         }
 
+        // EDIT DOSAGE FUNCTIONS
+        let editingDosageExerciseId = null;
+
+        function showEditDosageModal(exerciseId) {
+            const ex = exerciseLibrary.find(e => e.id === exerciseId);
+            if (!ex) return;
+
+            editingDosageExerciseId = exerciseId;
+            const spec = ex.current || {};
+            const modifiers = ex.pattern_modifiers || [];
+
+            document.getElementById('edit-dosage-exercise-name').textContent = ex.name;
+            document.getElementById('edit-dosage-sets').value = spec.sets || '';
+            document.getElementById('edit-dosage-reps').value = spec.repsPerSet || '';
+            document.getElementById('edit-dosage-seconds').value = spec.secondsPerRep || '';
+            document.getElementById('edit-dosage-distance').value = spec.distanceFeet || '';
+
+            // Show/hide fields based on modifiers
+            const repsContainer = document.getElementById('edit-dosage-reps-container');
+            const secondsContainer = document.getElementById('edit-dosage-seconds-container');
+            const secondsLabel = document.getElementById('edit-dosage-seconds-label');
+            const distanceContainer = document.getElementById('edit-dosage-distance-container');
+
+            const hasHold = modifiers.includes('hold_seconds');
+            const hasDuration = modifiers.includes('duration_seconds');
+            const hasDistance = modifiers.includes('distance_feet');
+
+            if (hasDuration || hasDistance) {
+                repsContainer.style.display = 'none';
+            } else {
+                repsContainer.style.display = 'block';
+            }
+
+            if (hasHold || hasDuration) {
+                secondsContainer.style.display = 'block';
+                secondsLabel.textContent = hasHold ? 'Hold Seconds (per rep)' : 'Duration (seconds)';
+            } else {
+                secondsContainer.style.display = 'none';
+            }
+
+            distanceContainer.style.display = hasDistance ? 'block' : 'none';
+
+            document.getElementById('edit-dosage-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeEditDosage() {
+            document.getElementById('edit-dosage-modal').classList.remove('active');
+            editingDosageExerciseId = null;
+            haptic('medium');
+        }
+
+        function saveEditedDosage() {
+            if (!editingDosageExerciseId) return;
+
+            const sets = parseInt(document.getElementById('edit-dosage-sets').value);
+            let reps = parseInt(document.getElementById('edit-dosage-reps').value);
+            const seconds = parseInt(document.getElementById('edit-dosage-seconds').value) || 0;
+            const distance = parseInt(document.getElementById('edit-dosage-distance').value) || 0;
+
+            if (!sets || sets < 1) {
+                alert('Please enter valid sets');
+                return;
+            }
+
+            const ex = exerciseLibrary.find(e => e.id === editingDosageExerciseId);
+            if (!ex) return;
+
+            const modifiers = ex.pattern_modifiers || [];
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+            if (replacesReps) {
+                reps = 1;
+            } else {
+                if (!reps || reps < 1) {
+                    alert('Please enter valid reps');
+                    return;
+                }
+            }
+
+            // Validate required fields
+            if (modifiers.includes('hold_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid seconds for this hold exercise');
+                return;
+            }
+            if (modifiers.includes('duration_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid duration in seconds');
+                return;
+            }
+            if (modifiers.includes('distance_feet') && (!distance || distance < 1)) {
+                alert('Please enter valid distance in feet');
+                return;
+            }
+
+            const previousSpec = ex.current || {};
+            const newSpec = {
+                type: modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
+                sets: sets,
+                repsPerSet: reps,
+                secondsPerRep: seconds
+            };
+
+            if (modifiers.includes('distance_feet') && distance > 0) {
+                newSpec.distanceFeet = distance;
+            }
+
+            // Build dosage summary
+            let dosageSummary = `${sets} sets`;
+            if (!replacesReps) dosageSummary += ` × ${reps} reps`;
+            if (seconds > 0) dosageSummary += ` × ${seconds}s`;
+            if (distance > 0) dosageSummary += ` × ${distance}ft`;
+
+            // Update current spec
+            ex.current = newSpec;
+
+            // Add to history
+            if (!ex.history) ex.history = [];
+            ex.history.push({
+                timestamp: new Date().toISOString(),
+                summary: `Dosage updated to ${dosageSummary}`,
+                previous: previousSpec,
+                next: newSpec,
+                supersedes: []
+            });
+
+            persistExerciseLibrary();
+            closeEditDosage();
+            renderExerciseList();
+
+            alert(`Dosage updated!\n\n${dosageSummary}`);
+            haptic('success');
+        }
+
         function buildExerciseLibrarySchemaData(internalLibrary) {
             // Convert from internal format to schema format
             const exercises = internalLibrary.map(ex => {
@@ -4856,7 +5026,7 @@
                     : [];
 
                 return {
-                    exercise_id: ex.id,
+                    id: ex.id,
                     canonical_name: ex.name,
                     description: ex.description || '',
                     pt_category: ex.pt_category || 'other',
@@ -4935,10 +5105,35 @@
             }
 
             try {
-                const parsed = JSON.parse(stored);
+                const sessions = JSON.parse(stored);
+
+                // Calculate summary statistics
+                const uniqueExercises = new Set(sessions.map(s => s.exerciseId)).size;
+                const totalSets = sessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+                const dateRange = sessions.length > 0 ? {
+                    first: sessions[0].date,
+                    last: sessions[sessions.length - 1].date
+                } : null;
+
+                // Build export with metadata
+                const exportData = {
+                    export_date: new Date().toISOString(),
+                    export_type: 'pt_exercise_history',
+                    data_version: localStorage.getItem(PT_VERSION_KEY) || PT_DATA_VERSION,
+                    stats: {
+                        total_sessions: sessions.length,
+                        unique_exercises: uniqueExercises,
+                        total_sets: totalSets,
+                        date_range: dateRange
+                    },
+                    sessions: sessions
+                };
+
                 const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
                 const filename = `pt_exercise_history-${dateStamp}.json`;
-                downloadJSON(parsed, filename);
+                downloadJSON(exportData, filename);
+
+                console.log(`[Export] History exported: ${sessions.length} sessions, ${uniqueExercises} exercises`);
                 haptic('success');
             } catch (e) {
                 console.error('Failed to export exercise history:', e);
@@ -5118,11 +5313,14 @@
                     if (data.pt_data_version !== undefined && data.pt_exercise_library !== undefined) {
                         // All-data export format
                         importAllData(data);
+                    } else if (data.export_type === 'pt_exercise_history' && data.sessions) {
+                        // New enhanced history format with metadata
+                        importHistory(data.sessions, data.stats);
                     } else if (Array.isArray(data)) {
-                        // Individual export format (library or history)
+                        // Legacy individual export format (library or history)
                         // Try to detect which one based on structure
                         if (data.length > 0 && data[0].exerciseId !== undefined) {
-                            // History format
+                            // History format (legacy)
                             importHistory(data);
                         } else {
                             // Library format
@@ -5176,15 +5374,114 @@
             });
         }
 
-        function importHistory(data) {
-            const message = `Import exercise history?\n\nThis will REPLACE your current history with ${data.length} sessions.\n\nCurrent history will be overwritten. Continue?`;
+        function importHistory(importedSessions, stats) {
+            const currentSessions = loadHistory();
+            const statsInfo = stats ? ` (${stats.total_sessions} sessions, ${stats.unique_exercises} exercises)` : '';
 
-            showActionSheet(message, () => {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            // Build action sheet with merge and replace options
+            const message = `Import ${importedSessions.length} sessions${statsInfo}?\n\nCurrent history: ${currentSessions.length} sessions\n\nChoose import method:`;
+
+            const actions = [
+                {
+                    label: '🔀 Merge (keep both, remove duplicates)',
+                    style: 'primary',
+                    callback: () => mergeHistory(currentSessions, importedSessions)
+                },
+                {
+                    label: '⚠️ Replace (delete current history)',
+                    style: 'destructive',
+                    callback: () => replaceHistory(importedSessions)
+                }
+            ];
+
+            showActionSheetWithOptions(message, actions);
+        }
+
+        function mergeHistory(currentSessions, importedSessions) {
+            // Create map of existing sessions by sessionId for fast lookup
+            const sessionMap = new Map();
+            currentSessions.forEach(s => {
+                if (s.sessionId) {
+                    sessionMap.set(s.sessionId, s);
+                }
+            });
+
+            // Add imported sessions, deduplicating by sessionId
+            let added = 0;
+            let duplicates = 0;
+
+            importedSessions.forEach(session => {
+                if (session.sessionId && sessionMap.has(session.sessionId)) {
+                    // Duplicate - keep newer one
+                    const existing = sessionMap.get(session.sessionId);
+                    if (new Date(session.date) > new Date(existing.date)) {
+                        sessionMap.set(session.sessionId, session);
+                        console.log(`[Import] Updated duplicate session: ${session.sessionId}`);
+                    }
+                    duplicates++;
+                } else {
+                    // New session
+                    sessionMap.set(session.sessionId || `import-${Date.now()}-${added}`, session);
+                    added++;
+                }
+            });
+
+            // Convert map back to array and sort by date
+            const mergedSessions = Array.from(sessionMap.values())
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Save merged history
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSessions));
+
+            closeDataBackup();
+            const message = `History merged successfully!\n\n• Added: ${added} new sessions\n• Duplicates skipped: ${duplicates}\n• Total sessions: ${mergedSessions.length}`;
+            alert(message);
+            console.log(`[Import] Merge complete - Added: ${added}, Skipped: ${duplicates}, Total: ${mergedSessions.length}`);
+            haptic('success');
+        }
+
+        function replaceHistory(importedSessions) {
+            const confirmMsg = `⚠️ Are you sure?\n\nThis will permanently delete your current ${loadHistory().length} sessions and replace with ${importedSessions.length} imported sessions.\n\nThis cannot be undone!`;
+
+            showActionSheet(confirmMsg, () => {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(importedSessions));
                 closeDataBackup();
-                alert('Exercise history imported successfully!');
+                alert(`History replaced!\n\n${importedSessions.length} sessions imported.`);
+                console.log(`[Import] History replaced with ${importedSessions.length} sessions`);
                 haptic('success');
             });
+        }
+
+        function showActionSheetWithOptions(message, actions) {
+            const sheet = document.createElement('div');
+            sheet.className = 'action-sheet active';
+            sheet.innerHTML = `
+                <div class="action-sheet-content">
+                    <div class="action-sheet-message">${message}</div>
+                    ${actions.map(action => `
+                        <button class="action-sheet-button ${action.style === 'destructive' ? 'destructive' : action.style === 'primary' ? 'primary' : ''}">${action.label}</button>
+                    `).join('')}
+                    <button class="action-sheet-button cancel">Cancel</button>
+                </div>
+            `;
+
+            document.body.appendChild(sheet);
+
+            const buttons = sheet.querySelectorAll('.action-sheet-button');
+            buttons.forEach((btn, idx) => {
+                btn.onclick = () => {
+                    if (idx < actions.length) {
+                        actions[idx].callback();
+                    }
+                    document.body.removeChild(sheet);
+                };
+            });
+
+            sheet.onclick = (e) => {
+                if (e.target === sheet) {
+                    document.body.removeChild(sheet);
+                }
+            };
         }
 
         function renderTagFilters() {
@@ -5382,9 +5679,9 @@
                         ${statsHtml}
                         <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
                             <button class="control-btn ${ex.favorite ? 'btn-primary' : 'btn-secondary'}" onclick="toggleFavorite('${ex.id}'); event.stopPropagation();" style="flex: 0 0 auto; padding: 8px 12px; font-size: 18px;">${ex.favorite ? '⭐' : '☆'}</button>
+                            <button class="control-btn btn-primary" onclick="showEditDosageModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">💊 Dosage</button>
                             ${totalSessions > 0 ? `<button class="control-btn btn-success" onclick="showExerciseProgress('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">📊 Progress</button>` : ''}
                             <button class="control-btn btn-secondary" onclick="showExerciseDetailsModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
-                            <button class="control-btn btn-secondary" onclick="window.open('./exercise_editor.html', '_blank'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">🛠️ Edit</button>
                             <button class="control-btn btn-danger" onclick="archiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Archive</button>
                         </div>
                     </div>
@@ -5696,19 +5993,8 @@
             document.getElementById('export-pt-modal').classList.remove('active');
         }
 
-        async function sendToPT() {
-            const ptEmail = document.getElementById('pt-email-address').value.trim();
-            const note = document.getElementById('pt-note').value.trim();
-
-            if (!ptEmail) {
-                alert('Please enter your PT\'s email address');
-                return;
-            }
-
-            // Save PT email for next time
-            localStorage.setItem('pt_email_address', ptEmail);
-
-            const exportData = {
+        async function buildPtDataExport(note) {
+            return {
                 exportDate: new Date().toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
@@ -5722,35 +6008,53 @@
                 schema: await loadSchema(),
                 vocabulary: await loadVocabulary()
             };
+        }
 
-            const jsonData = JSON.stringify(exportData, null, 2);
+        async function copyPtPayloadOnly() {
+            const note = document.getElementById('pt-note').value.trim();
+            const exportData = await buildPtDataExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied to clipboard. Paste it into your PT editor.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
+
+        async function sendToPT() {
+            const ptEmail = document.getElementById('pt-email-address').value.trim();
+            const note = document.getElementById('pt-note').value.trim();
+
+            // Save PT email for next time
+            if (ptEmail) {
+                localStorage.setItem('pt_email_address', ptEmail);
+            }
+
+            const exportData = await buildPtDataExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
             const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-            // Calculate checksum for data integrity
-            const checksum = await calculateSHA256(jsonData);
-            const byteLength = new TextEncoder().encode(jsonData).length;
+            // Build current dosage summary
+            const activeExercises = loadExerciseLibrary().filter(ex => !ex.archived);
+            let dosageSummary = '';
+            if (activeExercises.length > 0) {
+                dosageSummary = '\nCURRENT PROGRAM (Active Exercises):\n';
+                dosageSummary += '─────────────────────────────────\n';
+                activeExercises.forEach(ex => {
+                    const spec = ex.current || {};
+                    dosageSummary += `• ${ex.name}: ${describeSpec(spec)}\n`;
+                });
+                dosageSummary += '\n';
+            }
 
-            // Format email body with markers and verification
+            // Format email body with V2 block
             const emailBody = `Hi,
 
 ${note ? note + '\n\n' : ''}Please paste the data below into the PT Editor to review my progress.
-
-════════════════════════════════════════
-   PT TRACKER - PATIENT REPORT
-   Date: ${dateStr}
-   Checksum: ${checksum.substring(0, 16)}
-   Size: ${byteLength} bytes
-════════════════════════════════════════
-
---START_PT_DATA--
-${jsonData}
---END_PT_DATA--
---CHECKSUM:${checksum}--
---SIZE:${byteLength}--
-
-════════════════════════════════════════
-   END OF PT TRACKER DATA
-════════════════════════════════════════`;
+${dosageSummary}
+${payload}`;
 
             const subject = `PT Tracker Data - ${dateStr}`;
 
@@ -5762,15 +6066,6 @@ ${jsonData}
 
             closeExportPTModal();
             haptic('success');
-        }
-
-        // Calculate SHA-256 checksum for data integrity
-        async function calculateSHA256(text) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(text);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
         // Import PT Modifications from PT
@@ -5793,49 +6088,21 @@ ${jsonData}
             }
 
             try {
-                // Extract JSON between markers
-                const startMarker = '--START_PT_MODIFICATIONS--';
-                const endMarker = '--END_PT_MODIFICATIONS--';
-
-                const startIdx = pastedContent.indexOf(startMarker);
-                const endIdx = pastedContent.indexOf(endMarker);
-
-                if (startIdx === -1 || endIdx === -1) {
-                    alert('Invalid format: Could not find data markers.\n\nMake sure you pasted the entire email content including the markers.');
+                const parsed = await ptPayloadUtils.parseV2FromText(pastedContent, 'PT_MODIFICATIONS');
+                if (parsed.errors.length > 0) {
+                    alert(parsed.errors.join('\n\n'));
                     return;
                 }
 
-                const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
-
-                // Extract and verify checksum if present
-                const checksumMatch = pastedContent.match(/--CHECKSUM:([a-f0-9]{64})--/);
-                const sizeMatch = pastedContent.match(/--SIZE:(\d+)--/);
-
-                if (checksumMatch && sizeMatch) {
-                    const expectedChecksum = checksumMatch[1];
-                    const expectedSize = parseInt(sizeMatch[1]);
-
-                    // Verify size
-                    const actualSize = new TextEncoder().encode(jsonStr).length;
-                    if (actualSize !== expectedSize) {
-                        if (!confirm(`⚠️ Data size mismatch!\n\nExpected: ${expectedSize} bytes\nReceived: ${actualSize} bytes\n\nThe data may be incomplete or corrupted. Continue anyway?`)) {
-                            return;
-                        }
-                    }
-
-                    // Verify checksum
-                    const actualChecksum = await calculateSHA256(jsonStr);
-                    if (actualChecksum !== expectedChecksum) {
-                        if (!confirm(`⚠️ Checksum verification failed!\n\nThe data may have been corrupted during transfer. Continue anyway?`)) {
-                            return;
-                        }
-                    }
+                if (parsed.type !== 'PT_MODIFICATIONS') {
+                    alert(`Invalid payload type: ${parsed.type}. Expected PT_MODIFICATIONS.`);
+                    return;
                 }
 
-                const data = JSON.parse(jsonStr);
+                const data = parsed.obj;
 
-                if (data.modificationType !== 'PT_MODIFICATIONS') {
-                    alert('Invalid data: This is not a PT modifications file');
+                if (!data || data.modificationType !== 'PT_MODIFICATIONS') {
+                    alert('Invalid data: This is not a PT modifications payload.');
                     return;
                 }
 
@@ -5852,7 +6119,9 @@ ${jsonData}
             const editedExCount = Object.keys(mods.editedExercises || {}).length;
             const archivedExCount = mods.archivedExercises?.length || 0;
             const newRoleCount = Object.values(mods.newRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(mods.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
             const editedRoleCount = Object.keys(mods.editedRoles || {}).length;
+            const dosageChangeCount = Object.keys(mods.dosageChanges || {}).length;
             const updatedVocabCount = Object.values(mods.updatedVocab || {}).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
             let message = `PT Modifications Summary:\n\n`;
@@ -5860,7 +6129,9 @@ ${jsonData}
             if (editedExCount > 0) message += `• ${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
             if (archivedExCount > 0) message += `• ${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
             if (newRoleCount > 0) message += `• ${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+            if (deletedRoleCount > 0) message += `• ${deletedRoleCount} deleted role${deletedRoleCount !== 1 ? 's' : ''}\n`;
             if (editedRoleCount > 0) message += `• ${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
+            if (dosageChangeCount > 0) message += `• ${dosageChangeCount} dosage${dosageChangeCount !== 1 ? 's' : ''} updated\n`;
             if (updatedVocabCount > 0) message += `• ${updatedVocabCount} vocabulary update${updatedVocabCount !== 1 ? 's' : ''}\n`;
             message += `\nAccept and merge all changes?`;
 
@@ -5877,7 +6148,8 @@ ${jsonData}
             // 1. Add new exercises to library
             if (mods.newExercises && mods.newExercises.length > 0) {
                 mods.newExercises.forEach(ex => {
-                    if (!exerciseLibrary.find(e => e.id === ex.id)) {
+                    const exists = exerciseLibrary.find(e => e.id === ex.id);
+                    if (!exists) {
                         exerciseLibrary.push(ex);
                         mergedCount++;
                     }
@@ -5892,6 +6164,8 @@ ${jsonData}
                     if (index !== -1) {
                         exerciseLibrary[index] = updatedExercise;
                         mergedCount++;
+                    } else {
+                        console.warn(`[Import] Edited exercise not found: ${exerciseId}`);
                     }
                 });
             }
@@ -5904,7 +6178,8 @@ ${jsonData}
                         exerciseLibrary.splice(index, 1);
                         mergedCount++;
                     }
-                    if (rolesData.exercise_roles && rolesData.exercise_roles[exerciseId]) {
+                    // Also remove role data
+                    if (rolesData.exercise_roles[exerciseId]) {
                         delete rolesData.exercise_roles[exerciseId];
                     }
                 });
@@ -5913,8 +6188,12 @@ ${jsonData}
             // 4. Add new roles
             if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
                 Object.keys(mods.newRoles).forEach(exerciseId => {
+                    // Find the exercise to get its name
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                    const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+
                     if (!rolesData.exercise_roles[exerciseId]) {
-                        rolesData.exercise_roles[exerciseId] = { name: '', roles: [] };
+                        rolesData.exercise_roles[exerciseId] = { name: exerciseName, roles: [] };
                     }
                     const newRoles = mods.newRoles[exerciseId];
                     newRoles.forEach(role => {
@@ -5924,17 +6203,72 @@ ${jsonData}
                 });
             }
 
-            // 5. Update edited roles (replace entire role set for exercise)
+            // 5. Delete roles
+            if (mods.deletedRoles && Object.keys(mods.deletedRoles).length > 0) {
+                Object.keys(mods.deletedRoles).forEach(exerciseId => {
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        const rolesToDelete = mods.deletedRoles[exerciseId];
+                        rolesToDelete.forEach(roleToDelete => {
+                            const index = rolesData.exercise_roles[exerciseId].roles.findIndex(r =>
+                                r.region === roleToDelete.region &&
+                                r.capacity === roleToDelete.capacity &&
+                                (r.focus || '') === (roleToDelete.focus || '')
+                            );
+                            if (index !== -1) {
+                                rolesData.exercise_roles[exerciseId].roles.splice(index, 1);
+                                mergedCount++;
+                            }
+                        });
+                    } else {
+                        console.warn(`[Import] Role data not found for exercise: ${exerciseId}`);
+                    }
+                });
+            }
+
+            // 6. Update edited roles (replace entire role set for exercise)
             if (mods.editedRoles && Object.keys(mods.editedRoles).length > 0) {
                 Object.keys(mods.editedRoles).forEach(exerciseId => {
                     if (rolesData.exercise_roles[exerciseId]) {
                         rolesData.exercise_roles[exerciseId].roles = mods.editedRoles[exerciseId];
                         mergedCount++;
+                    } else {
+                        // Create new entry if it doesn't exist
+                        const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                        const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+                        rolesData.exercise_roles[exerciseId] = {
+                            name: exerciseName,
+                            roles: mods.editedRoles[exerciseId]
+                        };
+                        mergedCount++;
                     }
                 });
             }
 
-            // 6. Update vocabulary
+            // 7. Update dosages
+            if (mods.dosageChanges && Object.keys(mods.dosageChanges).length > 0) {
+                Object.keys(mods.dosageChanges).forEach(exerciseId => {
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                    if (exercise) {
+                        const previousSpec = exercise.current || {};
+                        exercise.current = mods.dosageChanges[exerciseId];
+
+                        // Add to history
+                        if (!exercise.history) exercise.history = [];
+                        exercise.history.push({
+                            timestamp: new Date().toISOString(),
+                            summary: `Dosage updated by PT`,
+                            previous: previousSpec,
+                            next: mods.dosageChanges[exerciseId],
+                            supersedes: []
+                        });
+                        mergedCount++;
+                    } else {
+                        console.warn(`[Import] Dosage change for unknown exercise: ${exerciseId}`);
+                    }
+                });
+            }
+
+            // 8. Update vocabulary
             if (mods.updatedVocab && Object.keys(mods.updatedVocab).length > 0) {
                 Object.keys(mods.updatedVocab).forEach(category => {
                     if (!vocabulary[category]) {
@@ -6421,14 +6755,14 @@ ${jsonData}
                         (ex.equipment && ex.equipment.required && ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm)));
                     return matchesSearch;
                 } catch (error) {
-                    console.error('Error filtering exercise:', ex.exercise_id, error);
+                    console.error('Error filtering exercise:', ex.id, error);
                     return false;
                 }
             });
 
             // Apply "show only new" filter
             if (showOnlyNewExercises) {
-                filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.exercise_id));
+                filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.id));
             }
 
             console.log(`Filtered exercises: ${filtered.length}`);
@@ -6452,20 +6786,20 @@ ${jsonData}
                             ? equipmentRequired.join(', ')
                             : 'No equipment';
 
-                        const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
-                        const isChecked = selectedExercisesForImport.has(ex.exercise_id);
+                        const alreadyImported = exerciseLibrary.find(e => e.id === ex.id);
+                        const isChecked = selectedExercisesForImport.has(ex.id);
                         const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
                         const primaryMuscles = ex.primary_muscles || [];
 
                         return `
                             <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
                                 <input type="checkbox"
-                                       id="ex-check-${ex.exercise_id}"
+                                       id="ex-check-${ex.id}"
                                        ${isChecked ? 'checked' : ''}
                                        ${checkboxDisabled ? 'disabled' : ''}
-                                       onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
+                                       onclick="toggleExerciseSelection('${ex.id}', event)"
                                        style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
-                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
+                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.id}')">
                                     <div style="font-weight: 600; margin-bottom: 4px;">
                                         ${ex.canonical_name}
                                         ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
@@ -6480,8 +6814,8 @@ ${jsonData}
                             </div>
                         `;
                     } catch (error) {
-                        console.error(`Error rendering exercise ${ex.exercise_id}:`, error);
-                        return `<div class="history-item" style="color: var(--ios-red);">Error rendering ${ex.exercise_id}</div>`;
+                        console.error(`Error rendering exercise ${ex.id}:`, error);
+                        return `<div class="history-item" style="color: var(--ios-red);">Error rendering ${ex.id}</div>`;
                     }
                 }).join('');
                 console.log('Library exercises rendered successfully');
@@ -6496,7 +6830,7 @@ ${jsonData}
         }
 
         function showExerciseDetail(exerciseId) {
-            selectedLibraryExercise = libraryExercises.find(ex => ex.exercise_id === exerciseId);
+            selectedLibraryExercise = libraryExercises.find(ex => ex.id === exerciseId);
             if (!selectedLibraryExercise) return;
 
             const ex = selectedLibraryExercise;
@@ -6607,7 +6941,7 @@ ${jsonData}
             const ex = selectedLibraryExercise;
 
             // Check if already imported
-            if (exerciseLibrary.find(e => e.id === ex.exercise_id)) {
+            if (exerciseLibrary.find(e => e.id === ex.id)) {
                 alert('This exercise is already in your library!');
                 return;
             }
@@ -6627,10 +6961,10 @@ ${jsonData}
 
             // Convert selected IDs to array and filter out already-imported
             bulkImportQueue = Array.from(selectedExercisesForImport).filter(exerciseId => {
-                const ex = libraryExercises.find(e => e.exercise_id === exerciseId);
+                const ex = libraryExercises.find(e => e.id === exerciseId);
                 if (!ex) return false;
                 // Skip if already imported
-                if (exerciseLibrary.find(e => e.id === ex.exercise_id)) return false;
+                if (exerciseLibrary.find(e => e.id === ex.id)) return false;
                 return true;
             });
 
@@ -6658,7 +6992,7 @@ ${jsonData}
 
             // Get next exercise ID and show dosage prompt
             const exerciseId = bulkImportQueue.shift();
-            const ex = libraryExercises.find(e => e.exercise_id === exerciseId);
+            const ex = libraryExercises.find(e => e.id === exerciseId);
             if (ex) {
                 showDosagePrompt(ex);
             } else {

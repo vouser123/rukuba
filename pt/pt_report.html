@@ -463,19 +463,25 @@
                 <div id="add-role-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
                     <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
                     <div class="form-group">
-                        <label class="form-label" for="new-role-region">Region * <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
-                        <input type="text" id="new-role-region" class="form-input" list="region-options" placeholder="Select or enter region">
-                        <datalist id="region-options"></datalist>
+                        <label class="form-label" for="new-role-region">Region *</label>
+                        <select id="new-role-region" class="form-select" onchange="toggleCustomInput('region')">
+                            <option value="">-- Select region --</option>
+                        </select>
+                        <input type="text" id="new-role-region-custom" class="form-input" placeholder="Enter custom region" style="display: none; margin-top: 8px;">
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="new-role-capacity">Capacity * <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
-                        <input type="text" id="new-role-capacity" class="form-input" list="capacity-options" placeholder="Select or enter capacity">
-                        <datalist id="capacity-options"></datalist>
+                        <label class="form-label" for="new-role-capacity">Capacity *</label>
+                        <select id="new-role-capacity" class="form-select" onchange="toggleCustomInput('capacity')">
+                            <option value="">-- Select capacity --</option>
+                        </select>
+                        <input type="text" id="new-role-capacity-custom" class="form-input" placeholder="Enter custom capacity" style="display: none; margin-top: 8px;">
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="new-role-focus">Focus (optional) <span style="font-size: 11px; color: var(--text-secondary);">(select or type custom)</span></label>
-                        <input type="text" id="new-role-focus" class="form-input" list="focus-options" placeholder="Select or enter focus (e.g., sagittal, lateral)">
-                        <datalist id="focus-options"></datalist>
+                        <label class="form-label" for="new-role-focus">Focus (optional)</label>
+                        <select id="new-role-focus" class="form-select" onchange="toggleCustomInput('focus')">
+                            <option value="">-- No focus (general) --</option>
+                        </select>
+                        <input type="text" id="new-role-focus-custom" class="form-input" placeholder="Enter custom focus" style="display: none; margin-top: 8px;">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="new-role-contribution">Contribution *</label>
@@ -490,6 +496,41 @@
                 </div>
                 <div id="role-editing-note" style="margin-top: 15px; padding: 10px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px; display: none;">
                     <strong>Note:</strong> Click on any role below to edit or remove it.
+                </div>
+            </div>
+
+            <!-- Manage Dosages Section -->
+            <div class="section">
+                <h3 class="section-title">Manage Patient Dosages</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                    <strong>Dosages</strong> are the prescribed sets, reps, and parameters for each exercise. Update these to change patient prescriptions.
+                </p>
+                <div class="form-group">
+                    <label class="form-label" for="dosage-exercise-select">Select Exercise *</label>
+                    <select id="dosage-exercise-select" class="form-select" onchange="loadExerciseDosage()">
+                        <option value="">-- Choose an exercise --</option>
+                    </select>
+                </div>
+                <div id="current-dosage-display" style="margin: 15px 0; display: none;"></div>
+                <div id="edit-dosage-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 16px;">Update Dosage</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="dosage-sets">Sets *</label>
+                        <input type="number" id="dosage-sets" class="form-input" placeholder="e.g., 3" min="1">
+                    </div>
+                    <div class="form-group" id="dosage-reps-group">
+                        <label class="form-label" for="dosage-reps">Reps (per set) *</label>
+                        <input type="number" id="dosage-reps" class="form-input" placeholder="e.g., 10" min="1">
+                    </div>
+                    <div class="form-group" id="dosage-seconds-group" style="display: none;">
+                        <label class="form-label" for="dosage-seconds" id="dosage-seconds-label">Seconds</label>
+                        <input type="number" id="dosage-seconds" class="form-input" placeholder="e.g., 30" min="1">
+                    </div>
+                    <div class="form-group" id="dosage-distance-group" style="display: none;">
+                        <label class="form-label" for="dosage-distance">Distance (feet)</label>
+                        <input type="number" id="dosage-distance" class="form-input" placeholder="e.g., 100" min="1">
+                    </div>
+                    <button class="btn-primary" onclick="updateDosage()" accesskey="d">💊 Update Dosage (Alt+D)</button>
                 </div>
             </div>
 
@@ -553,7 +594,7 @@
         <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%;">
             <h2 style="margin: 0 0 16px 0; font-size: 20px;">📤 Send to Patient</h2>
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
-                Enter patient's email address. The app will open your email client with the modifications ready to send.
+                Enter the patient's email address (optional). You can copy the payload only or open your email client with the modifications ready to send.
             </p>
             <input type="email" id="patient-email" placeholder="patient@example.com" style="
                 width: 100%;
@@ -579,11 +620,13 @@
             "></textarea>
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
                 <button class="btn-secondary" onclick="closeExportEmailModal()">Cancel</button>
-                <button class="btn-primary" onclick="sendModificationsToPatient()">📧 Open Email</button>
+                <button class="btn-primary" onclick="copyModificationsPayload()">📋 Copy Payload Only</button>
+                <button class="btn-primary" onclick="sendModificationsToPatient()">📧 Send Email</button>
             </div>
         </div>
     </div>
 
+    <script src="pt_payload_utils.js"></script>
     <script>
         let sessionHistory = [];
         let exerciseLibrary = [];
@@ -599,6 +642,7 @@
             newRoles: {},  // exerciseId: [roles to add]
             deletedRoles: {},  // exerciseId: [roles to delete]
             editedRoles: {},  // exerciseId: [complete new role set - replaces all]
+            dosageChanges: {},  // exerciseId: new dosage spec
             updatedVocab: {}  // category: { term: definition }
         };
 
@@ -714,6 +758,44 @@
             } else {
                 container.innerHTML = '<div class="metric"><div class="metric-label">No session data available</div></div>';
             }
+        }
+
+        // Helper: Format dosage display based on exercise pattern_modifiers
+        function formatDosageMetric(exercise, set) {
+            if (!exercise || !set) return '? reps';
+
+            const modifiers = exercise.pattern_modifiers || [];
+
+            // Check pattern modifiers to determine primary metric
+            if (modifiers.includes('hold_seconds') && set.duration) {
+                return `${set.duration}s hold`;
+            }
+            if (modifiers.includes('duration_seconds') && set.duration) {
+                return `${set.duration}s`;
+            }
+            if (modifiers.includes('distance_feet') && set.distance) {
+                return `${set.distance}ft`;
+            }
+            if (modifiers.includes('AMRAP')) {
+                return set.reps ? `${set.reps} reps (AMRAP)` : 'AMRAP';
+            }
+
+            // Default: show reps
+            return `${set.reps || '?'} reps`;
+        }
+
+        // Helper: Get summary metric name for exercise
+        function getSummaryMetricName(exercise) {
+            if (!exercise) return 'reps';
+
+            const modifiers = exercise.pattern_modifiers || [];
+
+            if (modifiers.includes('hold_seconds')) return 'hold time';
+            if (modifiers.includes('duration_seconds')) return 'duration';
+            if (modifiers.includes('distance_feet')) return 'distance';
+            if (modifiers.includes('AMRAP')) return 'AMRAP sets';
+
+            return 'reps';
         }
 
         function renderCoverageSummary() {
@@ -833,11 +915,16 @@
             Object.entries(exerciseGroups)
                 .sort((a, b) => b[1].sessions - a[1].sessions)
                 .forEach(([id, data]) => {
+                    // Look up exercise to check if it's rep-based
+                    const exercise = exerciseLibrary.find(ex => ex.id === id);
+                    const metricName = getSummaryMetricName(exercise);
+                    const showReps = metricName === 'reps' && data.reps > 0;
+
                     html += `
                         <div style="padding: 10px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px;">
                             <div style="font-weight: 600; margin-bottom: 4px;">${data.name}</div>
                             <div style="font-size: 13px; color: var(--text-secondary);">
-                                ${data.sessions} sessions • ${data.sets} sets • ${data.reps} reps
+                                ${data.sessions} sessions • ${data.sets} sets${showReps ? ` • ${data.reps} reps` : ''}
                             </div>
                         </div>
                     `;
@@ -879,11 +966,16 @@
                     const lastDate = new Date(lastSession.date);
                     const daysAgo = Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24));
 
+                    // Look up exercise to check metric type
+                    const exercise = exerciseLibrary.find(ex => ex.id === id);
+                    const metricName = getSummaryMetricName(exercise);
+                    const showReps = metricName === 'reps' && data.totalReps > 0;
+
                     html += `
                         <div class="exercise-item">
                             <div class="exercise-name">${data.name}</div>
                             <div class="exercise-stats">
-                                ${data.sessions.length} sessions • ${data.totalSets} sets • ${data.totalReps} reps
+                                ${data.sessions.length} sessions • ${data.totalSets} sets${showReps ? ` • ${data.totalReps} reps` : ''}
                                 <br>Last performed: ${daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`}
                             </div>
                     `;
@@ -909,12 +1001,21 @@
 
                             // Show set details with parameters
                             const setDetails = [];
+                            // Look up exercise to get pattern_modifiers
+                            const exercise = exerciseLibrary.find(ex => ex.id === session.exerciseId);
+
                             session.sets.forEach((set, idx) => {
-                                let detail = `${set.reps || '?'} reps`;
-                                if (set.side) detail += ` (${set.side})`;
-                                if (set.weight) detail += ` @ ${set.weight}lbs`;
-                                if (set.distance) detail += `, ${set.distance}m`;
-                                if (set.duration) detail += `, ${set.duration}s`;
+                                // Use helper to format primary metric based on exercise type
+                                let detail = formatDosageMetric(exercise, set);
+
+                                // Add side if present (and not already shown in metric)
+                                if (set.side && !detail.includes(set.side)) {
+                                    detail += ` (${set.side})`;
+                                }
+                                // Add weight if present (and not already shown)
+                                if (set.weight && !detail.includes('lbs')) {
+                                    detail += ` @ ${set.weight}lbs`;
+                                }
                                 setDetails.push(detail);
                             });
 
@@ -975,6 +1076,18 @@
                 });
             }
 
+            // Populate exercise dropdown for dosage management
+            const dosageExerciseSelect = document.getElementById('dosage-exercise-select');
+            dosageExerciseSelect.innerHTML = '<option value="">-- Choose an exercise --</option>';
+            if (exerciseLibrary && exerciseLibrary.length > 0) {
+                exerciseLibrary.forEach(ex => {
+                    const option = document.createElement('option');
+                    option.value = ex.id;
+                    option.textContent = ex.title || ex.name;
+                    dosageExerciseSelect.appendChild(option);
+                });
+            }
+
             // Populate exercise dropdown for editing
             const editExerciseSelect = document.getElementById('edit-ex-select');
             editExerciseSelect.innerHTML = '<option value="">-- Add new exercise (leave blank) --</option>';
@@ -990,8 +1103,8 @@
                 console.warn('[Editor] No exercises to populate in edit dropdown');
             }
 
-            // Populate region datalist with schema values + current values from rolesData
-            const regionDatalist = document.getElementById('region-options');
+            // Populate region select with schema values + current values from rolesData
+            const regionSelect = document.getElementById('new-role-region');
             const regionSet = new Set();
             if (schema && schema.definitions && schema.definitions.role) {
                 const regions = schema.definitions.role.properties.region.enum || [];
@@ -1005,10 +1118,12 @@
                     });
                 });
             }
-            regionDatalist.innerHTML = Array.from(regionSet).map(r => `<option value="${r}">${r}</option>`).join('');
+            regionSelect.innerHTML = '<option value="">-- Select region --</option>' +
+                Array.from(regionSet).sort().map(r => `<option value="${r}">${r}</option>`).join('') +
+                '<option value="__custom__">➕ Other (custom)...</option>';
 
-            // Populate capacity datalist with schema values + current values from rolesData
-            const capacityDatalist = document.getElementById('capacity-options');
+            // Populate capacity select with schema values + current values from rolesData
+            const capacitySelect = document.getElementById('new-role-capacity');
             const capacitySet = new Set();
             if (schema && schema.definitions && schema.definitions.role) {
                 const capacities = schema.definitions.role.properties.capacity.enum || [];
@@ -1022,10 +1137,12 @@
                     });
                 });
             }
-            capacityDatalist.innerHTML = Array.from(capacitySet).map(c => `<option value="${c}">${c}</option>`).join('');
+            capacitySelect.innerHTML = '<option value="">-- Select capacity --</option>' +
+                Array.from(capacitySet).sort().map(c => `<option value="${c}">${c}</option>`).join('') +
+                '<option value="__custom__">➕ Other (custom)...</option>';
 
-            // Populate focus datalist with schema values + current values from rolesData
-            const focusDatalist = document.getElementById('focus-options');
+            // Populate focus select with schema values + current values from rolesData
+            const focusSelect = document.getElementById('new-role-focus');
             const focusSet = new Set();
             if (schema && schema.definitions && schema.definitions.role && schema.definitions.role.properties.focus) {
                 const focuses = schema.definitions.role.properties.focus.enum || [];
@@ -1039,7 +1156,9 @@
                     });
                 });
             }
-            focusDatalist.innerHTML = Array.from(focusSet).map(f => `<option value="${f}">${f}</option>`).join('');
+            focusSelect.innerHTML = '<option value="">-- No focus (general) --</option>' +
+                Array.from(focusSet).sort().map(f => `<option value="${f}">${f}</option>`).join('') +
+                '<option value="__custom__">➕ Other (custom)...</option>';
 
             // Populate pattern dropdown from schema
             const patternSelect = document.getElementById('ex-pattern');
@@ -1316,7 +1435,7 @@
             }
 
             // Load exercise data
-            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId || ex.exercise_id === exerciseId);
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
             if (!exercise) {
                 alert('Exercise not found');
                 return;
@@ -1546,7 +1665,7 @@
 
                 // Map field names to collected values
                 const fieldValues = {
-                    'exercise_id': currentEditingExerciseId || 'will-be-generated',
+                    'id': currentEditingExerciseId || 'will-be-generated',
                     'canonical_name': name,
                     'pt_category': category,
                     'description': description,
@@ -1610,7 +1729,7 @@
 
             // Build exercise object in exercise_library.json format
             const exercise = {
-                exercise_id: currentEditingExerciseId || generateULID(),
+                id: currentEditingExerciseId || generateULID(),
                 canonical_name: name,
                 pt_category: category || null,
                 description: description || null,
@@ -1643,14 +1762,13 @@
                 updated_date: null
             };
 
-            // Add legacy format for backward compatibility
-            exercise.id = exercise.exercise_id;
+            // Add legacy name aliases for compatibility
             exercise.name = name;
             exercise.title = name;
 
             if (currentEditingExerciseId) {
                 modifications.editedExercises[currentEditingExerciseId] = exercise;
-                const index = exerciseLibrary.findIndex(ex => (ex.id || ex.exercise_id) === currentEditingExerciseId);
+                const index = exerciseLibrary.findIndex(ex => ex.id === currentEditingExerciseId);
                 if (index !== -1) {
                     exerciseLibrary[index] = exercise;
                 }
@@ -1792,11 +1910,42 @@
             currentRolesDiv.innerHTML = html;
         }
 
+        function toggleCustomInput(field) {
+            const selectElem = document.getElementById(`new-role-${field}`);
+            const customElem = document.getElementById(`new-role-${field}-custom`);
+
+            if (selectElem.value === '__custom__') {
+                customElem.style.display = 'block';
+                customElem.focus();
+            } else {
+                customElem.style.display = 'none';
+                customElem.value = '';
+            }
+        }
+
         function addRoleToExercise() {
             const exerciseId = document.getElementById('role-exercise-select').value;
-            const region = document.getElementById('new-role-region').value;
-            const capacity = document.getElementById('new-role-capacity').value;
-            const focus = document.getElementById('new-role-focus').value.trim();
+
+            // Get region value (from select or custom input)
+            let region = document.getElementById('new-role-region').value;
+            if (region === '__custom__') {
+                region = document.getElementById('new-role-region-custom').value.trim();
+            }
+
+            // Get capacity value (from select or custom input)
+            let capacity = document.getElementById('new-role-capacity').value;
+            if (capacity === '__custom__') {
+                capacity = document.getElementById('new-role-capacity-custom').value.trim();
+            }
+
+            // Get focus value (from select or custom input)
+            let focus = document.getElementById('new-role-focus').value;
+            if (focus === '__custom__') {
+                focus = document.getElementById('new-role-focus-custom').value.trim();
+            } else {
+                focus = focus.trim();
+            }
+
             const contribution = document.getElementById('new-role-contribution').value;
 
             if (!exerciseId || !region || !capacity || !contribution) {
@@ -1825,6 +1974,13 @@
             document.getElementById('new-role-capacity').value = '';
             document.getElementById('new-role-focus').value = '';
             document.getElementById('new-role-contribution').value = '';
+            // Hide and clear custom inputs
+            document.getElementById('new-role-region-custom').style.display = 'none';
+            document.getElementById('new-role-region-custom').value = '';
+            document.getElementById('new-role-capacity-custom').style.display = 'none';
+            document.getElementById('new-role-capacity-custom').value = '';
+            document.getElementById('new-role-focus-custom').style.display = 'none';
+            document.getElementById('new-role-focus-custom').value = '';
 
             // Refresh display
             loadExerciseRoles();
@@ -1911,6 +2067,162 @@
             alert(`Definition for "${term}" updated! Remember to export modifications when done.`);
         }
 
+        function loadExerciseDosage() {
+            const exerciseId = document.getElementById('dosage-exercise-select').value;
+            const currentDosageDisplay = document.getElementById('current-dosage-display');
+            const editDosageForm = document.getElementById('edit-dosage-form');
+
+            if (!exerciseId) {
+                currentDosageDisplay.style.display = 'none';
+                editDosageForm.style.display = 'none';
+                return;
+            }
+
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+            if (!exercise) return;
+
+            const spec = exercise.current || {};
+            const modifiers = exercise.pattern_modifiers || [];
+
+            // Display current dosage
+            let currentHtml = '<h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">Current Dosage:</h4>';
+            if (spec.sets) {
+                let dosageText = `${spec.sets} sets`;
+                if (spec.repsPerSet && !modifiers.includes('duration_seconds') && !modifiers.includes('distance_feet')) {
+                    dosageText += ` × ${spec.repsPerSet} reps`;
+                }
+                if (spec.secondsPerRep && spec.secondsPerRep > 0) {
+                    dosageText += ` × ${spec.secondsPerRep}s`;
+                }
+                if (spec.distanceFeet && spec.distanceFeet > 0) {
+                    dosageText += ` × ${spec.distanceFeet}ft`;
+                }
+                currentHtml += `<div style="padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 15px; font-weight: 600;">${dosageText}</div>`;
+            } else {
+                currentHtml += '<div style="color: var(--text-secondary); font-size: 13px;">No dosage set yet</div>';
+            }
+
+            // Check if there's a pending change
+            if (modifications.dosageChanges[exerciseId]) {
+                const pendingSpec = modifications.dosageChanges[exerciseId];
+                let pendingText = `${pendingSpec.sets} sets`;
+                if (pendingSpec.repsPerSet && !modifiers.includes('duration_seconds') && !modifiers.includes('distance_feet')) {
+                    pendingText += ` × ${pendingSpec.repsPerSet} reps`;
+                }
+                if (pendingSpec.secondsPerRep && pendingSpec.secondsPerRep > 0) {
+                    pendingText += ` × ${pendingSpec.secondsPerRep}s`;
+                }
+                if (pendingSpec.distanceFeet && pendingSpec.distanceFeet > 0) {
+                    pendingText += ` × ${pendingSpec.distanceFeet}ft`;
+                }
+                currentHtml += '<h4 style="font-size: 14px; margin: 15px 0 10px; color: var(--ios-green);">Pending Change (will be exported):</h4>';
+                currentHtml += `<div style="padding: 8px; background: rgba(48, 209, 88, 0.1); border: 1px solid var(--ios-green); border-radius: 6px; margin-bottom: 6px; font-size: 15px; font-weight: 600;">${pendingText}</div>`;
+            }
+
+            currentDosageDisplay.innerHTML = currentHtml;
+            currentDosageDisplay.style.display = 'block';
+
+            // Populate edit form
+            document.getElementById('dosage-sets').value = spec.sets || '';
+            document.getElementById('dosage-reps').value = spec.repsPerSet || '';
+            document.getElementById('dosage-seconds').value = spec.secondsPerRep || '';
+            document.getElementById('dosage-distance').value = spec.distanceFeet || '';
+
+            // Show/hide fields based on modifiers
+            const repsGroup = document.getElementById('dosage-reps-group');
+            const secondsGroup = document.getElementById('dosage-seconds-group');
+            const secondsLabel = document.getElementById('dosage-seconds-label');
+            const distanceGroup = document.getElementById('dosage-distance-group');
+
+            const hasHold = modifiers.includes('hold_seconds');
+            const hasDuration = modifiers.includes('duration_seconds');
+            const hasDistance = modifiers.includes('distance_feet');
+
+            if (hasDuration || hasDistance) {
+                repsGroup.style.display = 'none';
+            } else {
+                repsGroup.style.display = 'block';
+            }
+
+            if (hasHold || hasDuration) {
+                secondsGroup.style.display = 'block';
+                secondsLabel.textContent = hasHold ? 'Hold Seconds (per rep) *' : 'Duration (seconds) *';
+            } else {
+                secondsGroup.style.display = 'none';
+            }
+
+            distanceGroup.style.display = hasDistance ? 'block' : 'none';
+
+            editDosageForm.style.display = 'block';
+        }
+
+        function updateDosage() {
+            const exerciseId = document.getElementById('dosage-exercise-select').value;
+            const sets = parseInt(document.getElementById('dosage-sets').value);
+            let reps = parseInt(document.getElementById('dosage-reps').value);
+            const seconds = parseInt(document.getElementById('dosage-seconds').value) || 0;
+            const distance = parseInt(document.getElementById('dosage-distance').value) || 0;
+
+            if (!exerciseId) {
+                alert('Please select an exercise');
+                return;
+            }
+
+            if (!sets || sets < 1) {
+                alert('Please enter valid sets');
+                return;
+            }
+
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+            if (!exercise) return;
+
+            const modifiers = exercise.pattern_modifiers || [];
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+            if (replacesReps) {
+                reps = 1;
+            } else {
+                if (!reps || reps < 1) {
+                    alert('Please enter valid reps');
+                    return;
+                }
+            }
+
+            // Validate required fields
+            if (modifiers.includes('hold_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid seconds for this hold exercise');
+                return;
+            }
+            if (modifiers.includes('duration_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid duration in seconds');
+                return;
+            }
+            if (modifiers.includes('distance_feet') && (!distance || distance < 1)) {
+                alert('Please enter valid distance in feet');
+                return;
+            }
+
+            const newSpec = {
+                type: modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
+                sets: sets,
+                repsPerSet: reps,
+                secondsPerRep: seconds
+            };
+
+            if (modifiers.includes('distance_feet') && distance > 0) {
+                newSpec.distanceFeet = distance;
+            }
+
+            // Add to modifications
+            modifications.dosageChanges[exerciseId] = newSpec;
+
+            // Refresh display
+            loadExerciseDosage();
+            updateModificationSummary();
+
+            alert('Dosage updated! Remember to export modifications when done.');
+        }
+
         function updateModificationSummary() {
             const summaryDiv = document.getElementById('mod-summary');
             const contentDiv = document.getElementById('mod-summary-content');
@@ -1921,9 +2233,10 @@
             const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
             const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
             const editedRoleCount = Object.keys(modifications.editedRoles).length;
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
             const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
-            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && deletedRoleCount === 0 && editedRoleCount === 0 && updatedVocabCount === 0) {
+            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && deletedRoleCount === 0 && editedRoleCount === 0 && dosageChangeCount === 0 && updatedVocabCount === 0) {
                 summaryDiv.style.display = 'none';
                 return;
             }
@@ -1948,6 +2261,9 @@
             }
             if (editedRoleCount > 0) {
                 html += `<div style="margin-bottom: 6px;">✏️ <strong>${editedRoleCount}</strong> exercise role${editedRoleCount > 1 ? 's' : ''} edited</div>`;
+            }
+            if (dosageChangeCount > 0) {
+                html += `<div style="margin-bottom: 6px;">💊 <strong>${dosageChangeCount}</strong> dosage${dosageChangeCount > 1 ? 's' : ''} updated</div>`;
             }
             if (updatedVocabCount > 0) {
                 html += `<div style="margin-bottom: 6px;">✅ <strong>${updatedVocabCount}</strong> vocabulary definition${updatedVocabCount > 1 ? 's' : ''} updated</div>`;
@@ -1975,46 +2291,18 @@
             }
 
             try {
-                // Extract JSON between markers
-                const startMarker = '--START_PT_DATA--';
-                const endMarker = '--END_PT_DATA--';
-
-                const startIdx = pastedContent.indexOf(startMarker);
-                const endIdx = pastedContent.indexOf(endMarker);
-
-                if (startIdx === -1 || endIdx === -1) {
-                    alert('Invalid format: Could not find data markers.\n\nMake sure you pasted the entire email content.');
+                const parsed = await ptPayloadUtils.parseV2FromText(pastedContent, 'PT_DATA');
+                if (parsed.errors.length > 0) {
+                    alert(parsed.errors.join('\n\n'));
                     return;
                 }
 
-                const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
-
-                // Extract and verify checksum if present
-                const checksumMatch = pastedContent.match(/--CHECKSUM:([a-f0-9]{64})--/);
-                const sizeMatch = pastedContent.match(/--SIZE:(\d+)--/);
-
-                if (checksumMatch && sizeMatch) {
-                    const expectedChecksum = checksumMatch[1];
-                    const expectedSize = parseInt(sizeMatch[1]);
-
-                    // Verify size
-                    const actualSize = new TextEncoder().encode(jsonStr).length;
-                    if (actualSize !== expectedSize) {
-                        if (!confirm(`⚠️ Data size mismatch!\n\nExpected: ${expectedSize} bytes\nReceived: ${actualSize} bytes\n\nThe data may be incomplete or corrupted. Continue anyway?`)) {
-                            return;
-                        }
-                    }
-
-                    // Verify checksum
-                    const actualChecksum = await calculateSHA256(jsonStr);
-                    if (actualChecksum !== expectedChecksum) {
-                        if (!confirm(`⚠️ Checksum verification failed!\n\nThe data may have been corrupted during transfer. Continue anyway?`)) {
-                            return;
-                        }
-                    }
+                if (parsed.type !== 'PT_DATA') {
+                    alert(`Invalid payload type: ${parsed.type}. Expected PT_DATA.`);
+                    return;
                 }
 
-                const reportData = JSON.parse(jsonStr);
+                const reportData = parsed.obj;
 
                 // Load the data
                 sessionHistory = reportData.sessionHistory || [];
@@ -2023,6 +2311,14 @@
                 schema = reportData.schema || {};
                 vocabulary = reportData.vocabulary || {};
 
+                // Migrate exercise_id → id (one-time, idempotent)
+                exerciseLibrary.forEach(ex => {
+                    if (ex.exercise_id && !ex.id) {
+                        ex.id = ex.exercise_id;
+                        delete ex.exercise_id;
+                    }
+                });
+
                 console.log('[Import] Loaded report:', {
                     sessions: sessionHistory.length,
                     exercises: exerciseLibrary.length
@@ -2030,7 +2326,35 @@
 
                 closeImportPasteModal();
                 document.getElementById('import-screen').style.display = 'none';
-                init();
+
+                // Show patient note if present
+                if (reportData.noteForPT) {
+                    document.getElementById('patient-note').textContent = reportData.noteForPT;
+                    document.getElementById('patient-note-section').style.display = 'block';
+                } else {
+                    document.getElementById('patient-note-section').style.display = 'none';
+                }
+
+                // Show report header with export date
+                const reportHeader = document.querySelector('.report-header');
+                reportHeader.style.display = 'block';
+                document.getElementById('report-date').textContent = `Report Date: ${new Date(reportData.exportDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}`;
+
+                // Show action buttons
+                document.getElementById('action-buttons').style.display = 'flex';
+
+                // Show and render all report sections
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'block');
+
+                renderOverallMetrics();
+                renderCoverageSummary();
+                renderRecentActivity();
+                renderExerciseHistory();
 
                 alert(`Patient report loaded!\n\nDate: ${reportData.exportDate}\n${reportData.noteForPT ? 'Note: ' + reportData.noteForPT : ''}`);
             } catch (err) {
@@ -2039,13 +2363,12 @@
             }
         }
 
-        // Calculate SHA-256 checksum for data integrity
-        async function calculateSHA256(text) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(text);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        async function buildModificationsExport() {
+            return {
+                exportDate: new Date().toISOString(),
+                modificationType: 'PT_MODIFICATIONS',
+                modifications: modifications
+            };
         }
 
         function showExportEmailModal() {
@@ -2055,9 +2378,10 @@
             const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
             const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
             const editedRoleCount = Object.keys(modifications.editedRoles).length;
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
             const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
 
-            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && deletedRoleCount === 0 && editedRoleCount === 0 && updatedVocabCount === 0) {
+            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && deletedRoleCount === 0 && editedRoleCount === 0 && dosageChangeCount === 0 && updatedVocabCount === 0) {
                 alert('No modifications to export');
                 return;
             }
@@ -2075,30 +2399,30 @@
             document.getElementById('export-email-modal').style.display = 'none';
         }
 
+        async function copyModificationsPayload() {
+            const exportData = await buildModificationsExport();
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_MODIFICATIONS', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied. Paste it into the PT Tracker import screen.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
+
         async function sendModificationsToPatient() {
             const patientEmail = document.getElementById('patient-email').value.trim();
             const message = document.getElementById('pt-message').value.trim();
 
-            if (!patientEmail) {
-                alert('Please enter patient\'s email address');
-                return;
+            // Save patient email for next time
+            if (patientEmail) {
+                localStorage.setItem('patient_email_address', patientEmail);
             }
 
-            // Save patient email for next time
-            localStorage.setItem('patient_email_address', patientEmail);
-
-            const exportData = {
-                exportDate: new Date().toISOString(),
-                modificationType: 'PT_MODIFICATIONS',
-                modifications: modifications
-            };
-
-            const jsonData = JSON.stringify(exportData, null, 2);
+            const exportData = await buildModificationsExport();
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_MODIFICATIONS', obj: exportData });
             const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-            // Calculate checksum for data integrity
-            const checksum = await calculateSHA256(jsonData);
-            const byteLength = new TextEncoder().encode(jsonData).length;
 
             // Count modifications for summary
             const newExCount = modifications.newExercises.length;
@@ -2106,6 +2430,7 @@
             const archivedExCount = modifications.archivedExercises.length;
             const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
             const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
 
             let summary = '';
             if (newExCount > 0) summary += `• ${newExCount} new exercise${newExCount > 1 ? 's' : ''}\n`;
@@ -2113,31 +2438,16 @@
             if (archivedExCount > 0) summary += `• ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}\n`;
             if (newRoleCount > 0) summary += `• ${newRoleCount} new role${newRoleCount > 1 ? 's' : ''} assigned\n`;
             if (deletedRoleCount > 0) summary += `• ${deletedRoleCount} role${deletedRoleCount > 1 ? 's' : ''} deleted\n`;
+            if (dosageChangeCount > 0) summary += `• ${dosageChangeCount} dosage${dosageChangeCount > 1 ? 's' : ''} updated\n`;
 
-            // Format email body with markers and verification
+            // Format email body with V2 payload block
             const emailBody = `Hi,
 
 ${message ? message + '\n\n' : ''}I've made the following modifications to your PT program:
 
 ${summary}
 Please paste the data below into your PT Tracker app to receive the updates.
-
-════════════════════════════════════════
-   PT MODIFICATIONS
-   Date: ${dateStr}
-   Checksum: ${checksum.substring(0, 16)}
-   Size: ${byteLength} bytes
-════════════════════════════════════════
-
---START_PT_MODIFICATIONS--
-${jsonData}
---END_PT_MODIFICATIONS--
---CHECKSUM:${checksum}--
---SIZE:${byteLength}--
-
-════════════════════════════════════════
-   END OF PT MODIFICATIONS
-════════════════════════════════════════`;
+${payload}`;
 
             const subject = `PT Program Updates - ${dateStr}`;
 
