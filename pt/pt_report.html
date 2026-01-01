@@ -964,7 +964,7 @@
                 .forEach(([id, data]) => {
                     const lastSession = data.sessions[data.sessions.length - 1];
                     const lastDate = new Date(lastSession.date);
-                    const daysAgo = Math.max(0, Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24)));
+                    const daysAgo = Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24));
 
                     // Look up exercise to check metric type
                     const exercise = exerciseLibrary.find(ex => ex.id === id);
