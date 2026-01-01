@@ -302,11 +302,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="ex-category">PT Category <span style="font-size: 11px; color: var(--text-secondary);">(select from schema)</span></label>
-                        <input type="text" id="ex-category" class="form-input" list="pt-category-options" placeholder="Select or type">
-                        <datalist id="pt-category-options">
+                        <label class="form-label" for="ex-category">PT Category</label>
+                        <select id="ex-category" class="form-select" onchange="toggleCustomInputById('ex-category')">
+                            <option value="">-- Select --</option>
                             <!-- Populated from schema dynamically -->
-                        </datalist>
+                        </select>
+                        <input type="text" id="ex-category-custom" class="form-input" placeholder="Enter custom category" style="display: none; margin-top: 8px;">
                     </div>
 
                     <div class="form-group">
@@ -668,7 +669,7 @@
             ],
             fields: {
                 canonical_name: { id: 'ex-name', trim: true, normalize: 'title' },
-                pt_category: { id: 'ex-category', trim: true, nullIfBlank: true, normalize: 'lower_snake' },
+                pt_category: { id: 'ex-category', trim: true, nullIfBlank: true, normalize: 'lower_snake', useCustomSelect: true },
                 description: { id: 'ex-desc', trim: true, nullIfBlank: true },
                 pattern: { id: 'ex-pattern', trim: true }
             },
@@ -1200,10 +1201,16 @@
                 vocabulary
             });
 
-            exerciseFormModule.populatePtCategoryDatalist({
-                datalistId: 'pt-category-options',
-                schema
-            });
+            // Populate PT category dropdown
+            const ptCategoryOptions = exerciseFormModule.getPtCategoryOptions({ schema, exerciseLibrary });
+            const ptCategorySelect = document.getElementById('ex-category');
+            if (ptCategorySelect) {
+                const optionsHtml = exerciseFormModule.buildSelectOptionsHtml(ptCategoryOptions, {
+                    placeholder: '-- Select --',
+                    includeCustom: true
+                });
+                ptCategorySelect.innerHTML = optionsHtml;
+            }
 
             exerciseFormModule.populateVocabCategorySelect({
                 selectId: 'vocab-category',
@@ -1464,6 +1471,8 @@
                 // Clear form for new exercise
                 document.getElementById('ex-name').value = '';
                 document.getElementById('ex-category').value = '';
+                document.getElementById('ex-category-custom').style.display = 'none';
+                document.getElementById('ex-category-custom').value = '';
                 document.getElementById('ex-desc').value = '';
                 document.getElementById('ex-pattern').value = '';
                 clearAllArrayFields();
@@ -1583,6 +1592,8 @@
             // Clear form
             document.getElementById('ex-name').value = '';
             document.getElementById('ex-category').value = '';
+            document.getElementById('ex-category-custom').style.display = 'none';
+            document.getElementById('ex-category-custom').value = '';
             document.getElementById('ex-desc').value = '';
             document.getElementById('ex-pattern').value = '';
             clearAllArrayFields();

@@ -277,6 +277,23 @@
         return Array.from(options).sort();
     }
 
+    function getPtCategoryOptions({ schema, exerciseLibrary }) {
+        const options = new Set();
+        const exerciseSchema = getExerciseSchema(schema);
+        const enumValues = exerciseSchema?.properties?.pt_category?.enum || [];
+        enumValues.forEach(item => options.add(item));
+
+        if (exerciseLibrary && exerciseLibrary.length > 0) {
+            exerciseLibrary.forEach(ex => {
+                if (ex.pt_category) {
+                    options.add(ex.pt_category);
+                }
+            });
+        }
+
+        return Array.from(options).sort();
+    }
+
     function getFormParameterOptions({ schema, exerciseLibrary }) {
         const options = new Set();
         const exerciseSchema = getExerciseSchema(schema);
@@ -683,6 +700,7 @@
         populatePatternModifiersHelp,
         getPatternModifierOptions,
         getEquipmentOptions,
+        getPtCategoryOptions,
         getFormParameterOptions,
         populateRoleSelects,
         populateVocabCategorySelect,
