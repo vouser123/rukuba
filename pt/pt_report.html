@@ -1567,6 +1567,35 @@
             // Show archive button
             archiveBtn.style.display = 'block';
             currentEditingExerciseId = exerciseId;
+
+            // Auto-expand sections that have data (so user can see loaded values)
+            const sectionsWithData = [];
+            if (exercise.primary_muscles?.length > 0 || exercise.secondary_muscles?.length > 0) {
+                sectionsWithData.push('muscles');
+            }
+            if (exercise.pattern_modifiers?.length > 0) {
+                sectionsWithData.push('pattern');
+            }
+            if (exercise.equipment?.required?.length > 0 || exercise.equipment?.optional?.length > 0) {
+                sectionsWithData.push('equipment');
+            }
+            if (exercise.form_parameters_required?.length > 0) {
+                sectionsWithData.push('form-params');
+            }
+            if (exercise.guidance?.external_cues?.length > 0 || exercise.guidance?.motor_cues?.length > 0 ||
+                exercise.guidance?.compensation_warnings?.length > 0 || exercise.guidance?.safety_flags?.length > 0) {
+                sectionsWithData.push('guidance');
+            }
+            if (exercise.tags?.functional?.length > 0 || exercise.tags?.format?.length > 0 || exercise.tags?.heatmap?.length > 0) {
+                sectionsWithData.push('tags');
+            }
+
+            // Open all <details> tags in the exercise form
+            document.querySelectorAll('#exercise-editor details').forEach(details => {
+                details.open = true;  // Expand all sections when editing
+            });
+
+            console.log(`[Editor] Auto-expanded ${sectionsWithData.length} sections with data:`, sectionsWithData);
         }
 
         function saveExercise() {
