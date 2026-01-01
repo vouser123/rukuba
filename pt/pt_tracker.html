@@ -865,6 +865,33 @@
     </div>
 
     <!-- Session Notes Modal -->
+    <!-- Auth Modal -->
+    <div class="modal" id="auth-modal" style="background: rgba(0,0,0,0.6);">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Sign In to Sync</div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--ios-gray); margin-bottom: 16px; text-align: center;">
+                    Sign in to sync your session data across devices
+                </div>
+                <input type="email" class="modal-input" id="auth-email" placeholder="Email" autocomplete="email">
+                <input type="password" class="modal-input" id="auth-password" placeholder="Password" autocomplete="current-password">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 0 4px;">
+                    <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px; cursor: pointer;">
+                    <label for="auth-remember" style="font-size: 15px; color: var(--text-secondary); cursor: pointer;">Remember me</label>
+                </div>
+                <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; margin-bottom: 12px; text-align: center;"></div>
+                <div style="text-align: center; margin-bottom: 12px;">
+                    <a href="#" id="auth-forgot-password" style="color: var(--ios-blue); font-size: 14px; text-decoration: none;">Forgot Password?</a>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" id="auth-signup-btn">Sign Up</button>
+                <button class="modal-save" id="auth-signin-btn">Sign In</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="session-notes-modal" onclick="if(event.target === this) closeSessionNotesModal()">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
@@ -1476,7 +1503,17 @@
     <script type="module" src="firebase.js"></script>
     <script type="module">
         import { db } from './firebase.js';
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import {
+            auth,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence
+        } from './firebase.js';
+        import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         import { collection, addDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
@@ -1490,6 +1527,154 @@
         const APP_VERSION = 'v1.5.9'; // Updated: 2025-12-27 - Equipment editing with dynamic library and add-new capability
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
+
+        // Auth state
+        let currentUser = null;
+        let isAuthReady = false;
+
+        // Auth UI functions
+        function showAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            modal.classList.add('active');
+            document.getElementById('auth-email').focus();
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            modal.classList.remove('active');
+            document.getElementById('auth-error').style.display = 'none';
+            document.getElementById('auth-email').value = '';
+            document.getElementById('auth-password').value = '';
+        }
+
+        function showAuthError(message) {
+            const errorDiv = document.getElementById('auth-error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        async function handleSignIn() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Please enter email and password');
+                return;
+            }
+
+            try {
+                // Set persistence based on remember me
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+
+                // Sign in
+                await signInWithEmailAndPassword(auth, email, password);
+                hideAuthModal();
+                console.log('[Auth] Signed in successfully');
+            } catch (error) {
+                console.error('[Auth] Sign in error:', error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showAuthError('Invalid email or password');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Invalid email address');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Try again later');
+                } else {
+                    showAuthError('Sign in failed. Please try again');
+                }
+            }
+        }
+
+        async function handleSignUp() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Please enter email and password');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAuthError('Password must be at least 6 characters');
+                return;
+            }
+
+            try {
+                // Set persistence based on remember me
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+
+                // Create account
+                await createUserWithEmailAndPassword(auth, email, password);
+                hideAuthModal();
+                console.log('[Auth] Account created successfully');
+            } catch (error) {
+                console.error('[Auth] Sign up error:', error);
+                if (error.code === 'auth/email-already-in-use') {
+                    showAuthError('Email already in use. Try signing in instead');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Invalid email address');
+                } else if (error.code === 'auth/weak-password') {
+                    showAuthError('Password is too weak');
+                } else {
+                    showAuthError('Sign up failed. Please try again');
+                }
+            }
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value.trim();
+
+            if (!email) {
+                showAuthError('Please enter your email address first');
+                return;
+            }
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showAuthError(''); // Clear error
+                alert(`Password reset email sent to ${email}.\n\nCheck your inbox and spam folder.`);
+            } catch (error) {
+                console.error('[Auth] Password reset error:', error);
+                if (error.code === 'auth/user-not-found') {
+                    showAuthError('No account found with this email');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Invalid email address');
+                } else {
+                    showAuthError('Failed to send reset email. Try again');
+                }
+            }
+        }
+
+        // Auth state listener
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            isAuthReady = true;
+
+            if (user) {
+                console.log('[Auth] User signed in:', user.email);
+                firestoreUserId = user.uid; // Set for runtime sync
+                hideAuthModal();
+
+                // Flush queue when authenticated
+                if (navigator.onLine) {
+                    flushFirestoreQueue();
+                }
+
+                // Sync runtime if pending
+                if (runtimeSyncPending) {
+                    runtimeSyncPending = false;
+                    syncRuntimeToFirestore();
+                }
+            } else {
+                console.log('[Auth] No user signed in');
+                firestoreUserId = null;
+                showAuthModal();
+            }
+        });
 
         /**
          * SESSION ID TRACKING
@@ -1516,7 +1701,7 @@
         let sessionPlan = []; // Array of exercise IDs planned for today
         let sessionPlanCompleted = new Set(); // IDs of completed exercises
 
-        const auth = getAuth();
+        // Runtime sync state
         let firestoreUserId = null;
         let runtimeSyncPending = false;
         let runtimeSyncInFlight = false;
@@ -1634,13 +1819,23 @@
         }
 
         async function flushFirestoreQueue() {
+            // Only flush if authenticated
+            if (!currentUser) {
+                console.log('[Firestore] Skipping queue flush - not authenticated');
+                return;
+            }
+
             const queue = loadFirestoreQueue();
             if (queue.length === 0) return;
+
+            console.log(`[Firestore] Flushing ${queue.length} queued sessions for user ${currentUser.uid}`);
 
             const remaining = [];
             for (const session of queue) {
                 try {
-                    await addDoc(collection(db, "sessions"), session);
+                    // Write to user-scoped collection
+                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), session);
+                    console.log('[Firestore] Queued session synced:', session.sessionId);
                 } catch (error) {
                     console.error("Firestore queued write failed:", error);
                     remaining.push(session);
@@ -1648,6 +1843,11 @@
             }
 
             saveFirestoreQueue(remaining);
+            if (remaining.length === 0) {
+                console.log('[Firestore] Queue flush complete - all sessions synced');
+            } else {
+                console.log(`[Firestore] Queue flush complete - ${remaining.length} sessions remain queued`);
+            }
         }
 
         window.addEventListener('online', () => {
@@ -3529,16 +3729,27 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
             void syncRuntimeToFirestore();
 
-            // Write finalized session to Firestore
+            // Write finalized session to Firestore (user-scoped)
             try {
                 const finalizedSession = sessions[sessions.length - 1];
-                addDoc(collection(db, "sessions"), finalizedSession).catch((error) => {
-                    console.error("Firestore write failed:", error);
+
+                if (currentUser) {
+                    // User is authenticated - attempt direct write
+                    addDoc(collection(db, `users/${currentUser.uid}/sessions`), finalizedSession)
+                        .then(() => {
+                            console.log('[Firestore] Session synced immediately:', finalizedSession.sessionId);
+                        })
+                        .catch((error) => {
+                            console.error('[Firestore] Write failed, queueing session:', error);
+                            enqueueFirestoreSession(finalizedSession);
+                        });
+                } else {
+                    // Not authenticated - queue for later
+                    console.log('[Firestore] Not authenticated, queueing session');
                     enqueueFirestoreSession(finalizedSession);
-                    // Do not throw - allow localStorage flow to continue
-                });
+                }
             } catch (error) {
-                console.error("Error preparing Firestore write:", error);
+                console.error('[Firestore] Error preparing write:', error);
                 enqueueFirestoreSession(sessions[sessions.length - 1]);
                 // Do not throw - allow localStorage flow to continue
             }
@@ -7291,6 +7502,18 @@ ${payload}`;
             quickSwitchTo,
             toggleExerciseSelection,
             showExerciseDetail
+        });
+
+        // Auth button event listeners
+        document.getElementById('auth-signin-btn').addEventListener('click', handleSignIn);
+        document.getElementById('auth-signup-btn').addEventListener('click', handleSignUp);
+        document.getElementById('auth-forgot-password').addEventListener('click', handleForgotPassword);
+
+        // Allow Enter key to submit auth form
+        document.getElementById('auth-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSignIn();
+            }
         });
 
         // Initialize
