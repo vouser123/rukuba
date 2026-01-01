@@ -627,6 +627,10 @@
     </div>
 
     <script src="pt_payload_utils.js"></script>
+    <script type="module">
+        import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
+        window.ulid = ulid;
+    </script>
     <script>
         let sessionHistory = [];
         let exerciseLibrary = [];
@@ -1272,10 +1276,7 @@
         }
 
         function generateULID() {
-            // Simple ULID-like generator (timestamp + random)
-            const timestamp = Date.now().toString(36).toUpperCase();
-            const random = Math.random().toString(36).substring(2, 15).toUpperCase();
-            return (timestamp + random).padEnd(26, '0').substring(0, 26);
+            return window.ulid();
         }
 
         let currentEditingExerciseId = null; // Track which exercise is being edited

@@ -1477,6 +1477,7 @@
     <script type="module">
         import { db } from './firebase.js';
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         import { collection, addDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         const STORAGE_KEY = 'pt_tracker_data';
@@ -1495,10 +1496,10 @@
          * -------------------
          * Each history entry includes a sessionId to group exercises performed in the same workout session.
          *
-         * Current strategy: Generate a random sessionId once per app load.
+         * Current strategy: Generate a ULID sessionId once per app load.
          * - All exercises completed before closing/refreshing the app share the same sessionId
          * - Different app launches = different sessionIds, even on the same day
-         * - Format: 8-character random alphanumeric string (e.g., "a3f9k2m1")
+         * - Format: 26-character ULID (Crockford Base32)
          *
          * Future: This enables session-based UI features like:
          * - "Today's Workout" view grouping exercises by session
@@ -1506,7 +1507,7 @@
          * - Session planning (which exercises in what order)
          */
         function generateSessionId() {
-            return Math.random().toString(36).substring(2, 10);
+            return ulid();
         }
 
         let currentSessionId = generateSessionId();

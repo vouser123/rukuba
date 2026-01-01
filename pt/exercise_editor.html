@@ -347,25 +347,13 @@
     </div>
 
     <script src="pt_payload_utils.js"></script>
+    <script type="module">
+        import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
+        window.ulid = ulid;
+    </script>
     <script>
-        // ULID generation (Crockford Base32) - ONLY hard-coded exception
         function generateULID() {
-            const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-            const timestamp = Date.now();
-            const randomness = new Uint8Array(10);
-            crypto.getRandomValues(randomness);
-
-            let ulid = '';
-            let ts = timestamp;
-            for (let i = 9; i >= 0; i--) {
-                ulid = ENCODING[ts % 32] + ulid;
-                ts = Math.floor(ts / 32);
-            }
-            for (let i = 0; i < 16; i++) {
-                const byte = i < 10 ? randomness[i] : randomness[i - 10];
-                ulid += ENCODING[byte % 32];
-            }
-            return ulid;
+            return window.ulid();
         }
 
         // State
