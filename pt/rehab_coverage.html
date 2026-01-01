@@ -872,6 +872,14 @@
                     sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
                     const lastSession = sessions[0];
 
+                    // Calculate daysSince by normalizing both dates to midnight for fair comparison
+                    let daysSince = null;
+                    if (lastSession) {
+                        const lastDate = new Date(lastSession.date);
+                        lastDate.setHours(0, 0, 0, 0); // Normalize to midnight
+                        daysSince = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
+                    }
+
                     const exerciseInfo = {
                         id: exerciseId,
                         name: exerciseData.name || exerciseId,
@@ -879,7 +887,7 @@
                         focus: role.focus || null,
                         done: !!lastSession,
                         lastDate: lastSession ? new Date(lastSession.date) : null,
-                        daysSince: lastSession ? Math.floor((today - new Date(lastSession.date)) / (1000 * 60 * 60 * 24)) : null
+                        daysSince: daysSince
                     };
 
                     // Avoid duplicates (exercise might have multiple roles for same bucket)
@@ -982,7 +990,11 @@
                     const mostRecentTimestamp = Math.max(...validDates.map(date => date.getTime()));
                     const mostRecentDate = new Date(mostRecentTimestamp);
                     if (!isNaN(mostRecentDate)) {
-                        const daysSince = Math.floor((Date.now() - mostRecentDate.getTime()) / (1000 * 60 * 60 * 24));
+                        // Normalize both dates to midnight for consistent day calculation
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        mostRecentDate.setHours(0, 0, 0, 0);
+                        const daysSince = Math.floor((today - mostRecentDate) / (1000 * 60 * 60 * 24));
                         mostRecentDays = daysSince;
                     }
                 }
