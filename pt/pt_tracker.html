@@ -1492,18 +1492,46 @@
          * -------------------
          * Each history entry includes a sessionId to group exercises performed in the same workout session.
          *
-         * Current strategy: Generate a random sessionId once per app load.
+         * Uses ULID (Universally Unique Lexicographically Sortable Identifier):
          * - All exercises completed before closing/refreshing the app share the same sessionId
          * - Different app launches = different sessionIds, even on the same day
-         * - Format: 8-character random alphanumeric string (e.g., "a3f9k2m1")
+         * - Format: 26-character ULID (Crockford Base32) with millisecond timestamp
+         * - Sortable by creation time (timestamp embedded in first 10 chars)
+         * - Collision probability: ~1 in 1.2 septillion
          *
-         * Future: This enables session-based UI features like:
+         * Benefits:
+         * - Consistent with exercise IDs (both use ULID)
+         * - Sessions naturally sorted by start time
+         * - Future-proof for multi-device sync
+         *
+         * Enables session-based UI features:
          * - "Today's Workout" view grouping exercises by session
          * - Session history browser
          * - Session planning (which exercises in what order)
          */
+
+        // ULID generation (Crockford Base32)
+        function generateULID() {
+            const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+            const timestamp = Date.now();
+            const randomness = new Uint8Array(10);
+            crypto.getRandomValues(randomness);
+
+            let ulid = '';
+            let ts = timestamp;
+            for (let i = 9; i >= 0; i--) {
+                ulid = ENCODING[ts % 32] + ulid;
+                ts = Math.floor(ts / 32);
+            }
+            for (let i = 0; i < 16; i++) {
+                const byte = i < 10 ? randomness[i] : randomness[i - 10];
+                ulid += ENCODING[byte % 32];
+            }
+            return ulid;
+        }
+
         function generateSessionId() {
-            return Math.random().toString(36).substring(2, 10);
+            return generateULID();
         }
 
         let currentSessionId = generateSessionId();
