@@ -888,7 +888,10 @@
     <div class="modal" id="auth-modal" style="background: rgba(0,0,0,0.6);">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
-            <div class="modal-title">Sign In to Sync</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
+                <div class="modal-title">Sign In to Sync</div>
+                <button id="auth-skip-btn" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Skip</button>
+            </div>
             <div class="modal-form">
                 <div style="font-size: 15px; color: var(--ios-gray); margin-bottom: 16px; text-align: center;">
                     Sign in to sync your session data across devices
@@ -1713,7 +1716,6 @@
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
                 firestoreUserId = user.uid; // Set for runtime sync
-                hideAuthModal();
                 updateMenuAuthDisplay(); // Update menu
 
                 // Flush queue when authenticated
@@ -1727,9 +1729,8 @@
                     syncRuntimeToFirestore();
                 }
             } else {
-                console.log('[Auth] No user signed in');
+                console.log('[Auth] No user signed in - app will work offline only');
                 firestoreUserId = null;
-                showAuthModal();
                 updateMenuAuthDisplay(); // Update menu
             }
         });
@@ -7566,6 +7567,7 @@ ${payload}`;
         document.getElementById('auth-signin-btn').addEventListener('click', handleSignIn);
         document.getElementById('auth-signup-btn').addEventListener('click', handleSignUp);
         document.getElementById('auth-forgot-password').addEventListener('click', handleForgotPassword);
+        document.getElementById('auth-skip-btn').addEventListener('click', hideAuthModal);
 
         // Menu auth button event listeners
         document.getElementById('menu-signin-btn').addEventListener('click', handleMenuSignIn);
@@ -7577,6 +7579,16 @@ ${payload}`;
                 handleSignIn();
             }
         });
+
+        // Check for #signin hash (from coverage page redirect)
+        if (window.location.hash === '#signin') {
+            window.location.hash = ''; // Clear hash
+            setTimeout(() => {
+                if (!currentUser) {
+                    showAuthModal();
+                }
+            }, 500); // Wait for auth state to be ready
+        }
 
         // Initialize
         loadPreferences(); // Load user preferences
