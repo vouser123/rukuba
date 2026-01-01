@@ -1323,45 +1323,143 @@
             container.appendChild(div);
         }
 
-        function addEquipmentField(type) {
+        function getEquipmentOptions(type) {
+            const options = new Set();
+            if (schema && schema.$defs && schema.$defs.equipment && schema.$defs.equipment.properties[type] && schema.$defs.equipment.properties[type].items) {
+                const enums = schema.$defs.equipment.properties[type].items.enum || [];
+                enums.forEach(item => options.add(item));
+            }
+            if (exerciseLibrary && exerciseLibrary.length > 0) {
+                exerciseLibrary.forEach(ex => {
+                    const items = ex.equipment?.[type] || [];
+                    items.forEach(item => {
+                        if (item) options.add(item);
+                    });
+                });
+            }
+            return Array.from(options).sort();
+        }
+
+        function getFormParameterOptions() {
+            const options = new Set();
+            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.form_parameters_required && schema.$defs.exercise.properties.form_parameters_required.items) {
+                const enums = schema.$defs.exercise.properties.form_parameters_required.items.enum || [];
+                enums.forEach(item => options.add(item));
+            }
+            if (exerciseLibrary && exerciseLibrary.length > 0) {
+                exerciseLibrary.forEach(ex => {
+                    const items = ex.form_parameters_required || [];
+                    items.forEach(item => {
+                        if (item) options.add(item);
+                    });
+                });
+            }
+            return Array.from(options).sort();
+        }
+
+        function toggleCustomInputById(selectId) {
+            const selectElem = document.getElementById(selectId);
+            const customElem = document.getElementById(`${selectId}-custom`);
+
+            if (!selectElem || !customElem) return;
+
+            if (selectElem.value === '__custom__') {
+                customElem.style.display = 'block';
+                customElem.focus();
+            } else {
+                customElem.style.display = 'none';
+                customElem.value = '';
+            }
+        }
+
+        function setSelectValueWithCustom(selectId, value) {
+            const selectElem = document.getElementById(selectId);
+            const customElem = document.getElementById(`${selectId}-custom`);
+
+            if (!selectElem) return;
+
+            if (!value) {
+                selectElem.value = '';
+                if (customElem) {
+                    customElem.style.display = 'none';
+                    customElem.value = '';
+                }
+                return;
+            }
+
+            const optionExists = Array.from(selectElem.options).some(option => option.value === value);
+            if (optionExists) {
+                selectElem.value = value;
+                if (customElem) {
+                    customElem.style.display = 'none';
+                    customElem.value = '';
+                }
+            } else {
+                selectElem.value = '__custom__';
+                if (customElem) {
+                    customElem.style.display = 'block';
+                    customElem.value = value;
+                }
+            }
+        }
+
+        function addEquipmentField(type, value = '') {
             const containerId = type === 'required' ? 'equipment-required-list' : 'equipment-optional-list';
             const container = document.getElementById(containerId);
             const index = container.children.length;
 
+            const options = getEquipmentOptions(type);
+            let selectOptions = '<option value="">-- Select --</option>';
+            selectOptions += options.map(item => `<option value="${item}">${item}</option>`).join('');
+            selectOptions += '<option value="__custom__">➕ Other (custom)...</option>';
+
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="equipment-${type}-${index}" placeholder="e.g., swiss_ball, resistance_band" style="flex: 1;">
+                    <div style="flex: 1;">
+                        <select class="form-select" id="equipment-${type}-${index}" onchange="toggleCustomInputById('equipment-${type}-${index}')">
+                            ${selectOptions}
+                        </select>
+                        <input type="text" class="form-input" id="equipment-${type}-${index}-custom" placeholder="Enter custom equipment" style="display: none; margin-top: 8px;">
+                    </div>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
             container.appendChild(div);
+
+            if (value) {
+                setSelectValueWithCustom(`equipment-${type}-${index}`, value);
+            }
         }
 
-        function addFormParamField() {
+        function addFormParamField(value = '') {
             const container = document.getElementById('form-params-list');
             const index = container.children.length;
 
-            // Build datalist from schema
-            let datalistOptions = '';
-            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.form_parameters_required && schema.$defs.exercise.properties.form_parameters_required.items) {
-                const params = schema.$defs.exercise.properties.form_parameters_required.items.enum || [];
-                datalistOptions = params.map(p => `<option value="${p}">`).join('');
-            }
+            const options = getFormParameterOptions();
+            let selectOptions = '<option value="">-- Select --</option>';
+            selectOptions += options.map(item => `<option value="${item}">${item}</option>`).join('');
+            selectOptions += '<option value="__custom__">➕ Other (custom)...</option>';
 
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="form-param-${index}" placeholder="Select from schema or type custom" list="form-param-options-${index}" style="flex: 1;">
-                    <datalist id="form-param-options-${index}">
-                        ${datalistOptions}
-                    </datalist>
+                    <div style="flex: 1;">
+                        <select class="form-select" id="form-param-${index}" onchange="toggleCustomInputById('form-param-${index}')">
+                            ${selectOptions}
+                        </select>
+                        <input type="text" class="form-input" id="form-param-${index}-custom" placeholder="Enter custom parameter" style="display: none; margin-top: 8px;">
+                    </div>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
             container.appendChild(div);
+
+            if (value) {
+                setSelectValueWithCustom(`form-param-${index}`, value);
+            }
         }
 
         function addGuidanceField(type) {
@@ -1483,27 +1581,21 @@
             // Populate equipment
             if (exercise.equipment) {
                 if (exercise.equipment.required && exercise.equipment.required.length > 0) {
-                    exercise.equipment.required.forEach((eq, idx) => {
-                        addEquipmentField('required');
-                        const input = document.getElementById(`equipment-required-${idx}`);
-                        if (input) input.value = eq;
+                    exercise.equipment.required.forEach(eq => {
+                        addEquipmentField('required', eq);
                     });
                 }
                 if (exercise.equipment.optional && exercise.equipment.optional.length > 0) {
-                    exercise.equipment.optional.forEach((eq, idx) => {
-                        addEquipmentField('optional');
-                        const input = document.getElementById(`equipment-optional-${idx}`);
-                        if (input) input.value = eq;
+                    exercise.equipment.optional.forEach(eq => {
+                        addEquipmentField('optional', eq);
                     });
                 }
             }
 
             // Populate form parameters
             if (exercise.form_parameters_required && exercise.form_parameters_required.length > 0) {
-                exercise.form_parameters_required.forEach((param, idx) => {
-                    addFormParamField();
-                    const input = document.getElementById(`form-param-${idx}`);
-                    if (input) input.value = param;
+                exercise.form_parameters_required.forEach(param => {
+                    addFormParamField(param);
                 });
             }
 
@@ -1596,20 +1688,38 @@
             });
 
             const equipmentRequired = [];
-            document.querySelectorAll('[id^="equipment-required-"]').forEach(input => {
-                const val = input.value.trim();
+            document.querySelectorAll('#equipment-required-list select[id^="equipment-required-"]').forEach(select => {
+                let val = select.value;
+                if (val === '__custom__') {
+                    const customInput = document.getElementById(`${select.id}-custom`);
+                    val = customInput ? customInput.value.trim() : '';
+                } else {
+                    val = val.trim();
+                }
                 if (val) equipmentRequired.push(val);
             });
 
             const equipmentOptional = [];
-            document.querySelectorAll('[id^="equipment-optional-"]').forEach(input => {
-                const val = input.value.trim();
+            document.querySelectorAll('#equipment-optional-list select[id^="equipment-optional-"]').forEach(select => {
+                let val = select.value;
+                if (val === '__custom__') {
+                    const customInput = document.getElementById(`${select.id}-custom`);
+                    val = customInput ? customInput.value.trim() : '';
+                } else {
+                    val = val.trim();
+                }
                 if (val) equipmentOptional.push(val);
             });
 
             const form_parameters_required = [];
-            document.querySelectorAll('[id^="form-param-"]').forEach(input => {
-                const val = input.value.trim();
+            document.querySelectorAll('#form-params-list select[id^="form-param-"]').forEach(select => {
+                let val = select.value;
+                if (val === '__custom__') {
+                    const customInput = document.getElementById(`${select.id}-custom`);
+                    val = customInput ? customInput.value.trim() : '';
+                } else {
+                    val = val.trim();
+                }
                 if (val) form_parameters_required.push(val);
             });
 
@@ -2489,17 +2599,23 @@ ${payload}`;
                 // Set global data
                 sessionHistory = []; // Empty - no patient data
                 // Map exercise_library.json format to expected format
-                exerciseLibrary = (libraryData.exercises || []).map(ex => ({
-                    id: ex.exercise_id,
-                    name: ex.canonical_name,
-                    title: ex.canonical_name,
-                    description: ex.description || '',
-                    instructions: ex.guidance?.external_cues?.join('\n') || '',
-                    videoUrl: ''
-                }));
+                exerciseLibrary = (libraryData.exercises || []).map(ex => {
+                    const id = ex.id || ex.exercise_id;
+                    const canonicalName = ex.canonical_name || ex.name || ex.title || '';
+                    return {
+                        ...ex,
+                        id,
+                        name: canonicalName,
+                        title: canonicalName
+                    };
+                });
                 rolesData = rolesDataRaw;
                 schema = schemaData;
-                vocabulary = vocabData;
+                vocabulary = {
+                    ...vocabData,
+                    regions: vocabData.regions || vocabData.region,
+                    capacities: vocabData.capacities || vocabData.capacity
+                };
 
                 console.log('[PT Mode] Loaded', exerciseLibrary.length, 'exercises from library');
                 console.log('[PT Mode] Sample exercise:', exerciseLibrary[0]);
