@@ -695,6 +695,25 @@
             <button onclick="toggleHamburgerMenu()" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Close</button>
         </div>
         <div style="padding: 0;">
+            <!-- Auth Status -->
+            <div id="menu-auth-section">
+                <!-- Signed In State -->
+                <div id="menu-auth-signed-in" style="display: none;">
+                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-primary);">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Signed in as</div>
+                        <div id="menu-auth-email" style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 12px; word-break: break-all;"></div>
+                        <button id="menu-signout-btn" style="width: 100%; padding: 10px; background: var(--ios-red); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign Out</button>
+                    </div>
+                </div>
+                <!-- Signed Out State -->
+                <div id="menu-auth-signed-out" style="display: none;">
+                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-primary);">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Cloud sync disabled</div>
+                        <button id="menu-signin-btn" style="width: 100%; padding: 10px; background: var(--ios-blue); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign In</button>
+                    </div>
+                </div>
+            </div>
+
             <div onclick="window.location.href='pt_report.html'" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">✏️</span>
                 <span>PT Editor Mode</span>
@@ -1553,6 +1572,43 @@
             errorDiv.style.display = 'block';
         }
 
+        function updateMenuAuthDisplay() {
+            const signedInSection = document.getElementById('menu-auth-signed-in');
+            const signedOutSection = document.getElementById('menu-auth-signed-out');
+            const emailDisplay = document.getElementById('menu-auth-email');
+
+            if (currentUser) {
+                // Show signed in state
+                signedInSection.style.display = 'block';
+                signedOutSection.style.display = 'none';
+                emailDisplay.textContent = currentUser.email;
+            } else {
+                // Show signed out state
+                signedInSection.style.display = 'none';
+                signedOutSection.style.display = 'block';
+            }
+        }
+
+        async function handleMenuSignOut() {
+            try {
+                await signOut(auth);
+                console.log('[Auth] Signed out successfully');
+                // Close menu
+                const toggleMenu = window.toggleHamburgerMenu;
+                if (toggleMenu) toggleMenu();
+            } catch (error) {
+                console.error('[Auth] Sign out error:', error);
+                alert('Failed to sign out. Please try again.');
+            }
+        }
+
+        function handleMenuSignIn() {
+            showAuthModal();
+            // Close menu
+            const toggleMenu = window.toggleHamburgerMenu;
+            if (toggleMenu) toggleMenu();
+        }
+
         async function handleSignIn() {
             const email = document.getElementById('auth-email').value.trim();
             const password = document.getElementById('auth-password').value;
@@ -1658,6 +1714,7 @@
                 console.log('[Auth] User signed in:', user.email);
                 firestoreUserId = user.uid; // Set for runtime sync
                 hideAuthModal();
+                updateMenuAuthDisplay(); // Update menu
 
                 // Flush queue when authenticated
                 if (navigator.onLine) {
@@ -1673,6 +1730,7 @@
                 console.log('[Auth] No user signed in');
                 firestoreUserId = null;
                 showAuthModal();
+                updateMenuAuthDisplay(); // Update menu
             }
         });
 
@@ -7508,6 +7566,10 @@ ${payload}`;
         document.getElementById('auth-signin-btn').addEventListener('click', handleSignIn);
         document.getElementById('auth-signup-btn').addEventListener('click', handleSignUp);
         document.getElementById('auth-forgot-password').addEventListener('click', handleForgotPassword);
+
+        // Menu auth button event listeners
+        document.getElementById('menu-signin-btn').addEventListener('click', handleMenuSignIn);
+        document.getElementById('menu-signout-btn').addEventListener('click', handleMenuSignOut);
 
         // Allow Enter key to submit auth form
         document.getElementById('auth-password').addEventListener('keypress', (e) => {
