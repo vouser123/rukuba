@@ -1476,11 +1476,17 @@
     <script type="module" src="firebase.js"></script>
     <script type="module">
         import { db } from './firebase.js';
-        import { collection, addDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
+        import { collection, addDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
+        const FIRESTORE_QUEUE_KEY = 'pt_firestore_queue';
+        const RECOVERY_STORAGE_KEY = 'pt_session_recovery';
+        const PREFERENCES_STORAGE_KEY = 'pt_preferences';
+        const RUNTIME_UPDATED_KEY = 'pt_runtime_updated_at';
         const APP_VERSION = 'v1.5.9'; // Updated: 2025-12-27 - Equipment editing with dynamic library and add-new capability
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
@@ -1490,10 +1496,10 @@
          * -------------------
          * Each history entry includes a sessionId to group exercises performed in the same workout session.
          *
-         * Current strategy: Generate a random sessionId once per app load.
+         * Current strategy: Generate a ULID sessionId once per app load.
          * - All exercises completed before closing/refreshing the app share the same sessionId
          * - Different app launches = different sessionIds, even on the same day
-         * - Format: 8-character random alphanumeric string (e.g., "a3f9k2m1")
+         * - Format: 26-character ULID (Crockford Base32)
          *
          * Future: This enables session-based UI features like:
          * - "Today's Workout" view grouping exercises by session
@@ -1501,7 +1507,7 @@
          * - Session planning (which exercises in what order)
          */
         function generateSessionId() {
-            return Math.random().toString(36).substring(2, 10);
+            return ulid();
         }
 
         let currentSessionId = generateSessionId();
@@ -1509,6 +1515,148 @@
         // Session planning
         let sessionPlan = []; // Array of exercise IDs planned for today
         let sessionPlanCompleted = new Set(); // IDs of completed exercises
+
+        const auth = getAuth();
+        let firestoreUserId = null;
+        let runtimeSyncPending = false;
+        let runtimeSyncInFlight = false;
+
+        function buildRuntimeSnapshot() {
+            try {
+                const history = localStorage.getItem(STORAGE_KEY);
+                const recovery = localStorage.getItem(RECOVERY_STORAGE_KEY);
+                const preferences = localStorage.getItem(PREFERENCES_STORAGE_KEY);
+                const offlineQueue = localStorage.getItem(FIRESTORE_QUEUE_KEY);
+                const updatedAt = new Date().toISOString();
+
+                localStorage.setItem(RUNTIME_UPDATED_KEY, updatedAt);
+
+                return {
+                    updatedAt,
+                    sessionHistory: history ? JSON.parse(history) : [],
+                    sessionRecovery: recovery ? JSON.parse(recovery) : null,
+                    preferences: preferences ? JSON.parse(preferences) : null,
+                    offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : []
+                };
+            } catch (error) {
+                console.error('Failed to build runtime snapshot:', error);
+                return null;
+            }
+        }
+
+        async function syncRuntimeToFirestore() {
+            if (!firestoreUserId) {
+                runtimeSyncPending = true;
+                return;
+            }
+            if (runtimeSyncInFlight) return;
+            runtimeSyncInFlight = true;
+            try {
+                const snapshot = buildRuntimeSnapshot();
+                if (!snapshot) return;
+                const docRef = doc(db, 'users', firestoreUserId, 'pt_runtime', 'state');
+                await setDoc(docRef, snapshot, { merge: true });
+            } catch (error) {
+                console.error('Failed to sync runtime data to Firestore:', error);
+            } finally {
+                runtimeSyncInFlight = false;
+            }
+        }
+
+        async function loadRuntimeFromFirestore() {
+            if (!firestoreUserId) {
+                runtimeSyncPending = true;
+                return;
+            }
+            try {
+                const docRef = doc(db, 'users', firestoreUserId, 'pt_runtime', 'state');
+                const snapshot = await getDoc(docRef);
+                if (!snapshot.exists()) return;
+
+                const data = snapshot.data();
+                const remoteUpdatedAt = data?.updatedAt;
+                const localUpdatedAt = localStorage.getItem(RUNTIME_UPDATED_KEY);
+                if (!remoteUpdatedAt) return;
+
+                if (!localUpdatedAt || new Date(remoteUpdatedAt) > new Date(localUpdatedAt)) {
+                    if (Array.isArray(data.sessionHistory)) {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.sessionHistory));
+                    }
+                    if (data.sessionRecovery) {
+                        localStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(data.sessionRecovery));
+                    } else {
+                        localStorage.removeItem(RECOVERY_STORAGE_KEY);
+                    }
+                    if (data.preferences) {
+                        localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(data.preferences));
+                    }
+                    if (Array.isArray(data.offlineQueue)) {
+                        localStorage.setItem(FIRESTORE_QUEUE_KEY, JSON.stringify(data.offlineQueue));
+                    }
+                    localStorage.setItem(RUNTIME_UPDATED_KEY, remoteUpdatedAt);
+                }
+            } catch (error) {
+                console.error('Failed to load runtime data from Firestore:', error);
+            }
+        }
+
+        onAuthStateChanged(auth, user => {
+            if (!user) return;
+            firestoreUserId = user.uid;
+            void loadRuntimeFromFirestore();
+            if (runtimeSyncPending) {
+                runtimeSyncPending = false;
+                void syncRuntimeToFirestore();
+            }
+        });
+
+        function loadFirestoreQueue() {
+            const stored = localStorage.getItem(FIRESTORE_QUEUE_KEY);
+            if (!stored) return [];
+            try {
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                console.warn('Failed to parse Firestore queue:', e);
+                return [];
+            }
+        }
+
+        function saveFirestoreQueue(queue) {
+            localStorage.setItem(FIRESTORE_QUEUE_KEY, JSON.stringify(queue));
+            void syncRuntimeToFirestore();
+        }
+
+        function enqueueFirestoreSession(session) {
+            const queue = loadFirestoreQueue();
+            queue.push(session);
+            saveFirestoreQueue(queue);
+        }
+
+        async function flushFirestoreQueue() {
+            const queue = loadFirestoreQueue();
+            if (queue.length === 0) return;
+
+            const remaining = [];
+            for (const session of queue) {
+                try {
+                    await addDoc(collection(db, "sessions"), session);
+                } catch (error) {
+                    console.error("Firestore queued write failed:", error);
+                    remaining.push(session);
+                }
+            }
+
+            saveFirestoreQueue(remaining);
+        }
+
+        window.addEventListener('online', () => {
+            void flushFirestoreQueue();
+        });
+
+        if (navigator.onLine) {
+            void flushFirestoreQueue();
+        }
 
         function reloadApp() {
             try {
@@ -3379,16 +3527,19 @@
                 sets: currentExercise.sessionData
             });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            void syncRuntimeToFirestore();
 
             // Write finalized session to Firestore
             try {
                 const finalizedSession = sessions[sessions.length - 1];
                 addDoc(collection(db, "sessions"), finalizedSession).catch((error) => {
                     console.error("Firestore write failed:", error);
+                    enqueueFirestoreSession(finalizedSession);
                     // Do not throw - allow localStorage flow to continue
                 });
             } catch (error) {
                 console.error("Error preparing Firestore write:", error);
+                enqueueFirestoreSession(sessions[sessions.length - 1]);
                 // Do not throw - allow localStorage flow to continue
             }
 
@@ -4560,6 +4711,7 @@
             const sessions = loadHistory();
             sessions.splice(editingSessionIndex, 1);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            void syncRuntimeToFirestore();
 
             closeEditSession();
             renderHistory(); // Refresh the history display
@@ -4582,6 +4734,7 @@
 
             // Save to localStorage
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            void syncRuntimeToFirestore();
 
             closeEditSession();
             renderHistory(); // Refresh the history display
@@ -4676,6 +4829,7 @@
 
         function savePreferences() {
             localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+            void syncRuntimeToFirestore();
         }
 
         function showSettings() {
@@ -5365,6 +5519,7 @@
                 }
                 if (data.pt_tracker_data) {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(data.pt_tracker_data));
+                    void syncRuntimeToFirestore();
                 }
                 if (data.pt_data_version) {
                     localStorage.setItem(PT_VERSION_KEY, data.pt_data_version);
@@ -5448,6 +5603,7 @@
 
             // Save merged history
             localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSessions));
+            void syncRuntimeToFirestore();
 
             closeDataBackup();
             const message = `History merged successfully!\n\n• Added: ${added} new sessions\n• Duplicates skipped: ${duplicates}\n• Total sessions: ${mergedSessions.length}`;
@@ -5461,6 +5617,7 @@
 
             showActionSheet(confirmMsg, () => {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(importedSessions));
+                void syncRuntimeToFirestore();
                 closeDataBackup();
                 alert(`History replaced!\n\n${importedSessions.length} sessions imported.`);
                 console.log(`[Import] History replaced with ${importedSessions.length} sessions`);
@@ -5942,6 +6099,7 @@
                 !Array.isArray(currentExercise.sessionData)
             ) {
                 localStorage.removeItem(RECOVERY_KEY);
+                void syncRuntimeToFirestore();
                 return;
             }
             
@@ -5955,8 +6113,10 @@
                     timestamp: new Date().toISOString()
                 };
                 localStorage.setItem(RECOVERY_KEY, JSON.stringify(recovery));
+                void syncRuntimeToFirestore();
             } else {
                 localStorage.removeItem(RECOVERY_KEY);
+                void syncRuntimeToFirestore();
             }
         }
 
@@ -5986,15 +6146,18 @@
                                 speak(`Recovered session: Set ${recovery.currentSet}`);
                             } else {
                                 localStorage.removeItem(RECOVERY_KEY);
+                                void syncRuntimeToFirestore();
                             }
                         }
                     );
                 } else {
                     localStorage.removeItem(RECOVERY_KEY);
+                    void syncRuntimeToFirestore();
                 }
             } catch (e) {
                 console.warn('Failed to parse recovery data:', e);
                 localStorage.removeItem(RECOVERY_KEY);
+                void syncRuntimeToFirestore();
             }
         }
 
@@ -7030,6 +7193,101 @@ ${payload}`;
             document.getElementById('library-browser-modal').classList.remove('active');
             haptic('medium');
         }
+
+        Object.assign(window, {
+            showQuickSwitcher,
+            showWeeklyStats,
+            showExerciseDetailsModal,
+            toggleHamburgerMenu,
+            showSettings,
+            exportForPT,
+            importPTModifications,
+            endSessionEarly,
+            incrementCounter,
+            startTimer,
+            stopTimer,
+            resetTimer,
+            logPartialTimerRep,
+            previousSet,
+            showLogSetModal,
+            completeSet,
+            showExerciseList,
+            showHistory,
+            togglePocketMode,
+            closeExerciseModal,
+            closeExerciseList,
+            saveExercise,
+            showPlanSessionModal,
+            showLibraryBrowser,
+            showArchivedExercises,
+            showDataBackup,
+            closeFormParamsModal,
+            skipFormParams,
+            saveFormParams,
+            closeSessionNotesModal,
+            confirmSkipNotes,
+            saveSessionWithNotes,
+            closeLogSetModal,
+            saveLoggedSet,
+            closeExerciseDetailsModal,
+            saveExerciseDetails,
+            skipRest,
+            closeRestTimer,
+            closeQuickSwitcher,
+            exportWeeklySummary,
+            reloadApp,
+            addSetToEditSession,
+            deleteSession,
+            closeEditSession,
+            saveEditedSession,
+            closeHistoryModal,
+            closeAllSessions,
+            closeWeeklyStats,
+            showAllSessions,
+            closeBodyHeatmap,
+            closeExerciseProgress,
+            closeLibraryBrowser,
+            bulkImportExercises,
+            closeExerciseDetail,
+            importLibraryExercise,
+            exportAllData,
+            exportExerciseLibrary,
+            exportExerciseHistory,
+            closeDataBackup,
+            closeSettings,
+            closeDosagePrompt,
+            confirmDosage,
+            closeEditDosage,
+            saveEditedDosage,
+            closePlanSessionModal,
+            startPlannedSession,
+            hideActionSheet,
+            confirmActionSheet,
+            closeExportPTModal,
+            copyPtPayloadOnly,
+            sendToPT,
+            closeImportPTModal,
+            processPastedImport,
+            handlePocketTap,
+            selectCurrentSide,
+            selectLogSetSide,
+            quickStartExercise,
+            toggleExerciseInPlan,
+            switchToPlannedExercise,
+            showExerciseProgress,
+            editSession,
+            deleteEditSessionSet,
+            selectExerciseFromList,
+            toggleFilterTag,
+            unarchiveExercise,
+            permanentlyDeleteExercise,
+            toggleFavorite,
+            showEditDosageModal,
+            archiveExercise,
+            quickSwitchTo,
+            toggleExerciseSelection,
+            showExerciseDetail
+        });
 
         // Initialize
         loadPreferences(); // Load user preferences
