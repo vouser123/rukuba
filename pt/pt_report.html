@@ -2489,17 +2489,23 @@ ${payload}`;
                 // Set global data
                 sessionHistory = []; // Empty - no patient data
                 // Map exercise_library.json format to expected format
-                exerciseLibrary = (libraryData.exercises || []).map(ex => ({
-                    id: ex.exercise_id,
-                    name: ex.canonical_name,
-                    title: ex.canonical_name,
-                    description: ex.description || '',
-                    instructions: ex.guidance?.external_cues?.join('\n') || '',
-                    videoUrl: ''
-                }));
+                exerciseLibrary = (libraryData.exercises || []).map(ex => {
+                    const id = ex.id || ex.exercise_id;
+                    const canonicalName = ex.canonical_name || ex.name || ex.title || '';
+                    return {
+                        ...ex,
+                        id,
+                        name: canonicalName,
+                        title: canonicalName
+                    };
+                });
                 rolesData = rolesDataRaw;
                 schema = schemaData;
-                vocabulary = vocabData;
+                vocabulary = {
+                    ...vocabData,
+                    regions: vocabData.regions || vocabData.region,
+                    capacities: vocabData.capacities || vocabData.capacity
+                };
 
                 console.log('[PT Mode] Loaded', exerciseLibrary.length, 'exercises from library');
                 console.log('[PT Mode] Sample exercise:', exerciseLibrary[0]);
