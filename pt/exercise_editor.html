@@ -6,6 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>PT Exercise Editor</title>
+    <script src="https://unpkg.com/ulid@2.3.0/dist/index.umd.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -349,8 +350,13 @@
 
     <script src="pt_payload_utils.js"></script>
     <script>
-        // ULID generation (Crockford Base32) - ONLY hard-coded exception
+        // ULID generation using official library (https://github.com/ulid/javascript)
         function generateULID() {
+            if (window.ULID) {
+                return window.ULID.ulid();
+            }
+
+            // Fallback if library fails to load
             const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
             const timestamp = Date.now();
             const randomness = new Uint8Array(10);

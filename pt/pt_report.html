@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PT Progress Report</title>
+    <script src="https://unpkg.com/ulid@2.3.0/dist/index.umd.js"></script>
     <link rel="stylesheet" href="shared-styles.css">
     <style>
         body {
@@ -1272,10 +1273,28 @@
         }
 
         function generateULID() {
-            // Simple ULID-like generator (timestamp + random)
-            const timestamp = Date.now().toString(36).toUpperCase();
-            const random = Math.random().toString(36).substring(2, 15).toUpperCase();
-            return (timestamp + random).padEnd(26, '0').substring(0, 26);
+            // Use official ULID library (https://github.com/ulid/javascript)
+            if (window.ULID) {
+                return window.ULID.ulid();
+            }
+
+            // Fallback if library fails to load
+            const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+            const timestamp = Date.now();
+            const randomness = new Uint8Array(10);
+            crypto.getRandomValues(randomness);
+
+            let ulid = '';
+            let ts = timestamp;
+            for (let i = 9; i >= 0; i--) {
+                ulid = ENCODING[ts % 32] + ulid;
+                ts = Math.floor(ts / 32);
+            }
+            for (let i = 0; i < 16; i++) {
+                const byte = i < 10 ? randomness[i] : randomness[i - 10];
+                ulid += ENCODING[byte % 32];
+            }
+            return ulid;
         }
 
         let currentEditingExerciseId = null; // Track which exercise is being edited

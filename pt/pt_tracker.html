@@ -11,6 +11,7 @@
     <meta name="theme-color" content="#007AFF" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
     <title>PT Exercise Tracker</title>
+    <script src="https://unpkg.com/ulid@2.3.0/dist/index.umd.js"></script>
     <style>
         :root {
             --ios-blue: #007AFF;
@@ -1510,8 +1511,13 @@
          * - Session planning (which exercises in what order)
          */
 
-        // ULID generation (Crockford Base32)
-        function generateULID() {
+        // ULID generation using official library (https://github.com/ulid/javascript)
+        function generateSessionId() {
+            return window.ULID ? window.ULID.ulid() : fallbackULID();
+        }
+
+        // Fallback ULID generator if library fails to load
+        function fallbackULID() {
             const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
             const timestamp = Date.now();
             const randomness = new Uint8Array(10);
@@ -1528,10 +1534,6 @@
                 ulid += ENCODING[byte % 32];
             }
             return ulid;
-        }
-
-        function generateSessionId() {
-            return generateULID();
         }
 
         let currentSessionId = generateSessionId();
