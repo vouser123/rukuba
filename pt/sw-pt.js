@@ -1,13 +1,16 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.21.0';
+const CACHE_NAME = 'pt-tracker-v1.22.0';
 const libraryUrl = new URL('exercise_library.json', self.location).pathname;
 const rolesUrl = new URL('exercise_roles.json', self.location).pathname;
 const vocabUrl = new URL('exercise_roles_vocabulary.json', self.location).pathname;
 const rolesSchemaUrl = new URL('schema/exercise_roles.schema.json', self.location).pathname;
 const exerciseSchemaUrl = new URL('schema/exercise_file.schema.json', self.location).pathname;
 const sharedStylesUrl = new URL('shared-styles.css', self.location).pathname;
+const reportHtmlUrl = new URL('pt_report.html', self.location).pathname;
+const editorHtmlUrl = new URL('exercise_editor.html', self.location).pathname;
+const exerciseFormModuleUrl = new URL('shared/exercise_form_module.js', self.location).pathname;
 const scopeUrl = new URL('./', self.location).pathname;
-// Only cache assets, not the HTML (which might have updates)
+// Cache core assets needed for offline use.
 const urlsToCache = [
   scopeUrl,
   libraryUrl,
@@ -15,7 +18,10 @@ const urlsToCache = [
   vocabUrl,
   rolesSchemaUrl,
   exerciseSchemaUrl,
-  sharedStylesUrl
+  sharedStylesUrl,
+  reportHtmlUrl,
+  editorHtmlUrl,
+  exerciseFormModuleUrl
 ];
 
 // Install service worker

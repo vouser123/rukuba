@@ -347,6 +347,7 @@
     </div>
 
     <script src="pt_payload_utils.js"></script>
+    <script src="shared/exercise_form_module.js"></script>
     <script type="module">
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         window.ulid = ulid;
@@ -357,6 +358,7 @@
         }
 
         // State
+        const exerciseFormModule = window.exerciseFormModule;
         let schema = null;
         let resolvedExerciseSchema = null;
         let baselineExercises = [];
@@ -394,51 +396,10 @@
 
         // Create empty exercise from schema
         function createEmptyExerciseFromSchema(exerciseId) {
-            const exercise = { id: exerciseId };
-            const props = resolvedExerciseSchema.properties;
-
-            for (const fieldName in props) {
-                if (fieldName === 'id') continue; // Already set
-
-                const fieldSchema = props[fieldName];
-                exercise[fieldName] = getDefaultValue(fieldSchema);
-            }
-
-            return exercise;
-        }
-
-        function getDefaultValue(fieldSchema) {
-            const types = Array.isArray(fieldSchema.type) ? fieldSchema.type : [fieldSchema.type];
-
-            // Handle nullable types - default to null
-            if (types.includes('null')) {
-                return null;
-            }
-
-            const primaryType = types[0];
-
-            if (primaryType === 'array') {
-                return [];
-            } else if (primaryType === 'object') {
-                const obj = {};
-                if (fieldSchema.properties) {
-                    for (const propName in fieldSchema.properties) {
-                        obj[propName] = getDefaultValue(fieldSchema.properties[propName]);
-                    }
-                }
-                return obj;
-            } else if (primaryType === 'string') {
-                if (fieldSchema.enum && fieldSchema.enum.length > 0) {
-                    return fieldSchema.enum[0];
-                }
-                return '';
-            } else if (primaryType === 'number' || primaryType === 'integer') {
-                return 0;
-            } else if (primaryType === 'boolean') {
-                return false;
-            }
-
-            return null;
+            return exerciseFormModule.createEmptyExercise({
+                schema: resolvedExerciseSchema,
+                id: exerciseId
+            });
         }
 
         // Dynamic form rendering
@@ -557,7 +518,8 @@
         function renderTextField(path, label, value, hint) {
             let html = `<div class="label">${label}</div>`;
             if (hint) html += `<div class="hint">${hint}</div>`;
-            html += `<input type="text" class="input" value="${value || ''}" onchange="updateFieldByPath('${path}', this.value)">`;
+            const normalizedValue = exerciseFormModule.normalizeValueForPath(path, value || '');
+            html += `<input type="text" class="input" value="${normalizedValue}" onchange="updateFieldByPath('${path}', this.value)">`;
             return html;
         }
 
@@ -611,8 +573,9 @@
             if (hint) html += `<div class="hint">${hint}</div>`;
             html += `<div id="${containerId}">`;
             (values || []).forEach((val, idx) => {
+                const normalizedValue = exerciseFormModule.normalizeValueForPath(path, val || '');
                 html += `<div class="array-item">
-                    <input type="text" class="input" value="${val}" onchange="updateArrayItemByPath('${path}', ${idx}, this.value)">
+                    <input type="text" class="input" value="${normalizedValue}" onchange="updateArrayItemByPath('${path}', ${idx}, this.value)">
                     <button class="remove-btn" onclick="removeArrayItemByPath('${path}', ${idx})">−</button>
                 </div>`;
             });
@@ -701,7 +664,7 @@
             for (let i = 0; i < parts.length - 1; i++) {
                 obj = obj[parts[i]];
             }
-            obj[parts[parts.length - 1]] = value;
+            obj[parts[parts.length - 1]] = exerciseFormModule.normalizeValueForPath(path, value);
 
             drafts[currentExerciseId] = updated;
             saveDrafts();
@@ -717,7 +680,7 @@
                 obj = obj[parts[i]];
             }
             const arr = obj[parts[parts.length - 1]];
-            arr[index] = value;
+            arr[index] = exerciseFormModule.normalizeValueForPath(path, value);
 
             drafts[currentExerciseId] = updated;
             saveDrafts();
