@@ -271,6 +271,7 @@
     <div id="list-view">
         <div class="card">
             <button class="button button-success" onclick="createNewExercise()">+ Create New Exercise</button>
+            <button class="button button-secondary" onclick="showBulkImportDialog()">📥 Bulk Import Exercises</button>
             <button class="button button-secondary" onclick="showExportDialog()">📤 Export All Data</button>
             <button class="button button-secondary" onclick="reloadFromJSON()">🔄 Reload from JSON</button>
         </div>
@@ -1018,12 +1019,26 @@
             }) || 'canonical_name';
 
             container.innerHTML = allExercises.map(ex => `
-                <div class="exercise-list-item" onclick="editExercise('${ex.id}')">
-                    <div style="font-weight: 600; font-size: 16px;">${ex[nameField] || 'Unnamed Exercise'}</div>
-                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                        ${ex.id}
-                        ${ex._isDraft ? '<span style="color: var(--ios-orange); margin-left: 8px;">● DRAFT</span>' : ''}
+                <div class="exercise-list-item" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div onclick="editExercise('${ex.id}')" style="flex: 1; cursor: pointer;">
+                        <div style="font-weight: 600; font-size: 16px;">${ex[nameField] || 'Unnamed Exercise'}</div>
+                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                            ${ex.id}
+                            ${ex._isDraft ? '<span style="color: var(--ios-orange); margin-left: 8px;">● DRAFT</span>' : ''}
+                        </div>
                     </div>
+                    <button onclick="event.stopPropagation(); duplicateExercise('${ex.id}')" style="
+                        background: var(--ios-blue);
+                        color: white;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        margin-left: 12px;
+                        white-space: nowrap;
+                    ">📋 Duplicate</button>
                 </div>
             `).join('');
         }
@@ -1034,6 +1049,143 @@
             drafts[id] = emptyExercise;
             saveDrafts();
             editExercise(id);
+        }
+
+        function duplicateExercise(sourceId) {
+            // Find source exercise
+            const sourceExercise = baselineExercises.find(ex => ex.id === sourceId) || drafts[sourceId];
+
+            if (!sourceExercise) {
+                alert('Source exercise not found');
+                return;
+            }
+
+            // Generate new ID
+            const newId = generateULID();
+
+            // Deep copy all fields except id
+            const duplicated = JSON.parse(JSON.stringify(sourceExercise));
+            duplicated.id = newId;
+
+            // Update name to indicate it's a copy
+            const nameField = 'canonical_name'; // or detect from schema
+            if (duplicated[nameField]) {
+                duplicated[nameField] = duplicated[nameField] + ' (Copy)';
+            }
+
+            // Clear lifecycle dates for new exercise
+            if (duplicated.added_date) duplicated.added_date = new Date().toISOString().split('T')[0];
+            if (duplicated.updated_date) duplicated.updated_date = null;
+            if (duplicated.lifecycle) {
+                if (duplicated.lifecycle.effective_start_date) {
+                    duplicated.lifecycle.effective_start_date = new Date().toISOString().split('T')[0];
+                }
+                duplicated.lifecycle.effective_end_date = null;
+            }
+
+            // Clear supersede relationships
+            if (duplicated.supersedes) duplicated.supersedes = [];
+            if (duplicated.superseded_by) duplicated.superseded_by = null;
+            if (duplicated.superseded_date) duplicated.superseded_date = null;
+
+            // Save as draft
+            drafts[newId] = duplicated;
+            saveDrafts();
+
+            // Refresh list and edit
+            renderExerciseList();
+            editExercise(newId);
+
+            console.log(`[Duplicate] Created ${newId} from ${sourceId}`);
+        }
+
+        function showBulkImportDialog() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        bulkImportExercises(data);
+                    } catch (err) {
+                        alert(`Failed to parse JSON file:\n${err.message}`);
+                        console.error('[Bulk Import] Parse error:', err);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        function bulkImportExercises(data) {
+            // Support multiple formats:
+            // 1. { exercises: [...] } - standard exercise file format
+            // 2. [...] - array of exercises
+            let exercises = Array.isArray(data) ? data : data.exercises;
+
+            if (!Array.isArray(exercises)) {
+                alert('Invalid format. Expected { exercises: [...] } or [...] array.');
+                return;
+            }
+
+            if (exercises.length === 0) {
+                alert('No exercises found in file.');
+                return;
+            }
+
+            let imported = 0;
+            let skipped = 0;
+            let errors = [];
+
+            exercises.forEach((ex, idx) => {
+                try {
+                    // Check if ID already exists
+                    const existingInBaseline = baselineExercises.find(e => e.id === ex.id);
+                    const existingInDrafts = drafts[ex.id];
+
+                    if (existingInBaseline || existingInDrafts) {
+                        skipped++;
+                        console.log(`[Bulk Import] Skipped duplicate ID: ${ex.id}`);
+                        return;
+                    }
+
+                    // Validate has required id field
+                    if (!ex.id) {
+                        ex.id = generateULID();
+                        console.log(`[Bulk Import] Generated ID for exercise ${idx}: ${ex.id}`);
+                    }
+
+                    // Add to drafts
+                    drafts[ex.id] = ex;
+                    imported++;
+
+                } catch (err) {
+                    errors.push(`Exercise ${idx}: ${err.message}`);
+                    console.error(`[Bulk Import] Error importing exercise ${idx}:`, err);
+                }
+            });
+
+            saveDrafts();
+            renderExerciseList();
+
+            // Show results
+            let message = `Bulk Import Complete!\n\n`;
+            message += `✅ Imported: ${imported} exercises\n`;
+            if (skipped > 0) message += `⚠️ Skipped: ${skipped} duplicates\n`;
+            if (errors.length > 0) {
+                message += `\n❌ Errors:\n${errors.slice(0, 5).join('\n')}`;
+                if (errors.length > 5) message += `\n...and ${errors.length - 5} more`;
+            }
+
+            alert(message);
+            console.log(`[Bulk Import] Imported: ${imported}, Skipped: ${skipped}, Errors: ${errors.length}`);
         }
 
         function editExercise(exerciseId) {
