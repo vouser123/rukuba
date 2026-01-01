@@ -1,5 +1,5 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.20.0';
+const CACHE_NAME = 'pt-tracker-v1.21.0';
 const libraryUrl = new URL('exercise_library.json', self.location).pathname;
 const rolesUrl = new URL('exercise_roles.json', self.location).pathname;
 const vocabUrl = new URL('exercise_roles_vocabulary.json', self.location).pathname;
@@ -79,6 +79,12 @@ self.addEventListener('fetch', event => {
   }
 
   // For other resources (CSS, images), use cache-first strategy
+  
+  // For other resources (CSS, images), use cache-first strategy
+  if (event.request.method !== 'GET') {
+    return; // do not try to cache POST/PUT/etc
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then(response => {

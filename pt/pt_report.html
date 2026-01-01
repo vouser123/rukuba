@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PT Progress Report</title>
-    <script src="https://unpkg.com/ulid@2.3.0/dist/index.umd.js"></script>
     <link rel="stylesheet" href="shared-styles.css">
     <style>
         body {
@@ -564,7 +563,7 @@
     </div>
 
     <!-- Import Patient Report Modal (Paste) -->
-    <div id="import-paste-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: flex-start; padding-top: 60px; overflow-y: auto;">
+    <div id="import-paste-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
         <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
             <h2 style="margin: 0 0 16px 0; font-size: 20px;">📨 Import Patient Report</h2>
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
@@ -628,6 +627,10 @@
     </div>
 
     <script src="pt_payload_utils.js"></script>
+    <script type="module">
+        import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
+        window.ulid = ulid;
+    </script>
     <script>
         let sessionHistory = [];
         let exerciseLibrary = [];
@@ -1273,28 +1276,7 @@
         }
 
         function generateULID() {
-            // Use official ULID library (https://github.com/ulid/javascript)
-            if (window.ULID) {
-                return window.ULID.ulid();
-            }
-
-            // Fallback if library fails to load
-            const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-            const timestamp = Date.now();
-            const randomness = new Uint8Array(10);
-            crypto.getRandomValues(randomness);
-
-            let ulid = '';
-            let ts = timestamp;
-            for (let i = 9; i >= 0; i--) {
-                ulid = ENCODING[ts % 32] + ulid;
-                ts = Math.floor(ts / 32);
-            }
-            for (let i = 0; i < 16; i++) {
-                const byte = i < 10 ? randomness[i] : randomness[i - 10];
-                ulid += ENCODING[byte % 32];
-            }
-            return ulid;
+            return window.ulid();
         }
 
         let currentEditingExerciseId = null; // Track which exercise is being edited

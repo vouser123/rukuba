@@ -562,6 +562,26 @@
             <div class="menu-title">Menu</div>
             <button class="menu-close" onclick="toggleMenu()">Close</button>
         </div>
+
+        <!-- Auth Status -->
+        <div id="menu-auth-section" style="border-bottom: 1px solid rgba(0,0,0,0.1); margin-bottom: 8px;">
+            <!-- Signed In State -->
+            <div id="menu-auth-signed-in" style="display: none;">
+                <div style="padding: 16px; background: #f5f5f5;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Signed in as</div>
+                    <div id="menu-auth-email" style="font-size: 14px; font-weight: 500; color: #000; margin-bottom: 12px; word-break: break-all;"></div>
+                    <button id="menu-signout-btn" style="width: 100%; padding: 10px; background: #FF3B30; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign Out</button>
+                </div>
+            </div>
+            <!-- Signed Out State -->
+            <div id="menu-auth-signed-out" style="display: none;">
+                <div style="padding: 16px; background: #f5f5f5;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px;">Cloud sync disabled</div>
+                    <button onclick="window.location.href='pt_tracker.html#signin'" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign In</button>
+                </div>
+            </div>
+        </div>
+
         <div class="menu-item" onclick="location.reload()">
             <div class="menu-item-icon">🔄</div>
             <div class="menu-item-text">Reload</div>
@@ -719,6 +739,42 @@
     <button class="back-button" onclick="goBack()">← Back to PT Tracker</button>
 
     <script src="pt_payload_utils.js"></script>
+    <script type="module">
+        // Firebase auth check
+        import { auth, onAuthStateChanged, signOut } from './firebase.js';
+
+        let currentUser = null;
+
+        function updateMenuAuthDisplay() {
+            const signedInSection = document.getElementById('menu-auth-signed-in');
+            const signedOutSection = document.getElementById('menu-auth-signed-out');
+            const emailDisplay = document.getElementById('menu-auth-email');
+
+            if (currentUser) {
+                signedInSection.style.display = 'block';
+                signedOutSection.style.display = 'none';
+                emailDisplay.textContent = currentUser.email;
+            } else {
+                signedInSection.style.display = 'none';
+                signedOutSection.style.display = 'block';
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            updateMenuAuthDisplay();
+        });
+
+        document.getElementById('menu-signout-btn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.toggleMenu();
+            } catch (error) {
+                console.error('[Auth] Sign out error:', error);
+                alert('Failed to sign out');
+            }
+        });
+    </script>
     <script>
         // Global data stores
         let schema = null;
