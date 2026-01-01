@@ -1443,6 +1443,28 @@
             }
 
             console.log('[Editor] Loading exercise for edit:', exercise);
+            console.log('[Editor] Exercise has:', {
+                muscles: {
+                    primary: exercise.primary_muscles?.length || 0,
+                    secondary: exercise.secondary_muscles?.length || 0
+                },
+                pattern_modifiers: exercise.pattern_modifiers?.length || 0,
+                equipment: {
+                    required: exercise.equipment?.required?.length || 0,
+                    optional: exercise.equipment?.optional?.length || 0
+                },
+                guidance: {
+                    motor_cues: exercise.guidance?.motor_cues?.length || 0,
+                    external_cues: exercise.guidance?.external_cues?.length || 0,
+                    compensation: exercise.guidance?.compensation_warnings?.length || 0,
+                    safety: exercise.guidance?.safety_flags?.length || 0
+                },
+                tags: {
+                    functional: exercise.tags?.functional?.length || 0,
+                    format: exercise.tags?.format?.length || 0,
+                    heatmap: exercise.tags?.heatmap?.length || 0
+                }
+            });
 
             // Clear all array fields first
             clearAllArrayFields();
@@ -1452,13 +1474,24 @@
             document.getElementById('ex-category').value = exercise.pt_category || '';
             document.getElementById('ex-desc').value = exercise.description || '';
             document.getElementById('ex-pattern').value = exercise.pattern || '';
+            console.log('[Editor] Set basic fields:', {
+                name: exercise.canonical_name || exercise.title || exercise.name || '',
+                category: exercise.pt_category || '',
+                pattern: exercise.pattern || ''
+            });
 
             // Populate primary muscles
             if (exercise.primary_muscles && exercise.primary_muscles.length > 0) {
+                console.log(`[Editor] Loading ${exercise.primary_muscles.length} primary muscles:`, exercise.primary_muscles);
                 exercise.primary_muscles.forEach((muscle, idx) => {
                     addMuscleField('primary');
                     const input = document.getElementById(`primary-muscle-${idx}`);
-                    if (input) input.value = muscle;
+                    if (input) {
+                        input.value = muscle;
+                        console.log(`[Editor] Set primary-muscle-${idx} = "${muscle}"`);
+                    } else {
+                        console.warn(`[Editor] Could not find input: primary-muscle-${idx}`);
+                    }
                 });
             }
 
@@ -1517,10 +1550,16 @@
                     });
                 }
                 if (exercise.guidance.motor_cues && exercise.guidance.motor_cues.length > 0) {
+                    console.log(`[Editor] Loading ${exercise.guidance.motor_cues.length} motor cues:`, exercise.guidance.motor_cues);
                     exercise.guidance.motor_cues.forEach((cue, idx) => {
                         addGuidanceField('motor');
                         const input = document.getElementById(`motor-${idx}`);
-                        if (input) input.value = cue;
+                        if (input) {
+                            input.value = cue;
+                            console.log(`[Editor] Set motor-${idx} = "${cue}"`);
+                        } else {
+                            console.warn(`[Editor] Could not find input: motor-${idx}`);
+                        }
                     });
                 }
                 if (exercise.guidance.compensation_warnings && exercise.guidance.compensation_warnings.length > 0) {
