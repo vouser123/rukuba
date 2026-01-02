@@ -439,6 +439,38 @@
                     </div>
                 </details>
 
+                <!-- Lifecycle Section (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">📅 Lifecycle & Status</summary>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-status">Status</label>
+                        <select id="ex-lifecycle-status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="archived">Archived</option>
+                            <option value="superseded">Superseded</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-start">Effective Start Date</label>
+                        <input type="date" id="ex-lifecycle-start" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise became available for prescription</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-end">Effective End Date</label>
+                        <input type="date" id="ex-lifecycle-end" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise was discontinued (leave blank if still active)</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-added-date">Added Date</label>
+                        <input type="date" id="ex-added-date" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise was added to the library</p>
+                    </div>
+                </details>
+
                 <!-- Action Buttons -->
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn-primary" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
@@ -1429,6 +1461,10 @@
                 document.getElementById('ex-category').value = '';
                 document.getElementById('ex-desc').value = '';
                 document.getElementById('ex-pattern').value = '';
+                document.getElementById('ex-lifecycle-status').value = 'active';
+                document.getElementById('ex-lifecycle-start').value = '';
+                document.getElementById('ex-lifecycle-end').value = '';
+                document.getElementById('ex-added-date').value = '';
                 clearAllArrayFields();
                 archiveBtn.style.display = 'none';
                 currentEditingExerciseId = null;
@@ -1603,6 +1639,21 @@
                 }
             }
 
+            // Populate lifecycle fields
+            if (exercise.lifecycle) {
+                document.getElementById('ex-lifecycle-status').value = exercise.lifecycle.status || 'active';
+                document.getElementById('ex-lifecycle-start').value = exercise.lifecycle.effective_start_date || '';
+                document.getElementById('ex-lifecycle-end').value = exercise.lifecycle.effective_end_date || '';
+                console.log('[Editor] Set lifecycle:', exercise.lifecycle);
+            } else {
+                document.getElementById('ex-lifecycle-status').value = 'active';
+                document.getElementById('ex-lifecycle-start').value = '';
+                document.getElementById('ex-lifecycle-end').value = '';
+            }
+
+            // Populate added_date
+            document.getElementById('ex-added-date').value = exercise.added_date || '';
+
             // Show archive button
             archiveBtn.style.display = 'block';
             currentEditingExerciseId = exerciseId;
@@ -1725,6 +1776,12 @@
                 if (val) tags_heatmap.push(val);
             });
 
+            // Collect lifecycle data
+            const lifecycleStatus = document.getElementById('ex-lifecycle-status').value || 'active';
+            const lifecycleStartDate = document.getElementById('ex-lifecycle-start').value || null;
+            const lifecycleEndDate = document.getElementById('ex-lifecycle-end').value || null;
+            const addedDate = document.getElementById('ex-added-date').value || null;
+
             // Schema-driven validation: only block fields that are required AND don't allow null AND have no default
             const errors = [];
 
@@ -1746,8 +1803,8 @@
                     'form_parameters_required': form_parameters_required,
                     'tags': { functional: tags_functional, format: tags_format, heatmap: tags_heatmap },
                     'guidance': { external_cues, motor_cues, compensation_warnings, safety_flags },
-                    'lifecycle': { status: 'active', effective_start_date: null, effective_end_date: null },
-                    'added_date': null,
+                    'lifecycle': { status: lifecycleStatus, effective_start_date: lifecycleStartDate, effective_end_date: lifecycleEndDate },
+                    'added_date': addedDate,
                     'updated_date': null
                 };
 
@@ -1823,12 +1880,12 @@
                     safety_flags: safety_flags
                 },
                 lifecycle: {
-                    status: 'active',
-                    effective_start_date: null,
-                    effective_end_date: null
+                    status: lifecycleStatus,
+                    effective_start_date: lifecycleStartDate,
+                    effective_end_date: lifecycleEndDate
                 },
-                added_date: null,
-                updated_date: null
+                added_date: addedDate,
+                updated_date: currentEditingExerciseId ? new Date().toISOString().split('T')[0] : null
             };
 
             // Add legacy name aliases for compatibility
@@ -1853,6 +1910,10 @@
             document.getElementById('ex-category').value = '';
             document.getElementById('ex-desc').value = '';
             document.getElementById('ex-pattern').value = '';
+            document.getElementById('ex-lifecycle-status').value = 'active';
+            document.getElementById('ex-lifecycle-start').value = '';
+            document.getElementById('ex-lifecycle-end').value = '';
+            document.getElementById('ex-added-date').value = '';
             clearAllArrayFields();
             document.getElementById('edit-ex-select').value = '';
             document.getElementById('archive-btn').style.display = 'none';
