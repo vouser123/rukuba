@@ -442,7 +442,7 @@
 
                 <!-- Action Buttons -->
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="btn-primary" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
+                    <button class="btn-primary" type="button" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
                     <button class="btn-danger" onclick="archiveExercise()" id="archive-btn" style="display: none;">🗑️ Archive</button>
                 </div>
             </div>
@@ -685,7 +685,7 @@
                     addItem: (value) => addMuscleField('secondary', value)
                 },
                 pattern_modifiers: {
-                    selector: '[id^="pattern-mod-"]',
+                    selector: '#pattern-modifiers-list select[id^="pattern-mod-"]',
                     addItem: (value) => addPatternModifier(value)
                 },
                 form_parameters_required: {
@@ -1282,8 +1282,42 @@
             updateModificationSummary();
         }
 
+        const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+        function encodeUlidTime(time) {
+            let value = time;
+            let encoded = '';
+            for (let i = 0; i < 10; i += 1) {
+                encoded = ULID_ALPHABET[value % 32] + encoded;
+                value = Math.floor(value / 32);
+            }
+            return encoded;
+        }
+
+        function encodeUlidRandom(length = 16) {
+            const bytes = new Uint8Array(length);
+            if (window.crypto && window.crypto.getRandomValues) {
+                window.crypto.getRandomValues(bytes);
+            } else {
+                for (let i = 0; i < length; i += 1) {
+                    bytes[i] = Math.floor(Math.random() * 256);
+                }
+            }
+            let encoded = '';
+            for (let i = 0; i < length; i += 1) {
+                encoded += ULID_ALPHABET[bytes[i] % 32];
+            }
+            return encoded;
+        }
+
         function generateULID() {
-            return window.ulid();
+            if (typeof window.ulid === 'function') {
+                return window.ulid();
+            }
+            if (window.ulid && typeof window.ulid.ulid === 'function') {
+                return window.ulid.ulid();
+            }
+            return `${encodeUlidTime(Date.now())}${encodeUlidRandom()}`;
         }
 
         let currentEditingExerciseId = null; // Track which exercise is being edited
