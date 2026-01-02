@@ -824,6 +824,52 @@
             });
         });
 
+        window.subscribeToCoverageHistory = (onUpdate) => new Promise((resolve) => {
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                updateMenuAuthDisplay();
+
+                if (coverageUnsubscribe) {
+                    coverageUnsubscribe();
+                    coverageUnsubscribe = null;
+                }
+
+                if (!user) {
+                    onUpdate([]);
+                    resolve();
+                    return;
+                }
+
+                const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+                const sessionsQuery = query(sessionsRef);
+                let initialLoad = true;
+
+                coverageUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+                    const sessions = snapshot.docs.map(docSnap => ({
+                        _firestoreId: docSnap.id,
+                        ...docSnap.data()
+                    }));
+                    sessions.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+                    onUpdate(sessions);
+
+                    if (initialLoad) {
+                        initialLoad = false;
+                        console.log('[Firestore] Coverage session history loaded');
+                        resolve();
+                    }
+                }, (error) => {
+                    console.error('[Firestore] Coverage session listener error:', error);
+                    if (initialLoad) {
+                        initialLoad = false;
+                        resolve();
+                    }
+                });
+            });
+        });
+
+        window.coverageAuthReady = true;
+        window.dispatchEvent(new Event('coverageAuthReady'));
+
         document.getElementById('menu-signout-btn').addEventListener('click', async () => {
             try {
                 await signOut(auth);
@@ -847,6 +893,18 @@
         let regions = [];
         let capacities = [];
         let contributions = [];
+
+        async function ensureCoverageAuthReady() {
+            if (window.subscribeToCoverageHistory) return;
+            await new Promise((resolve) => {
+                const handler = () => {
+                    window.removeEventListener('coverageAuthReady', handler);
+                    resolve();
+                };
+                window.addEventListener('coverageAuthReady', handler);
+                setTimeout(resolve, 2000);
+            });
+        }
 
         // Initialize
         async function init() {
@@ -915,8 +973,10 @@
         }
 
         async function loadSessionHistory() {
+            await ensureCoverageAuthReady();
             if (!window.subscribeToCoverageHistory) {
                 sessionHistory = [];
+                console.warn('[History] Coverage auth not ready; skipping Firestore history load.');
                 return;
             }
 
