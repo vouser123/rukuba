@@ -913,6 +913,19 @@
 
         async function init() {
             try {
+                // Get service worker cache version if available
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    debugLog(`[SW] Service worker active`);
+                    try {
+                        const cacheNames = await caches.keys();
+                        debugLog(`[SW] Active caches: ${cacheNames.join(', ')}`);
+                    } catch (e) {
+                        debugLog(`[SW] Could not read cache names: ${e.message}`);
+                    }
+                } else {
+                    debugLog(`[SW] No service worker active`);
+                }
+
                 const [schemaResp, seedResp] = await Promise.all([
                     fetch('./schema/exercise_file.schema.json'),
                     fetch('./exercise_library.json')
