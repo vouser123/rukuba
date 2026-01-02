@@ -636,6 +636,7 @@
         let rolesData = null;
         let schema = null;
         let vocabulary = null;
+        let patientEmailCache = '';
 
         // Track PT modifications
         let modifications = {
@@ -2227,10 +2228,8 @@
                 return;
             }
 
-            // Load saved patient email if exists
-            const savedEmail = localStorage.getItem('patient_email_address');
-            if (savedEmail) {
-                document.getElementById('patient-email').value = savedEmail;
+            if (patientEmailCache) {
+                document.getElementById('patient-email').value = patientEmailCache;
             }
             document.getElementById('pt-message').value = '';
             document.getElementById('export-email-modal').style.display = 'flex';
@@ -2256,9 +2255,8 @@
             const patientEmail = document.getElementById('patient-email').value.trim();
             const message = document.getElementById('pt-message').value.trim();
 
-            // Save patient email for next time
             if (patientEmail) {
-                localStorage.setItem('patient_email_address', patientEmail);
+                patientEmailCache = patientEmail;
             }
 
             const exportData = await buildModificationsExport();
