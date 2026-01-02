@@ -275,6 +275,12 @@
             <button class="button button-secondary" onclick="reloadFromJSON()">🔄 Reload from JSON</button>
         </div>
 
+        <!-- Debug Panel -->
+        <div id="debug-panel" class="card" style="background: var(--bg-tertiary); border-left: 4px solid var(--ios-blue); font-size: 13px; font-family: monospace;">
+            <div style="font-weight: 600; margin-bottom: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto;">📊 Debug Info</div>
+            <div id="debug-output" style="white-space: pre-wrap; color: var(--text-secondary);"></div>
+        </div>
+
         <div class="card">
             <h2 style="font-size: 20px; margin-bottom: 12px;">Exercises</h2>
             <div id="exercise-list"></div>
@@ -355,6 +361,15 @@
     <script>
         function generateULID() {
             return window.ulid();
+        }
+
+        // Debug helper
+        function debugLog(message) {
+            console.log(message);
+            const debugOutput = document.getElementById('debug-output');
+            if (debugOutput) {
+                debugOutput.textContent += message + '\n';
+            }
         }
 
         // State
@@ -911,6 +926,15 @@
 
                 const seedData = await seedResp.json();
                 baselineExercises = seedData.exercises || [];
+                debugLog(`[Init] Loaded ${baselineExercises.length} exercises from exercise_library.json`);
+                if (baselineExercises.length > 0) {
+                    const first3 = baselineExercises.slice(0, 3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
+                    const last3 = baselineExercises.slice(-3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
+                    debugLog(`[Init] First 3:\n${first3}`);
+                    debugLog(`[Init] Last 3:\n${last3}`);
+                } else {
+                    debugLog('[Init] ⚠️ NO EXERCISES LOADED!');
+                }
 
                 // Migrate exercise_id → id (one-time, idempotent)
                 baselineExercises.forEach(ex => {
@@ -947,6 +971,8 @@
             const container = document.getElementById('exercise-list');
             const allExercises = [...baselineExercises];
 
+            debugLog(`[Render] Starting render with ${baselineExercises.length} baseline exercises, ${Object.keys(drafts).length} drafts`);
+
             Object.keys(drafts).forEach(id => {
                 const existing = allExercises.findIndex(ex => ex.id === id);
                 if (existing >= 0) {
@@ -956,7 +982,10 @@
                 }
             });
 
+            debugLog(`[Render] Total exercises to display: ${allExercises.length}`);
+
             if (allExercises.length === 0) {
+                debugLog('[Render] ⚠️ NO EXERCISES TO DISPLAY!');
                 container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No exercises yet. Create your first one!</div>';
                 return;
             }
@@ -1093,6 +1122,15 @@
 
                 const seedData = await seedResp.json();
                 baselineExercises = seedData.exercises || [];
+                debugLog(`[Reload] Reloaded ${baselineExercises.length} exercises from exercise_library.json`);
+                if (baselineExercises.length > 0) {
+                    const first3 = baselineExercises.slice(0, 3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
+                    const last3 = baselineExercises.slice(-3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
+                    debugLog(`[Reload] First 3:\n${first3}`);
+                    debugLog(`[Reload] Last 3:\n${last3}`);
+                } else {
+                    debugLog('[Reload] ⚠️ NO EXERCISES LOADED!');
+                }
 
                 // Migrate exercise_id → id (one-time, idempotent)
                 baselineExercises.forEach(ex => {
