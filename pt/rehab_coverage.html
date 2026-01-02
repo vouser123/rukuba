@@ -741,9 +741,30 @@
     <script src="pt_payload_utils.js"></script>
     <script type="module">
         // Firebase auth check
-        import { auth, onAuthStateChanged, signOut } from './firebase.js';
+        import { auth, db, onAuthStateChanged, signOut } from './firebase.js';
+        import {
+            collection,
+            enableIndexedDbPersistence,
+            onSnapshot,
+            query
+        } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let currentUser = null;
+        let coverageUnsubscribe = null;
+
+        enableIndexedDbPersistence(db)
+            .then(() => {
+                console.log('[Firestore] IndexedDB persistence enabled (coverage)');
+            })
+            .catch((error) => {
+                if (error.code === 'failed-precondition') {
+                    console.warn('[Firestore] Persistence disabled: multiple tabs open (coverage)');
+                } else if (error.code === 'unimplemented') {
+                    console.warn('[Firestore] Persistence unavailable in this browser (coverage)');
+                } else {
+                    console.warn('[Firestore] Persistence enable failed (coverage):', error);
+                }
+            });
 
         function updateMenuAuthDisplay() {
             const signedInSection = document.getElementById('menu-auth-signed-in');
@@ -765,6 +786,52 @@
             updateMenuAuthDisplay();
         });
 
+        window.subscribeToCoverageHistory = (onUpdate) => new Promise((resolve) => {
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                updateMenuAuthDisplay();
+
+                if (coverageUnsubscribe) {
+                    coverageUnsubscribe();
+                    coverageUnsubscribe = null;
+                }
+
+                if (!user) {
+                    onUpdate([]);
+                    resolve();
+                    return;
+                }
+
+                const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+                const sessionsQuery = query(sessionsRef);
+                let initialLoad = true;
+
+                coverageUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+                    const sessions = snapshot.docs.map(docSnap => ({
+                        _firestoreId: docSnap.id,
+                        ...docSnap.data()
+                    }));
+                    sessions.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+                    onUpdate(sessions);
+
+                    if (initialLoad) {
+                        initialLoad = false;
+                        console.log('[Firestore] Coverage session history loaded');
+                        resolve();
+                    }
+                }, (error) => {
+                    console.error('[Firestore] Coverage session listener error:', error);
+                    if (initialLoad) {
+                        initialLoad = false;
+                        resolve();
+                    }
+                });
+            });
+        });
+
+        window.coverageAuthReady = true;
+        window.dispatchEvent(new Event('coverageAuthReady'));
+
         document.getElementById('menu-signout-btn').addEventListener('click', async () => {
             try {
                 await signOut(auth);
@@ -782,11 +849,24 @@
         let vocabulary = null;
         let exerciseLibrary = null;
         let sessionHistory = null;
+        let coverageInitialized = false;
 
         // Derived lists (runtime only - NO HARDCODED ENUMS)
         let regions = [];
         let capacities = [];
         let contributions = [];
+
+        async function ensureCoverageAuthReady() {
+            if (window.subscribeToCoverageHistory) return;
+            await new Promise((resolve) => {
+                const handler = () => {
+                    window.removeEventListener('coverageAuthReady', handler);
+                    resolve();
+                };
+                window.addEventListener('coverageAuthReady', handler);
+                setTimeout(resolve, 2000);
+            });
+        }
 
         // Initialize
         async function init() {
@@ -804,6 +884,7 @@
                 deriveEnums();
 
                 // Render coverage view
+                coverageInitialized = true;
                 renderCoverageView();
             } catch (error) {
                 document.getElementById('coverage-content').innerHTML =
@@ -853,20 +934,30 @@
             console.log('[Library] Loaded:', exerciseLibrary.length, 'exercises');
         }
 
-        function loadSessionHistory() {
-            // Load from PT Tracker localStorage (uses 'pt_tracker_data' key, NOT 'session_history')
-            const historyJSON = localStorage.getItem('pt_tracker_data');
-            sessionHistory = historyJSON ? JSON.parse(historyJSON) : [];
-            console.log('[History] Loaded:', sessionHistory.length, 'sessions');
-
-            // Debug: Show ALL unique exercise IDs in session history
-            if (sessionHistory.length > 0) {
-                const uniqueIds = [...new Set(sessionHistory.map(s => s.exerciseId))];
-                console.log('[History] Unique exercise IDs in session history:', uniqueIds);
-                console.log('[History] Sample session objects:', sessionHistory.slice(0, 3));
-            } else {
-                console.warn('[History] NO SESSION HISTORY FOUND! localStorage key "pt_tracker_data" is empty or missing.');
+        async function loadSessionHistory() {
+            await ensureCoverageAuthReady();
+            if (!window.subscribeToCoverageHistory) {
+                sessionHistory = [];
+                console.warn('[History] Coverage auth not ready; skipping Firestore history load.');
+                return;
             }
+
+            await window.subscribeToCoverageHistory((sessions) => {
+                sessionHistory = sessions;
+                console.log('[History] Loaded:', sessionHistory.length, 'sessions');
+
+                if (sessionHistory.length > 0) {
+                    const uniqueIds = [...new Set(sessionHistory.map(s => s.exerciseId))];
+                    console.log('[History] Unique exercise IDs in session history:', uniqueIds);
+                    console.log('[History] Sample session objects:', sessionHistory.slice(0, 3));
+                } else {
+                    console.warn('[History] NO SESSION HISTORY FOUND! Firestore session history is empty or unavailable.');
+                }
+
+                if (coverageInitialized) {
+                    renderCoverageView();
+                }
+            });
         }
 
         function deriveEnums() {
