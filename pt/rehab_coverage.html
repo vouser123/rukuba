@@ -781,9 +781,47 @@
             }
         }
 
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            updateMenuAuthDisplay();
+        window.subscribeToCoverageHistory = (onUpdate) => new Promise((resolve) => {
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                updateMenuAuthDisplay();
+
+                if (coverageUnsubscribe) {
+                    coverageUnsubscribe();
+                    coverageUnsubscribe = null;
+                }
+
+                if (!user) {
+                    onUpdate([]);
+                    resolve();
+                    return;
+                }
+
+                const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+                const sessionsQuery = query(sessionsRef);
+                let initialLoad = true;
+
+                coverageUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+                    const sessions = snapshot.docs.map(docSnap => ({
+                        _firestoreId: docSnap.id,
+                        ...docSnap.data()
+                    }));
+                    sessions.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+                    onUpdate(sessions);
+
+                    if (initialLoad) {
+                        initialLoad = false;
+                        console.log('[Firestore] Coverage session history loaded');
+                        resolve();
+                    }
+                }, (error) => {
+                    console.error('[Firestore] Coverage session listener error:', error);
+                    if (initialLoad) {
+                        initialLoad = false;
+                        resolve();
+                    }
+                });
+            });
         });
 
         window.subscribeToCoverageHistory = (onUpdate) => new Promise((resolve) => {
