@@ -440,6 +440,38 @@
                     </div>
                 </details>
 
+                <!-- Lifecycle Section (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">📅 Lifecycle & Status</summary>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-status">Status</label>
+                        <select id="ex-lifecycle-status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="archived">Archived</option>
+                            <option value="superseded">Superseded</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-start">Effective Start Date</label>
+                        <input type="date" id="ex-lifecycle-start" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise became available for prescription</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-end">Effective End Date</label>
+                        <input type="date" id="ex-lifecycle-end" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise was discontinued (leave blank if still active)</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-added-date">Added Date</label>
+                        <input type="date" id="ex-added-date" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise was added to the library</p>
+                    </div>
+                </details>
+
                 <!-- Action Buttons -->
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn-primary" type="button" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
@@ -672,7 +704,8 @@
                 canonical_name: { id: 'ex-name', trim: true, normalize: 'title' },
                 pt_category: { id: 'ex-category', trim: true, nullIfBlank: true, normalize: 'lower_snake', useCustomSelect: true },
                 description: { id: 'ex-desc', trim: true, nullIfBlank: true },
-                pattern: { id: 'ex-pattern', trim: true }
+                pattern: { id: 'ex-pattern', trim: true },
+                added_date: { id: 'ex-added-date', type: 'date', nullIfBlank: true }
             },
             arrayFields: {
                 primary_muscles: {
@@ -741,6 +774,13 @@
                         selector: '[id^="tag-heatmap-"]',
                         addItem: (value) => addTagField('heatmap', value)
                     }
+                }
+            },
+            nestedFields: {
+                lifecycle: {
+                    status: { id: 'ex-lifecycle-status', default: 'active' },
+                    effective_start_date: { id: 'ex-lifecycle-start', type: 'date', nullIfBlank: true },
+                    effective_end_date: { id: 'ex-lifecycle-end', type: 'date', nullIfBlank: true }
                 }
             }
         };
@@ -1510,6 +1550,10 @@
                 document.getElementById('ex-category-custom').value = '';
                 document.getElementById('ex-desc').value = '';
                 document.getElementById('ex-pattern').value = '';
+                document.getElementById('ex-lifecycle-status').value = 'active';
+                document.getElementById('ex-lifecycle-start').value = '';
+                document.getElementById('ex-lifecycle-end').value = '';
+                document.getElementById('ex-added-date').value = '';
                 clearAllArrayFields();
                 archiveBtn.style.display = 'none';
                 currentEditingExerciseId = null;
