@@ -1537,7 +1537,20 @@
         } from './firebase.js';
         import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
-        import { collection, addDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+        import {
+            addDoc,
+            collection,
+            deleteDoc,
+            doc,
+            enableIndexedDbPersistence,
+            getDoc,
+            getDocs,
+            onSnapshot,
+            query,
+            setDoc,
+            updateDoc,
+            where
+        } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
@@ -1546,6 +1559,7 @@
         const RECOVERY_STORAGE_KEY = 'pt_session_recovery';
         const PREFERENCES_STORAGE_KEY = 'pt_preferences';
         const RUNTIME_UPDATED_KEY = 'pt_runtime_updated_at';
+        const LEGACY_HISTORY_MIGRATION_KEY = 'pt_tracker_history_migrated';
         const APP_VERSION = 'v1.5.9'; // Updated: 2025-12-27 - Equipment editing with dynamic library and add-new capability
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
@@ -1553,6 +1567,20 @@
         // Auth state
         let currentUser = null;
         let isAuthReady = false;
+
+        enableIndexedDbPersistence(db)
+            .then(() => {
+                console.log('[Firestore] IndexedDB persistence enabled');
+            })
+            .catch((error) => {
+                if (error.code === 'failed-precondition') {
+                    console.warn('[Firestore] Persistence disabled: multiple tabs open');
+                } else if (error.code === 'unimplemented') {
+                    console.warn('[Firestore] Persistence unavailable in this browser');
+                } else {
+                    console.warn('[Firestore] Persistence enable failed:', error);
+                }
+            });
 
         // Auth UI functions
         function showAuthModal() {
@@ -1765,9 +1793,93 @@
         let runtimeSyncPending = false;
         let runtimeSyncInFlight = false;
 
+        // Session history cache (Firestore-backed)
+        let sessionHistoryCache = [];
+        let sessionHistoryLoadedFromFirestore = false;
+        let sessionHistoryUnsubscribe = null;
+        let legacyHistoryMigrationAttempted = false;
+
+        function stripSessionMetadata(session) {
+            const { _firestoreId, ...rest } = session;
+            return rest;
+        }
+
+        function serializeSessionHistory(sessions) {
+            return sessions.map(stripSessionMetadata);
+        }
+
+        function getSessionFingerprint(session) {
+            if (session.sessionId) return `session:${session.sessionId}`;
+            const exerciseId = session.exerciseId || 'unknown';
+            const date = session.date || '';
+            const name = session.exerciseName || '';
+            return `fallback:${exerciseId}|${date}|${name}`;
+        }
+
+        function dedupeSessions(sessions) {
+            const map = new Map();
+            sessions.forEach((session) => {
+                const key = getSessionFingerprint(session);
+                if (!key) return;
+                const existing = map.get(key);
+                if (!existing) {
+                    map.set(key, session);
+                    return;
+                }
+                const existingDate = new Date(existing.date || 0);
+                const nextDate = new Date(session.date || 0);
+                if (nextDate > existingDate) {
+                    map.set(key, session);
+                }
+            });
+            return Array.from(map.values());
+        }
+
+        function setSessionHistoryCache(newHistory, { source = 'unknown', syncLocalStorage = false } = {}) {
+            const deduped = dedupeSessions(newHistory);
+            deduped.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+            sessionHistoryCache = deduped;
+            if (syncLocalStorage) {
+                syncCacheToLocalStorage();
+            }
+            console.log(`[History] Cache updated (${deduped.length} sessions) from ${source}`);
+        }
+
+        function getSessionHistoryFromCache() {
+            return sessionHistoryCache;
+        }
+
+        function syncCacheToLocalStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeSessionHistory(sessionHistoryCache)));
+            } catch (error) {
+                console.warn('[History] Failed to sync cache to localStorage:', error);
+            }
+        }
+
+        function loadLegacyHistoryFromLocalStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return [];
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.warn('[History] Failed to read legacy history from localStorage:', error);
+                return [];
+            }
+        }
+
+        function seedLegacyHistoryCache() {
+            if (sessionHistoryCache.length > 0) return;
+            const legacySessions = loadLegacyHistoryFromLocalStorage();
+            if (legacySessions.length > 0) {
+                setSessionHistoryCache(legacySessions, { source: 'legacy-localStorage', syncLocalStorage: false });
+            }
+        }
+
         function buildRuntimeSnapshot() {
             try {
-                const history = localStorage.getItem(STORAGE_KEY);
+                const history = getSessionHistoryFromCache();
                 const recovery = localStorage.getItem(RECOVERY_STORAGE_KEY);
                 const preferences = localStorage.getItem(PREFERENCES_STORAGE_KEY);
                 const offlineQueue = localStorage.getItem(FIRESTORE_QUEUE_KEY);
@@ -1777,7 +1889,7 @@
 
                 return {
                     updatedAt,
-                    sessionHistory: history ? JSON.parse(history) : [],
+                    sessionHistory: serializeSessionHistory(history),
                     sessionRecovery: recovery ? JSON.parse(recovery) : null,
                     preferences: preferences ? JSON.parse(preferences) : null,
                     offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : []
@@ -1824,7 +1936,7 @@
 
                 if (!localUpdatedAt || new Date(remoteUpdatedAt) > new Date(localUpdatedAt)) {
                     if (Array.isArray(data.sessionHistory)) {
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.sessionHistory));
+                        console.log('[Firestore] Runtime session history ignored (Firestore sessions collection is authoritative)');
                     }
                     if (data.sessionRecovery) {
                         localStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(data.sessionRecovery));
@@ -1844,15 +1956,114 @@
             }
         }
 
+        function getQueuedSessionFingerprint(session) {
+            return getSessionFingerprint(session);
+        }
+
+        function removeQueuedSession(session) {
+            const queue = loadFirestoreQueue();
+            const target = getQueuedSessionFingerprint(session);
+            const filtered = queue.filter((queued) => getQueuedSessionFingerprint(queued) !== target);
+            if (filtered.length !== queue.length) {
+                saveFirestoreQueue(filtered);
+            }
+        }
+
+        async function resolveFirestoreDocId(session) {
+            if (session._firestoreId) return session._firestoreId;
+            if (!currentUser || !session.sessionId) return null;
+            try {
+                const sessionsRef = collection(db, `users/${currentUser.uid}/sessions`);
+                const sessionQuery = query(sessionsRef, where('sessionId', '==', session.sessionId));
+                const snapshot = await getDocs(sessionQuery);
+                const docMatch = snapshot.docs[0];
+                return docMatch ? docMatch.id : null;
+            } catch (error) {
+                console.warn('[Firestore] Failed to resolve session doc ID:', error);
+                return null;
+            }
+        }
+
+        function migrateLegacyHistoryToFirestore(firestoreSessions) {
+            if (legacyHistoryMigrationAttempted) return [];
+            legacyHistoryMigrationAttempted = true;
+
+            const migrationFlag = localStorage.getItem(LEGACY_HISTORY_MIGRATION_KEY);
+            if (migrationFlag === 'true') return [];
+
+            const legacySessions = loadLegacyHistoryFromLocalStorage();
+            if (legacySessions.length === 0) {
+                localStorage.setItem(LEGACY_HISTORY_MIGRATION_KEY, 'true');
+                return [];
+            }
+
+            const firestoreKeys = new Set(firestoreSessions.map(getSessionFingerprint));
+            const missingSessions = legacySessions.filter(session => !firestoreKeys.has(getSessionFingerprint(session)));
+
+            if (missingSessions.length > 0) {
+                console.log(`[Migration] Queuing ${missingSessions.length} legacy sessions for Firestore sync`);
+                missingSessions.forEach(session => enqueueFirestoreSession(session));
+            }
+
+            localStorage.setItem(LEGACY_HISTORY_MIGRATION_KEY, 'true');
+            return missingSessions;
+        }
+
+        function subscribeToFirestoreSessionHistory(user) {
+            if (sessionHistoryUnsubscribe) {
+                sessionHistoryUnsubscribe();
+                sessionHistoryUnsubscribe = null;
+            }
+
+            if (!user) {
+                sessionHistoryLoadedFromFirestore = false;
+                seedLegacyHistoryCache();
+                return;
+            }
+
+            const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+            const sessionsQuery = query(sessionsRef);
+            let initialLoad = true;
+
+            sessionHistoryUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+                const sessions = snapshot.docs.map(docSnap => ({
+                    _firestoreId: docSnap.id,
+                    ...docSnap.data()
+                }));
+                const legacyMissing = migrateLegacyHistoryToFirestore(sessions);
+                const merged = legacyMissing.length > 0 ? dedupeSessions([...sessions, ...legacyMissing]) : sessions;
+                setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: true });
+                sessionHistoryLoadedFromFirestore = true;
+
+                if (initialLoad) {
+                    console.log('[Firestore] Session history loaded');
+                    initialLoad = false;
+                }
+
+                renderHistory();
+                updateStreakDisplay();
+            }, (error) => {
+                console.error('[Firestore] Session history listener error:', error);
+                if (initialLoad) {
+                    initialLoad = false;
+                    sessionHistoryLoadedFromFirestore = true;
+                }
+            });
+        }
+
         onAuthStateChanged(auth, user => {
-            if (!user) return;
-            firestoreUserId = user.uid;
-            void loadRuntimeFromFirestore();
-            if (runtimeSyncPending) {
-                runtimeSyncPending = false;
-                void syncRuntimeToFirestore();
+            firestoreUserId = user ? user.uid : null;
+            subscribeToFirestoreSessionHistory(user);
+            if (user) {
+                void loadRuntimeFromFirestore();
+                if (runtimeSyncPending) {
+                    runtimeSyncPending = false;
+                    void syncRuntimeToFirestore();
+                }
             }
         });
+
+        seedLegacyHistoryCache();
 
         function loadFirestoreQueue() {
             const stored = localStorage.getItem(FIRESTORE_QUEUE_KEY);
@@ -1871,10 +2082,15 @@
             void syncRuntimeToFirestore();
         }
 
+        function sanitizeSessionForFirestore(session) {
+            return stripSessionMetadata(session);
+        }
+
         function enqueueFirestoreSession(session) {
             const queue = loadFirestoreQueue();
-            queue.push(session);
+            queue.push(sanitizeSessionForFirestore(session));
             saveFirestoreQueue(queue);
+            console.log('[Firestore] Session queued for sync:', session.sessionId || session.date);
         }
 
         async function flushFirestoreQueue() {
@@ -1893,7 +2109,7 @@
             for (const session of queue) {
                 try {
                     // Write to user-scoped collection
-                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), session);
+                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(session));
                     console.log('[Firestore] Queued session synced:', session.sessionId);
                 } catch (error) {
                     console.error("Firestore queued write failed:", error);
@@ -2205,54 +2421,61 @@
 
         // Safe history loading with error handling and backward compatibility
         function loadHistory() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (!stored) return [];
+            const sessions = getSessionHistoryFromCache();
+            if (!Array.isArray(sessions)) return [];
 
-            try {
-                const parsed = JSON.parse(stored);
-                if (!Array.isArray(parsed)) return [];
+            sessions.forEach(session => {
+                // Ensure sessionId exists (added in later versions)
+                if (!session.sessionId) {
+                    session.sessionId = session.date || new Date().toISOString();
+                }
 
-                // Backward compatibility: ensure all sessions have required fields
-                return parsed.map(session => {
-                    // Ensure sessionId exists (added in later versions)
-                    if (!session.sessionId) {
-                        session.sessionId = session.date || new Date().toISOString();
+                // Ensure exerciseId exists (try to find by name if missing)
+                if (!session.exerciseId && session.exerciseName) {
+                    const matchingExercise = exerciseLibrary.find(ex => ex.name === session.exerciseName);
+                    if (matchingExercise) {
+                        session.exerciseId = matchingExercise.id;
                     }
+                }
 
-                    // Ensure exerciseId exists (try to find by name if missing)
-                    if (!session.exerciseId && session.exerciseName) {
-                        const matchingExercise = exerciseLibrary.find(ex => ex.name === session.exerciseName);
-                        if (matchingExercise) {
-                            session.exerciseId = matchingExercise.id;
+                // Ensure sets array exists
+                if (!session.sets) {
+                    session.sets = [];
+                }
+
+                // Migrate old weight/resistance fields to formParams if needed
+                session.sets = session.sets.map(set => {
+                    if ((set.weight || set.resistance) && !set.formParams) {
+                        set.formParams = {};
+                        if (set.weight) {
+                            set.formParams.weight = set.weight;
+                            set.formParams.weight_unit = set.weightUnit || 'lbs';
+                        }
+                        if (set.resistance) {
+                            set.formParams.band_resistance = set.resistance;
                         }
                     }
-
-                    // Ensure sets array exists
-                    if (!session.sets) {
-                        session.sets = [];
-                    }
-
-                    // Migrate old weight/resistance fields to formParams if needed
-                    session.sets = session.sets.map(set => {
-                        if ((set.weight || set.resistance) && !set.formParams) {
-                            set.formParams = {};
-                            if (set.weight) {
-                                set.formParams.weight = set.weight;
-                                set.formParams.weight_unit = set.weightUnit || 'lbs';
-                            }
-                            if (set.resistance) {
-                                set.formParams.band_resistance = set.resistance;
-                            }
-                        }
-                        return set;
-                    });
-
-                    return session;
+                    return set;
                 });
-            } catch (e) {
-                console.error('Failed to parse exercise history:', e);
-                console.warn('Returning empty history - stored data preserved');
-                return [];
+
+            });
+
+            return sessions;
+        }
+
+        function addSessionToCache(session) {
+            const updated = [...getSessionHistoryFromCache(), session];
+            setSessionHistoryCache(updated, { source: 'local-add', syncLocalStorage: true });
+        }
+
+        function queueSessionsForFirestore(sessions, source = 'import') {
+            if (!Array.isArray(sessions) || sessions.length === 0) return;
+            const pendingSessions = sessions.filter(session => !session._firestoreId);
+            if (pendingSessions.length === 0) return;
+            console.log(`[Firestore] Queueing ${pendingSessions.length} sessions from ${source}`);
+            pendingSessions.forEach(session => enqueueFirestoreSession(session));
+            if (currentUser && navigator.onLine) {
+                void flushFirestoreQueue();
             }
         }
 
@@ -3048,7 +3271,7 @@
          *   - manualLog: (optional) true if logged via "Log Set" modal
          *
          * At session completion (all sets done):
-         *   - sessionData is saved to localStorage under STORAGE_KEY
+         *   - sessionData is saved to the in-memory cache and queued to Firestore
          *   - Includes: exerciseId, exerciseName, date, sets[], notes
          *
          * TODO: Define "session" concept - when does it start/end? How to group exercises?
@@ -3769,8 +3992,7 @@
         }
 
         function saveSessionWithNotes(notes) {
-            const sessions = loadHistory();
-            sessions.push({
+            const finalizedSession = {
                 sessionId: currentSessionId,
                 exerciseId: currentExercise.id,
                 exerciseName: currentExercise.name,
@@ -3784,32 +4006,29 @@
                     type: currentExercise.type
                 },
                 sets: currentExercise.sessionData
-            });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            };
+            addSessionToCache(finalizedSession);
+            enqueueFirestoreSession(finalizedSession);
             void syncRuntimeToFirestore();
 
             // Write finalized session to Firestore (user-scoped)
             try {
-                const finalizedSession = sessions[sessions.length - 1];
-
                 if (currentUser) {
                     // User is authenticated - attempt direct write
-                    addDoc(collection(db, `users/${currentUser.uid}/sessions`), finalizedSession)
+                    addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(finalizedSession))
                         .then(() => {
                             console.log('[Firestore] Session synced immediately:', finalizedSession.sessionId);
+                            removeQueuedSession(finalizedSession);
                         })
                         .catch((error) => {
                             console.error('[Firestore] Write failed, queueing session:', error);
-                            enqueueFirestoreSession(finalizedSession);
                         });
                 } else {
                     // Not authenticated - queue for later
                     console.log('[Firestore] Not authenticated, queueing session');
-                    enqueueFirestoreSession(finalizedSession);
                 }
             } catch (error) {
                 console.error('[Firestore] Error preparing write:', error);
-                enqueueFirestoreSession(sessions[sessions.length - 1]);
                 // Do not throw - allow localStorage flow to continue
             }
 
@@ -4979,9 +5198,27 @@
             if (!confirm('Are you sure you want to delete this session?\n\nThis cannot be undone.')) return;
 
             const sessions = loadHistory();
+            const sessionToDelete = sessions[editingSessionIndex];
             sessions.splice(editingSessionIndex, 1);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            setSessionHistoryCache(sessions, { source: 'local-delete', syncLocalStorage: true });
             void syncRuntimeToFirestore();
+
+            if (currentUser && sessionToDelete) {
+                resolveFirestoreDocId(sessionToDelete)
+                    .then((docId) => {
+                        if (!docId) {
+                            console.warn('[Firestore] Unable to delete session: missing doc ID');
+                            return;
+                        }
+                        return deleteDoc(doc(db, `users/${currentUser.uid}/sessions`, docId));
+                    })
+                    .then(() => {
+                        console.log('[Firestore] Session deleted:', sessionToDelete.sessionId);
+                    })
+                    .catch((error) => {
+                        console.error('[Firestore] Failed to delete session:', error);
+                    });
+            }
 
             closeEditSession();
             renderHistory(); // Refresh the history display
@@ -5002,9 +5239,25 @@
             // Update notes
             session.notes = document.getElementById('edit-session-notes').value;
 
-            // Save to localStorage
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            setSessionHistoryCache(sessions, { source: 'local-edit', syncLocalStorage: true });
             void syncRuntimeToFirestore();
+
+            if (currentUser) {
+                resolveFirestoreDocId(session)
+                    .then((docId) => {
+                        if (!docId) {
+                            console.warn('[Firestore] Unable to update session: missing doc ID');
+                            return;
+                        }
+                        return updateDoc(doc(db, `users/${currentUser.uid}/sessions`, docId), sanitizeSessionForFirestore(session));
+                    })
+                    .then(() => {
+                        console.log('[Firestore] Session updated:', session.sessionId);
+                    })
+                    .catch((error) => {
+                        console.error('[Firestore] Failed to update session:', error);
+                    });
+            }
 
             closeEditSession();
             renderHistory(); // Refresh the history display
@@ -5538,21 +5791,21 @@
         }
 
         function exportExerciseHistory() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (!stored) {
+            const sessions = getSessionHistoryFromCache();
+            if (!sessions || sessions.length === 0) {
                 alert('No exercise history data found.');
                 return;
             }
 
             try {
-                const sessions = JSON.parse(stored);
+                const serializedSessions = serializeSessionHistory(sessions);
 
                 // Calculate summary statistics
-                const uniqueExercises = new Set(sessions.map(s => s.exerciseId)).size;
-                const totalSets = sessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
-                const dateRange = sessions.length > 0 ? {
-                    first: sessions[0].date,
-                    last: sessions[sessions.length - 1].date
+                const uniqueExercises = new Set(serializedSessions.map(s => s.exerciseId)).size;
+                const totalSets = serializedSessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+                const dateRange = serializedSessions.length > 0 ? {
+                    first: serializedSessions[0].date,
+                    last: serializedSessions[serializedSessions.length - 1].date
                 } : null;
 
                 // Build export with metadata
@@ -5561,19 +5814,19 @@
                     export_type: 'pt_exercise_history',
                     data_version: localStorage.getItem(PT_VERSION_KEY) || PT_DATA_VERSION,
                     stats: {
-                        total_sessions: sessions.length,
+                        total_sessions: serializedSessions.length,
                         unique_exercises: uniqueExercises,
                         total_sets: totalSets,
                         date_range: dateRange
                     },
-                    sessions: sessions
+                    sessions: serializedSessions
                 };
 
                 const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
                 const filename = `pt_exercise_history-${dateStamp}.json`;
                 downloadJSON(exportData, filename);
 
-                console.log(`[Export] History exported: ${sessions.length} sessions, ${uniqueExercises} exercises`);
+                console.log(`[Export] History exported: ${serializedSessions.length} sessions, ${uniqueExercises} exercises`);
                 haptic('success');
             } catch (e) {
                 console.error('Failed to export exercise history:', e);
@@ -5583,10 +5836,10 @@
 
         function exportAllData() {
             const library = localStorage.getItem(LIBRARY_KEY);
-            const history = localStorage.getItem(STORAGE_KEY);
+            const history = serializeSessionHistory(getSessionHistoryFromCache());
             const version = localStorage.getItem(PT_VERSION_KEY);
 
-            if (!library && !history) {
+            if (!library && history.length === 0) {
                 alert('No data found to export.');
                 return;
             }
@@ -5595,7 +5848,7 @@
                 const allData = {
                     pt_data_version: version || PT_DATA_VERSION,
                     pt_exercise_library: library ? JSON.parse(library) : [],
-                    pt_tracker_data: history ? JSON.parse(history) : [],
+                    pt_tracker_data: history,
                     exported_at: new Date().toISOString()
                 };
 
@@ -5614,10 +5867,10 @@
                     });
                 }
 
-                if (history) {
+                if (history.length > 0) {
                     zipFiles.push({
                         name: `pt_exercise_history-${dateStamp}.json`,
-                        content: JSON.stringify(JSON.parse(history), null, 2)
+                        content: JSON.stringify(history, null, 2)
                     });
                 }
 
@@ -5788,7 +6041,8 @@
                     localStorage.setItem(LIBRARY_KEY, JSON.stringify(data.pt_exercise_library));
                 }
                 if (data.pt_tracker_data) {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data.pt_tracker_data));
+                    setSessionHistoryCache(data.pt_tracker_data, { source: 'import-all', syncLocalStorage: true });
+                    queueSessionsForFirestore(data.pt_tracker_data, 'import-all');
                     void syncRuntimeToFirestore();
                 }
                 if (data.pt_data_version) {
@@ -5872,7 +6126,8 @@
                 .sort((a, b) => new Date(a.date) - new Date(b.date));
 
             // Save merged history
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSessions));
+            setSessionHistoryCache(mergedSessions, { source: 'import-merge', syncLocalStorage: true });
+            queueSessionsForFirestore(mergedSessions, 'import-merge');
             void syncRuntimeToFirestore();
 
             closeDataBackup();
@@ -5886,7 +6141,8 @@
             const confirmMsg = `⚠️ Are you sure?\n\nThis will permanently delete your current ${loadHistory().length} sessions and replace with ${importedSessions.length} imported sessions.\n\nThis cannot be undone!`;
 
             showActionSheet(confirmMsg, () => {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(importedSessions));
+                setSessionHistoryCache(importedSessions, { source: 'import-replace', syncLocalStorage: true });
+                queueSessionsForFirestore(importedSessions, 'import-replace');
                 void syncRuntimeToFirestore();
                 closeDataBackup();
                 alert(`History replaced!\n\n${importedSessions.length} sessions imported.`);
@@ -6460,7 +6716,7 @@
                     day: 'numeric'
                 }),
                 noteForPT: note || null,
-                sessionHistory: loadHistory(),
+                sessionHistory: serializeSessionHistory(loadHistory()),
                 exerciseLibrary: loadExerciseLibrary(),
                 rolesData: await loadRolesData(),
                 schema: await loadSchema(),
