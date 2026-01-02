@@ -536,7 +536,8 @@
             if (options.useCustomSelect) {
                 value = readSelectValueWithCustom(element);
             } else {
-                value = element.value.trim();
+                const rawValue = element && typeof element.value === 'string' ? element.value : '';
+                value = rawValue.trim();
             }
             if (value) values.push(value);
         });
