@@ -302,11 +302,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="ex-category">PT Category <span style="font-size: 11px; color: var(--text-secondary);">(select from schema)</span></label>
-                        <input type="text" id="ex-category" class="form-input" list="pt-category-options" placeholder="Select or type">
-                        <datalist id="pt-category-options">
+                        <label class="form-label" for="ex-category">PT Category</label>
+                        <select id="ex-category" class="form-select" onchange="toggleCustomInputById('ex-category')">
+                            <option value="">-- Select --</option>
                             <!-- Populated from schema dynamically -->
-                        </datalist>
+                        </select>
+                        <input type="text" id="ex-category-custom" class="form-input" placeholder="Enter custom category" style="display: none; margin-top: 8px;">
                     </div>
 
                     <div class="form-group">
@@ -473,7 +474,7 @@
 
                 <!-- Action Buttons -->
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="btn-primary" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
+                    <button class="btn-primary" type="button" onclick="saveExercise()" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
                     <button class="btn-danger" onclick="archiveExercise()" id="archive-btn" style="display: none;">🗑️ Archive</button>
                 </div>
             </div>
@@ -573,10 +574,6 @@
                     <label class="form-label" for="vocab-category">Category *</label>
                     <select id="vocab-category" class="form-select" onchange="loadVocabTerms()">
                         <option value="">-- Choose category --</option>
-                        <option value="region">Region</option>
-                        <option value="capacity">Capacity</option>
-                        <option value="contribution">Contribution</option>
-                        <option value="focus">Focus</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -659,16 +656,19 @@
     </div>
 
     <script src="pt_payload_utils.js"></script>
+    <script src="shared/exercise_form_module.js"></script>
     <script type="module">
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         window.ulid = ulid;
     </script>
     <script>
+        const exerciseFormModule = window.exerciseFormModule;
         let sessionHistory = [];
         let exerciseLibrary = [];
         let rolesData = null;
         let schema = null;
         let vocabulary = null;
+        let patientEmailCache = '';
 
         // Track PT modifications
         let modifications = {
@@ -680,6 +680,109 @@
             editedRoles: {},  // exerciseId: [complete new role set - replaces all]
             dosageChanges: {},  // exerciseId: new dosage spec
             updatedVocab: {}  // category: { term: definition }
+        };
+
+        const exerciseFormBindings = {
+            restrictToFields: [
+                'id',
+                'canonical_name',
+                'pt_category',
+                'description',
+                'primary_muscles',
+                'secondary_muscles',
+                'pattern',
+                'pattern_modifiers',
+                'equipment',
+                'form_parameters_required',
+                'tags',
+                'guidance',
+                'lifecycle',
+                'added_date',
+                'updated_date'
+            ],
+            fields: {
+                canonical_name: { id: 'ex-name', trim: true, normalize: 'title' },
+                pt_category: { id: 'ex-category', trim: true, nullIfBlank: true, normalize: 'lower_snake', useCustomSelect: true },
+                description: { id: 'ex-desc', trim: true, nullIfBlank: true },
+                pattern: { id: 'ex-pattern', trim: true },
+                added_date: { id: 'ex-added-date', type: 'date', nullIfBlank: true }
+            },
+            arrayFields: {
+                primary_muscles: {
+                    selector: '[id^="primary-muscle-"]',
+                    normalize: 'sentence',
+                    addItem: (value) => addMuscleField('primary', value)
+                },
+                secondary_muscles: {
+                    selector: '[id^="secondary-muscle-"]',
+                    normalize: 'sentence',
+                    addItem: (value) => addMuscleField('secondary', value)
+                },
+                pattern_modifiers: {
+                    selector: '#pattern-modifiers-list select[id^="pattern-mod-"]',
+                    addItem: (value) => addPatternModifier(value)
+                },
+                form_parameters_required: {
+                    selector: '#form-params-list select[id^="form-param-"]',
+                    useCustomSelect: true,
+                    addItem: (value) => addFormParamField(value)
+                }
+            },
+            nestedArrayFields: {
+                equipment: {
+                    required: {
+                        selector: '#equipment-required-list select[id^="equipment-required-"]',
+                        useCustomSelect: true,
+                        normalize: 'sentence',
+                        addItem: (value) => addEquipmentField('required', value)
+                    },
+                    optional: {
+                        selector: '#equipment-optional-list select[id^="equipment-optional-"]',
+                        useCustomSelect: true,
+                        normalize: 'sentence',
+                        addItem: (value) => addEquipmentField('optional', value)
+                    }
+                },
+                guidance: {
+                    external_cues: {
+                        selector: '#external-cues-list textarea[id^="external-"]',
+                        addItem: (value) => addGuidanceField('external', value)
+                    },
+                    motor_cues: {
+                        selector: '#motor-cues-list textarea[id^="motor-"]',
+                        addItem: (value) => addGuidanceField('motor', value)
+                    },
+                    compensation_warnings: {
+                        selector: '#compensation-warnings-list textarea[id^="compensation-"]',
+                        addItem: (value) => addGuidanceField('compensation', value)
+                    },
+                    safety_flags: {
+                        selector: '#safety-flags-list textarea[id^="safety-"]',
+                        addItem: (value) => addGuidanceField('safety', value)
+                    }
+                },
+                tags: {
+                    functional: {
+                        selector: '[id^="tag-functional-"]',
+                        addItem: (value) => addTagField('functional', value)
+                    },
+                    format: {
+                        selector: '[id^="tag-format-"]',
+                        addItem: (value) => addTagField('format', value)
+                    },
+                    heatmap: {
+                        selector: '[id^="tag-heatmap-"]',
+                        addItem: (value) => addTagField('heatmap', value)
+                    }
+                }
+            },
+            nestedFields: {
+                lifecycle: {
+                    status: { id: 'ex-lifecycle-status', default: 'active' },
+                    effective_start_date: { id: 'ex-lifecycle-start', type: 'date', nullIfBlank: true },
+                    effective_end_date: { id: 'ex-lifecycle-end', type: 'date', nullIfBlank: true }
+                }
+            }
         };
 
         async function handleFileImport(event) {
@@ -1100,147 +1203,60 @@
                 console.warn('[Editor] exerciseLibrary is empty or undefined');
             }
 
-            // Populate exercise dropdown for role assignment
-            const exerciseSelect = document.getElementById('role-exercise-select');
-            exerciseSelect.innerHTML = '<option value="">-- Choose an exercise --</option>';
+            exerciseFormModule.populateExerciseSelect({
+                selectId: 'role-exercise-select',
+                exercises: exerciseLibrary,
+                placeholder: '-- Choose an exercise --'
+            });
+            exerciseFormModule.populateExerciseSelect({
+                selectId: 'dosage-exercise-select',
+                exercises: exerciseLibrary,
+                placeholder: '-- Choose an exercise --'
+            });
+            exerciseFormModule.populateExerciseSelect({
+                selectId: 'edit-ex-select',
+                exercises: exerciseLibrary,
+                placeholder: '-- Add new exercise (leave blank) --'
+            });
             if (exerciseLibrary && exerciseLibrary.length > 0) {
-                exerciseLibrary.forEach(ex => {
-                    const option = document.createElement('option');
-                    option.value = ex.id;
-                    option.textContent = ex.title || ex.name;
-                    exerciseSelect.appendChild(option);
-                });
-            }
-
-            // Populate exercise dropdown for dosage management
-            const dosageExerciseSelect = document.getElementById('dosage-exercise-select');
-            dosageExerciseSelect.innerHTML = '<option value="">-- Choose an exercise --</option>';
-            if (exerciseLibrary && exerciseLibrary.length > 0) {
-                exerciseLibrary.forEach(ex => {
-                    const option = document.createElement('option');
-                    option.value = ex.id;
-                    option.textContent = ex.title || ex.name;
-                    dosageExerciseSelect.appendChild(option);
-                });
-            }
-
-            // Populate exercise dropdown for editing
-            const editExerciseSelect = document.getElementById('edit-ex-select');
-            editExerciseSelect.innerHTML = '<option value="">-- Add new exercise (leave blank) --</option>';
-            if (exerciseLibrary && exerciseLibrary.length > 0) {
-                exerciseLibrary.forEach(ex => {
-                    const option = document.createElement('option');
-                    option.value = ex.id;
-                    option.textContent = ex.title || ex.name;
-                    editExerciseSelect.appendChild(option);
-                });
                 console.log('[Editor] Populated edit dropdown with', exerciseLibrary.length, 'exercises');
             } else {
                 console.warn('[Editor] No exercises to populate in edit dropdown');
             }
 
-            // Populate region select with schema values + current values from rolesData
-            const regionSelect = document.getElementById('new-role-region');
-            const regionSet = new Set();
-            if (schema && schema.definitions && schema.definitions.role) {
-                const regions = schema.definitions.role.properties.region.enum || [];
-                regions.forEach(r => regionSet.add(r));
-            }
-            // Add regions from existing roles
-            if (rolesData && rolesData.exercise_roles) {
-                Object.values(rolesData.exercise_roles).forEach(ex => {
-                    ex.roles.forEach(role => {
-                        if (role.region) regionSet.add(role.region);
-                    });
-                });
-            }
-            regionSelect.innerHTML = '<option value="">-- Select region --</option>' +
-                Array.from(regionSet).sort().map(r => `<option value="${r}">${r}</option>`).join('') +
-                '<option value="__custom__">➕ Other (custom)...</option>';
+            exerciseFormModule.populateRoleSelects({
+                regionSelectId: 'new-role-region',
+                capacitySelectId: 'new-role-capacity',
+                focusSelectId: 'new-role-focus',
+                contributionSelectId: 'new-role-contribution',
+                schema,
+                vocabulary,
+                rolesData
+            });
 
-            // Populate capacity select with schema values + current values from rolesData
-            const capacitySelect = document.getElementById('new-role-capacity');
-            const capacitySet = new Set();
-            if (schema && schema.definitions && schema.definitions.role) {
-                const capacities = schema.definitions.role.properties.capacity.enum || [];
-                capacities.forEach(c => capacitySet.add(c));
-            }
-            // Add capacities from existing roles
-            if (rolesData && rolesData.exercise_roles) {
-                Object.values(rolesData.exercise_roles).forEach(ex => {
-                    ex.roles.forEach(role => {
-                        if (role.capacity) capacitySet.add(role.capacity);
-                    });
-                });
-            }
-            capacitySelect.innerHTML = '<option value="">-- Select capacity --</option>' +
-                Array.from(capacitySet).sort().map(c => `<option value="${c}">${c}</option>`).join('') +
-                '<option value="__custom__">➕ Other (custom)...</option>';
-
-            // Populate focus select with schema values + current values from rolesData
-            const focusSelect = document.getElementById('new-role-focus');
-            const focusSet = new Set();
-            if (schema && schema.definitions && schema.definitions.role && schema.definitions.role.properties.focus) {
-                const focuses = schema.definitions.role.properties.focus.enum || [];
-                focuses.forEach(f => focusSet.add(f));
-            }
-            // Add focus values from existing roles
-            if (rolesData && rolesData.exercise_roles) {
-                Object.values(rolesData.exercise_roles).forEach(ex => {
-                    ex.roles.forEach(role => {
-                        if (role.focus) focusSet.add(role.focus);
-                    });
-                });
-            }
-            focusSelect.innerHTML = '<option value="">-- No focus (general) --</option>' +
-                Array.from(focusSet).sort().map(f => `<option value="${f}">${f}</option>`).join('') +
-                '<option value="__custom__">➕ Other (custom)...</option>';
-
-            // Populate pattern dropdown from schema
-            const patternSelect = document.getElementById('ex-pattern');
-            patternSelect.innerHTML = '<option value="">-- Select --</option>';
             console.log('[Editor] Populating pattern dropdown, schema:', schema);
-            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern) {
-                const patterns = schema.$defs.exercise.properties.pattern.enum || [];
-                console.log('[Editor] Found pattern enum values:', patterns);
-                patterns.forEach(p => {
-                    const option = document.createElement('option');
-                    option.value = p;
-                    // Add descriptive labels
-                    if (p === 'side') {
-                        option.textContent = 'side (unilateral - one side at a time)';
-                    } else if (p === 'both') {
-                        option.textContent = 'both (bilateral - both sides together)';
-                    } else {
-                        option.textContent = p;
-                    }
-                    patternSelect.appendChild(option);
+            exerciseFormModule.populatePatternSelect({ selectId: 'ex-pattern', schema });
+
+            exerciseFormModule.populatePatternModifiersHelp({
+                containerId: 'pattern-modifiers-help',
+                vocabulary
+            });
+
+            // Populate PT category dropdown
+            const ptCategoryOptions = exerciseFormModule.getPtCategoryOptions({ schema, exerciseLibrary });
+            const ptCategorySelect = document.getElementById('ex-category');
+            if (ptCategorySelect) {
+                const optionsHtml = exerciseFormModule.buildSelectOptionsHtml(ptCategoryOptions, {
+                    placeholder: '-- Select --',
+                    includeCustom: true
                 });
-            } else {
-                console.warn('[Editor] Schema path not found for pattern enum. Schema structure:', {
-                    hasSchema: !!schema,
-                    hasDefs: !!(schema && schema.$defs),
-                    hasExercise: !!(schema && schema.$defs && schema.$defs.exercise),
-                    hasPattern: !!(schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern)
-                });
+                ptCategorySelect.innerHTML = optionsHtml;
             }
 
-            // Populate pattern modifiers help text from vocabulary
-            const patternModifiersHelp = document.getElementById('pattern-modifiers-help');
-            if (patternModifiersHelp && vocabulary && vocabulary.pattern_modifiers) {
-                const modifierDefs = vocabulary.pattern_modifiers;
-                const helpLines = Object.keys(modifierDefs).map(key => {
-                    return `<strong>${key}</strong>: ${modifierDefs[key]}`;
-                });
-                patternModifiersHelp.innerHTML = helpLines.join('<br>');
-            }
-
-            // Populate pt_category datalist from schema
-            const ptCategoryDatalist = document.getElementById('pt-category-options');
-            if (ptCategoryDatalist && schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pt_category) {
-                const categories = schema.$defs.exercise.properties.pt_category.enum || [];
-                ptCategoryDatalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
-            }
+            exerciseFormModule.populateVocabCategorySelect({
+                selectId: 'vocab-category',
+                vocabulary
+            });
 
             // Populate vocabulary reference guide
             const vocabGuide = document.getElementById('vocabulary-reference-guide');
@@ -1307,15 +1323,49 @@
             updateModificationSummary();
         }
 
+        const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+        function encodeUlidTime(time) {
+            let value = time;
+            let encoded = '';
+            for (let i = 0; i < 10; i += 1) {
+                encoded = ULID_ALPHABET[value % 32] + encoded;
+                value = Math.floor(value / 32);
+            }
+            return encoded;
+        }
+
+        function encodeUlidRandom(length = 16) {
+            const bytes = new Uint8Array(length);
+            if (window.crypto && window.crypto.getRandomValues) {
+                window.crypto.getRandomValues(bytes);
+            } else {
+                for (let i = 0; i < length; i += 1) {
+                    bytes[i] = Math.floor(Math.random() * 256);
+                }
+            }
+            let encoded = '';
+            for (let i = 0; i < length; i += 1) {
+                encoded += ULID_ALPHABET[bytes[i] % 32];
+            }
+            return encoded;
+        }
+
         function generateULID() {
-            return window.ulid();
+            if (typeof window.ulid === 'function') {
+                return window.ulid();
+            }
+            if (window.ulid && typeof window.ulid.ulid === 'function') {
+                return window.ulid.ulid();
+            }
+            return `${encodeUlidTime(Date.now())}${encodeUlidRandom()}`;
         }
 
         let currentEditingExerciseId = null; // Track which exercise is being edited
 
         // ========== ARRAY FIELD HELPERS ==========
 
-        function addMuscleField(type) {
+        function addMuscleField(type, value = '') {
             const containerId = type === 'primary' ? 'primary-muscles-list' : 'secondary-muscles-list';
             const container = document.getElementById(containerId);
             const index = container.children.length;
@@ -1329,18 +1379,20 @@
                 </div>
             `;
             container.appendChild(div);
+            if (value) {
+                const input = document.getElementById(`${type}-muscle-${index}`);
+                if (input) input.value = value;
+            }
         }
 
-        function addPatternModifier() {
+        function addPatternModifier(value = '') {
             const container = document.getElementById('pattern-modifiers-list');
             const index = container.children.length;
 
-            // Build select options from schema enum
-            let selectOptions = '<option value="">-- Select --</option>';
-            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.pattern_modifiers && schema.$defs.exercise.properties.pattern_modifiers.items) {
-                const modifiers = schema.$defs.exercise.properties.pattern_modifiers.items.enum || [];
-                selectOptions += modifiers.map(m => `<option value="${m}">${m}</option>`).join('');
-            }
+            const modifiers = exerciseFormModule.getPatternModifierOptions(schema);
+            const selectOptions = exerciseFormModule.buildSelectOptionsHtml(modifiers, {
+                placeholder: '-- Select --'
+            });
 
             const div = document.createElement('div');
             div.className = 'form-group';
@@ -1353,50 +1405,77 @@
                 </div>
             `;
             container.appendChild(div);
+            if (value) {
+                const select = document.getElementById(`pattern-mod-${index}`);
+                if (select) select.value = value;
+            }
+        }
+        function toggleCustomInputById(selectId) {
+            exerciseFormModule.toggleCustomInputById(selectId);
         }
 
-        function addEquipmentField(type) {
+        function addEquipmentField(type, value = '') {
             const containerId = type === 'required' ? 'equipment-required-list' : 'equipment-optional-list';
             const container = document.getElementById(containerId);
             const index = container.children.length;
 
+            const options = exerciseFormModule.getEquipmentOptions({ schema, exerciseLibrary, type });
+            const selectOptions = exerciseFormModule.buildSelectOptionsHtml(options, {
+                placeholder: '-- Select --',
+                includeCustom: true
+            });
+
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="equipment-${type}-${index}" placeholder="e.g., swiss_ball, resistance_band" style="flex: 1;">
+                    <div style="flex: 1;">
+                        <select class="form-select" id="equipment-${type}-${index}" onchange="toggleCustomInputById('equipment-${type}-${index}')">
+                            ${selectOptions}
+                        </select>
+                        <input type="text" class="form-input" id="equipment-${type}-${index}-custom" placeholder="Enter custom equipment" style="display: none; margin-top: 8px;">
+                    </div>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
             container.appendChild(div);
+
+            if (value) {
+                exerciseFormModule.setSelectValueWithCustom(`equipment-${type}-${index}`, value);
+            }
         }
 
-        function addFormParamField() {
+        function addFormParamField(value = '') {
             const container = document.getElementById('form-params-list');
             const index = container.children.length;
 
-            // Build datalist from schema
-            let datalistOptions = '';
-            if (schema && schema.$defs && schema.$defs.exercise && schema.$defs.exercise.properties.form_parameters_required && schema.$defs.exercise.properties.form_parameters_required.items) {
-                const params = schema.$defs.exercise.properties.form_parameters_required.items.enum || [];
-                datalistOptions = params.map(p => `<option value="${p}">`).join('');
-            }
+            const options = exerciseFormModule.getFormParameterOptions({ schema, exerciseLibrary });
+            const selectOptions = exerciseFormModule.buildSelectOptionsHtml(options, {
+                placeholder: '-- Select --',
+                includeCustom: true
+            });
 
             const div = document.createElement('div');
             div.className = 'form-group';
             div.innerHTML = `
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-input" id="form-param-${index}" placeholder="Select from schema or type custom" list="form-param-options-${index}" style="flex: 1;">
-                    <datalist id="form-param-options-${index}">
-                        ${datalistOptions}
-                    </datalist>
+                    <div style="flex: 1;">
+                        <select class="form-select" id="form-param-${index}" onchange="toggleCustomInputById('form-param-${index}')">
+                            ${selectOptions}
+                        </select>
+                        <input type="text" class="form-input" id="form-param-${index}-custom" placeholder="Enter custom parameter" style="display: none; margin-top: 8px;">
+                    </div>
                     <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 10px 15px;">✕</button>
                 </div>
             `;
             container.appendChild(div);
+
+            if (value) {
+                exerciseFormModule.setSelectValueWithCustom(`form-param-${index}`, value);
+            }
         }
 
-        function addGuidanceField(type) {
+        function addGuidanceField(type, value = '') {
             const typeMap = {
                 'external': 'external-cues-list',
                 'motor': 'motor-cues-list',
@@ -1416,9 +1495,13 @@
                 </div>
             `;
             container.appendChild(div);
+            if (value) {
+                const input = document.getElementById(`${type}-${index}`);
+                if (input) input.value = value;
+            }
         }
 
-        function addTagField(type) {
+        function addTagField(type, value = '') {
             const containerId = `tags-${type}-list`;
             const container = document.getElementById(containerId);
             const index = container.children.length;
@@ -1432,6 +1515,10 @@
                 </div>
             `;
             container.appendChild(div);
+            if (value) {
+                const input = document.getElementById(`tag-${type}-${index}`);
+                if (input) input.value = value;
+            }
         }
 
         function clearAllArrayFields() {
@@ -1459,6 +1546,8 @@
                 // Clear form for new exercise
                 document.getElementById('ex-name').value = '';
                 document.getElementById('ex-category').value = '';
+                document.getElementById('ex-category-custom').style.display = 'none';
+                document.getElementById('ex-category-custom').value = '';
                 document.getElementById('ex-desc').value = '';
                 document.getElementById('ex-pattern').value = '';
                 document.getElementById('ex-lifecycle-status').value = 'active';
@@ -1479,422 +1568,94 @@
             }
 
             console.log('[Editor] Loading exercise for edit:', exercise);
-            console.log('[Editor] Exercise has:', {
-                muscles: {
-                    primary: exercise.primary_muscles?.length || 0,
-                    secondary: exercise.secondary_muscles?.length || 0
-                },
-                pattern_modifiers: exercise.pattern_modifiers?.length || 0,
-                equipment: {
-                    required: exercise.equipment?.required?.length || 0,
-                    optional: exercise.equipment?.optional?.length || 0
-                },
-                guidance: {
-                    motor_cues: exercise.guidance?.motor_cues?.length || 0,
-                    external_cues: exercise.guidance?.external_cues?.length || 0,
-                    compensation: exercise.guidance?.compensation_warnings?.length || 0,
-                    safety: exercise.guidance?.safety_flags?.length || 0
-                },
-                tags: {
-                    functional: exercise.tags?.functional?.length || 0,
-                    format: exercise.tags?.format?.length || 0,
-                    heatmap: exercise.tags?.heatmap?.length || 0
-                }
-            });
 
             // Clear all array fields first
             clearAllArrayFields();
 
-            // Populate basic fields
-            document.getElementById('ex-name').value = exercise.canonical_name || exercise.title || exercise.name || '';
-            document.getElementById('ex-category').value = exercise.pt_category || '';
-            document.getElementById('ex-desc').value = exercise.description || '';
-            document.getElementById('ex-pattern').value = exercise.pattern || '';
-            console.log('[Editor] Set basic fields:', {
-                name: exercise.canonical_name || exercise.title || exercise.name || '',
-                category: exercise.pt_category || '',
-                pattern: exercise.pattern || ''
+            const normalizedExercise = {
+                ...exercise,
+                canonical_name: exercise.canonical_name || exercise.title || exercise.name || ''
+            };
+            exerciseFormModule.hydrateExerciseToBindings({
+                exercise: normalizedExercise,
+                bindings: exerciseFormBindings
             });
-
-            // Populate primary muscles
-            if (exercise.primary_muscles && exercise.primary_muscles.length > 0) {
-                console.log(`[Editor] Loading ${exercise.primary_muscles.length} primary muscles:`, exercise.primary_muscles);
-                exercise.primary_muscles.forEach((muscle, idx) => {
-                    addMuscleField('primary');
-                    const input = document.getElementById(`primary-muscle-${idx}`);
-                    if (input) {
-                        input.value = muscle;
-                        console.log(`[Editor] Set primary-muscle-${idx} = "${muscle}"`);
-                    } else {
-                        console.warn(`[Editor] Could not find input: primary-muscle-${idx}`);
-                    }
-                });
-            }
-
-            // Populate secondary muscles
-            if (exercise.secondary_muscles && exercise.secondary_muscles.length > 0) {
-                exercise.secondary_muscles.forEach((muscle, idx) => {
-                    addMuscleField('secondary');
-                    const input = document.getElementById(`secondary-muscle-${idx}`);
-                    if (input) input.value = muscle;
-                });
-            }
-
-            // Populate pattern modifiers
-            if (exercise.pattern_modifiers && exercise.pattern_modifiers.length > 0) {
-                exercise.pattern_modifiers.forEach((mod, idx) => {
-                    addPatternModifier();
-                    const input = document.getElementById(`pattern-mod-${idx}`);
-                    if (input) input.value = mod;
-                });
-            }
-
-            // Populate equipment
-            if (exercise.equipment) {
-                if (exercise.equipment.required && exercise.equipment.required.length > 0) {
-                    exercise.equipment.required.forEach((eq, idx) => {
-                        addEquipmentField('required');
-                        const input = document.getElementById(`equipment-required-${idx}`);
-                        if (input) input.value = eq;
-                    });
-                }
-                if (exercise.equipment.optional && exercise.equipment.optional.length > 0) {
-                    exercise.equipment.optional.forEach((eq, idx) => {
-                        addEquipmentField('optional');
-                        const input = document.getElementById(`equipment-optional-${idx}`);
-                        if (input) input.value = eq;
-                    });
-                }
-            }
-
-            // Populate form parameters
-            if (exercise.form_parameters_required && exercise.form_parameters_required.length > 0) {
-                exercise.form_parameters_required.forEach((param, idx) => {
-                    addFormParamField();
-                    const input = document.getElementById(`form-param-${idx}`);
-                    if (input) input.value = param;
-                });
-            }
-
-            // Populate guidance
-            if (exercise.guidance) {
-                if (exercise.guidance.external_cues && exercise.guidance.external_cues.length > 0) {
-                    exercise.guidance.external_cues.forEach((cue, idx) => {
-                        addGuidanceField('external');
-                        const input = document.getElementById(`external-${idx}`);
-                        if (input) input.value = cue;
-                    });
-                }
-                if (exercise.guidance.motor_cues && exercise.guidance.motor_cues.length > 0) {
-                    console.log(`[Editor] Loading ${exercise.guidance.motor_cues.length} motor cues:`, exercise.guidance.motor_cues);
-                    exercise.guidance.motor_cues.forEach((cue, idx) => {
-                        addGuidanceField('motor');
-                        const input = document.getElementById(`motor-${idx}`);
-                        if (input) {
-                            input.value = cue;
-                            console.log(`[Editor] Set motor-${idx} = "${cue}"`);
-                        } else {
-                            console.warn(`[Editor] Could not find input: motor-${idx}`);
-                        }
-                    });
-                }
-                if (exercise.guidance.compensation_warnings && exercise.guidance.compensation_warnings.length > 0) {
-                    exercise.guidance.compensation_warnings.forEach((warning, idx) => {
-                        addGuidanceField('compensation');
-                        const input = document.getElementById(`compensation-${idx}`);
-                        if (input) input.value = warning;
-                    });
-                }
-                if (exercise.guidance.safety_flags && exercise.guidance.safety_flags.length > 0) {
-                    exercise.guidance.safety_flags.forEach((flag, idx) => {
-                        addGuidanceField('safety');
-                        const input = document.getElementById(`safety-${idx}`);
-                        if (input) input.value = flag;
-                    });
-                }
-            }
-
-            // Populate tags
-            if (exercise.tags) {
-                if (exercise.tags.functional && exercise.tags.functional.length > 0) {
-                    exercise.tags.functional.forEach((tag, idx) => {
-                        addTagField('functional');
-                        const input = document.getElementById(`tag-functional-${idx}`);
-                        if (input) input.value = tag;
-                    });
-                }
-                if (exercise.tags.format && exercise.tags.format.length > 0) {
-                    exercise.tags.format.forEach((tag, idx) => {
-                        addTagField('format');
-                        const input = document.getElementById(`tag-format-${idx}`);
-                        if (input) input.value = tag;
-                    });
-                }
-                if (exercise.tags.heatmap && exercise.tags.heatmap.length > 0) {
-                    exercise.tags.heatmap.forEach((tag, idx) => {
-                        addTagField('heatmap');
-                        const input = document.getElementById(`tag-heatmap-${idx}`);
-                        if (input) input.value = tag;
-                    });
-                }
-            }
-
-            // Populate lifecycle fields
-            if (exercise.lifecycle) {
-                document.getElementById('ex-lifecycle-status').value = exercise.lifecycle.status || 'active';
-                document.getElementById('ex-lifecycle-start').value = exercise.lifecycle.effective_start_date || '';
-                document.getElementById('ex-lifecycle-end').value = exercise.lifecycle.effective_end_date || '';
-                console.log('[Editor] Set lifecycle:', exercise.lifecycle);
-            } else {
-                document.getElementById('ex-lifecycle-status').value = 'active';
-                document.getElementById('ex-lifecycle-start').value = '';
-                document.getElementById('ex-lifecycle-end').value = '';
-            }
-
-            // Populate added_date
-            document.getElementById('ex-added-date').value = exercise.added_date || '';
 
             // Show archive button
             archiveBtn.style.display = 'block';
             currentEditingExerciseId = exerciseId;
-
-            // Auto-expand sections that have data (so user can see loaded values)
-            const sectionsWithData = [];
-            if (exercise.primary_muscles?.length > 0 || exercise.secondary_muscles?.length > 0) {
-                sectionsWithData.push('muscles');
-            }
-            if (exercise.pattern_modifiers?.length > 0) {
-                sectionsWithData.push('pattern');
-            }
-            if (exercise.equipment?.required?.length > 0 || exercise.equipment?.optional?.length > 0) {
-                sectionsWithData.push('equipment');
-            }
-            if (exercise.form_parameters_required?.length > 0) {
-                sectionsWithData.push('form-params');
-            }
-            if (exercise.guidance?.external_cues?.length > 0 || exercise.guidance?.motor_cues?.length > 0 ||
-                exercise.guidance?.compensation_warnings?.length > 0 || exercise.guidance?.safety_flags?.length > 0) {
-                sectionsWithData.push('guidance');
-            }
-            if (exercise.tags?.functional?.length > 0 || exercise.tags?.format?.length > 0 || exercise.tags?.heatmap?.length > 0) {
-                sectionsWithData.push('tags');
-            }
-
-            // Open all <details> tags in the exercise form
-            document.querySelectorAll('#exercise-editor details').forEach(details => {
-                details.open = true;  // Expand all sections when editing
-            });
-
-            console.log(`[Editor] Auto-expanded ${sectionsWithData.length} sections with data:`, sectionsWithData);
         }
 
-        function saveExercise() {
-            // Collect basic fields
-            const name = document.getElementById('ex-name').value.trim();
-            const category = document.getElementById('ex-category').value.trim();
-            const description = document.getElementById('ex-desc').value.trim();
-            const pattern = document.getElementById('ex-pattern').value;
+        async function runExportRegressionCheck(exerciseId, expectedExercise) {
+            try {
+                const exportData = await buildModificationsExport();
+                const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_MODIFICATIONS', obj: exportData });
+                const decoded = await ptPayloadUtils.parseV2FromText(payload, 'PT_MODIFICATIONS');
+                if (!decoded || decoded.errors?.length) {
+                    console.warn('[Editor] Export regression check failed to decode payload', decoded?.errors);
+                    return;
+                }
 
-            // Collect array fields
-            const primary_muscles = [];
-            document.querySelectorAll('[id^="primary-muscle-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) primary_muscles.push(val);
-            });
+                const exportedMods = decoded.obj?.modifications;
+                let exportedExercise = exportedMods?.editedExercises?.[exerciseId];
+                if (!exportedExercise && Array.isArray(exportedMods?.newExercises)) {
+                    exportedExercise = exportedMods.newExercises.find(ex => ex.id === exerciseId);
+                }
 
-            const secondary_muscles = [];
-            document.querySelectorAll('[id^="secondary-muscle-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) secondary_muscles.push(val);
-            });
+                if (!exportedExercise) {
+                    console.warn('[Editor] Export regression check missing exercise', exerciseId);
+                    return;
+                }
 
-            const pattern_modifiers = [];
-            document.querySelectorAll('[id^="pattern-mod-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) pattern_modifiers.push(val);
-            });
-
-            const equipmentRequired = [];
-            document.querySelectorAll('[id^="equipment-required-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) equipmentRequired.push(val);
-            });
-
-            const equipmentOptional = [];
-            document.querySelectorAll('[id^="equipment-optional-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) equipmentOptional.push(val);
-            });
-
-            const form_parameters_required = [];
-            document.querySelectorAll('[id^="form-param-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) form_parameters_required.push(val);
-            });
-
-            // Collect guidance
-            const external_cues = [];
-            document.querySelectorAll('[id^="external-"]').forEach(textarea => {
-                const val = textarea.value.trim();
-                if (val) external_cues.push(val);
-            });
-
-            const motor_cues = [];
-            document.querySelectorAll('[id^="motor-"]').forEach(textarea => {
-                const val = textarea.value.trim();
-                if (val) motor_cues.push(val);
-            });
-
-            const compensation_warnings = [];
-            document.querySelectorAll('[id^="compensation-"]').forEach(textarea => {
-                const val = textarea.value.trim();
-                if (val) compensation_warnings.push(val);
-            });
-
-            const safety_flags = [];
-            document.querySelectorAll('[id^="safety-"]').forEach(textarea => {
-                const val = textarea.value.trim();
-                if (val) safety_flags.push(val);
-            });
-
-            // Collect tags
-            const tags_functional = [];
-            document.querySelectorAll('[id^="tag-functional-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) tags_functional.push(val);
-            });
-
-            const tags_format = [];
-            document.querySelectorAll('[id^="tag-format-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) tags_format.push(val);
-            });
-
-            const tags_heatmap = [];
-            document.querySelectorAll('[id^="tag-heatmap-"]').forEach(input => {
-                const val = input.value.trim();
-                if (val) tags_heatmap.push(val);
-            });
-
-            // Collect lifecycle data
-            const lifecycleStatus = document.getElementById('ex-lifecycle-status').value || 'active';
-            const lifecycleStartDate = document.getElementById('ex-lifecycle-start').value || null;
-            const lifecycleEndDate = document.getElementById('ex-lifecycle-end').value || null;
-            const addedDate = document.getElementById('ex-added-date').value || null;
-
-            // Schema-driven validation: only block fields that are required AND don't allow null AND have no default
-            const errors = [];
-
-            if (schema && schema.$defs && schema.$defs.exercise) {
-                const requiredFields = schema.$defs.exercise.required || [];
-                const properties = schema.$defs.exercise.properties || {};
-
-                // Map field names to collected values
-                const fieldValues = {
-                    'id': currentEditingExerciseId || 'will-be-generated',
-                    'canonical_name': name,
-                    'pt_category': category,
-                    'description': description,
-                    'primary_muscles': primary_muscles,
-                    'secondary_muscles': secondary_muscles,
-                    'pattern': pattern,
-                    'pattern_modifiers': pattern_modifiers,
-                    'equipment': { required: equipmentRequired, optional: equipmentOptional },
-                    'form_parameters_required': form_parameters_required,
-                    'tags': { functional: tags_functional, format: tags_format, heatmap: tags_heatmap },
-                    'guidance': { external_cues, motor_cues, compensation_warnings, safety_flags },
-                    'lifecycle': { status: lifecycleStatus, effective_start_date: lifecycleStartDate, effective_end_date: lifecycleEndDate },
-                    'added_date': addedDate,
-                    'updated_date': null
-                };
-
-                requiredFields.forEach(fieldName => {
-                    const property = properties[fieldName];
-                    if (!property) return;
-
-                    // Check if field allows null
-                    const allowsNull = Array.isArray(property.type) ? property.type.includes('null') : false;
-                    // Check if field has default value
-                    const hasDefault = property.hasOwnProperty('default');
-
-                    // Only validate if required AND doesn't allow null AND has no default
-                    if (!allowsNull && !hasDefault) {
-                        const value = fieldValues[fieldName];
-                        let isEmpty = false;
-
-                        if (value === null || value === undefined || value === '') {
-                            isEmpty = true;
-                        } else if (Array.isArray(value) && value.length === 0) {
-                            // Check minItems for arrays
-                            if (property.minItems && property.minItems > 0) {
-                                isEmpty = true;
-                            }
-                        } else if (typeof value === 'object' && !Array.isArray(value)) {
-                            // For nested objects (equipment, tags, guidance, lifecycle), check their properties
-                            const nestedDef = schema.$defs[fieldName];
-                            if (nestedDef && nestedDef.required) {
-                                // Will be validated when building the object
-                            }
-                        }
-
-                        if (isEmpty) {
-                            // Convert snake_case to readable name
-                            const readableName = fieldName.split('_').map(word =>
-                                word.charAt(0).toUpperCase() + word.slice(1)
-                            ).join(' ');
-                            errors.push(`- ${readableName} is required`);
-                        }
-                    }
+                const keysToCheck = exerciseFormBindings.restrictToFields.filter(key => key !== 'id');
+                const mismatches = keysToCheck.filter(key => {
+                    return JSON.stringify(exportedExercise[key]) !== JSON.stringify(expectedExercise[key]);
                 });
+
+                if (mismatches.length > 0) {
+                    console.warn('[Editor] Export regression check mismatch fields:', mismatches);
+                }
+            } catch (error) {
+                console.warn('[Editor] Export regression check failed', error);
             }
+        }
+
+        async function saveExercise() {
+            const exercise = exerciseFormModule.serializeExerciseFromBindings({
+                bindings: exerciseFormBindings,
+                schema,
+                id: currentEditingExerciseId,
+                generateId: generateULID
+            });
+
+            const name = (exercise.canonical_name || '').trim();
+            exercise.canonical_name = name;
+
+            const errors = exerciseFormModule.validateExercise(
+                exercise,
+                schema,
+                exerciseFormBindings.restrictToFields
+            );
 
             if (errors.length > 0) {
                 alert('Cannot save - required fields missing:\n\n' + errors.join('\n'));
                 return;
             }
 
-            // Build exercise object in exercise_library.json format
-            const exercise = {
-                id: currentEditingExerciseId || generateULID(),
-                canonical_name: name,
-                pt_category: category || null,
-                description: description || null,
-                primary_muscles: primary_muscles,
-                secondary_muscles: secondary_muscles,
-                pattern: pattern,
-                pattern_modifiers: pattern_modifiers,
-                equipment: {
-                    required: equipmentRequired,
-                    optional: equipmentOptional
-                },
-                form_parameters_required: form_parameters_required,
-                tags: {
-                    functional: tags_functional,
-                    format: tags_format,
-                    heatmap: tags_heatmap
-                },
-                guidance: {
-                    external_cues: external_cues,
-                    motor_cues: motor_cues,
-                    compensation_warnings: compensation_warnings,
-                    safety_flags: safety_flags
-                },
-                lifecycle: {
-                    status: lifecycleStatus,
-                    effective_start_date: lifecycleStartDate,
-                    effective_end_date: lifecycleEndDate
-                },
-                added_date: addedDate,
-                updated_date: currentEditingExerciseId ? new Date().toISOString().split('T')[0] : null
-            };
-
             // Add legacy name aliases for compatibility
             exercise.name = name;
             exercise.title = name;
 
+            const exerciseId = exercise.id;
+            const newExerciseIndex = modifications.newExercises.findIndex(ex => ex.id === exerciseId);
+
             if (currentEditingExerciseId) {
-                modifications.editedExercises[currentEditingExerciseId] = exercise;
-                const index = exerciseLibrary.findIndex(ex => ex.id === currentEditingExerciseId);
+                if (newExerciseIndex !== -1) {
+                    modifications.newExercises[newExerciseIndex] = exercise;
+                } else {
+                    modifications.editedExercises[exerciseId] = exercise;
+                }
+                const index = exerciseLibrary.findIndex(ex => ex.id === exerciseId);
                 if (index !== -1) {
                     exerciseLibrary[index] = exercise;
                 }
@@ -1905,22 +1666,22 @@
                 alert(`Exercise "${name}" added! Remember to export modifications.`);
             }
 
+            await runExportRegressionCheck(exerciseId, exercise);
+
             // Clear form
             document.getElementById('ex-name').value = '';
             document.getElementById('ex-category').value = '';
+            document.getElementById('ex-category-custom').style.display = 'none';
+            document.getElementById('ex-category-custom').value = '';
             document.getElementById('ex-desc').value = '';
             document.getElementById('ex-pattern').value = '';
-            document.getElementById('ex-lifecycle-status').value = 'active';
-            document.getElementById('ex-lifecycle-start').value = '';
-            document.getElementById('ex-lifecycle-end').value = '';
-            document.getElementById('ex-added-date').value = '';
             clearAllArrayFields();
             document.getElementById('edit-ex-select').value = '';
             document.getElementById('archive-btn').style.display = 'none';
             currentEditingExerciseId = null;
 
-            initializeEditorMode();
             updateModificationSummary();
+            initializeEditorMode();
         }
 
         function archiveExercise() {
@@ -1957,8 +1718,8 @@
             currentEditingExerciseId = null;
 
             // Refresh dropdowns
-            initializeEditorMode();
             updateModificationSummary();
+            initializeEditorMode();
 
             alert(`Exercise "${exerciseName}" archived! Remember to export modifications when done.`);
         }
@@ -2150,17 +1911,11 @@
 
         function loadVocabTerms() {
             const category = document.getElementById('vocab-category').value;
-            const termSelect = document.getElementById('vocab-term');
-
-            termSelect.innerHTML = '<option value="">-- Choose term --</option>';
             document.getElementById('vocab-definition').value = '';
-
-            if (!category || !vocabulary || !vocabulary[category]) {
-                return;
-            }
-
-            Object.keys(vocabulary[category]).forEach(term => {
-                termSelect.innerHTML += `<option value="${term}">${term.replace(/_/g, ' ')}</option>`;
+            exerciseFormModule.populateVocabTermSelect({
+                selectId: 'vocab-term',
+                vocabulary,
+                category
             });
         }
 
@@ -2168,12 +1923,13 @@
             const category = document.getElementById('vocab-category').value;
             const term = document.getElementById('vocab-term').value;
 
-            if (!category || !term || !vocabulary || !vocabulary[category]) {
+            const vocabMap = exerciseFormModule.getVocabularyMap(vocabulary, category);
+            if (!category || !term || !vocabMap) {
                 document.getElementById('vocab-definition').value = '';
                 return;
             }
 
-            const currentDef = vocabulary[category][term] || '';
+            const currentDef = vocabMap[term] || '';
             document.getElementById('vocab-definition').value = currentDef;
         }
 
@@ -2516,10 +2272,8 @@
                 return;
             }
 
-            // Load saved patient email if exists
-            const savedEmail = localStorage.getItem('patient_email_address');
-            if (savedEmail) {
-                document.getElementById('patient-email').value = savedEmail;
+            if (patientEmailCache) {
+                document.getElementById('patient-email').value = patientEmailCache;
             }
             document.getElementById('pt-message').value = '';
             document.getElementById('export-email-modal').style.display = 'flex';
@@ -2545,9 +2299,8 @@
             const patientEmail = document.getElementById('patient-email').value.trim();
             const message = document.getElementById('pt-message').value.trim();
 
-            // Save patient email for next time
             if (patientEmail) {
-                localStorage.setItem('patient_email_address', patientEmail);
+                patientEmailCache = patientEmail;
             }
 
             const exportData = await buildModificationsExport();
@@ -2618,17 +2371,23 @@ ${payload}`;
                 // Set global data
                 sessionHistory = []; // Empty - no patient data
                 // Map exercise_library.json format to expected format
-                exerciseLibrary = (libraryData.exercises || []).map(ex => ({
-                    id: ex.exercise_id,
-                    name: ex.canonical_name,
-                    title: ex.canonical_name,
-                    description: ex.description || '',
-                    instructions: ex.guidance?.external_cues?.join('\n') || '',
-                    videoUrl: ''
-                }));
+                exerciseLibrary = (libraryData.exercises || []).map(ex => {
+                    const id = ex.id || ex.exercise_id;
+                    const canonicalName = ex.canonical_name || ex.name || ex.title || '';
+                    return {
+                        ...ex,
+                        id,
+                        name: canonicalName,
+                        title: canonicalName
+                    };
+                });
                 rolesData = rolesDataRaw;
                 schema = schemaData;
-                vocabulary = vocabData;
+                vocabulary = {
+                    ...vocabData,
+                    regions: vocabData.regions || vocabData.region,
+                    capacities: vocabData.capacities || vocabData.capacity
+                };
 
                 console.log('[PT Mode] Loaded', exerciseLibrary.length, 'exercises from library');
                 console.log('[PT Mode] Sample exercise:', exerciseLibrary[0]);
