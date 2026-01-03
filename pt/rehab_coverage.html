@@ -750,27 +750,12 @@
         } from './shared/firestore_shared_data.js';
         import {
             collection,
-            enableIndexedDbPersistence,
             onSnapshot,
             query
         } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let currentUser = null;
         let coverageUnsubscribe = null;
-
-        enableIndexedDbPersistence(db)
-            .then(() => {
-                console.log('[Firestore] IndexedDB persistence enabled (coverage)');
-            })
-            .catch((error) => {
-                if (error.code === 'failed-precondition') {
-                    console.warn('[Firestore] Persistence disabled: multiple tabs open (coverage)');
-                } else if (error.code === 'unimplemented') {
-                    console.warn('[Firestore] Persistence unavailable in this browser (coverage)');
-                } else {
-                    console.warn('[Firestore] Persistence enable failed (coverage):', error);
-                }
-            });
 
         function updateMenuAuthDisplay() {
             const signedInSection = document.getElementById('menu-auth-signed-in');
