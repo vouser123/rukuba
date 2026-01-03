@@ -1,6 +1,9 @@
 // Firebase configuration and initialization
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import {
+  initializeFirestore,
+  persistentLocalCache
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -22,7 +25,9 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  cache: persistentLocalCache()
+});
 const auth = getAuth(app);
 
 // Export auth and db

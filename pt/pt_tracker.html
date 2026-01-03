@@ -1551,7 +1551,6 @@
             collection,
             deleteDoc,
             doc,
-            enableIndexedDbPersistence,
             getDoc,
             getDocs,
             onSnapshot,
@@ -1578,20 +1577,6 @@
         // Auth state
         let currentUser = null;
         let isAuthReady = false;
-
-        enableIndexedDbPersistence(db)
-            .then(() => {
-                console.log('[Firestore] IndexedDB persistence enabled');
-            })
-            .catch((error) => {
-                if (error.code === 'failed-precondition') {
-                    console.warn('[Firestore] Persistence disabled: multiple tabs open');
-                } else if (error.code === 'unimplemented') {
-                    console.warn('[Firestore] Persistence unavailable in this browser');
-                } else {
-                    console.warn('[Firestore] Persistence enable failed:', error);
-                }
-            });
 
         // Auth UI functions
         function showAuthModal() {
