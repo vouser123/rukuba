@@ -661,6 +661,21 @@
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         window.ulid = ulid;
     </script>
+    <script type="module">
+        import {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared,
+            loadExerciseVocabularyShared,
+            loadExerciseFileSchemaShared
+        } from './shared/firestore_shared_data.js';
+
+        window.sharedDataLoader = {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared,
+            loadExerciseVocabularyShared,
+            loadExerciseFileSchemaShared
+        };
+    </script>
     <script>
         const exerciseFormModule = window.exerciseFormModule;
         let sessionHistory = [];
@@ -2351,27 +2366,39 @@ ${payload}`;
         // PT Mode - load base files without patient data
         async function loadPTMode() {
             try {
-                // Load base files from the pt directory
-                const [libraryRes, rolesRes, schemaRes, vocabRes] = await Promise.all([
-                    fetch('exercise_library.json'),
-                    fetch('exercise_roles.json'),
-                    fetch('schema/exercise_file.schema.json'),
-                    fetch('exercise_roles_vocabulary.json')
-                ]);
-
-                if (!libraryRes.ok || !rolesRes.ok || !schemaRes.ok || !vocabRes.ok) {
-                    throw new Error('Failed to load base files. Make sure you have internet connection.');
+                const sharedLoader = window.sharedDataLoader;
+                if (!sharedLoader) {
+                    throw new Error('Shared data loader unavailable. Try reloading the page.');
                 }
 
-                const libraryData = await libraryRes.json();
-                const rolesDataRaw = await rolesRes.json();
-                const schemaData = await schemaRes.json();
-                const vocabData = await vocabRes.json();
+                const [
+                    libraryExercises,
+                    rolesDataRaw,
+                    schemaData,
+                    vocabData
+                ] = await Promise.all([
+                    sharedLoader.loadExerciseLibraryShared({
+                        fallbackUrl: 'exercise_library.json',
+                        seedIfMissing: true
+                    }),
+                    sharedLoader.loadExerciseRolesShared({
+                        fallbackUrl: 'exercise_roles.json',
+                        seedIfMissing: true
+                    }),
+                    sharedLoader.loadExerciseFileSchemaShared({
+                        fallbackUrl: 'schema/exercise_file.schema.json',
+                        seedIfMissing: true
+                    }),
+                    sharedLoader.loadExerciseVocabularyShared({
+                        fallbackUrl: 'exercise_roles_vocabulary.json',
+                        seedIfMissing: true
+                    })
+                ]);
 
                 // Set global data
                 sessionHistory = []; // Empty - no patient data
                 // Map exercise_library.json format to expected format
-                exerciseLibrary = (libraryData.exercises || []).map(ex => {
+                exerciseLibrary = (libraryExercises || []).map(ex => {
                     const id = ex.id || ex.exercise_id;
                     const canonicalName = ex.canonical_name || ex.name || ex.title || '';
                     return {
@@ -2400,7 +2427,7 @@ ${payload}`;
                 alert('PT Editor Mode loaded!\n\nYou can now:\n• Add new exercises\n• Assign roles\n• Update vocabulary\n\nExport modifications when done and email to patient.');
             } catch (error) {
                 console.error('Error loading PT mode:', error);
-                alert('Error loading PT Mode: ' + error.message + '\n\nMake sure you have internet connection and the files are accessible.');
+                alert('Error loading PT Mode: ' + error.message + '\n\nMake sure you have internet connection and the shared data is accessible.');
             }
         }
 

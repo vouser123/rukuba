@@ -358,6 +358,17 @@
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         window.ulid = ulid;
     </script>
+    <script type="module">
+        import {
+            loadExerciseLibraryShared,
+            loadExerciseFileSchemaShared
+        } from './shared/firestore_shared_data.js';
+
+        window.sharedDataLoader = {
+            loadExerciseLibraryShared,
+            loadExerciseFileSchemaShared
+        };
+    </script>
     <script>
         function generateULID() {
             return window.ulid();
@@ -913,6 +924,11 @@
 
         async function init() {
             try {
+                const sharedLoader = window.sharedDataLoader;
+                if (!sharedLoader) {
+                    throw new Error('Shared data loader unavailable. Try reloading the page.');
+                }
+
                 // Get service worker cache version if available
                 if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                     debugLog(`[SW] Service worker active`);
@@ -926,20 +942,25 @@
                     debugLog(`[SW] No service worker active`);
                 }
 
-                const [schemaResp, seedResp] = await Promise.all([
-                    fetch('./schema/exercise_file.schema.json'),
-                    fetch('./exercise_library.json')
+                const [schemaData, libraryExercises] = await Promise.all([
+                    sharedLoader.loadExerciseFileSchemaShared({
+                        fallbackUrl: './schema/exercise_file.schema.json',
+                        seedIfMissing: true
+                    }),
+                    sharedLoader.loadExerciseLibraryShared({
+                        fallbackUrl: './exercise_library.json',
+                        seedIfMissing: true
+                    })
                 ]);
 
-                schema = await schemaResp.json();
+                schema = schemaData;
 
                 // Resolve exercise schema with all $refs
                 const exerciseSchemaNode = schema.$defs.exercise;
                 resolvedExerciseSchema = resolveSchema(exerciseSchemaNode, schema);
 
-                const seedData = await seedResp.json();
-                baselineExercises = seedData.exercises || [];
-                debugLog(`[Init] Loaded ${baselineExercises.length} exercises from exercise_library.json`);
+                baselineExercises = libraryExercises || [];
+                debugLog(`[Init] Loaded ${baselineExercises.length} exercises from shared library`);
                 if (baselineExercises.length > 0) {
                     const first3 = baselineExercises.slice(0, 3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
                     const last3 = baselineExercises.slice(-3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
@@ -976,7 +997,7 @@
 
                 renderExerciseList();
             } catch (e) {
-                alert('Failed to load schema or seed data: ' + e.message);
+                alert('Failed to load schema or shared data: ' + e.message);
             }
         }
 
@@ -1120,22 +1141,26 @@
         }
 
         async function reloadFromJSON() {
-            if (!confirm('Reload from exercise_library.json?\n\nThis will:\n• Discard ALL drafts\n• Restore all deleted exercises\n• Reset to the JSON file state\n\nContinue?')) {
+            if (!confirm('Reload from shared exercise library?\n\nThis will:\n• Discard ALL drafts\n• Restore all deleted exercises\n• Reset to the shared library state\n\nContinue?')) {
                 return;
             }
 
             try {
+                const sharedLoader = window.sharedDataLoader;
+                if (!sharedLoader) {
+                    throw new Error('Shared data loader unavailable. Try reloading the page.');
+                }
+
                 // Clear all drafts
                 drafts = {};
                 localStorage.removeItem('pt_exercise_drafts');
 
-                // Reload from JSON
-                const seedResp = await fetch('./exercise_library.json');
-                if (!seedResp.ok) throw new Error('Failed to fetch exercise_library.json');
-
-                const seedData = await seedResp.json();
-                baselineExercises = seedData.exercises || [];
-                debugLog(`[Reload] Reloaded ${baselineExercises.length} exercises from exercise_library.json`);
+                // Reload from shared library
+                baselineExercises = await sharedLoader.loadExerciseLibraryShared({
+                    fallbackUrl: './exercise_library.json',
+                    seedIfMissing: true
+                });
+                debugLog(`[Reload] Reloaded ${baselineExercises.length} exercises from shared library`);
                 if (baselineExercises.length > 0) {
                     const first3 = baselineExercises.slice(0, 3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
                     const last3 = baselineExercises.slice(-3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
@@ -1154,9 +1179,9 @@
                 });
 
                 renderExerciseList();
-                alert('✓ Reloaded from JSON!\n\nAll drafts discarded, exercises restored.');
+                alert('✓ Reloaded from shared library!\n\nAll drafts discarded, exercises restored.');
             } catch (e) {
-                alert('Failed to reload from JSON:\n\n' + e.message);
+                alert('Failed to reload from shared library:\n\n' + e.message);
                 console.error('Reload error:', e);
             }
         }
