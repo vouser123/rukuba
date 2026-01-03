@@ -1538,6 +1538,15 @@
         import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         import {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared,
+            loadExerciseVocabularyShared,
+            loadExerciseFileSchemaShared,
+            loadExerciseRolesSchemaShared,
+            saveExerciseRolesShared,
+            saveExerciseVocabularyShared
+        } from './shared/firestore_shared_data.js';
+        import {
             addDoc,
             collection,
             deleteDoc,
@@ -2072,7 +2081,12 @@
                     ...docSnap.data()
                 }));
                 const legacyMissing = firestoreHydrated ? [] : migrateLegacyHistoryToFirestore(sessions);
-                const merged = legacyMissing.length > 0 ? dedupeSessions([...sessions, ...legacyMissing]) : sessions;
+                const queued = loadFirestoreQueue();
+                const merged = dedupeSessions([
+                    ...sessions,
+                    ...legacyMissing,
+                    ...queued
+                ]);
                 setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: true });
                 sessionHistoryLoadedFromFirestore = true;
                 if (!firestoreHydrated) {
@@ -2480,6 +2494,7 @@
 
         function saveRolesDataSync(rolesData) {
             localStorage.setItem(ROLES_DATA_KEY, JSON.stringify(rolesData));
+            void syncRolesToFirestore(rolesData);
         }
 
         // Synchronous load/save for vocabulary
@@ -2498,6 +2513,7 @@
 
         function saveVocabularySync(vocabulary) {
             localStorage.setItem(VOCABULARY_KEY, JSON.stringify(vocabulary));
+            void syncVocabularyToFirestore(vocabulary);
         }
 
         // Safe history loading with error handling and backward compatibility
@@ -2562,35 +2578,49 @@
 
         // Load roles data from JSON file (cached by service worker)
         function loadRolesData() {
-            // Return a Promise that fetches the roles JSON
-            return fetch('exercise_roles.json')
-                .then(response => response.json())
-                .catch(err => {
-                    console.error('Failed to load roles data:', err);
-                    return { exercise_roles: {} }; // Return empty structure on error
-                });
+            const fallbackData = loadRolesDataSync();
+            return loadExerciseRolesShared({
+                fallbackUrl: 'exercise_roles.json',
+                fallbackData,
+                seedIfMissing: true
+            }).then((data) => {
+                if (data) {
+                    saveRolesDataSync(data);
+                }
+                return data;
+            }).catch(err => {
+                console.error('Failed to load roles data:', err);
+                return { exercise_roles: {} };
+            });
         }
 
         // Load schema from JSON file (cached by service worker)
         function loadSchema() {
-            // Return a Promise that fetches the exercise file schema
-            return fetch('schema/exercise_file.schema.json')
-                .then(response => response.json())
-                .catch(err => {
-                    console.error('Failed to load schema:', err);
-                    return {}; // Return empty object on error
-                });
+            return loadExerciseFileSchemaShared({
+                fallbackUrl: 'schema/exercise_file.schema.json',
+                seedIfMissing: true
+            }).catch(err => {
+                console.error('Failed to load schema:', err);
+                return {};
+            });
         }
 
         // Load vocabulary from JSON file (cached by service worker)
         function loadVocabulary() {
-            // Return a Promise that fetches the vocabulary JSON
-            return fetch('exercise_roles_vocabulary.json')
-                .then(response => response.json())
-                .catch(err => {
-                    console.error('Failed to load vocabulary:', err);
-                    return {}; // Return empty object on error
-                });
+            const fallbackData = loadVocabularySync();
+            return loadExerciseVocabularyShared({
+                fallbackUrl: 'exercise_roles_vocabulary.json',
+                fallbackData,
+                seedIfMissing: true
+            }).then((data) => {
+                if (data) {
+                    saveVocabularySync(data);
+                }
+                return data;
+            }).catch(err => {
+                console.error('Failed to load vocabulary:', err);
+                return {};
+            });
         }
 
         /**
@@ -7046,8 +7076,14 @@ ${payload}`;
 
                 // Load schema files
                 Promise.all([
-                    fetch('schema/exercise_file.schema.json').then(r => r.json()),
-                    fetch('schema/exercise_roles.schema.json').then(r => r.json())
+                    loadExerciseFileSchemaShared({
+                        fallbackUrl: 'schema/exercise_file.schema.json',
+                        seedIfMissing: true
+                    }),
+                    loadExerciseRolesSchemaShared({
+                        fallbackUrl: 'schema/exercise_roles.schema.json',
+                        seedIfMissing: true
+                    })
                 ]).then(([exerciseSchema, rolesSchema]) => {
                     const zipFiles = [
                         {
@@ -7463,29 +7499,46 @@ ${payload}`;
             isLoadingLibraryExercises = true;
             try {
                 const timeoutMs = 7000;
-                const response = await Promise.race([
-                    fetch('exercise_library.json'),
+                const exercises = await Promise.race([
+                    loadExerciseLibraryShared({
+                        fallbackUrl: 'exercise_library.json',
+                        seedIfMissing: true
+                    }),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), timeoutMs))
                 ]);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                const data = await response.json();
-                libraryExercises = data.exercises || [];
-                console.log(`Loaded ${libraryExercises.length} exercises from library`);
+                libraryExercises = exercises || [];
+                console.log(`Loaded ${libraryExercises.length} exercises from shared library`);
                 return libraryExercises;
             } catch (error) {
                 if (error.name === 'AbortError') {
                     console.error('Exercise library request timed out.');
-                    alert('Failed to load exercise library:\nRequest timed out.\n\nMake sure exercise_library.json is accessible.');
+                    alert('Failed to load exercise library:\nRequest timed out.\n\nCheck your connection and try again.');
                 } else {
                 console.error('Failed to load exercise library:', error);
-                alert(`Failed to load exercise library:\n${error.message}\n\nMake sure exercise_library.json is accessible.`);
+                alert(`Failed to load exercise library:\n${error.message}\n\nCheck your connection and try again.`);
                 }
                 libraryExercises = [];
                 return [];
             } finally {
                 isLoadingLibraryExercises = false;
+            }
+        }
+
+        async function syncRolesToFirestore(rolesData) {
+            if (!currentUser) return;
+            try {
+                await saveExerciseRolesShared(rolesData);
+            } catch (error) {
+                console.warn('[Roles] Failed to sync roles to Firestore:', error);
+            }
+        }
+
+        async function syncVocabularyToFirestore(vocabulary) {
+            if (!currentUser) return;
+            try {
+                await saveExerciseVocabularyShared(vocabulary);
+            } catch (error) {
+                console.warn('[Vocabulary] Failed to sync vocabulary to Firestore:', error);
             }
         }
 

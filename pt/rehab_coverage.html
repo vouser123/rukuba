@@ -743,6 +743,12 @@
         // Firebase auth check
         import { auth, db, onAuthStateChanged, signOut } from './firebase.js';
         import {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared,
+            loadExerciseVocabularyShared,
+            loadExerciseRolesSchemaShared
+        } from './shared/firestore_shared_data.js';
+        import {
             collection,
             enableIndexedDbPersistence,
             onSnapshot,
@@ -932,16 +938,18 @@
         }
 
         async function loadSchema() {
-            const response = await fetch('schema/exercise_roles.schema.json');
-            if (!response.ok) throw new Error(`Schema fetch failed: ${response.status}`);
-            schema = await response.json();
+            schema = await loadExerciseRolesSchemaShared({
+                fallbackUrl: 'schema/exercise_roles.schema.json',
+                seedIfMissing: true
+            });
             console.log('[Schema] Loaded:', schema);
         }
 
         async function loadRoles() {
-            const response = await fetch('exercise_roles.json');
-            if (!response.ok) throw new Error(`Roles fetch failed: ${response.status}`);
-            rolesData = await response.json();
+            rolesData = await loadExerciseRolesShared({
+                fallbackUrl: 'exercise_roles.json',
+                seedIfMissing: true
+            });
             console.log('[Roles] Loaded:', Object.keys(rolesData.exercise_roles || {}).length, 'exercises with roles');
 
             // Debug: Show sample role exercise IDs
@@ -952,9 +960,10 @@
         }
 
         async function loadVocabulary() {
-            const response = await fetch('exercise_roles_vocabulary.json');
-            if (!response.ok) throw new Error(`Vocabulary fetch failed: ${response.status}`);
-            vocabulary = await response.json();
+            vocabulary = await loadExerciseVocabularyShared({
+                fallbackUrl: 'exercise_roles_vocabulary.json',
+                seedIfMissing: true
+            });
 
             // Validate schema version match
             if (vocabulary.schema_version && schema.schema_version) {
@@ -965,10 +974,10 @@
         }
 
         async function loadExerciseLibrary() {
-            const response = await fetch('exercise_library.json');
-            if (!response.ok) throw new Error(`Library fetch failed: ${response.status}`);
-            const data = await response.json();
-            exerciseLibrary = data.exercises || [];
+            exerciseLibrary = await loadExerciseLibraryShared({
+                fallbackUrl: 'exercise_library.json',
+                seedIfMissing: true
+            });
             console.log('[Library] Loaded:', exerciseLibrary.length, 'exercises');
         }
 
