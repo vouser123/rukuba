@@ -5830,9 +5830,9 @@
                 downloadJSON(schemaData, filename);
                 haptic('success');
 
-                const archivedCount = exercises.filter(ex => ex.lifecycle.status === 'archived').length;
-                const supersedesCount = exercises.filter(ex => ex.supersedes && ex.supersedes.length > 0).length;
-                alert(`✓ Exported ${exercises.length} exercises\n\n${archivedCount} archived\n${supersedesCount} with supersedes relationships\n\nReady for library maintenance!`);
+                const archivedCount = internalLibrary.filter(ex => ex.lifecycle && ex.lifecycle.status === 'archived').length;
+                const supersedesCount = internalLibrary.filter(ex => ex.supersedes && ex.supersedes.length > 0).length;
+                alert(`✓ Exported ${internalLibrary.length} exercises\n\n${archivedCount} archived\n${supersedesCount} with supersedes relationships\n\nReady for library maintenance!`);
             } catch (e) {
                 console.error('Failed to export exercise library:', e);
                 alert('Unable to export exercise library. Data may be corrupt.');
@@ -7048,8 +7048,19 @@ ${payload}`;
             saveVocabularySync(vocabulary);
 
             haptic('success');
-            alert(`Successfully merged ${mergedCount} changes from your PT!\n\nThe app will now reload to apply all changes.`);
-            location.reload();
+
+            // Export backup of all data after successful import
+            try {
+                exportAllData();
+            } catch (e) {
+                console.error('[Import] Failed to export backup:', e);
+            }
+
+            // Delay reload to allow download to start
+            setTimeout(() => {
+                alert(`Successfully merged ${mergedCount} changes from your PT!\n\nBackup downloaded. The app will now reload to apply all changes.`);
+                location.reload();
+            }, 1000);
         }
 
         // Weekly Summary for PT - Quick Overview
