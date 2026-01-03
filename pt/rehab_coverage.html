@@ -867,6 +867,8 @@
             loadExerciseVocabularyShared,
             loadExerciseRolesSchemaShared
         };
+        window.sharedDataReady = true;
+        window.dispatchEvent(new Event('sharedDataReady'));
 
         document.getElementById('menu-signout-btn').addEventListener('click', async () => {
             try {
@@ -904,9 +906,22 @@
             });
         }
 
+        async function ensureSharedDataLoaderReady() {
+            if (window.sharedDataLoader) return;
+            await new Promise((resolve) => {
+                const handler = () => {
+                    window.removeEventListener('sharedDataReady', handler);
+                    resolve();
+                };
+                window.addEventListener('sharedDataReady', handler);
+                setTimeout(resolve, 2000);
+            });
+        }
+
         // Initialize
         async function init() {
             try {
+                await ensureSharedDataLoaderReady();
                 // Load all data files
                 await Promise.all([
                     loadSchema(),
