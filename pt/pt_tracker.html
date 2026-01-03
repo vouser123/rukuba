@@ -7049,18 +7049,58 @@ ${payload}`;
 
             haptic('success');
 
-            // Export backup of all data after successful import
+            // Export backup package (library + roles + schemas) after successful import
             try {
-                exportAllData();
+                const dateStr = new Date().toISOString().split('T')[0];
+
+                // Load schema files
+                Promise.all([
+                    fetch('schema/exercise_file.schema.json').then(r => r.json()),
+                    fetch('schema/exercise_roles.schema.json').then(r => r.json())
+                ]).then(([exerciseSchema, rolesSchema]) => {
+                    const zipFiles = [
+                        {
+                            name: `exercise_library-${dateStr}.json`,
+                            content: JSON.stringify({ exercises: exerciseLibrary }, null, 2)
+                        },
+                        {
+                            name: `exercise_roles-${dateStr}.json`,
+                            content: JSON.stringify(rolesData, null, 2)
+                        },
+                        {
+                            name: `exercise_file.schema-${dateStr}.json`,
+                            content: JSON.stringify(exerciseSchema, null, 2)
+                        },
+                        {
+                            name: `exercise_roles.schema-${dateStr}.json`,
+                            content: JSON.stringify(rolesSchema, null, 2)
+                        },
+                        {
+                            name: `exercise_roles_vocabulary-${dateStr}.json`,
+                            content: JSON.stringify(vocabulary, null, 2)
+                        }
+                    ];
+
+                    const zipBlob = createZip(zipFiles);
+                    downloadBlob(`pt-import-backup-${dateStr}.zip`, zipBlob);
+
+                    // Delay reload to allow download to start
+                    setTimeout(() => {
+                        alert(`Successfully merged ${mergedCount} changes from your PT!\n\nBackup downloaded. The app will now reload to apply all changes.`);
+                        location.reload();
+                    }, 1500);
+                }).catch(err => {
+                    console.error('[Import] Failed to load schemas for backup:', err);
+                    // Still reload even if backup fails
+                    alert(`Successfully merged ${mergedCount} changes from your PT!\n\n(Backup download failed - please export manually)\n\nThe app will now reload to apply all changes.`);
+                    location.reload();
+                });
             } catch (e) {
                 console.error('[Import] Failed to export backup:', e);
-            }
-
-            // Delay reload to allow download to start
-            setTimeout(() => {
-                alert(`Successfully merged ${mergedCount} changes from your PT!\n\nBackup downloaded. The app will now reload to apply all changes.`);
+                // Still reload even if backup fails
+                alert(`Successfully merged ${mergedCount} changes from your PT!\n\n(Backup download failed - please export manually)\n\nThe app will now reload to apply all changes.`);
                 location.reload();
-            }, 1000);
+            }
         }
 
         // Weekly Summary for PT - Quick Overview
