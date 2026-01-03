@@ -7,8 +7,8 @@ This repo contains two unrelated browser apps:
 
 You are a coding assistant. Follow these rules:
 
-- Do NOT introduce a backend or database.
-- Store all PT user data in browser storage only (IndexedDB or localStorage).
+- Firebase is used for authenticated PT session history and runtime backups.
+- Maintain offline-first behavior with local storage; do not add external APIs beyond Firebase.
 - For the PT app, treat `/pt/exercise_guidance_seed.json` as the canonical source of exercise definitions.
 - Treat JSON schemas in `/pt/schema` as authoritative contracts for data shape.
 - Do not invent new field names when existing schema fields or vocab terms are available.

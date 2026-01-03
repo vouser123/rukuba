@@ -1803,6 +1803,7 @@
         let firestoreUserId = null;
         let runtimeSyncPending = false;
         let runtimeSyncInFlight = false;
+        let runtimeSyncTimer = null;
 
         // Session history cache (Firestore-backed)
         let sessionHistoryCache = [];
@@ -1910,6 +1911,7 @@
                     sessionRecovery: recovery ? JSON.parse(recovery) : null,
                     preferences: preferences ? JSON.parse(preferences) : null,
                     offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : [],
+                    // Firestore runtime snapshots back up the local working library (not the JSON source).
                     exerciseLibrary: loadExerciseLibrary(),
                     ptDataVersion: dataVersion
                 };
@@ -1917,6 +1919,20 @@
                 console.error('Failed to build runtime snapshot:', error);
                 return null;
             }
+        }
+
+        function scheduleRuntimeSync(reason = 'scheduled') {
+            if (!firestoreUserId) {
+                runtimeSyncPending = true;
+                return;
+            }
+            if (runtimeSyncTimer) {
+                clearTimeout(runtimeSyncTimer);
+            }
+            runtimeSyncTimer = setTimeout(() => {
+                runtimeSyncTimer = null;
+                void syncRuntimeToFirestore();
+            }, 500);
         }
 
         async function syncRuntimeToFirestore() {
@@ -1968,13 +1984,17 @@
                     if (Array.isArray(data.offlineQueue)) {
                         localStorage.setItem(FIRESTORE_QUEUE_KEY, JSON.stringify(data.offlineQueue));
                     }
-                    if (Array.isArray(data.exerciseLibrary)) {
-                        localStorage.setItem(LIBRARY_KEY, JSON.stringify(data.exerciseLibrary));
-                        const version = data.ptDataVersion || PT_DATA_VERSION;
-                        localStorage.setItem(PT_VERSION_KEY, version);
-                        exerciseLibrary = loadExerciseLibrary();
-                        renderExerciseList();
-                        renderLibraryExercises();
+                    if (Array.isArray(data.exerciseLibrary) && data.exerciseLibrary.length > 0) {
+                        const incomingLibraryJson = JSON.stringify(data.exerciseLibrary);
+                        const existingLibraryJson = localStorage.getItem(LIBRARY_KEY);
+                        if (incomingLibraryJson !== existingLibraryJson) {
+                            localStorage.setItem(LIBRARY_KEY, incomingLibraryJson);
+                            const version = data.ptDataVersion || PT_DATA_VERSION;
+                            localStorage.setItem(PT_VERSION_KEY, version);
+                            exerciseLibrary = loadExerciseLibrary();
+                            renderExerciseList();
+                            renderLibraryExercises();
+                        }
                     }
                     localStorage.setItem(RUNTIME_UPDATED_KEY, remoteUpdatedAt);
                 }
@@ -2455,7 +2475,7 @@
 
         function persistExerciseLibrary() {
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
-            void syncRuntimeToFirestore();
+            scheduleRuntimeSync('exercise-library');
         }
 
         // Synchronous load/save for roles data
