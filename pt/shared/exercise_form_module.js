@@ -147,11 +147,16 @@
 
     function toTitleCase(value) {
         if (!value) return '';
-        const cleaned = normalizeWhitespace(value.replace(/_/g, ' ')).toLowerCase();
-        return cleaned.split(' ').map(word => {
-            if (!word) return '';
-            return word.charAt(0).toUpperCase() + word.slice(1);
-        }).join(' ');
+        const cleaned = normalizeWhitespace(value.replace(/_/g, ' '));
+        const parts = cleaned.split(/(\([^)]*\))/);
+        return parts.map(part => {
+            if (part.startsWith('(') && part.endsWith(')')) {
+                return part;
+            }
+            return part.replace(/[A-Za-z][A-Za-z']*/g, word => {
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            });
+        }).join('');
     }
 
     function toLowerSnakeCase(value) {
@@ -572,6 +577,31 @@
                 : values.map(item => normalizeValueForPath(fieldName, item));
         });
 
+        Object.keys(bindings.nestedFields || {}).forEach(parentField => {
+            exercise[parentField] = exercise[parentField] || {};
+            const group = bindings.nestedFields[parentField];
+            Object.keys(group).forEach(childField => {
+                const config = group[childField];
+                const element = document.getElementById(config.id);
+                if (!element) return;
+                let rawValue = element.value;
+                if (config.trim) {
+                    rawValue = rawValue.trim();
+                }
+                let value = config.normalize
+                    ? normalizeValueWithStrategy(rawValue, config.normalize)
+                    : rawValue;
+                if (rawValue === '' && config.default !== undefined) {
+                    value = config.default;
+                }
+                if (config.nullIfBlank && rawValue === '') {
+                    exercise[parentField][childField] = null;
+                } else {
+                    exercise[parentField][childField] = value;
+                }
+            });
+        });
+
         Object.keys(bindings.nestedArrayFields || {}).forEach(parentField => {
             exercise[parentField] = exercise[parentField] || {};
             const group = bindings.nestedArrayFields[parentField];
@@ -631,6 +661,22 @@
                         config.addItem(normalizedValue);
                     }
                 });
+            });
+        });
+
+        Object.keys(bindings.nestedFields || {}).forEach(parentField => {
+            const group = bindings.nestedFields[parentField];
+            const values = exercise[parentField] || {};
+            Object.keys(group).forEach(childField => {
+                const config = group[childField];
+                const element = document.getElementById(config.id);
+                if (!element) return;
+                const value = values[childField];
+                if (value === null || value === undefined) {
+                    element.value = '';
+                } else {
+                    element.value = normalizeValueWithStrategy(value, config.normalize);
+                }
             });
         });
     }
