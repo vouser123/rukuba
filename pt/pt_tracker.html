@@ -695,6 +695,25 @@
             <button onclick="toggleHamburgerMenu()" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Close</button>
         </div>
         <div style="padding: 0;">
+            <!-- Auth Status -->
+            <div id="menu-auth-section">
+                <!-- Signed In State -->
+                <div id="menu-auth-signed-in" style="display: none;">
+                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-primary);">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Signed in as</div>
+                        <div id="menu-auth-email" style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 12px; word-break: break-all;"></div>
+                        <button id="menu-signout-btn" style="width: 100%; padding: 10px; background: var(--ios-red); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign Out</button>
+                    </div>
+                </div>
+                <!-- Signed Out State -->
+                <div id="menu-auth-signed-out" style="display: none;">
+                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-primary);">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Cloud sync disabled</div>
+                        <button id="menu-signin-btn" style="width: 100%; padding: 10px; background: var(--ios-blue); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign In</button>
+                    </div>
+                </div>
+            </div>
+
             <div onclick="window.location.href='pt_report.html'" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">✏️</span>
                 <span>PT Editor Mode</span>
@@ -865,6 +884,36 @@
     </div>
 
     <!-- Session Notes Modal -->
+    <!-- Auth Modal -->
+    <div class="modal" id="auth-modal" style="background: rgba(0,0,0,0.6);">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
+                <div class="modal-title">Sign In to Sync</div>
+                <button id="auth-skip-btn" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Skip</button>
+            </div>
+            <div class="modal-form">
+                <div style="font-size: 15px; color: var(--ios-gray); margin-bottom: 16px; text-align: center;">
+                    Sign in to sync your session data across devices
+                </div>
+                <input type="email" class="modal-input" id="auth-email" placeholder="Email" autocomplete="email">
+                <input type="password" class="modal-input" id="auth-password" placeholder="Password" autocomplete="current-password">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 0 4px;">
+                    <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px; cursor: pointer;">
+                    <label for="auth-remember" style="font-size: 15px; color: var(--text-secondary); cursor: pointer;">Remember me</label>
+                </div>
+                <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; margin-bottom: 12px; text-align: center;"></div>
+                <div style="text-align: center; margin-bottom: 12px;">
+                    <a href="#" id="auth-forgot-password" style="color: var(--ios-blue); font-size: 14px; text-decoration: none;">Forgot Password?</a>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" id="auth-signup-btn">Sign Up</button>
+                <button class="modal-save" id="auth-signin-btn">Sign In</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="session-notes-modal" onclick="if(event.target === this) closeSessionNotesModal()">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
@@ -1421,14 +1470,15 @@
             <div class="modal-title">📤 Send to PT</div>
             <div class="modal-form">
                 <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
-                    Enter your PT's email address. The app will open your email client with the data ready to send.
+                    Enter your PT's email address (optional). You can copy the payload only or open your email client with the payload ready to send.
                 </div>
                 <input type="email" class="modal-input" id="pt-email-address" placeholder="your.pt@example.com" style="margin-bottom: 12px;">
                 <textarea class="modal-input" id="pt-note" placeholder="Optional: Add a note for your PT" style="min-height: 80px; resize: vertical;"></textarea>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeExportPTModal()">Cancel</button>
-                <button class="modal-save" onclick="sendToPT()">📧 Open Email</button>
+                <button class="modal-save" onclick="copyPtPayloadOnly()">📋 Copy Payload Only</button>
+                <button class="modal-save" onclick="sendToPT()">📧 Send Email</button>
             </div>
         </div>
     </div>
@@ -1471,23 +1521,257 @@
         </div>
     </div>
 
-    <script>
+    <script src="pt_payload_utils.js"></script>
+    <script type="module" src="firebase.js"></script>
+    <script type="module">
+        import { db } from './firebase.js';
+        import {
+            auth,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence
+        } from './firebase.js';
+        import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
+        import {
+            addDoc,
+            collection,
+            deleteDoc,
+            doc,
+            enableIndexedDbPersistence,
+            getDoc,
+            getDocs,
+            onSnapshot,
+            query,
+            setDoc,
+            updateDoc,
+            where
+        } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
+        const FIRESTORE_QUEUE_KEY = 'pt_firestore_queue';
+        const RECOVERY_STORAGE_KEY = 'pt_session_recovery';
+        const PREFERENCES_STORAGE_KEY = 'pt_preferences';
+        const RUNTIME_UPDATED_KEY = 'pt_runtime_updated_at';
+        const LEGACY_HISTORY_MIGRATION_KEY = 'pt_tracker_history_migrated';
         const APP_VERSION = 'v1.5.9'; // Updated: 2025-12-27 - Equipment editing with dynamic library and add-new capability
         const PT_VERSION_KEY = 'pt_data_version';
         const PT_DATA_VERSION = '1';
+
+        // Auth state
+        let currentUser = null;
+        let isAuthReady = false;
+
+        enableIndexedDbPersistence(db)
+            .then(() => {
+                console.log('[Firestore] IndexedDB persistence enabled');
+            })
+            .catch((error) => {
+                if (error.code === 'failed-precondition') {
+                    console.warn('[Firestore] Persistence disabled: multiple tabs open');
+                } else if (error.code === 'unimplemented') {
+                    console.warn('[Firestore] Persistence unavailable in this browser');
+                } else {
+                    console.warn('[Firestore] Persistence enable failed:', error);
+                }
+            });
+
+        // Auth UI functions
+        function showAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            modal.classList.add('active');
+            document.getElementById('auth-email').focus();
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            modal.classList.remove('active');
+            document.getElementById('auth-error').style.display = 'none';
+            document.getElementById('auth-email').value = '';
+            document.getElementById('auth-password').value = '';
+        }
+
+        function showAuthError(message) {
+            const errorDiv = document.getElementById('auth-error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function updateMenuAuthDisplay() {
+            const signedInSection = document.getElementById('menu-auth-signed-in');
+            const signedOutSection = document.getElementById('menu-auth-signed-out');
+            const emailDisplay = document.getElementById('menu-auth-email');
+
+            if (currentUser) {
+                // Show signed in state
+                signedInSection.style.display = 'block';
+                signedOutSection.style.display = 'none';
+                emailDisplay.textContent = currentUser.email;
+            } else {
+                // Show signed out state
+                signedInSection.style.display = 'none';
+                signedOutSection.style.display = 'block';
+            }
+        }
+
+        async function handleMenuSignOut() {
+            try {
+                await signOut(auth);
+                console.log('[Auth] Signed out successfully');
+                // Close menu
+                const toggleMenu = window.toggleHamburgerMenu;
+                if (toggleMenu) toggleMenu();
+            } catch (error) {
+                console.error('[Auth] Sign out error:', error);
+                alert('Failed to sign out. Please try again.');
+            }
+        }
+
+        function handleMenuSignIn() {
+            showAuthModal();
+            // Close menu
+            const toggleMenu = window.toggleHamburgerMenu;
+            if (toggleMenu) toggleMenu();
+        }
+
+        async function handleSignIn() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Please enter email and password');
+                return;
+            }
+
+            try {
+                // Set persistence based on remember me
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+
+                // Sign in
+                await signInWithEmailAndPassword(auth, email, password);
+                hideAuthModal();
+                console.log('[Auth] Signed in successfully');
+            } catch (error) {
+                console.error('[Auth] Sign in error:', error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showAuthError('Invalid email or password');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Invalid email address');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Try again later');
+                } else {
+                    showAuthError('Sign in failed. Please try again');
+                }
+            }
+        }
+
+        async function handleSignUp() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Please enter email and password');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAuthError('Password must be at least 6 characters');
+                return;
+            }
+
+            try {
+                // Set persistence based on remember me
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+
+                // Create account
+                await createUserWithEmailAndPassword(auth, email, password);
+                hideAuthModal();
+                console.log('[Auth] Account created successfully');
+            } catch (error) {
+                console.error('[Auth] Sign up error:', error);
+                if (error.code === 'auth/email-already-in-use') {
+                    showAuthError('Email already in use. Try signing in instead');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Invalid email address');
+                } else if (error.code === 'auth/weak-password') {
+                    showAuthError('Password is too weak');
+                } else {
+                    showAuthError('Sign up failed. Please try again');
+                }
+            }
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value.trim();
+
+            if (!email) {
+                showAuthError('Please enter your email address first');
+                return;
+            }
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showAuthError(''); // Clear error
+                alert(`Password reset email sent to ${email}.\n\nCheck your inbox and spam folder.`);
+            } catch (error) {
+                console.error('[Auth] Password reset error:', error);
+                if (error.code === 'auth/user-not-found') {
+                    showAuthError('No account found with this email');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Invalid email address');
+                } else {
+                    showAuthError('Failed to send reset email. Try again');
+                }
+            }
+        }
+
+        // Auth state listener
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            isAuthReady = true;
+
+            if (user) {
+                console.log('[Auth] User signed in:', user.email);
+                firestoreUserId = user.uid; // Set for runtime sync
+                updateMenuAuthDisplay(); // Update menu
+
+                // Flush queue when authenticated
+                if (navigator.onLine) {
+                    flushFirestoreQueue();
+                }
+
+                // Sync runtime if pending
+                if (runtimeSyncPending) {
+                    runtimeSyncPending = false;
+                    syncRuntimeToFirestore();
+                }
+            } else {
+                console.log('[Auth] No user signed in - app will work offline only');
+                firestoreUserId = null;
+                updateMenuAuthDisplay(); // Update menu
+            }
+        });
 
         /**
          * SESSION ID TRACKING
          * -------------------
          * Each history entry includes a sessionId to group exercises performed in the same workout session.
          *
-         * Current strategy: Generate a random sessionId once per app load.
+         * Current strategy: Generate a ULID sessionId once per app load.
          * - All exercises completed before closing/refreshing the app share the same sessionId
          * - Different app launches = different sessionIds, even on the same day
-         * - Format: 8-character random alphanumeric string (e.g., "a3f9k2m1")
+         * - Format: 26-character ULID (Crockford Base32)
          *
          * Future: This enables session-based UI features like:
          * - "Today's Workout" view grouping exercises by session
@@ -1495,7 +1779,7 @@
          * - Session planning (which exercises in what order)
          */
         function generateSessionId() {
-            return Math.random().toString(36).substring(2, 10);
+            return ulid();
         }
 
         let currentSessionId = generateSessionId();
@@ -1503,6 +1787,351 @@
         // Session planning
         let sessionPlan = []; // Array of exercise IDs planned for today
         let sessionPlanCompleted = new Set(); // IDs of completed exercises
+
+        // Runtime sync state
+        let firestoreUserId = null;
+        let runtimeSyncPending = false;
+        let runtimeSyncInFlight = false;
+
+        // Session history cache (Firestore-backed)
+        let sessionHistoryCache = [];
+        let sessionHistoryLoadedFromFirestore = false;
+        let sessionHistoryUnsubscribe = null;
+        let legacyHistoryMigrationAttempted = false;
+
+        function stripSessionMetadata(session) {
+            const { _firestoreId, ...rest } = session;
+            return rest;
+        }
+
+        function serializeSessionHistory(sessions) {
+            return sessions.map(stripSessionMetadata);
+        }
+
+        function getSessionFingerprint(session) {
+            if (session.sessionId) return `session:${session.sessionId}`;
+            const exerciseId = session.exerciseId || 'unknown';
+            const date = session.date || '';
+            const name = session.exerciseName || '';
+            return `fallback:${exerciseId}|${date}|${name}`;
+        }
+
+        function dedupeSessions(sessions) {
+            const map = new Map();
+            sessions.forEach((session) => {
+                const key = getSessionFingerprint(session);
+                if (!key) return;
+                const existing = map.get(key);
+                if (!existing) {
+                    map.set(key, session);
+                    return;
+                }
+                const existingDate = new Date(existing.date || 0);
+                const nextDate = new Date(session.date || 0);
+                if (nextDate > existingDate) {
+                    map.set(key, session);
+                }
+            });
+            return Array.from(map.values());
+        }
+
+        function setSessionHistoryCache(newHistory, { source = 'unknown', syncLocalStorage = false } = {}) {
+            const deduped = dedupeSessions(newHistory);
+            deduped.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+            sessionHistoryCache = deduped;
+            if (syncLocalStorage) {
+                syncCacheToLocalStorage();
+            }
+            console.log(`[History] Cache updated (${deduped.length} sessions) from ${source}`);
+        }
+
+        function getSessionHistoryFromCache() {
+            return sessionHistoryCache;
+        }
+
+        function syncCacheToLocalStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeSessionHistory(sessionHistoryCache)));
+            } catch (error) {
+                console.warn('[History] Failed to sync cache to localStorage:', error);
+            }
+        }
+
+        function loadLegacyHistoryFromLocalStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return [];
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.warn('[History] Failed to read legacy history from localStorage:', error);
+                return [];
+            }
+        }
+
+        function seedLegacyHistoryCache() {
+            if (sessionHistoryCache.length > 0) return;
+            const legacySessions = loadLegacyHistoryFromLocalStorage();
+            if (legacySessions.length > 0) {
+                setSessionHistoryCache(legacySessions, { source: 'legacy-localStorage', syncLocalStorage: false });
+            }
+        }
+
+        function buildRuntimeSnapshot() {
+            try {
+                const history = getSessionHistoryFromCache();
+                const recovery = localStorage.getItem(RECOVERY_STORAGE_KEY);
+                const preferences = localStorage.getItem(PREFERENCES_STORAGE_KEY);
+                const offlineQueue = localStorage.getItem(FIRESTORE_QUEUE_KEY);
+                const updatedAt = new Date().toISOString();
+
+                localStorage.setItem(RUNTIME_UPDATED_KEY, updatedAt);
+
+                return {
+                    updatedAt,
+                    sessionHistory: serializeSessionHistory(history),
+                    sessionRecovery: recovery ? JSON.parse(recovery) : null,
+                    preferences: preferences ? JSON.parse(preferences) : null,
+                    offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : []
+                };
+            } catch (error) {
+                console.error('Failed to build runtime snapshot:', error);
+                return null;
+            }
+        }
+
+        async function syncRuntimeToFirestore() {
+            if (!firestoreUserId) {
+                runtimeSyncPending = true;
+                return;
+            }
+            if (runtimeSyncInFlight) return;
+            runtimeSyncInFlight = true;
+            try {
+                const snapshot = buildRuntimeSnapshot();
+                if (!snapshot) return;
+                const docRef = doc(db, 'users', firestoreUserId, 'pt_runtime', 'state');
+                await setDoc(docRef, snapshot, { merge: true });
+            } catch (error) {
+                console.error('Failed to sync runtime data to Firestore:', error);
+            } finally {
+                runtimeSyncInFlight = false;
+            }
+        }
+
+        async function loadRuntimeFromFirestore() {
+            if (!firestoreUserId) {
+                runtimeSyncPending = true;
+                return;
+            }
+            try {
+                const docRef = doc(db, 'users', firestoreUserId, 'pt_runtime', 'state');
+                const snapshot = await getDoc(docRef);
+                if (!snapshot.exists()) return;
+
+                const data = snapshot.data();
+                const remoteUpdatedAt = data?.updatedAt;
+                const localUpdatedAt = localStorage.getItem(RUNTIME_UPDATED_KEY);
+                if (!remoteUpdatedAt) return;
+
+                if (!localUpdatedAt || new Date(remoteUpdatedAt) > new Date(localUpdatedAt)) {
+                    if (Array.isArray(data.sessionHistory)) {
+                        console.log('[Firestore] Runtime session history ignored (Firestore sessions collection is authoritative)');
+                    }
+                    if (data.sessionRecovery) {
+                        localStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(data.sessionRecovery));
+                    } else {
+                        localStorage.removeItem(RECOVERY_STORAGE_KEY);
+                    }
+                    if (data.preferences) {
+                        localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(data.preferences));
+                    }
+                    if (Array.isArray(data.offlineQueue)) {
+                        localStorage.setItem(FIRESTORE_QUEUE_KEY, JSON.stringify(data.offlineQueue));
+                    }
+                    localStorage.setItem(RUNTIME_UPDATED_KEY, remoteUpdatedAt);
+                }
+            } catch (error) {
+                console.error('Failed to load runtime data from Firestore:', error);
+            }
+        }
+
+        function getQueuedSessionFingerprint(session) {
+            return getSessionFingerprint(session);
+        }
+
+        function removeQueuedSession(session) {
+            const queue = loadFirestoreQueue();
+            const target = getQueuedSessionFingerprint(session);
+            const filtered = queue.filter((queued) => getQueuedSessionFingerprint(queued) !== target);
+            if (filtered.length !== queue.length) {
+                saveFirestoreQueue(filtered);
+            }
+        }
+
+        async function resolveFirestoreDocId(session) {
+            if (session._firestoreId) return session._firestoreId;
+            if (!currentUser || !session.sessionId) return null;
+            try {
+                const sessionsRef = collection(db, `users/${currentUser.uid}/sessions`);
+                const sessionQuery = query(sessionsRef, where('sessionId', '==', session.sessionId));
+                const snapshot = await getDocs(sessionQuery);
+                const docMatch = snapshot.docs[0];
+                return docMatch ? docMatch.id : null;
+            } catch (error) {
+                console.warn('[Firestore] Failed to resolve session doc ID:', error);
+                return null;
+            }
+        }
+
+        function migrateLegacyHistoryToFirestore(firestoreSessions) {
+            if (legacyHistoryMigrationAttempted) return [];
+            legacyHistoryMigrationAttempted = true;
+
+            const migrationFlag = localStorage.getItem(LEGACY_HISTORY_MIGRATION_KEY);
+            if (migrationFlag === 'true') return [];
+
+            const legacySessions = loadLegacyHistoryFromLocalStorage();
+            if (legacySessions.length === 0) {
+                localStorage.setItem(LEGACY_HISTORY_MIGRATION_KEY, 'true');
+                return [];
+            }
+
+            const firestoreKeys = new Set(firestoreSessions.map(getSessionFingerprint));
+            const missingSessions = legacySessions.filter(session => !firestoreKeys.has(getSessionFingerprint(session)));
+
+            if (missingSessions.length > 0) {
+                console.log(`[Migration] Queuing ${missingSessions.length} legacy sessions for Firestore sync`);
+                missingSessions.forEach(session => enqueueFirestoreSession(session));
+            }
+
+            localStorage.setItem(LEGACY_HISTORY_MIGRATION_KEY, 'true');
+            return missingSessions;
+        }
+
+        function subscribeToFirestoreSessionHistory(user) {
+            if (sessionHistoryUnsubscribe) {
+                sessionHistoryUnsubscribe();
+                sessionHistoryUnsubscribe = null;
+            }
+
+            if (!user) {
+                sessionHistoryLoadedFromFirestore = false;
+                seedLegacyHistoryCache();
+                return;
+            }
+
+            const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+            const sessionsQuery = query(sessionsRef);
+            let initialLoad = true;
+
+            sessionHistoryUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+                const sessions = snapshot.docs.map(docSnap => ({
+                    _firestoreId: docSnap.id,
+                    ...docSnap.data()
+                }));
+                const legacyMissing = migrateLegacyHistoryToFirestore(sessions);
+                const merged = legacyMissing.length > 0 ? dedupeSessions([...sessions, ...legacyMissing]) : sessions;
+                setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: true });
+                sessionHistoryLoadedFromFirestore = true;
+
+                if (initialLoad) {
+                    console.log('[Firestore] Session history loaded');
+                    initialLoad = false;
+                }
+
+                renderHistory();
+                updateStreakDisplay();
+            }, (error) => {
+                console.error('[Firestore] Session history listener error:', error);
+                if (initialLoad) {
+                    initialLoad = false;
+                    sessionHistoryLoadedFromFirestore = true;
+                }
+            });
+        }
+
+        onAuthStateChanged(auth, user => {
+            firestoreUserId = user ? user.uid : null;
+            subscribeToFirestoreSessionHistory(user);
+            if (user) {
+                void loadRuntimeFromFirestore();
+                if (runtimeSyncPending) {
+                    runtimeSyncPending = false;
+                    void syncRuntimeToFirestore();
+                }
+            }
+        });
+
+        seedLegacyHistoryCache();
+
+        function loadFirestoreQueue() {
+            const stored = localStorage.getItem(FIRESTORE_QUEUE_KEY);
+            if (!stored) return [];
+            try {
+                const parsed = JSON.parse(stored);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                console.warn('Failed to parse Firestore queue:', e);
+                return [];
+            }
+        }
+
+        function saveFirestoreQueue(queue) {
+            localStorage.setItem(FIRESTORE_QUEUE_KEY, JSON.stringify(queue));
+            void syncRuntimeToFirestore();
+        }
+
+        function sanitizeSessionForFirestore(session) {
+            return stripSessionMetadata(session);
+        }
+
+        function enqueueFirestoreSession(session) {
+            const queue = loadFirestoreQueue();
+            queue.push(sanitizeSessionForFirestore(session));
+            saveFirestoreQueue(queue);
+            console.log('[Firestore] Session queued for sync:', session.sessionId || session.date);
+        }
+
+        async function flushFirestoreQueue() {
+            // Only flush if authenticated
+            if (!currentUser) {
+                console.log('[Firestore] Skipping queue flush - not authenticated');
+                return;
+            }
+
+            const queue = loadFirestoreQueue();
+            if (queue.length === 0) return;
+
+            console.log(`[Firestore] Flushing ${queue.length} queued sessions for user ${currentUser.uid}`);
+
+            const remaining = [];
+            for (const session of queue) {
+                try {
+                    // Write to user-scoped collection
+                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(session));
+                    console.log('[Firestore] Queued session synced:', session.sessionId);
+                } catch (error) {
+                    console.error("Firestore queued write failed:", error);
+                    remaining.push(session);
+                }
+            }
+
+            saveFirestoreQueue(remaining);
+            if (remaining.length === 0) {
+                console.log('[Firestore] Queue flush complete - all sessions synced');
+            } else {
+                console.log(`[Firestore] Queue flush complete - ${remaining.length} sessions remain queued`);
+            }
+        }
+
+        window.addEventListener('online', () => {
+            void flushFirestoreQueue();
+        });
+
+        if (navigator.onLine) {
+            void flushFirestoreQueue();
+        }
 
         function reloadApp() {
             try {
@@ -1792,54 +2421,61 @@
 
         // Safe history loading with error handling and backward compatibility
         function loadHistory() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (!stored) return [];
+            const sessions = getSessionHistoryFromCache();
+            if (!Array.isArray(sessions)) return [];
 
-            try {
-                const parsed = JSON.parse(stored);
-                if (!Array.isArray(parsed)) return [];
+            sessions.forEach(session => {
+                // Ensure sessionId exists (added in later versions)
+                if (!session.sessionId) {
+                    session.sessionId = session.date || new Date().toISOString();
+                }
 
-                // Backward compatibility: ensure all sessions have required fields
-                return parsed.map(session => {
-                    // Ensure sessionId exists (added in later versions)
-                    if (!session.sessionId) {
-                        session.sessionId = session.date || new Date().toISOString();
+                // Ensure exerciseId exists (try to find by name if missing)
+                if (!session.exerciseId && session.exerciseName) {
+                    const matchingExercise = exerciseLibrary.find(ex => ex.name === session.exerciseName);
+                    if (matchingExercise) {
+                        session.exerciseId = matchingExercise.id;
                     }
+                }
 
-                    // Ensure exerciseId exists (try to find by name if missing)
-                    if (!session.exerciseId && session.exerciseName) {
-                        const matchingExercise = exerciseLibrary.find(ex => ex.name === session.exerciseName);
-                        if (matchingExercise) {
-                            session.exerciseId = matchingExercise.id;
+                // Ensure sets array exists
+                if (!session.sets) {
+                    session.sets = [];
+                }
+
+                // Migrate old weight/resistance fields to formParams if needed
+                session.sets = session.sets.map(set => {
+                    if ((set.weight || set.resistance) && !set.formParams) {
+                        set.formParams = {};
+                        if (set.weight) {
+                            set.formParams.weight = set.weight;
+                            set.formParams.weight_unit = set.weightUnit || 'lbs';
+                        }
+                        if (set.resistance) {
+                            set.formParams.band_resistance = set.resistance;
                         }
                     }
-
-                    // Ensure sets array exists
-                    if (!session.sets) {
-                        session.sets = [];
-                    }
-
-                    // Migrate old weight/resistance fields to formParams if needed
-                    session.sets = session.sets.map(set => {
-                        if ((set.weight || set.resistance) && !set.formParams) {
-                            set.formParams = {};
-                            if (set.weight) {
-                                set.formParams.weight = set.weight;
-                                set.formParams.weight_unit = set.weightUnit || 'lbs';
-                            }
-                            if (set.resistance) {
-                                set.formParams.band_resistance = set.resistance;
-                            }
-                        }
-                        return set;
-                    });
-
-                    return session;
+                    return set;
                 });
-            } catch (e) {
-                console.error('Failed to parse exercise history:', e);
-                console.warn('Returning empty history - stored data preserved');
-                return [];
+
+            });
+
+            return sessions;
+        }
+
+        function addSessionToCache(session) {
+            const updated = [...getSessionHistoryFromCache(), session];
+            setSessionHistoryCache(updated, { source: 'local-add', syncLocalStorage: true });
+        }
+
+        function queueSessionsForFirestore(sessions, source = 'import') {
+            if (!Array.isArray(sessions) || sessions.length === 0) return;
+            const pendingSessions = sessions.filter(session => !session._firestoreId);
+            if (pendingSessions.length === 0) return;
+            console.log(`[Firestore] Queueing ${pendingSessions.length} sessions from ${source}`);
+            pendingSessions.forEach(session => enqueueFirestoreSession(session));
+            if (currentUser && navigator.onLine) {
+                void flushFirestoreQueue();
             }
         }
 
@@ -2635,7 +3271,7 @@
          *   - manualLog: (optional) true if logged via "Log Set" modal
          *
          * At session completion (all sets done):
-         *   - sessionData is saved to localStorage under STORAGE_KEY
+         *   - sessionData is saved to the in-memory cache and queued to Firestore
          *   - Includes: exerciseId, exerciseName, date, sets[], notes
          *
          * TODO: Define "session" concept - when does it start/end? How to group exercises?
@@ -3356,8 +3992,7 @@
         }
 
         function saveSessionWithNotes(notes) {
-            const sessions = loadHistory();
-            sessions.push({
+            const finalizedSession = {
                 sessionId: currentSessionId,
                 exerciseId: currentExercise.id,
                 exerciseName: currentExercise.name,
@@ -3371,8 +4006,31 @@
                     type: currentExercise.type
                 },
                 sets: currentExercise.sessionData
-            });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            };
+            addSessionToCache(finalizedSession);
+            enqueueFirestoreSession(finalizedSession);
+            void syncRuntimeToFirestore();
+
+            // Write finalized session to Firestore (user-scoped)
+            try {
+                if (currentUser) {
+                    // User is authenticated - attempt direct write
+                    addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(finalizedSession))
+                        .then(() => {
+                            console.log('[Firestore] Session synced immediately:', finalizedSession.sessionId);
+                            removeQueuedSession(finalizedSession);
+                        })
+                        .catch((error) => {
+                            console.error('[Firestore] Write failed, queueing session:', error);
+                        });
+                } else {
+                    // Not authenticated - queue for later
+                    console.log('[Firestore] Not authenticated, queueing session');
+                }
+            } catch (error) {
+                console.error('[Firestore] Error preparing write:', error);
+                // Do not throw - allow localStorage flow to continue
+            }
 
             haptic('success');
             closeSessionNotesModal();
@@ -4540,8 +5198,27 @@
             if (!confirm('Are you sure you want to delete this session?\n\nThis cannot be undone.')) return;
 
             const sessions = loadHistory();
+            const sessionToDelete = sessions[editingSessionIndex];
             sessions.splice(editingSessionIndex, 1);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            setSessionHistoryCache(sessions, { source: 'local-delete', syncLocalStorage: true });
+            void syncRuntimeToFirestore();
+
+            if (currentUser && sessionToDelete) {
+                resolveFirestoreDocId(sessionToDelete)
+                    .then((docId) => {
+                        if (!docId) {
+                            console.warn('[Firestore] Unable to delete session: missing doc ID');
+                            return;
+                        }
+                        return deleteDoc(doc(db, `users/${currentUser.uid}/sessions`, docId));
+                    })
+                    .then(() => {
+                        console.log('[Firestore] Session deleted:', sessionToDelete.sessionId);
+                    })
+                    .catch((error) => {
+                        console.error('[Firestore] Failed to delete session:', error);
+                    });
+            }
 
             closeEditSession();
             renderHistory(); // Refresh the history display
@@ -4562,8 +5239,25 @@
             // Update notes
             session.notes = document.getElementById('edit-session-notes').value;
 
-            // Save to localStorage
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+            setSessionHistoryCache(sessions, { source: 'local-edit', syncLocalStorage: true });
+            void syncRuntimeToFirestore();
+
+            if (currentUser) {
+                resolveFirestoreDocId(session)
+                    .then((docId) => {
+                        if (!docId) {
+                            console.warn('[Firestore] Unable to update session: missing doc ID');
+                            return;
+                        }
+                        return updateDoc(doc(db, `users/${currentUser.uid}/sessions`, docId), sanitizeSessionForFirestore(session));
+                    })
+                    .then(() => {
+                        console.log('[Firestore] Session updated:', session.sessionId);
+                    })
+                    .catch((error) => {
+                        console.error('[Firestore] Failed to update session:', error);
+                    });
+            }
 
             closeEditSession();
             renderHistory(); // Refresh the history display
@@ -4658,6 +5352,7 @@
 
         function savePreferences() {
             localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+            void syncRuntimeToFirestore();
         }
 
         function showSettings() {
@@ -4824,7 +5519,7 @@
             if (distance > 0) dosageSummary += ` × ${distance}ft`;
 
             const newExercise = {
-                id: ex.exercise_id,
+                id: ex.id,
                 name: ex.canonical_name,
                 description: ex.description,
                 pt_category: ex.pt_category,
@@ -5024,7 +5719,7 @@
                     : [];
 
                 return {
-                    exercise_id: ex.id,
+                    id: ex.id,
                     canonical_name: ex.name,
                     description: ex.description || '',
                     pt_category: ex.pt_category || 'other',
@@ -5096,17 +5791,42 @@
         }
 
         function exportExerciseHistory() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (!stored) {
+            const sessions = getSessionHistoryFromCache();
+            if (!sessions || sessions.length === 0) {
                 alert('No exercise history data found.');
                 return;
             }
 
             try {
-                const parsed = JSON.parse(stored);
+                const serializedSessions = serializeSessionHistory(sessions);
+
+                // Calculate summary statistics
+                const uniqueExercises = new Set(serializedSessions.map(s => s.exerciseId)).size;
+                const totalSets = serializedSessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+                const dateRange = serializedSessions.length > 0 ? {
+                    first: serializedSessions[0].date,
+                    last: serializedSessions[serializedSessions.length - 1].date
+                } : null;
+
+                // Build export with metadata
+                const exportData = {
+                    export_date: new Date().toISOString(),
+                    export_type: 'pt_exercise_history',
+                    data_version: localStorage.getItem(PT_VERSION_KEY) || PT_DATA_VERSION,
+                    stats: {
+                        total_sessions: serializedSessions.length,
+                        unique_exercises: uniqueExercises,
+                        total_sets: totalSets,
+                        date_range: dateRange
+                    },
+                    sessions: serializedSessions
+                };
+
                 const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
                 const filename = `pt_exercise_history-${dateStamp}.json`;
-                downloadJSON(parsed, filename);
+                downloadJSON(exportData, filename);
+
+                console.log(`[Export] History exported: ${serializedSessions.length} sessions, ${uniqueExercises} exercises`);
                 haptic('success');
             } catch (e) {
                 console.error('Failed to export exercise history:', e);
@@ -5116,10 +5836,10 @@
 
         function exportAllData() {
             const library = localStorage.getItem(LIBRARY_KEY);
-            const history = localStorage.getItem(STORAGE_KEY);
+            const history = serializeSessionHistory(getSessionHistoryFromCache());
             const version = localStorage.getItem(PT_VERSION_KEY);
 
-            if (!library && !history) {
+            if (!library && history.length === 0) {
                 alert('No data found to export.');
                 return;
             }
@@ -5128,7 +5848,7 @@
                 const allData = {
                     pt_data_version: version || PT_DATA_VERSION,
                     pt_exercise_library: library ? JSON.parse(library) : [],
-                    pt_tracker_data: history ? JSON.parse(history) : [],
+                    pt_tracker_data: history,
                     exported_at: new Date().toISOString()
                 };
 
@@ -5147,10 +5867,10 @@
                     });
                 }
 
-                if (history) {
+                if (history.length > 0) {
                     zipFiles.push({
                         name: `pt_exercise_history-${dateStamp}.json`,
-                        content: JSON.stringify(JSON.parse(history), null, 2)
+                        content: JSON.stringify(history, null, 2)
                     });
                 }
 
@@ -5286,11 +6006,14 @@
                     if (data.pt_data_version !== undefined && data.pt_exercise_library !== undefined) {
                         // All-data export format
                         importAllData(data);
+                    } else if (data.export_type === 'pt_exercise_history' && data.sessions) {
+                        // New enhanced history format with metadata
+                        importHistory(data.sessions, data.stats);
                     } else if (Array.isArray(data)) {
-                        // Individual export format (library or history)
+                        // Legacy individual export format (library or history)
                         // Try to detect which one based on structure
                         if (data.length > 0 && data[0].exerciseId !== undefined) {
-                            // History format
+                            // History format (legacy)
                             importHistory(data);
                         } else {
                             // Library format
@@ -5318,7 +6041,9 @@
                     localStorage.setItem(LIBRARY_KEY, JSON.stringify(data.pt_exercise_library));
                 }
                 if (data.pt_tracker_data) {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data.pt_tracker_data));
+                    setSessionHistoryCache(data.pt_tracker_data, { source: 'import-all', syncLocalStorage: true });
+                    queueSessionsForFirestore(data.pt_tracker_data, 'import-all');
+                    void syncRuntimeToFirestore();
                 }
                 if (data.pt_data_version) {
                     localStorage.setItem(PT_VERSION_KEY, data.pt_data_version);
@@ -5344,15 +6069,118 @@
             });
         }
 
-        function importHistory(data) {
-            const message = `Import exercise history?\n\nThis will REPLACE your current history with ${data.length} sessions.\n\nCurrent history will be overwritten. Continue?`;
+        function importHistory(importedSessions, stats) {
+            const currentSessions = loadHistory();
+            const statsInfo = stats ? ` (${stats.total_sessions} sessions, ${stats.unique_exercises} exercises)` : '';
 
-            showActionSheet(message, () => {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            // Build action sheet with merge and replace options
+            const message = `Import ${importedSessions.length} sessions${statsInfo}?\n\nCurrent history: ${currentSessions.length} sessions\n\nChoose import method:`;
+
+            const actions = [
+                {
+                    label: '🔀 Merge (keep both, remove duplicates)',
+                    style: 'primary',
+                    callback: () => mergeHistory(currentSessions, importedSessions)
+                },
+                {
+                    label: '⚠️ Replace (delete current history)',
+                    style: 'destructive',
+                    callback: () => replaceHistory(importedSessions)
+                }
+            ];
+
+            showActionSheetWithOptions(message, actions);
+        }
+
+        function mergeHistory(currentSessions, importedSessions) {
+            // Create map of existing sessions by sessionId for fast lookup
+            const sessionMap = new Map();
+            currentSessions.forEach(s => {
+                if (s.sessionId) {
+                    sessionMap.set(s.sessionId, s);
+                }
+            });
+
+            // Add imported sessions, deduplicating by sessionId
+            let added = 0;
+            let duplicates = 0;
+
+            importedSessions.forEach(session => {
+                if (session.sessionId && sessionMap.has(session.sessionId)) {
+                    // Duplicate - keep newer one
+                    const existing = sessionMap.get(session.sessionId);
+                    if (new Date(session.date) > new Date(existing.date)) {
+                        sessionMap.set(session.sessionId, session);
+                        console.log(`[Import] Updated duplicate session: ${session.sessionId}`);
+                    }
+                    duplicates++;
+                } else {
+                    // New session
+                    sessionMap.set(session.sessionId || `import-${Date.now()}-${added}`, session);
+                    added++;
+                }
+            });
+
+            // Convert map back to array and sort by date
+            const mergedSessions = Array.from(sessionMap.values())
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Save merged history
+            setSessionHistoryCache(mergedSessions, { source: 'import-merge', syncLocalStorage: true });
+            queueSessionsForFirestore(mergedSessions, 'import-merge');
+            void syncRuntimeToFirestore();
+
+            closeDataBackup();
+            const message = `History merged successfully!\n\n• Added: ${added} new sessions\n• Duplicates skipped: ${duplicates}\n• Total sessions: ${mergedSessions.length}`;
+            alert(message);
+            console.log(`[Import] Merge complete - Added: ${added}, Skipped: ${duplicates}, Total: ${mergedSessions.length}`);
+            haptic('success');
+        }
+
+        function replaceHistory(importedSessions) {
+            const confirmMsg = `⚠️ Are you sure?\n\nThis will permanently delete your current ${loadHistory().length} sessions and replace with ${importedSessions.length} imported sessions.\n\nThis cannot be undone!`;
+
+            showActionSheet(confirmMsg, () => {
+                setSessionHistoryCache(importedSessions, { source: 'import-replace', syncLocalStorage: true });
+                queueSessionsForFirestore(importedSessions, 'import-replace');
+                void syncRuntimeToFirestore();
                 closeDataBackup();
-                alert('Exercise history imported successfully!');
+                alert(`History replaced!\n\n${importedSessions.length} sessions imported.`);
+                console.log(`[Import] History replaced with ${importedSessions.length} sessions`);
                 haptic('success');
             });
+        }
+
+        function showActionSheetWithOptions(message, actions) {
+            const sheet = document.createElement('div');
+            sheet.className = 'action-sheet active';
+            sheet.innerHTML = `
+                <div class="action-sheet-content">
+                    <div class="action-sheet-message">${message}</div>
+                    ${actions.map(action => `
+                        <button class="action-sheet-button ${action.style === 'destructive' ? 'destructive' : action.style === 'primary' ? 'primary' : ''}">${action.label}</button>
+                    `).join('')}
+                    <button class="action-sheet-button cancel">Cancel</button>
+                </div>
+            `;
+
+            document.body.appendChild(sheet);
+
+            const buttons = sheet.querySelectorAll('.action-sheet-button');
+            buttons.forEach((btn, idx) => {
+                btn.onclick = () => {
+                    if (idx < actions.length) {
+                        actions[idx].callback();
+                    }
+                    document.body.removeChild(sheet);
+                };
+            });
+
+            sheet.onclick = (e) => {
+                if (e.target === sheet) {
+                    document.body.removeChild(sheet);
+                }
+            };
         }
 
         function renderTagFilters() {
@@ -5791,6 +6619,16 @@
         const RECOVERY_KEY = 'pt_session_recovery';
 
         function saveSessionRecovery() {
+            //Escape if currentExercise is null or partially initialized
+            if (
+                !currentExercise ||
+                !Array.isArray(currentExercise.sessionData)
+            ) {
+                localStorage.removeItem(RECOVERY_KEY);
+                void syncRuntimeToFirestore();
+                return;
+            }
+            
             if (currentExercise.sessionData.length > 0 || currentExercise.currentSet > 1 || currentExercise.currentRep > 0) {
                 const recovery = {
                     exerciseId: currentExercise.id,
@@ -5801,8 +6639,10 @@
                     timestamp: new Date().toISOString()
                 };
                 localStorage.setItem(RECOVERY_KEY, JSON.stringify(recovery));
+                void syncRuntimeToFirestore();
             } else {
                 localStorage.removeItem(RECOVERY_KEY);
+                void syncRuntimeToFirestore();
             }
         }
 
@@ -5832,15 +6672,18 @@
                                 speak(`Recovered session: Set ${recovery.currentSet}`);
                             } else {
                                 localStorage.removeItem(RECOVERY_KEY);
+                                void syncRuntimeToFirestore();
                             }
                         }
                     );
                 } else {
                     localStorage.removeItem(RECOVERY_KEY);
+                    void syncRuntimeToFirestore();
                 }
             } catch (e) {
                 console.warn('Failed to parse recovery data:', e);
                 localStorage.removeItem(RECOVERY_KEY);
+                void syncRuntimeToFirestore();
             }
         }
 
@@ -5864,19 +6707,8 @@
             document.getElementById('export-pt-modal').classList.remove('active');
         }
 
-        async function sendToPT() {
-            const ptEmail = document.getElementById('pt-email-address').value.trim();
-            const note = document.getElementById('pt-note').value.trim();
-
-            if (!ptEmail) {
-                alert('Please enter your PT\'s email address');
-                return;
-            }
-
-            // Save PT email for next time
-            localStorage.setItem('pt_email_address', ptEmail);
-
-            const exportData = {
+        async function buildPtDataExport(note) {
+            return {
                 exportDate: new Date().toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
@@ -5884,19 +6716,39 @@
                     day: 'numeric'
                 }),
                 noteForPT: note || null,
-                sessionHistory: loadHistory(),
+                sessionHistory: serializeSessionHistory(loadHistory()),
                 exerciseLibrary: loadExerciseLibrary(),
                 rolesData: await loadRolesData(),
                 schema: await loadSchema(),
                 vocabulary: await loadVocabulary()
             };
+        }
 
-            const jsonData = JSON.stringify(exportData, null, 2);
+        async function copyPtPayloadOnly() {
+            const note = document.getElementById('pt-note').value.trim();
+            const exportData = await buildPtDataExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied to clipboard. Paste it into your PT editor.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
+
+        async function sendToPT() {
+            const ptEmail = document.getElementById('pt-email-address').value.trim();
+            const note = document.getElementById('pt-note').value.trim();
+
+            // Save PT email for next time
+            if (ptEmail) {
+                localStorage.setItem('pt_email_address', ptEmail);
+            }
+
+            const exportData = await buildPtDataExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
             const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-            // Calculate checksum for data integrity
-            const checksum = await calculateSHA256(jsonData);
-            const byteLength = new TextEncoder().encode(jsonData).length;
 
             // Build current dosage summary
             const activeExercises = loadExerciseLibrary().filter(ex => !ex.archived);
@@ -5911,27 +6763,12 @@
                 dosageSummary += '\n';
             }
 
-            // Format email body with markers and verification
+            // Format email body with V2 block
             const emailBody = `Hi,
 
 ${note ? note + '\n\n' : ''}Please paste the data below into the PT Editor to review my progress.
 ${dosageSummary}
-════════════════════════════════════════
-   PT TRACKER - PATIENT REPORT
-   Date: ${dateStr}
-   Checksum: ${checksum.substring(0, 16)}
-   Size: ${byteLength} bytes
-════════════════════════════════════════
-
---START_PT_DATA--
-${jsonData}
---END_PT_DATA--
---CHECKSUM:${checksum}--
---SIZE:${byteLength}--
-
-════════════════════════════════════════
-   END OF PT TRACKER DATA
-════════════════════════════════════════`;
+${payload}`;
 
             const subject = `PT Tracker Data - ${dateStr}`;
 
@@ -5943,15 +6780,6 @@ ${jsonData}
 
             closeExportPTModal();
             haptic('success');
-        }
-
-        // Calculate SHA-256 checksum for data integrity
-        async function calculateSHA256(text) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(text);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
         // Import PT Modifications from PT
@@ -5974,49 +6802,21 @@ ${jsonData}
             }
 
             try {
-                // Extract JSON between markers
-                const startMarker = '--START_PT_MODIFICATIONS--';
-                const endMarker = '--END_PT_MODIFICATIONS--';
-
-                const startIdx = pastedContent.indexOf(startMarker);
-                const endIdx = pastedContent.indexOf(endMarker);
-
-                if (startIdx === -1 || endIdx === -1) {
-                    alert('Invalid format: Could not find data markers.\n\nMake sure you pasted the entire email content including the markers.');
+                const parsed = await ptPayloadUtils.parseV2FromText(pastedContent, 'PT_MODIFICATIONS');
+                if (parsed.errors.length > 0) {
+                    alert(parsed.errors.join('\n\n'));
                     return;
                 }
 
-                const jsonStr = pastedContent.substring(startIdx + startMarker.length, endIdx).trim();
-
-                // Extract and verify checksum if present
-                const checksumMatch = pastedContent.match(/--CHECKSUM:([a-f0-9]{64})--/);
-                const sizeMatch = pastedContent.match(/--SIZE:(\d+)--/);
-
-                if (checksumMatch && sizeMatch) {
-                    const expectedChecksum = checksumMatch[1];
-                    const expectedSize = parseInt(sizeMatch[1]);
-
-                    // Verify size
-                    const actualSize = new TextEncoder().encode(jsonStr).length;
-                    if (actualSize !== expectedSize) {
-                        if (!confirm(`⚠️ Data size mismatch!\n\nExpected: ${expectedSize} bytes\nReceived: ${actualSize} bytes\n\nThe data may be incomplete or corrupted. Continue anyway?`)) {
-                            return;
-                        }
-                    }
-
-                    // Verify checksum
-                    const actualChecksum = await calculateSHA256(jsonStr);
-                    if (actualChecksum !== expectedChecksum) {
-                        if (!confirm(`⚠️ Checksum verification failed!\n\nThe data may have been corrupted during transfer. Continue anyway?`)) {
-                            return;
-                        }
-                    }
+                if (parsed.type !== 'PT_MODIFICATIONS') {
+                    alert(`Invalid payload type: ${parsed.type}. Expected PT_MODIFICATIONS.`);
+                    return;
                 }
 
-                const data = JSON.parse(jsonStr);
+                const data = parsed.obj;
 
-                if (data.modificationType !== 'PT_MODIFICATIONS') {
-                    alert('Invalid data: This is not a PT modifications file');
+                if (!data || data.modificationType !== 'PT_MODIFICATIONS') {
+                    alert('Invalid data: This is not a PT modifications payload.');
                     return;
                 }
 
@@ -6062,7 +6862,8 @@ ${jsonData}
             // 1. Add new exercises to library
             if (mods.newExercises && mods.newExercises.length > 0) {
                 mods.newExercises.forEach(ex => {
-                    if (!exerciseLibrary.find(e => e.id === ex.id)) {
+                    const exists = exerciseLibrary.find(e => e.id === ex.id);
+                    if (!exists) {
                         exerciseLibrary.push(ex);
                         mergedCount++;
                     }
@@ -6077,6 +6878,8 @@ ${jsonData}
                     if (index !== -1) {
                         exerciseLibrary[index] = updatedExercise;
                         mergedCount++;
+                    } else {
+                        console.warn(`[Import] Edited exercise not found: ${exerciseId}`);
                     }
                 });
             }
@@ -6089,7 +6892,8 @@ ${jsonData}
                         exerciseLibrary.splice(index, 1);
                         mergedCount++;
                     }
-                    if (rolesData.exercise_roles && rolesData.exercise_roles[exerciseId]) {
+                    // Also remove role data
+                    if (rolesData.exercise_roles[exerciseId]) {
                         delete rolesData.exercise_roles[exerciseId];
                     }
                 });
@@ -6098,8 +6902,12 @@ ${jsonData}
             // 4. Add new roles
             if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
                 Object.keys(mods.newRoles).forEach(exerciseId => {
+                    // Find the exercise to get its name
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                    const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+
                     if (!rolesData.exercise_roles[exerciseId]) {
-                        rolesData.exercise_roles[exerciseId] = { name: '', roles: [] };
+                        rolesData.exercise_roles[exerciseId] = { name: exerciseName, roles: [] };
                     }
                     const newRoles = mods.newRoles[exerciseId];
                     newRoles.forEach(role => {
@@ -6125,6 +6933,8 @@ ${jsonData}
                                 mergedCount++;
                             }
                         });
+                    } else {
+                        console.warn(`[Import] Role data not found for exercise: ${exerciseId}`);
                     }
                 });
             }
@@ -6134,6 +6944,15 @@ ${jsonData}
                 Object.keys(mods.editedRoles).forEach(exerciseId => {
                     if (rolesData.exercise_roles[exerciseId]) {
                         rolesData.exercise_roles[exerciseId].roles = mods.editedRoles[exerciseId];
+                        mergedCount++;
+                    } else {
+                        // Create new entry if it doesn't exist
+                        const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                        const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+                        rolesData.exercise_roles[exerciseId] = {
+                            name: exerciseName,
+                            roles: mods.editedRoles[exerciseId]
+                        };
                         mergedCount++;
                     }
                 });
@@ -6157,6 +6976,8 @@ ${jsonData}
                             supersedes: []
                         });
                         mergedCount++;
+                    } else {
+                        console.warn(`[Import] Dosage change for unknown exercise: ${exerciseId}`);
                     }
                 });
             }
@@ -6648,14 +7469,14 @@ ${jsonData}
                         (ex.equipment && ex.equipment.required && ex.equipment.required.some(e => e.toLowerCase().includes(searchTerm)));
                     return matchesSearch;
                 } catch (error) {
-                    console.error('Error filtering exercise:', ex.exercise_id, error);
+                    console.error('Error filtering exercise:', ex.id, error);
                     return false;
                 }
             });
 
             // Apply "show only new" filter
             if (showOnlyNewExercises) {
-                filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.exercise_id));
+                filtered = filtered.filter(ex => !exerciseLibrary.find(e => e.id === ex.id));
             }
 
             console.log(`Filtered exercises: ${filtered.length}`);
@@ -6679,20 +7500,20 @@ ${jsonData}
                             ? equipmentRequired.join(', ')
                             : 'No equipment';
 
-                        const alreadyImported = exerciseLibrary.find(e => e.id === ex.exercise_id);
-                        const isChecked = selectedExercisesForImport.has(ex.exercise_id);
+                        const alreadyImported = exerciseLibrary.find(e => e.id === ex.id);
+                        const isChecked = selectedExercisesForImport.has(ex.id);
                         const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
                         const primaryMuscles = ex.primary_muscles || [];
 
                         return `
                             <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
                                 <input type="checkbox"
-                                       id="ex-check-${ex.exercise_id}"
+                                       id="ex-check-${ex.id}"
                                        ${isChecked ? 'checked' : ''}
                                        ${checkboxDisabled ? 'disabled' : ''}
-                                       onclick="toggleExerciseSelection('${ex.exercise_id}', event)"
+                                       onclick="toggleExerciseSelection('${ex.id}', event)"
                                        style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
-                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.exercise_id}')">
+                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.id}')">
                                     <div style="font-weight: 600; margin-bottom: 4px;">
                                         ${ex.canonical_name}
                                         ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
@@ -6707,8 +7528,8 @@ ${jsonData}
                             </div>
                         `;
                     } catch (error) {
-                        console.error(`Error rendering exercise ${ex.exercise_id}:`, error);
-                        return `<div class="history-item" style="color: var(--ios-red);">Error rendering ${ex.exercise_id}</div>`;
+                        console.error(`Error rendering exercise ${ex.id}:`, error);
+                        return `<div class="history-item" style="color: var(--ios-red);">Error rendering ${ex.id}</div>`;
                     }
                 }).join('');
                 console.log('Library exercises rendered successfully');
@@ -6723,7 +7544,7 @@ ${jsonData}
         }
 
         function showExerciseDetail(exerciseId) {
-            selectedLibraryExercise = libraryExercises.find(ex => ex.exercise_id === exerciseId);
+            selectedLibraryExercise = libraryExercises.find(ex => ex.id === exerciseId);
             if (!selectedLibraryExercise) return;
 
             const ex = selectedLibraryExercise;
@@ -6834,7 +7655,7 @@ ${jsonData}
             const ex = selectedLibraryExercise;
 
             // Check if already imported
-            if (exerciseLibrary.find(e => e.id === ex.exercise_id)) {
+            if (exerciseLibrary.find(e => e.id === ex.id)) {
                 alert('This exercise is already in your library!');
                 return;
             }
@@ -6854,10 +7675,10 @@ ${jsonData}
 
             // Convert selected IDs to array and filter out already-imported
             bulkImportQueue = Array.from(selectedExercisesForImport).filter(exerciseId => {
-                const ex = libraryExercises.find(e => e.exercise_id === exerciseId);
+                const ex = libraryExercises.find(e => e.id === exerciseId);
                 if (!ex) return false;
                 // Skip if already imported
-                if (exerciseLibrary.find(e => e.id === ex.exercise_id)) return false;
+                if (exerciseLibrary.find(e => e.id === ex.id)) return false;
                 return true;
             });
 
@@ -6885,7 +7706,7 @@ ${jsonData}
 
             // Get next exercise ID and show dosage prompt
             const exerciseId = bulkImportQueue.shift();
-            const ex = libraryExercises.find(e => e.exercise_id === exerciseId);
+            const ex = libraryExercises.find(e => e.id === exerciseId);
             if (ex) {
                 showDosagePrompt(ex);
             } else {
@@ -6897,6 +7718,132 @@ ${jsonData}
         function closeLibraryBrowser() {
             document.getElementById('library-browser-modal').classList.remove('active');
             haptic('medium');
+        }
+
+        Object.assign(window, {
+            showQuickSwitcher,
+            showWeeklyStats,
+            showExerciseDetailsModal,
+            toggleHamburgerMenu,
+            showSettings,
+            exportForPT,
+            importPTModifications,
+            endSessionEarly,
+            incrementCounter,
+            startTimer,
+            stopTimer,
+            resetTimer,
+            logPartialTimerRep,
+            previousSet,
+            showLogSetModal,
+            completeSet,
+            showExerciseList,
+            showHistory,
+            togglePocketMode,
+            closeExerciseModal,
+            closeExerciseList,
+            saveExercise,
+            showPlanSessionModal,
+            showLibraryBrowser,
+            showArchivedExercises,
+            showDataBackup,
+            closeFormParamsModal,
+            skipFormParams,
+            saveFormParams,
+            closeSessionNotesModal,
+            skipFormParams,
+            saveFormParams,
+            confirmSkipNotes,
+            saveSessionWithNotes,
+            closeLogSetModal,
+            saveLoggedSet,
+            closeExerciseDetailsModal,
+            saveExerciseDetails,
+            skipRest,
+            closeRestTimer,
+            closeQuickSwitcher,
+            exportWeeklySummary,
+            reloadApp,
+            addSetToEditSession,
+            deleteSession,
+            closeEditSession,
+            saveEditedSession,
+            closeHistoryModal,
+            closeAllSessions,
+            closeWeeklyStats,
+            showAllSessions,
+            closeAllSessions,
+            closeWeeklyStats,
+            showAllSessions,
+            closeExerciseProgress,
+            closeLibraryBrowser,
+            bulkImportExercises,
+            closeExerciseDetail,
+            importLibraryExercise,
+            exportAllData,
+            exportExerciseLibrary,
+            exportExerciseHistory,
+            closeDataBackup,
+            closeSettings,
+            closeDosagePrompt,
+            confirmDosage,
+            closeEditDosage,
+            saveEditedDosage,
+            closePlanSessionModal,
+            startPlannedSession,
+            hideActionSheet,
+            confirmActionSheet,
+            closeExportPTModal,
+            copyPtPayloadOnly,
+            sendToPT,
+            closeImportPTModal,
+            processPastedImport,
+            handlePocketTap,
+            selectCurrentSide,
+            selectLogSetSide,
+            quickStartExercise,
+            toggleExerciseInPlan,
+            switchToPlannedExercise,
+            showExerciseProgress,
+            editSession,
+            deleteEditSessionSet,
+            selectExerciseFromList,
+            toggleFilterTag,
+            unarchiveExercise,
+            permanentlyDeleteExercise,
+            toggleFavorite,
+            showEditDosageModal,
+            archiveExercise,
+            quickSwitchTo,
+            toggleExerciseSelection,
+            showExerciseDetail
+        });
+
+        // Auth button event listeners
+        document.getElementById('auth-signin-btn').addEventListener('click', handleSignIn);
+        document.getElementById('auth-signup-btn').addEventListener('click', handleSignUp);
+        document.getElementById('auth-forgot-password').addEventListener('click', handleForgotPassword);
+        document.getElementById('auth-skip-btn').addEventListener('click', hideAuthModal);
+
+        // Menu auth button event listeners
+        document.getElementById('menu-signin-btn').addEventListener('click', handleMenuSignIn);
+        document.getElementById('menu-signout-btn').addEventListener('click', handleMenuSignOut);
+
+        // Allow Enter key to submit auth form
+        document.getElementById('auth-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSignIn();
+            }
+        });
+
+        // Check for #signin hash (from coverage page redirect)
+        if (window.location.hash === '#signin') {
+            window.location.hash = ''; // Clear hash
+            setTimeout(() => {
+                if (!currentUser) {
+                    showAuthModal();
+                }
+            }, 500); // Wait for auth state to be ready
         }
 
         // Initialize

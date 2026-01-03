@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>PT View - Patient Dashboard</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <style>
+        body {
+            padding: 12px;
+            padding-bottom: 80px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .badge {
+            background: var(--ios-blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .auth-container {
+            max-width: 500px;
+            margin: 60px auto;
+            text-align: center;
+        }
+
+        .auth-container h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .auth-container p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .token-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            letter-spacing: 2px;
+        }
+
+        .token-input:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+        }
+
+        .dashboard-container {
+            display: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--ios-blue);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .readonly-badge {
+            background: var(--ios-orange);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .error-message {
+            background: var(--ios-red);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .info-message {
+            background: var(--ios-blue);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Screen (Token Entry) -->
+    <div id="auth-screen" class="auth-container">
+        <h2>🔐 PT View Access</h2>
+        <p>Enter the share token provided by your patient to view their exercise dashboard.</p>
+
+        <input type="text"
+               id="token-input"
+               class="token-input"
+               placeholder="Enter 8-character token"
+               maxlength="8"
+               autocomplete="off"
+               autocapitalize="characters">
+
+        <button class="btn-primary" onclick="validateToken()" style="width: 100%; margin-bottom: 12px;">
+            View Dashboard
+        </button>
+
+        <div id="error-container"></div>
+
+        <p style="font-size: 12px; color: var(--ios-gray); margin-top: 24px;">
+            This is a read-only view. You can see patient progress but cannot make changes.
+        </p>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboard-screen" class="dashboard-container">
+        <div class="header">
+            <div>
+                <h1>📊 Patient Dashboard</h1>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                    Token: <span id="display-token" style="font-family: 'Courier New', monospace; font-weight: 600;"></span>
+                </div>
+            </div>
+            <span class="badge readonly-badge">READ-ONLY</span>
+        </div>
+
+        <div class="info-message" id="last-updated">
+            Last updated: <span id="update-time"></span>
+        </div>
+
+        <!-- Overall Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-sessions">0</div>
+                <div class="stat-label">Total Sessions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="active-exercises">0</div>
+                <div class="stat-label">Active Exercises</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="week-sessions">0</div>
+                <div class="stat-label">This Week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adherence-rate">0%</div>
+                <div class="stat-label">Adherence</div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section">
+            <div class="section-title">
+                📅 Recent Activity (Last 7 Days)
+            </div>
+            <div id="recent-activity"></div>
+        </div>
+
+        <!-- Top Exercises -->
+        <div class="section">
+            <div class="section-title">
+                💪 Most Practiced Exercises
+            </div>
+            <div id="top-exercises"></div>
+        </div>
+
+        <!-- Exercise Roles -->
+        <div class="section">
+            <div class="section-title">
+                🎯 Exercise Roles & Coverage
+            </div>
+            <div id="exercise-roles"></div>
+        </div>
+
+        <!-- Refresh Data Button -->
+        <div style="text-align: center; margin-top: 24px;">
+            <button class="btn-secondary" onclick="location.reload()" style="width: 100%;">
+                🔄 Refresh Data
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Token validation and data loading
+        let patientData = null;
+
+        function validateToken() {
+            const token = document.getElementById('token-input').value.trim().toUpperCase();
+
+            if (!token || token.length !== 8) {
+                showError('Please enter a valid 8-character token');
+                return;
+            }
+
+            // Try to load data from localStorage with token key
+            const shareKey = `PT_SHARE_${token}`;
+            const storedData = localStorage.getItem(shareKey);
+
+            if (!storedData) {
+                showError('Invalid token. Please check with your patient and try again.');
+                return;
+            }
+
+            try {
+                patientData = JSON.parse(storedData);
+
+                // Validate data structure
+                if (!patientData.sessions || !patientData.exerciseLibrary) {
+                    throw new Error('Invalid data structure');
+                }
+
+                // Load dashboard
+                loadDashboard(token);
+            } catch (e) {
+                console.error('Failed to parse patient data:', e);
+                showError('Data appears corrupted. Please ask patient to regenerate share link.');
+            }
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
+
+            // Clear error after 5 seconds
+            setTimeout(() => {
+                errorContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function loadDashboard(token) {
+            // Hide auth screen, show dashboard
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('dashboard-screen').style.display = 'block';
+
+            // Display token
+            document.getElementById('display-token').textContent = token;
+
+            // Display last updated time
+            const updateTime = new Date(patientData.exportedAt).toLocaleString();
+            document.getElementById('update-time').textContent = updateTime;
+
+            // Calculate and display stats
+            renderStats();
+            renderRecentActivity();
+            renderTopExercises();
+            renderExerciseRoles();
+        }
+
+        function renderStats() {
+            const sessions = patientData.sessions || [];
+            const exercises = patientData.exerciseLibrary || [];
+
+            // Total sessions
+            document.getElementById('total-sessions').textContent = sessions.length;
+
+            // Active exercises (have at least one session)
+            const activeExIds = new Set(sessions.map(s => s.exerciseId));
+            document.getElementById('active-exercises').textContent = activeExIds.size;
+
+            // This week sessions
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const weekSessions = sessions.filter(s => new Date(s.date) >= weekAgo);
+            document.getElementById('week-sessions').textContent = weekSessions.length;
+
+            // Adherence rate (sessions with at least 1 set completed / total sessions)
+            const completedSessions = sessions.filter(s => s.sets && s.sets.length > 0);
+            const adherenceRate = sessions.length > 0
+                ? Math.round((completedSessions.length / sessions.length) * 100)
+                : 0;
+            document.getElementById('adherence-rate').textContent = adherenceRate + '%';
+        }
+
+        function renderRecentActivity() {
+            const sessions = patientData.sessions || [];
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+
+            const recentSessions = sessions
+                .filter(s => new Date(s.date) >= weekAgo)
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 10);
+
+            const container = document.getElementById('recent-activity');
+
+            if (recentSessions.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; padding: 12px;">No sessions in the last 7 days</div>';
+                return;
+            }
+
+            let html = '';
+            recentSessions.forEach(session => {
+                const date = new Date(session.date);
+                const timeAgo = getTimeAgo(date);
+                const setsCount = session.sets ? session.sets.length : 0;
+
+                html += `
+                    <div class="exercise-card">
+                        <div class="exercise-card-content">
+                            <div class="exercise-card-title">${session.exerciseName || session.exerciseId}</div>
+                            <div class="exercise-card-meta">
+                                ${timeAgo} • ${setsCount} set${setsCount !== 1 ? 's' : ''} completed
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderTopExercises() {
+            const sessions = patientData.sessions || [];
+
+            // Group by exercise
+            const exerciseGroups = {};
+            sessions.forEach(session => {
+                const id = session.exerciseId;
+                if (!exerciseGroups[id]) {
+                    exerciseGroups[id] = {
+                        name: session.exerciseName || id,
+                        sessions: [],
+                        totalSets: 0
+                    };
+                }
+                exerciseGroups[id].sessions.push(session);
+                exerciseGroups[id].totalSets += (session.sets || []).length;
+            });
+
+            // Sort by session count and take top 10
+            const topExercises = Object.values(exerciseGroups)
+                .sort((a, b) => b.sessions.length - a.sessions.length)
+                .slice(0, 10);
+
+            const container = document.getElementById('top-exercises');
+
+            if (topExercises.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; padding: 12px;">No exercises recorded yet</div>';
+                return;
+            }
+
+            let html = '';
+            topExercises.forEach(ex => {
+                const lastSession = ex.sessions[ex.sessions.length - 1];
+                const lastDate = new Date(lastSession.date);
+                const daysAgo = Math.max(0, Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24)));
+
+                html += `
+                    <div class="exercise-card">
+                        <div class="exercise-card-content">
+                            <div class="exercise-card-title">${ex.name}</div>
+                            <div class="exercise-card-meta">
+                                ${ex.sessions.length} sessions • ${ex.totalSets} sets • Last: ${daysAgo === 0 ? 'Today' : daysAgo + ' days ago'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderExerciseRoles() {
+            const roles = patientData.roles || {};
+            const container = document.getElementById('exercise-roles');
+
+            const roleEntries = Object.entries(roles);
+
+            if (roleEntries.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; padding: 12px;">No exercise roles assigned yet</div>';
+                return;
+            }
+
+            let html = '';
+            roleEntries.forEach(([exerciseId, roleData]) => {
+                const exerciseName = roleData.name || exerciseId;
+                const assignedRoles = roleData.roles || [];
+
+                if (assignedRoles.length > 0) {
+                    html += `
+                        <div class="exercise-card">
+                            <div class="exercise-card-content">
+                                <div class="exercise-card-title">${exerciseName}</div>
+                                <div class="exercise-card-meta">
+                                    ${assignedRoles.map(r => `<span class="pill">${r}</span>`).join(' ')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            if (html === '') {
+                container.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; padding: 12px;">No roles assigned yet</div>';
+            } else {
+                container.innerHTML = html;
+            }
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+
+            if (seconds < 60) return 'Just now';
+
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+
+            const days = Math.floor(hours / 24);
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return `${days} days ago`;
+
+            return date.toLocaleDateString();
+        }
+
+        // Check for token in URL
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlToken = urlParams.get('token');
+
+            if (urlToken) {
+                document.getElementById('token-input').value = urlToken;
+                validateToken();
+            }
+        });
+    </script>
+</body>
+</html>
