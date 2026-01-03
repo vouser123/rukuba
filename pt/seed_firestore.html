@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PT Shared Data Seeder</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 0 0 12px;
+        }
+
+        .status {
+            margin: 16px 0;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PT Shared Data Seeder</h1>
+        <p class="hint">
+            This tool seeds Firestore collection <strong>pt_shared</strong> with the latest JSON files
+            in this repo. You must be signed in for writes to succeed.
+        </p>
+        <div class="actions">
+            <button class="btn-primary" id="seed-btn">Seed Shared Data</button>
+            <button class="btn-secondary" id="reload-btn">Reload Status</button>
+        </div>
+        <div class="status" id="status">Waiting for auth…</div>
+    </div>
+
+    <script type="module">
+        import { auth, onAuthStateChanged } from './firebase.js';
+        import { seedSharedFromJsonSources } from './shared/firestore_shared_data.js';
+
+        const statusEl = document.getElementById('status');
+        const seedBtn = document.getElementById('seed-btn');
+        const reloadBtn = document.getElementById('reload-btn');
+
+        let currentUser = null;
+
+        function setStatus(message) {
+            statusEl.textContent = message;
+        }
+
+        function setButtonsEnabled(enabled) {
+            seedBtn.disabled = !enabled;
+            seedBtn.style.opacity = enabled ? '1' : '0.6';
+        }
+
+        function describeAuthState(user) {
+            if (!user) {
+                return 'Not signed in. Open PT Tracker and sign in, then reload this page.';
+            }
+            return `Signed in as ${user.email || user.uid}. Ready to seed.`;
+        }
+
+        async function handleSeed() {
+            if (!currentUser) {
+                setStatus('Sign in required before seeding.');
+                return;
+            }
+            setStatus('Seeding Firestore from JSON sources…');
+            setButtonsEnabled(false);
+            try {
+                await seedSharedFromJsonSources();
+                setStatus('✅ Seed complete. Shared documents updated.');
+            } catch (error) {
+                console.error('Seed failed:', error);
+                setStatus(`❌ Seed failed: ${error.message}`);
+            } finally {
+                setButtonsEnabled(true);
+            }
+        }
+
+        seedBtn.addEventListener('click', handleSeed);
+        reloadBtn.addEventListener('click', () => {
+            setStatus(describeAuthState(currentUser));
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            setStatus(describeAuthState(user));
+            setButtonsEnabled(!!user);
+        });
+    </script>
+</body>
+</html>
