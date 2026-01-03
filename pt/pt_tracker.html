@@ -2598,8 +2598,8 @@
          * 1. Library Entry (persisted in localStorage):
          *    - id: unique identifier
          *    - name: exercise name
+         *    - pattern: 'side' | 'both' (determines if sides tracked separately)
          *    - current: { type, sets, repsPerSet, secondsPerRep }
-         *    - bilateral: true/false (both sides work together)
          *    - sideOptions: ['left', 'right'] (for sided exercises)
          *    - tags: body parts (knee, hip, etc.)
          *    - equipment: array of equipment types
@@ -2620,7 +2620,7 @@
          */
         function toSessionExercise(entry) {
             const spec = entry?.current || {};
-            const isBilateral = entry.bilateral === true;
+            const isBilateral = isBilateralPattern(entry.pattern);
             const sideOptions = entry.sideOptions || [];
 
             // For sided exercises, multiply sets by number of sides
@@ -3369,7 +3369,7 @@
             if (!entry) return;
 
             const sideOptions = entry.sideOptions || [];
-            const isBilateral = entry.bilateral === true;
+            const isBilateral = isBilateralPattern(entry.pattern);
             const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
             const selectorContainer = document.getElementById('current-side-selector');
             const buttonsContainer = document.getElementById('current-side-buttons');
@@ -3481,7 +3481,7 @@
 
             // Show side selector for unilateral exercises
             const entry = getLibraryEntryById(currentExercise.id);
-            const isBilateral = entry.bilateral === true;
+            const isBilateral = isBilateralPattern(entry.pattern);
             const sideOptions = entry.sideOptions || [];
             const modifiers = entry.pattern_modifiers || [];
             const hasDistance = modifiers.includes('distance_feet');
@@ -5543,12 +5543,7 @@
                 return;
             }
 
-            // Import the exercise with the specified dosage
-            const isBilateral = isBilateralPattern(ex.pattern);
-            const sideOptions = getSideOptionsForPattern(ex.pattern);
-            const simpleTags = ex.tags.functional || [];
-            const equipmentList = ex.equipment.required || [];
-
+            // Build dosage spec from user input
             const dosageSpec = {
                 type: modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
                 sets: sets,
@@ -5561,48 +5556,9 @@
                 dosageSpec.distanceFeet = distance;
             }
 
-            // Build dosage summary for history
-            let dosageSummary = `${sets} sets`;
-            if (!replacesReps) dosageSummary += ` × ${reps} reps`;
-            if (seconds > 0) dosageSummary += ` × ${seconds}s`;
-            if (distance > 0) dosageSummary += ` × ${distance}ft`;
-
-            const newExercise = {
-                id: ex.id,
-                name: ex.canonical_name,
-                description: ex.description,
-                pt_category: ex.pt_category,
-                primary_muscles: ex.primary_muscles,
-                secondary_muscles: ex.secondary_muscles,
-                pattern: ex.pattern,
-                pattern_modifiers: ex.pattern_modifiers,
-                form_parameters_required: ex.form_parameters_required || [],
-                equipment: equipmentList,
-                equipmentOptional: ex.equipment.optional || [],
-                guidance: ex.guidance,
-                tags: simpleTags,
-                bilateral: isBilateral,
-                sideOptions: sideOptions,
-                primaryMuscles: ex.primary_muscles.join(', '),
-                anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
-                difficulty: '',
-                supersedes: [],
-                current: dosageSpec,
-                history: [
-                    {
-                        timestamp: new Date().toISOString(),
-                        summary: `Imported from exercise library (${dosageSummary})`,
-                        previous: {},
-                        next: dosageSpec,
-                        supersedes: []
-                    }
-                ],
-                favorite: false,
-                archived: false
-            };
-
-            exerciseLibrary.push(newExercise);
-            persistExerciseLibrary();
+            // Import using helper
+            importExerciseWithDosage(ex, dosageSpec, 'Imported from exercise library');
+            const dosageSummary = buildDosageSummary(dosageSpec, modifiers);
 
             closeDosagePrompt();
             closeExerciseDetail();
@@ -7053,6 +7009,9 @@ ${payload}`;
             try {
                 const dateStr = new Date().toISOString().split('T')[0];
 
+                // Convert library to schema format (remove internal fields like history, current, bilateral)
+                const schemaFormattedLibrary = buildExerciseLibrarySchemaData(exerciseLibrary);
+
                 // Load schema files
                 Promise.all([
                     fetch('schema/exercise_file.schema.json').then(r => r.json()),
@@ -7061,7 +7020,7 @@ ${payload}`;
                     const zipFiles = [
                         {
                             name: `exercise_library-${dateStr}.json`,
-                            content: JSON.stringify({ exercises: exerciseLibrary }, null, 2)
+                            content: JSON.stringify(schemaFormattedLibrary, null, 2)
                         },
                         {
                             name: `exercise_roles-${dateStr}.json`,
@@ -7760,8 +7719,89 @@ ${payload}`;
                 return;
             }
 
-            // Show dosage prompt instead of using defaults
-            showDosagePrompt(ex);
+            // If PT has assigned dosage, use it directly
+            if (ex.current && ex.current.sets) {
+                importExerciseWithDosage(ex, ex.current, 'PT-assigned dosage');
+                closeExerciseDetail();
+                closeLibraryBrowser();
+
+                const isBilateral = isBilateralPattern(ex.pattern);
+                const hasAlternating = (ex.pattern_modifiers || []).includes('alternating');
+                let patternMsg = isSidedPattern(ex.pattern)
+                    ? '🔄 Side tracking enabled: Will log left and right separately'
+                    : '✓ Bilateral exercise: Both sides work together';
+                if (hasAlternating && isSidedPattern(ex.pattern)) {
+                    patternMsg += '\n⚡ ALTERNATING: Switch sides on each rep within the set';
+                }
+
+                const dosageSummary = buildDosageSummary(ex.current, ex.pattern_modifiers || []);
+                alert(`"${ex.canonical_name}" added to your program!\n\n${dosageSummary}\n(Using PT-assigned dosage)\n\n${patternMsg}`);
+            } else {
+                // No PT dosage - show prompt
+                showDosagePrompt(ex);
+            }
+        }
+
+        // Helper to build dosage summary string
+        function buildDosageSummary(dosageSpec, modifiers) {
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+            let summary = `${dosageSpec.sets} sets`;
+            if (!replacesReps && dosageSpec.repsPerSet) {
+                summary += ` × ${dosageSpec.repsPerSet} reps`;
+            }
+            if (dosageSpec.secondsPerRep && dosageSpec.secondsPerRep > 0) {
+                summary += ` × ${dosageSpec.secondsPerRep}s`;
+            }
+            if (dosageSpec.distanceFeet && dosageSpec.distanceFeet > 0) {
+                summary += ` × ${dosageSpec.distanceFeet}ft`;
+            }
+            return summary;
+        }
+
+        // Helper to import exercise with a given dosage spec
+        function importExerciseWithDosage(ex, dosageSpec, source) {
+            const isBilateral = isBilateralPattern(ex.pattern);
+            const sideOptions = getSideOptionsForPattern(ex.pattern);
+            const simpleTags = ex.tags.functional || [];
+            const equipmentList = ex.equipment.required || [];
+
+            const dosageSummary = buildDosageSummary(dosageSpec, ex.pattern_modifiers || []);
+
+            const newExercise = {
+                id: ex.id,
+                name: ex.canonical_name,
+                description: ex.description,
+                pt_category: ex.pt_category,
+                primary_muscles: ex.primary_muscles,
+                secondary_muscles: ex.secondary_muscles,
+                pattern: ex.pattern,
+                pattern_modifiers: ex.pattern_modifiers,
+                form_parameters_required: ex.form_parameters_required || [],
+                equipment: equipmentList,
+                equipmentOptional: ex.equipment.optional || [],
+                guidance: ex.guidance,
+                tags: simpleTags,
+                sideOptions: sideOptions,
+                primaryMuscles: ex.primary_muscles.join(', '),
+                anatomicRegions: ex.tags.heatmap ? ex.tags.heatmap.join(', ') : '',
+                difficulty: '',
+                supersedes: [],
+                current: dosageSpec,
+                history: [
+                    {
+                        timestamp: new Date().toISOString(),
+                        summary: `${source} (${dosageSummary})`,
+                        previous: {},
+                        next: dosageSpec,
+                        supersedes: []
+                    }
+                ],
+                favorite: false,
+                archived: false
+            };
+
+            exerciseLibrary.push(newExercise);
+            persistExerciseLibrary();
         }
 
         // Queue for bulk import - process one at a time with dosage prompts
