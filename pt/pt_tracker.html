@@ -1554,6 +1554,8 @@
 
         const STORAGE_KEY = 'pt_tracker_data';
         const LIBRARY_KEY = 'pt_exercise_library';
+        const ROLES_DATA_KEY = 'pt_exercise_roles';
+        const VOCABULARY_KEY = 'pt_exercise_vocabulary';
         const LAST_EXERCISE_KEY = 'pt_last_exercise_id';
         const FIRESTORE_QUEUE_KEY = 'pt_firestore_queue';
         const RECOVERY_STORAGE_KEY = 'pt_session_recovery';
@@ -2428,6 +2430,42 @@
 
         function persistExerciseLibrary() {
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+        }
+
+        // Synchronous load/save for roles data
+        function loadRolesDataSync() {
+            const stored = localStorage.getItem(ROLES_DATA_KEY);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch (e) {
+                    console.error('[Roles] Failed to parse stored roles:', e);
+                }
+            }
+            // Return default structure if not found
+            return { exercise_roles: {} };
+        }
+
+        function saveRolesDataSync(rolesData) {
+            localStorage.setItem(ROLES_DATA_KEY, JSON.stringify(rolesData));
+        }
+
+        // Synchronous load/save for vocabulary
+        function loadVocabularySync() {
+            const stored = localStorage.getItem(VOCABULARY_KEY);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch (e) {
+                    console.error('[Vocabulary] Failed to parse stored vocabulary:', e);
+                }
+            }
+            // Return default structure if not found
+            return {};
+        }
+
+        function saveVocabularySync(vocabulary) {
+            localStorage.setItem(VOCABULARY_KEY, JSON.stringify(vocabulary));
         }
 
         // Safe history loading with error handling and backward compatibility
@@ -6864,10 +6902,10 @@ ${payload}`;
                 return;
             }
 
-            // Load current data
+            // Load current data (synchronous)
             const exerciseLibrary = loadExerciseLibrary();
-            const rolesData = loadRolesData();
-            const vocabulary = loadVocabulary();
+            const rolesData = loadRolesDataSync();
+            const vocabulary = loadVocabularySync();
             let mergedCount = 0;
 
             // 1. Add new exercises to library
@@ -7005,9 +7043,9 @@ ${payload}`;
             }
 
             // Save all updated data
-            saveExerciseLibrary(exerciseLibrary);
-            saveRolesData(rolesData);
-            saveVocabulary(vocabulary);
+            localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+            saveRolesDataSync(rolesData);
+            saveVocabularySync(vocabulary);
 
             haptic('success');
             alert(`Successfully merged ${mergedCount} changes from your PT!\n\nThe app will now reload to apply all changes.`);
