@@ -1798,6 +1798,7 @@
         let sessionHistoryLoadedFromFirestore = false;
         let sessionHistoryUnsubscribe = null;
         let legacyHistoryMigrationAttempted = false;
+        let firestoreHydrated = false;
 
         function stripSessionMetadata(session) {
             const { _firestoreId, ...rest } = session;
@@ -1858,6 +1859,9 @@
         }
 
         function loadLegacyHistoryFromLocalStorage() {
+            if (firestoreHydrated) {
+                return [];
+            }
             try {
                 const stored = localStorage.getItem(STORAGE_KEY);
                 if (!stored) return [];
@@ -1870,6 +1874,7 @@
         }
 
         function seedLegacyHistoryCache() {
+            if (firestoreHydrated) return;
             if (sessionHistoryCache.length > 0) return;
             const legacySessions = loadLegacyHistoryFromLocalStorage();
             if (legacySessions.length > 0) {
@@ -1985,6 +1990,7 @@
         }
 
         function migrateLegacyHistoryToFirestore(firestoreSessions) {
+            if (firestoreHydrated) return [];
             if (legacyHistoryMigrationAttempted) return [];
             legacyHistoryMigrationAttempted = true;
 
@@ -2017,7 +2023,9 @@
 
             if (!user) {
                 sessionHistoryLoadedFromFirestore = false;
-                seedLegacyHistoryCache();
+                if (!firestoreHydrated) {
+                    seedLegacyHistoryCache();
+                }
                 return;
             }
 
@@ -2030,10 +2038,13 @@
                     _firestoreId: docSnap.id,
                     ...docSnap.data()
                 }));
-                const legacyMissing = migrateLegacyHistoryToFirestore(sessions);
+                const legacyMissing = firestoreHydrated ? [] : migrateLegacyHistoryToFirestore(sessions);
                 const merged = legacyMissing.length > 0 ? dedupeSessions([...sessions, ...legacyMissing]) : sessions;
                 setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: true });
                 sessionHistoryLoadedFromFirestore = true;
+                if (!firestoreHydrated) {
+                    firestoreHydrated = true;
+                }
 
                 if (initialLoad) {
                     console.log('[Firestore] Session history loaded');
@@ -7765,6 +7776,7 @@ ${payload}`;
             exportWeeklySummary,
             reloadApp,
             addSetToEditSession,
+            updateEditSessionSet,
             deleteSession,
             closeEditSession,
             saveEditedSession,
