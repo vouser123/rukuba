@@ -154,3 +154,41 @@ export async function saveExerciseFileSchemaShared(schemaData) {
 export async function saveExerciseRolesSchemaShared(schemaData) {
   return seedSharedDocument(SHARED_DOC_IDS.exerciseRolesSchema, schemaData);
 }
+
+export async function seedSharedFromJsonSources({
+  exerciseLibraryUrl = 'exercise_library.json',
+  exerciseRolesUrl = 'exercise_roles.json',
+  exerciseVocabularyUrl = 'exercise_roles_vocabulary.json',
+  exerciseFileSchemaUrl = 'schema/exercise_file.schema.json',
+  exerciseRolesSchemaUrl = 'schema/exercise_roles.schema.json'
+} = {}) {
+  const [
+    libraryData,
+    rolesData,
+    vocabularyData,
+    fileSchemaData,
+    rolesSchemaData
+  ] = await Promise.all([
+    fetchJsonFallback(exerciseLibraryUrl),
+    fetchJsonFallback(exerciseRolesUrl),
+    fetchJsonFallback(exerciseVocabularyUrl),
+    fetchJsonFallback(exerciseFileSchemaUrl),
+    fetchJsonFallback(exerciseRolesSchemaUrl)
+  ]);
+
+  await Promise.all([
+    seedSharedDocument(SHARED_DOC_IDS.exerciseLibrary, libraryData),
+    seedSharedDocument(SHARED_DOC_IDS.exerciseRoles, rolesData),
+    seedSharedDocument(SHARED_DOC_IDS.exerciseVocabulary, vocabularyData),
+    seedSharedDocument(SHARED_DOC_IDS.exerciseFileSchema, fileSchemaData),
+    seedSharedDocument(SHARED_DOC_IDS.exerciseRolesSchema, rolesSchemaData)
+  ]);
+
+  return {
+    exerciseLibrary: libraryData,
+    exerciseRoles: rolesData,
+    exerciseVocabulary: vocabularyData,
+    exerciseFileSchema: fileSchemaData,
+    exerciseRolesSchema: rolesSchemaData
+  };
+}
