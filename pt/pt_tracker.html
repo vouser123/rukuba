@@ -1890,6 +1890,7 @@
                 const recovery = localStorage.getItem(RECOVERY_STORAGE_KEY);
                 const preferences = localStorage.getItem(PREFERENCES_STORAGE_KEY);
                 const offlineQueue = localStorage.getItem(FIRESTORE_QUEUE_KEY);
+                const dataVersion = localStorage.getItem(PT_VERSION_KEY) || PT_DATA_VERSION;
                 const updatedAt = new Date().toISOString();
 
                 localStorage.setItem(RUNTIME_UPDATED_KEY, updatedAt);
@@ -1899,7 +1900,9 @@
                     sessionHistory: serializeSessionHistory(history),
                     sessionRecovery: recovery ? JSON.parse(recovery) : null,
                     preferences: preferences ? JSON.parse(preferences) : null,
-                    offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : []
+                    offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : [],
+                    exerciseLibrary: loadExerciseLibrary(),
+                    ptDataVersion: dataVersion
                 };
             } catch (error) {
                 console.error('Failed to build runtime snapshot:', error);
@@ -1955,6 +1958,14 @@
                     }
                     if (Array.isArray(data.offlineQueue)) {
                         localStorage.setItem(FIRESTORE_QUEUE_KEY, JSON.stringify(data.offlineQueue));
+                    }
+                    if (Array.isArray(data.exerciseLibrary)) {
+                        localStorage.setItem(LIBRARY_KEY, JSON.stringify(data.exerciseLibrary));
+                        const version = data.ptDataVersion || PT_DATA_VERSION;
+                        localStorage.setItem(PT_VERSION_KEY, version);
+                        exerciseLibrary = loadExerciseLibrary();
+                        renderExerciseList();
+                        renderLibraryExercises();
                     }
                     localStorage.setItem(RUNTIME_UPDATED_KEY, remoteUpdatedAt);
                 }
@@ -2430,6 +2441,7 @@
 
         function persistExerciseLibrary() {
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+            void syncRuntimeToFirestore();
         }
 
         // Synchronous load/save for roles data
