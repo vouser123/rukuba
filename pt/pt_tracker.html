@@ -1797,6 +1797,7 @@
         let sessionHistoryUnsubscribe = null;
         let legacyHistoryMigrationAttempted = false;
         let firestoreHydrated = false;
+        let legacyHistoryFetchAttempted = false;
 
         function stripSessionMetadata(session) {
             const { _firestoreId, ...rest } = session;
@@ -1808,11 +1809,22 @@
         }
 
         function getSessionFingerprint(session) {
-            if (session.sessionId) return `session:${session.sessionId}`;
+            if (session.sessionId) {
+                const exerciseKey = session.exerciseId || session.exerciseName || 'unknown';
+                return `session:${session.sessionId}|exercise:${exerciseKey}`;
+            }
             const exerciseId = session.exerciseId || 'unknown';
             const date = session.date || '';
             const name = session.exerciseName || '';
             return `fallback:${exerciseId}|${date}|${name}`;
+        }
+
+        function getSessionTimestamp(session) {
+            if (session?.date) {
+                const parsed = new Date(session.date);
+                if (!isNaN(parsed.getTime())) return parsed.getTime();
+            }
+            return 0;
         }
 
         function dedupeSessions(sessions) {
@@ -1825,9 +1837,9 @@
                     map.set(key, session);
                     return;
                 }
-                const existingDate = new Date(existing.date || 0);
-                const nextDate = new Date(session.date || 0);
-                if (nextDate > existingDate) {
+                const existingTimestamp = getSessionTimestamp(existing);
+                const nextTimestamp = getSessionTimestamp(session);
+                if (nextTimestamp > existingTimestamp) {
                     map.set(key, session);
                 }
             });
@@ -2043,6 +2055,26 @@
             return missingSessions;
         }
 
+        async function fetchFirestoreSessionsForLegacyMigration(user) {
+            if (!user || firestoreHydrated || legacyHistoryFetchAttempted) return;
+            legacyHistoryFetchAttempted = true;
+            try {
+                const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+                const snapshot = await getDocs(query(sessionsRef));
+                const sessions = snapshot.docs.map(docSnap => ({
+                    _firestoreId: docSnap.id,
+                    ...docSnap.data()
+                }));
+                migrateLegacyHistoryToFirestore(sessions);
+            } catch (error) {
+                console.warn('[Migration] Failed to fetch Firestore sessions:', error);
+            }
+        }
+
+        function isWorkoutSessionActive() {
+            return Boolean(currentExercise);
+        }
+
         function subscribeToFirestoreSessionHistory(user) {
             if (sessionHistoryUnsubscribe) {
                 sessionHistoryUnsubscribe();
@@ -2066,11 +2098,15 @@
                     _firestoreId: docSnap.id,
                     ...docSnap.data()
                 }));
-                const legacyMissing = firestoreHydrated ? [] : migrateLegacyHistoryToFirestore(sessions);
+                const activeSessionId = isWorkoutSessionActive() ? currentSessionId : null;
+                const localSessions = getSessionHistoryFromCache();
+                const filteredSessions = activeSessionId
+                    ? sessions.filter(session => session.sessionId !== activeSessionId)
+                    : sessions;
                 const queued = loadFirestoreQueue();
                 const merged = dedupeSessions([
-                    ...sessions,
-                    ...legacyMissing,
+                    ...filteredSessions,
+                    ...localSessions,
                     ...queued
                 ]);
                 setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: true });
@@ -2093,6 +2129,8 @@
                     sessionHistoryLoadedFromFirestore = true;
                 }
             });
+
+            void fetchFirestoreSessionsForLegacyMigration(user);
         }
 
         onAuthStateChanged(auth, user => {
