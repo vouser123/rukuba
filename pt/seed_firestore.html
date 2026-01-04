@@ -95,6 +95,7 @@
         <div class="actions">
             <button class="btn-primary" id="seed-btn">Seed Shared Data</button>
             <button class="btn-primary" id="migrate-btn">Migrate PT Dosage → Runtime</button>
+            <button class="btn-secondary" id="normalize-btn">Normalize Shared Library (Schema Only)</button>
             <button class="btn-secondary" id="reload-btn">Reload Status</button>
         </div>
         <div class="options">
@@ -112,11 +113,12 @@
 
     <script type="module">
         import { auth, onAuthStateChanged } from './firebase.js';
-        import { seedSharedFromJsonSources, migrateSharedDosageToRuntime } from './shared/firestore_shared_data.js';
+        import { seedSharedFromJsonSources, migrateSharedDosageToRuntime, normalizeSharedExerciseLibrarySchemaOnly } from './shared/firestore_shared_data.js';
 
         const statusEl = document.getElementById('status');
         const seedBtn = document.getElementById('seed-btn');
         const migrateBtn = document.getElementById('migrate-btn');
+        const normalizeBtn = document.getElementById('normalize-btn');
         const reloadBtn = document.getElementById('reload-btn');
         const overwriteDosageToggle = document.getElementById('overwrite-dosage');
         const recordHistoryToggle = document.getElementById('record-history');
@@ -132,6 +134,8 @@
             seedBtn.style.opacity = enabled ? '1' : '0.6';
             migrateBtn.disabled = !enabled;
             migrateBtn.style.opacity = enabled ? '1' : '0.6';
+            normalizeBtn.disabled = !enabled;
+            normalizeBtn.style.opacity = enabled ? '1' : '0.6';
         }
 
         function describeAuthState(user) {
@@ -190,8 +194,27 @@
             }
         }
 
+        async function handleNormalization() {
+            if (!currentUser) {
+                setStatus('Sign in required before normalizing shared library.');
+                return;
+            }
+            setStatus('Normalizing shared exercise library to schema-only fields…');
+            setButtonsEnabled(false);
+            try {
+                const result = await normalizeSharedExerciseLibrarySchemaOnly();
+                setStatus(`✅ Shared library normalized. ${result.updated} exercises updated.`);
+            } catch (error) {
+                console.error('Normalization failed:', error);
+                setStatus(`❌ Normalization failed: ${error.message}`);
+            } finally {
+                setButtonsEnabled(true);
+            }
+        }
+
         seedBtn.addEventListener('click', handleSeed);
         migrateBtn.addEventListener('click', handleDosageMigration);
+        normalizeBtn.addEventListener('click', handleNormalization);
         reloadBtn.addEventListener('click', () => {
             setStatus(describeAuthState(currentUser));
         });
