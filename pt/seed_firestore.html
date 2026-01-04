@@ -44,6 +44,20 @@
             flex-wrap: wrap;
         }
 
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .options label {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
         .btn-primary {
             background: var(--ios-blue);
             color: white;
@@ -80,18 +94,32 @@
         </p>
         <div class="actions">
             <button class="btn-primary" id="seed-btn">Seed Shared Data</button>
+            <button class="btn-primary" id="migrate-btn">Migrate PT Dosage → Runtime</button>
             <button class="btn-secondary" id="reload-btn">Reload Status</button>
+        </div>
+        <div class="options">
+            <label>
+                <input type="checkbox" id="overwrite-dosage">
+                Overwrite existing dosage values in runtime
+            </label>
+            <label>
+                <input type="checkbox" id="record-history" checked>
+                Record migration entries in exercise history
+            </label>
         </div>
         <div class="status" id="status">Waiting for auth…</div>
     </div>
 
     <script type="module">
         import { auth, onAuthStateChanged } from './firebase.js';
-        import { seedSharedFromJsonSources } from './shared/firestore_shared_data.js';
+        import { seedSharedFromJsonSources, migrateSharedDosageToRuntime } from './shared/firestore_shared_data.js';
 
         const statusEl = document.getElementById('status');
         const seedBtn = document.getElementById('seed-btn');
+        const migrateBtn = document.getElementById('migrate-btn');
         const reloadBtn = document.getElementById('reload-btn');
+        const overwriteDosageToggle = document.getElementById('overwrite-dosage');
+        const recordHistoryToggle = document.getElementById('record-history');
 
         let currentUser = null;
 
@@ -102,13 +130,15 @@
         function setButtonsEnabled(enabled) {
             seedBtn.disabled = !enabled;
             seedBtn.style.opacity = enabled ? '1' : '0.6';
+            migrateBtn.disabled = !enabled;
+            migrateBtn.style.opacity = enabled ? '1' : '0.6';
         }
 
         function describeAuthState(user) {
             if (!user) {
                 return 'Not signed in. Open PT Tracker and sign in, then reload this page.';
             }
-            return `Signed in as ${user.email || user.uid}. Ready to seed.`;
+            return `Signed in as ${user.email || user.uid}. Ready for Firebase updates.`;
         }
 
         async function handleSeed() {
@@ -129,7 +159,39 @@
             }
         }
 
+        async function handleDosageMigration() {
+            if (!currentUser) {
+                setStatus('Sign in required before migrating dosage.');
+                return;
+            }
+            setStatus('Migrating PT dosage from shared library to runtime…');
+            setButtonsEnabled(false);
+            try {
+                const result = await migrateSharedDosageToRuntime({
+                    userId: currentUser.uid,
+                    overwriteExisting: overwriteDosageToggle.checked,
+                    recordHistory: recordHistoryToggle.checked
+                });
+                const summary = [
+                    `✅ Migration complete for ${currentUser.uid}.`,
+                    `Shared exercises with dosage: ${result.total}`,
+                    `Updated runtime entries: ${result.updated}`,
+                    `Skipped (already had dosage): ${result.skipped}`,
+                    result.skippedNoLibrary
+                        ? `Skipped (no runtime library found): ${result.skippedNoLibrary}`
+                        : null
+                ].filter(Boolean).join('\n');
+                setStatus(summary);
+            } catch (error) {
+                console.error('Migration failed:', error);
+                setStatus(`❌ Migration failed: ${error.message}`);
+            } finally {
+                setButtonsEnabled(true);
+            }
+        }
+
         seedBtn.addEventListener('click', handleSeed);
+        migrateBtn.addEventListener('click', handleDosageMigration);
         reloadBtn.addEventListener('click', () => {
             setStatus(describeAuthState(currentUser));
         });
