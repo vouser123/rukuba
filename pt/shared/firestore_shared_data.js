@@ -155,8 +155,10 @@ export async function loadExerciseLibraryShared({
 } = {}) {
   // Load Firestore first so we can detect missing IDs before falling back.
   let sharedData = null;
+  let firestoreLoaded = false;
   try {
     sharedData = await readSharedDocument(SHARED_DOC_IDS.exerciseLibrary);
+    firestoreLoaded = sharedData != null;
   } catch (error) {
     console.warn('[SharedData] Firestore read failed for exercise library:', error);
   }
@@ -190,8 +192,10 @@ export async function loadExerciseLibraryShared({
   });
 
   let mergedData = sharedData;
+  let source = firestoreLoaded ? 'firestore' : 'unknown';
   if (sharedExercises.length === 0 && fallbackExercises.length > 0) {
     mergedData = fallbackData;
+    source = 'fallback';
   } else if (missingExercises.length > 0) {
     console.warn(
       `[SharedData] Exercise library missing ${missingExercises.length} entries in Firestore; merging fallback data.`
@@ -204,6 +208,7 @@ export async function loadExerciseLibraryShared({
     } else {
       mergedData = { exercises: mergedExercises };
     }
+    source = 'firestore+fallback';
   }
 
   // Seed Firestore if missing entirely, or if we detected missing exercises.
@@ -216,6 +221,16 @@ export async function loadExerciseLibraryShared({
         console.warn('[SharedData] Firestore seed failed for exercise library:', error);
       }
     }
+  }
+
+  if (source.includes('fallback')) {
+    console.warn(`[SharedData] Exercise library using ${source} source; Firestore is preferred.`);
+  }
+
+  try {
+    localStorage.setItem('pt_shared_library_source', source);
+  } catch (error) {
+    console.warn('[SharedData] Failed to persist library source hint:', error);
   }
 
   return normalizeExerciseLibrary(mergedData ?? fallbackData).exercises;
