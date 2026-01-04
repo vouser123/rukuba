@@ -9,9 +9,10 @@ You are a coding assistant. Follow these rules:
 
 - Firebase is used for authenticated PT session history and runtime backups.
 - Maintain offline-first behavior with local storage; do not add external APIs beyond Firebase.
-- For the PT app, treat `/pt/exercise_guidance_seed.json` as the canonical source of exercise definitions.
+- For the PT app, treat `/pt/exercise_library.json` as the canonical source of exercise definitions.
 - Treat JSON schemas in `/pt/schema` as authoritative contracts for data shape.
 - Do not invent new field names when existing schema fields or vocab terms are available.
+- Ensure all UI actions use `<button>` elements and event listeners for iOS Safari compatibility; do not rely on inline `onclick`.
 
 ## Layout
 
@@ -21,7 +22,7 @@ You are a coding assistant. Follow these rules:
 
 - `/pt`
   - `pt/index.html` (or the main HTML file) should be treated as the entry point for the PT PWA.
-  - `pt/exercise_guidance_seed.json` contains the exercise definitions.
+  - `pt/exercise_library.json` contains the exercise definitions.
   - PT-related JS/TS files should live under `/pt` (e.g., `/pt/app.js`, `/pt/components/...`).
 
 - `/pt/schema`
@@ -40,7 +41,7 @@ You are a coding assistant. Follow these rules:
 
 ## Data model guidance (PT app)
 
-- `exercise_guidance_seed.json`:
+- `exercise_library.json`:
   - Defines what each exercise is and how it is normally performed.
   - Contains no patient-specific dosage values (sets/reps/seconds for a specific day).
   - Uses these key fields (see schema for full details):
@@ -69,7 +70,7 @@ You are a coding assistant. Follow these rules:
 - Use plain JavaScript and browser APIs unless explicitly asked otherwise.
 - Keep files small and modular: separate UI from data loading and storage logic.
 - When unsure about data shape, inspect:
-  - `/pt/exercise_guidance_seed.json`
+  - `/pt/exercise_library.json`
   - `/pt/schema/exercise_file.schema.json`
   - `/pt/docs/vocabularies.md`
 

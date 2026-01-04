@@ -71,20 +71,29 @@ async function loadSharedDocument({
   return fallback;
 }
 
-function normalizeExerciseLibrary(data) {
+function normalizeExerciseLibrary(data, { includeProgramFields = false } = {}) {
   if (!data) return { exercises: [] };
   const exercises = Array.isArray(data.exercises) ? data.exercises : data;
   if (!Array.isArray(exercises)) return { exercises: [] };
 
   const normalized = exercises.map((ex) => {
     const canonicalName = ex.canonical_name || ex.name || ex.title || '';
-    const equipmentRequired = Array.isArray(ex.equipment)
-      ? ex.equipment
-      : ex.equipment?.required || [];
-    const equipmentOptional = ex.equipmentOptional
+    const equipmentRequired = (() => {
+      if (Array.isArray(ex.equipment)) return ex.equipment;
+      if (Array.isArray(ex.equipment?.required)) return ex.equipment.required;
+      if (typeof ex.equipment?.required === 'string') return [ex.equipment.required];
+      if (typeof ex.equipment === 'string') return [ex.equipment];
+      return [];
+    })();
+    const equipmentOptionalRaw = ex.equipmentOptional
       || ex.equipment_optional
       || ex.equipment?.optional
       || [];
+    const equipmentOptional = Array.isArray(equipmentOptionalRaw)
+      ? equipmentOptionalRaw
+      : equipmentOptionalRaw
+        ? [equipmentOptionalRaw]
+        : [];
 
     const guidance = ex.guidance || {};
 
@@ -102,13 +111,24 @@ function normalizeExerciseLibrary(data) {
         ? ex.tags.functional
         : [];
 
+    const primaryMuscles = Array.isArray(ex.primary_muscles)
+      ? ex.primary_muscles
+      : typeof ex.primaryMuscles === 'string'
+        ? ex.primaryMuscles.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+    const secondaryMuscles = Array.isArray(ex.secondary_muscles)
+      ? ex.secondary_muscles
+      : typeof ex.secondaryMuscles === 'string'
+        ? ex.secondaryMuscles.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+
     const normalizedExercise = {
       id: ex.id || ex.exercise_id,
       canonical_name: canonicalName,
       pt_category: ex.pt_category || 'other',
       description: ex.description || '',
-      primary_muscles: ex.primary_muscles || [],
-      secondary_muscles: ex.secondary_muscles || [],
+      primary_muscles: primaryMuscles,
+      secondary_muscles: secondaryMuscles,
       pattern: ex.pattern || 'both',
       pattern_modifiers: ex.pattern_modifiers || [],
       equipment: {
@@ -139,7 +159,7 @@ function normalizeExerciseLibrary(data) {
       superseded_date: ex.superseded_date ?? null
     };
 
-    if (ex.current) {
+    if (includeProgramFields && ex.current) {
       normalizedExercise.current = ex.current;
     }
 
@@ -158,7 +178,7 @@ export async function loadExerciseLibraryShared({
     fallbackUrl,
     seedIfMissing
   });
-  return normalizeExerciseLibrary(data).exercises;
+  return normalizeExerciseLibrary(data, { includeProgramFields: true }).exercises;
 }
 
 export async function loadExerciseRolesShared({
@@ -223,7 +243,7 @@ export async function migrateSharedDosageToRuntime({
   }
 
   const shared = await readSharedDocument(SHARED_DOC_IDS.exerciseLibrary);
-  const normalized = normalizeExerciseLibrary(shared).exercises;
+  const normalized = normalizeExerciseLibrary(shared, { includeProgramFields: true }).exercises;
   const dosageEntries = normalized.filter((exercise) => exercise.current?.sets);
   const dosageMap = new Map(dosageEntries.map((exercise) => [exercise.id, exercise.current]));
 
@@ -288,6 +308,16 @@ export async function migrateSharedDosageToRuntime({
     skipped,
     skippedNoLibrary: 0
   };
+}
+
+export async function normalizeSharedExerciseLibrarySchemaOnly() {
+  const shared = await readSharedDocument(SHARED_DOC_IDS.exerciseLibrary);
+  if (!shared) {
+    return { total: 0, updated: 0 };
+  }
+  const normalized = normalizeExerciseLibrary(shared, { includeProgramFields: false }).exercises;
+  await seedSharedDocument(SHARED_DOC_IDS.exerciseLibrary, { exercises: normalized });
+  return { total: normalized.length, updated: normalized.length };
 }
 
 export async function loadExerciseRolesSchemaShared({
