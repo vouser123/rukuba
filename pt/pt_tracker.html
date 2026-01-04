@@ -734,9 +734,28 @@
                 <span style="font-size: 20px; width: 24px; text-align: center;">📨</span>
                 <span>Import PT Modifications</span>
             </div>
+            <div onclick="showLibraryDiagnostics(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center;">🧪</span>
+                <span>Library Debug</span>
+            </div>
             <div onclick="location.reload()" style="padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">🔄</span>
                 <span>Reload</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Library Debug Modal -->
+    <div class="modal" id="library-debug-modal">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Library Debug</div>
+            <div style="padding: 16px 20px 20px;">
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+                    Snapshot of local + shared library sources to explain count differences.
+                </div>
+                <div id="library-debug-output" style="white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; color: var(--text-primary); background: var(--bg-secondary); padding: 12px; border-radius: 10px;"></div>
+                <button class="modal-cancel" style="margin-top: 16px; width: 100%;" onclick="closeLibraryDiagnostics()">Close</button>
             </div>
         </div>
     </div>
@@ -2456,6 +2475,47 @@
          *   - Return empty array (in memory only)
          *   - DO NOT overwrite stored data
          */
+        function normalizeExerciseEntry(entry) {
+            const normalized = { ...entry };
+            const tagSource = normalized.tags;
+
+            if (!normalized.id && normalized.exercise_id) {
+                normalized.id = normalized.exercise_id;
+                delete normalized.exercise_id;
+            }
+
+            if (!normalized.name) {
+                normalized.name = normalized.canonical_name || normalized.exercise_name || normalized.title || '';
+            }
+
+            if (normalized.canonical_name === undefined && normalized.name) {
+                normalized.canonical_name = normalized.name;
+            }
+
+            if (normalized.equipment && typeof normalized.equipment === 'object' && !Array.isArray(normalized.equipment)) {
+                normalized.equipmentOptional = normalized.equipmentOptional || normalized.equipment.optional || [];
+                normalized.equipment = normalized.equipment.required || [];
+            }
+
+            if (!normalized.equipment) normalized.equipment = [];
+            if (!normalized.equipmentOptional) normalized.equipmentOptional = [];
+
+            if (tagSource && !Array.isArray(tagSource) && Array.isArray(tagSource.functional)) {
+                normalized.tags = tagSource.functional;
+                if (!normalized.anatomicRegions && Array.isArray(tagSource.heatmap)) {
+                    normalized.anatomicRegions = tagSource.heatmap.join(', ');
+                }
+            } else if (!normalized.tags) {
+                normalized.tags = [];
+            }
+
+            if (!normalized.anatomicRegions && Array.isArray(normalized.heatmapTags)) {
+                normalized.anatomicRegions = normalized.heatmapTags.join(', ');
+            }
+
+            return normalized;
+        }
+
         function loadExerciseLibrary() {
             const version = localStorage.getItem(PT_VERSION_KEY);
             const storedLibrary = localStorage.getItem(LIBRARY_KEY);
@@ -2463,19 +2523,13 @@
             if (storedLibrary) {
                 try {
                     const parsed = JSON.parse(storedLibrary);
-                    if (Array.isArray(parsed)) {
-                        // Backward compatibility: ensure equipment is in array format (internal)
-                        parsed.forEach(ex => {
-                            // If equipment is in schema format {required: [], optional: []}, convert to internal
-                            if (ex.equipment && typeof ex.equipment === 'object' && !Array.isArray(ex.equipment)) {
-                                ex.equipmentOptional = ex.equipment.optional || [];
-                                ex.equipment = ex.equipment.required || [];
-                            }
-                            // Ensure arrays exist
-                            if (!ex.equipment) ex.equipment = [];
-                            if (!ex.equipmentOptional) ex.equipmentOptional = [];
-                        });
-                        return parsed;
+                    const exercises = Array.isArray(parsed)
+                        ? parsed
+                        : Array.isArray(parsed?.exercises)
+                            ? parsed.exercises
+                            : null;
+                    if (exercises) {
+                        return exercises.map(normalizeExerciseEntry);
                     }
                 } catch (e) {
                     console.error('Failed to parse exercise library:', e);
@@ -5538,6 +5592,110 @@
                 overlay.style.display = 'block';
                 menu.style.display = 'block';
             }
+            haptic('medium');
+        }
+
+        // Debug helper: summarize library samples so we can compare counts across sources.
+        function formatExercisePreview(exercises, label) {
+            const formatEntry = (exercise) => {
+                const name = exercise.canonical_name || exercise.name || exercise.title || 'Unnamed';
+                const id = exercise.id || exercise.exercise_id || 'no-id';
+                return `${name} (${id})`;
+            };
+
+            if (!exercises || exercises.length === 0) {
+                return `${label}: 0\n  (no exercises loaded)\n`;
+            }
+
+            const firstThree = exercises.slice(0, 3).map(formatEntry);
+            const lastThree = exercises.slice(-3).map(formatEntry);
+
+            return `${label}: ${exercises.length}\n` +
+                `  First 3:\n    - ${firstThree.join('\n    - ')}\n` +
+                `  Last 3:\n    - ${lastThree.join('\n    - ')}\n`;
+        }
+
+        // Debug helper: mirror the rehab coverage localStorage key summary.
+        function formatLocalStorageSummary() {
+            const lines = [];
+            lines.push(`localStorage keys: ${localStorage.length}`);
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key) || '';
+                lines.push(`  - ${key}: ${value.length} chars`);
+            }
+            return lines.join('\n');
+        }
+
+        // Debug modal: compare local storage vs shared library sources in one snapshot.
+        async function showLibraryDiagnostics() {
+            const modal = document.getElementById('library-debug-modal');
+            const output = document.getElementById('library-debug-output');
+            modal.classList.add('active');
+            output.textContent = 'Loading debug snapshot...';
+            haptic('medium');
+
+            // Inspect raw localStorage payload to detect schema vs legacy arrays.
+            const localStored = localStorage.getItem(LIBRARY_KEY);
+            let localStoredType = 'missing';
+            let localStoredCount = 0;
+            if (localStored) {
+                try {
+                    const parsed = JSON.parse(localStored);
+                    if (Array.isArray(parsed)) {
+                        localStoredType = 'array';
+                        localStoredCount = parsed.length;
+                    } else if (Array.isArray(parsed?.exercises)) {
+                        localStoredType = 'schema';
+                        localStoredCount = parsed.exercises.length;
+                    } else {
+                        localStoredType = typeof parsed;
+                    }
+                } catch (error) {
+                    localStoredType = 'invalid JSON';
+                }
+            }
+
+            // Normalize local library for the tracker view.
+            const localExercises = loadExerciseLibrary();
+            // Load shared library (Firestore + fallback) for cross-page parity checks.
+            let sharedExercises = [];
+            let sharedError = null;
+            try {
+                sharedExercises = await loadExerciseLibraryShared({
+                    fallbackUrl: 'exercise_library.json',
+                    seedIfMissing: true
+                });
+            } catch (error) {
+                sharedError = error;
+            }
+
+            const lines = [];
+            lines.push('PT Tracker Library Debug');
+            lines.push(`Timestamp: ${new Date().toLocaleString()}`);
+            lines.push('');
+            lines.push(`Local storage payload (pt_exercise_library):`);
+            lines.push(`  - type: ${localStoredType}`);
+            lines.push(`  - count (raw): ${localStoredCount}`);
+            lines.push(`  - count (normalized): ${localExercises.length}`);
+            lines.push('');
+            lines.push(formatExercisePreview(localExercises, 'Local library (normalized)'));
+
+            if (sharedError) {
+                lines.push(`Shared library: ERROR`);
+                lines.push(`  - ${sharedError.message}`);
+            } else {
+                lines.push(formatExercisePreview(sharedExercises, 'Shared library (Firestore + fallback)'));
+            }
+
+            lines.push('');
+            lines.push(formatLocalStorageSummary());
+
+            output.textContent = lines.join('\n');
+        }
+
+        function closeLibraryDiagnostics() {
+            document.getElementById('library-debug-modal').classList.remove('active');
             haptic('medium');
         }
 
