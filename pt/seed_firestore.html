@@ -44,6 +44,36 @@
             flex-wrap: wrap;
         }
 
+        .auth-panel {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+        }
+
+        .auth-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .auth-grid label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .auth-grid input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
         .options {
             display: flex;
             flex-direction: column;
@@ -66,6 +96,11 @@
             border-radius: 999px;
             font-weight: 600;
             cursor: pointer;
+            min-height: 44px;
+            -webkit-appearance: none;
+            appearance: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-secondary {
@@ -76,6 +111,11 @@
             border-radius: 999px;
             font-weight: 600;
             cursor: pointer;
+            min-height: 44px;
+            -webkit-appearance: none;
+            appearance: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .hint {
@@ -92,6 +132,15 @@
             This tool seeds Firestore collection <strong>pt_shared</strong> with the latest JSON files
             in this repo. You must be signed in for writes to succeed.
         </p>
+        <div class="hint">
+            <strong>Recommended order:</strong>
+            <ol style="margin: 8px 0 0 18px; padding: 0;">
+                <li><strong>Sign in</strong> with a Firebase account that has write access.</li>
+                <li><strong>Seed Shared Data</strong> to update <code>pt_shared</code> from JSON sources.</li>
+                <li><strong>Migrate PT Dosage → Runtime</strong> if you want shared dosage values copied into user runtime data.</li>
+                <li><strong>Reload Status</strong> to confirm auth and status changes.</li>
+            </ol>
+        </div>
         <div class="actions">
             <button class="btn-primary" id="seed-btn">Seed Shared Data</button>
             <button class="btn-primary" id="migrate-btn">Migrate PT Dosage → Runtime</button>
@@ -107,19 +156,52 @@
                 Record migration entries in exercise history
             </label>
         </div>
+        <div class="auth-panel">
+            <strong>Login</strong>
+            <div class="hint">
+                Sign in with a Firebase-authenticated account before seeding. Use this page for admin actions only.
+            </div>
+            <div class="auth-grid">
+                <div>
+                    <label for="auth-email">Email</label>
+                    <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com">
+                </div>
+                <div>
+                    <label for="auth-password">Password</label>
+                    <input id="auth-password" type="password" autocomplete="current-password" placeholder="••••••••">
+                </div>
+                <div class="actions">
+                    <button class="btn-primary" id="login-btn">Sign In</button>
+                    <button class="btn-secondary" id="logout-btn">Sign Out</button>
+                </div>
+                <div class="hint" id="auth-status">Waiting for auth…</div>
+            </div>
+        </div>
         <div class="status" id="status">Waiting for auth…</div>
     </div>
 
     <script type="module">
-        import { auth, onAuthStateChanged } from './firebase.js';
+        import {
+            auth,
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            signOut,
+            setPersistence,
+            browserLocalPersistence
+        } from './firebase.js';
         import { seedSharedFromJsonSources, migrateSharedDosageToRuntime } from './shared/firestore_shared_data.js';
 
         const statusEl = document.getElementById('status');
+        const authStatusEl = document.getElementById('auth-status');
         const seedBtn = document.getElementById('seed-btn');
         const migrateBtn = document.getElementById('migrate-btn');
         const reloadBtn = document.getElementById('reload-btn');
         const overwriteDosageToggle = document.getElementById('overwrite-dosage');
         const recordHistoryToggle = document.getElementById('record-history');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const authEmailInput = document.getElementById('auth-email');
+        const authPasswordInput = document.getElementById('auth-password');
 
         let currentUser = null;
 
@@ -136,7 +218,7 @@
 
         function describeAuthState(user) {
             if (!user) {
-                return 'Not signed in. Open PT Tracker and sign in, then reload this page.';
+                return 'Not signed in. Use the login form above before seeding.';
             }
             return `Signed in as ${user.email || user.uid}. Ready for Firebase updates.`;
         }
@@ -195,10 +277,39 @@
         reloadBtn.addEventListener('click', () => {
             setStatus(describeAuthState(currentUser));
         });
+        loginBtn.addEventListener('click', async () => {
+            const email = authEmailInput.value.trim();
+            const password = authPasswordInput.value;
+            if (!email || !password) {
+                authStatusEl.textContent = 'Email and password are required.';
+                return;
+            }
+            authStatusEl.textContent = 'Signing in…';
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                await signInWithEmailAndPassword(auth, email, password);
+                authStatusEl.textContent = 'Signed in successfully.';
+                authPasswordInput.value = '';
+            } catch (error) {
+                console.error('Sign in failed:', error);
+                authStatusEl.textContent = `Sign in failed: ${error.message}`;
+            }
+        });
+        logoutBtn.addEventListener('click', async () => {
+            authStatusEl.textContent = 'Signing out…';
+            try {
+                await signOut(auth);
+                authStatusEl.textContent = 'Signed out.';
+            } catch (error) {
+                console.error('Sign out failed:', error);
+                authStatusEl.textContent = `Sign out failed: ${error.message}`;
+            }
+        });
 
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             setStatus(describeAuthState(user));
+            authStatusEl.textContent = describeAuthState(user);
             setButtonsEnabled(!!user);
         });
     </script>
