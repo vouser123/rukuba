@@ -3,56 +3,175 @@
 Complete technical documentation for PT Tracker and Rehab Coverage system.
 
 ## Table of Contents
+- [Open Questions / Open Issues](#open-questions--open-issues)
+- [System Overview](#system-overview)
+- [File Reference](#file-reference)
 - [Data Architecture](#data-architecture)
+  - [Current State](#current-state)
+  - [Transitional State](#transitional-state)
+  - [Future State (Firebase-dependent Offline PWA)](#future-state-firebase-dependent-offline-pwa)
 - [Exercise Roles System](#exercise-roles-system)
+- [Data Import and Export](#data-import-and-export)
+  - [V2 Payload Format (gzip/base64)](#v2-payload-format-gzipbase64)
+  - [PT_report Exports → PT Tracker Imports](#pt_report-exports--pt-tracker-imports)
+  - [Other Export/Import Flows](#other-exportimport-flows)
+- [Development Workflow](#development-workflow)
 - [Best Practices](#best-practices)
 - [Common Issues & Solutions](#common-issues--solutions)
-- [Development Workflow](#development-workflow)
-- [Architecture Decisions](#architecture-decisions)
+- [Configuration](#configuration)
+- [Roadmap](#roadmap)
+
+---
+
+## Open Questions / Open Issues
+
+These items require validation or product decisions. After listing them, this document uses the most conservative, evidence-backed interpretation of the current system behavior.
+
+1. **Firestore shared data ownership:** Should `pt_shared` ever be edited outside the PT editor workflow, or is it strictly seeded from JSON via `seed_firestore.html`? This impacts how aggressively the app should write shared data back to Firestore. (See `shared/firestore_shared_data.js` and `seed_firestore.html`.)
+2. **Offline auth behavior:** The Firebase Auth session persists locally, but we have not validated the UX when the user launches in airplane mode after the auth token expires. Do we want a forced sign-in UX, or fallback to local-only behavior?
+3. **Runtime vs sessions authority:** `users/{uid}/pt_runtime/state` stores a snapshot of exercise library, preferences, and queue, while `users/{uid}/sessions` is authoritative for session history. Should runtime also become authoritative in the future, or remain as a cache only?
+4. **V2 payload long-term storage:** PT_report currently exports modifications as V2 payloads over email/copy. Should future Firebase workflows persist the same payload for auditing, or replace email entirely?
+
+---
+
+## System Overview
+
+PT Tracker is a static, offline-capable PWA with optional Firebase connectivity. The codebase currently blends local-first persistence with cloud-backed synchronization:
+
+- **Local-first runtime**: `localStorage` holds exercise library, session history (legacy), preferences, and offline queues.
+- **Cloud sync (transitional)**: Firebase Auth + Firestore are used for user sessions (`users/{uid}/sessions`), runtime snapshots (`users/{uid}/pt_runtime/state`), and shared global PT data (`pt_shared/*`).
+- **PT ↔ patient exchange**: Data exchange uses V2 gzip+base64 payloads with strict markers and checksums for email/copy-paste resilience.
+
+The architecture is in transition: local storage is still used as a fallback and a cache, but Firestore is authoritative for authenticated session history.
+
+---
+
+## File Reference
+
+### Core HTML
+
+| File | Role | Notes |
+|------|------|-------|
+| `pt_tracker.html` | Patient-facing tracker | Uses Firestore auth + sessions, and localStorage for offline cache + library edits. Exports PT_DATA. Imports PT_MODIFICATIONS. |
+| `rehab_coverage.html` | Coverage analysis | Reads shared data + session history. Also supports PT_DATA export and PT_MODIFICATIONS import. |
+| `pt_report.html` | PT-facing report/editor | Imports PT_DATA, edits library/roles/vocab/dosage, exports PT_MODIFICATIONS. |
+| `seed_firestore.html` | Admin seeding | Writes JSON sources to `pt_shared` and migrates shared dosage into user runtime. |
+
+### Shared Modules & Data
+
+| File | Role | Notes |
+|------|------|-------|
+| `pt_payload_utils.js` | V2 export/import utilities | Canonicalizes JSON, computes SHA-256, gzip/base64 wrapping, parsing markers. |
+| `shared/firestore_shared_data.js` | Shared Firestore bridge | Loads `pt_shared/*`, merges fallback JSON, seeds missing data. |
+| `exercise_library.json` | Baseline exercise library | Static fallback for shared data. |
+| `exercise_roles.json` | Role assignments | Used by coverage and PT editor; can be seeded to Firestore. |
+| `exercise_roles_vocabulary.json` | Role definitions | Textual vocabulary for roles. |
+| `schema/exercise_roles.schema.json` | Enum source of truth | Runtime derivation; no hardcoded enums. |
+| `schema/exercise_file.schema.json` | Library schema | Used by PT editor and validation helpers. |
+| `sw-pt.js` | Service worker | Network-first for JSON, cache-first for static assets, HTML never cached. |
+| `tests/export_import_v2_test.js` | V2 regression tests | Node-based verification of V2 payload behavior. |
 
 ---
 
 ## Data Architecture
 
-### localStorage Keys
+### Current State
 
-**CRITICAL:** PT Tracker and Coverage share data via localStorage using specific keys:
+**Primary persistence:** localStorage, with Firestore overlays when authenticated.
+
+#### localStorage keys (current)
 
 ```javascript
-// PT Tracker storage keys
-const STORAGE_KEY = 'pt_tracker_data';           // Session history array
-const LIBRARY_KEY = 'pt_exercise_library';       // Exercise library
-const PT_VERSION_KEY = 'pt_data_version';        // Data version
-const LAST_EXERCISE_KEY = 'pt_last_exercise_id'; // Last selected exercise
+const STORAGE_KEY = 'pt_tracker_data';          // Session history (legacy/local cache)
+const LIBRARY_KEY = 'pt_exercise_library';      // Working exercise library
+const ROLES_DATA_KEY = 'pt_exercise_roles';     // Cached roles data
+const VOCABULARY_KEY = 'pt_exercise_vocabulary';// Cached vocabulary data
+const LAST_EXERCISE_KEY = 'pt_last_exercise_id';// UI state
+const FIRESTORE_QUEUE_KEY = 'pt_firestore_queue';
+const RECOVERY_STORAGE_KEY = 'pt_session_recovery';
+const PREFERENCES_STORAGE_KEY = 'pt_preferences';
+const RUNTIME_UPDATED_KEY = 'pt_runtime_updated_at';
+const PT_VERSION_KEY = 'pt_data_version';
 ```
 
-**Common Bug:** Coverage view must read from `pt_tracker_data`, NOT `session_history`.
+**Correct vs incorrect localStorage usage**
 
-❌ **WRONG:**
+❌ **WRONG (legacy key):**
 ```javascript
-const historyJSON = localStorage.getItem('session_history');
+localStorage.getItem('session_history');
 ```
 
 ✅ **CORRECT:**
 ```javascript
-const historyJSON = localStorage.getItem('pt_tracker_data');
+localStorage.getItem('pt_tracker_data');
 ```
 
-### Session History Structure
+#### Firestore collections (current)
 
-```javascript
-[
-  {
-    "exerciseId": "01KDE8962NN3ZP5KDS6TMFP20W", // ULID format
-    "date": "2024-12-21",                       // YYYY-MM-DD
-    "sets": 2,
-    "reps": 15,
-    "notes": "Felt good today"
-  }
-]
-```
+- `users/{uid}/sessions`: **authoritative** session history for authenticated users.
+- `users/{uid}/pt_runtime/state`: runtime snapshot for recovery, preferences, offline queue, and library cache.
+- `pt_shared/{docId}`: shared global data (library, roles, vocab, schemas).
 
-### Exercise Roles Structure
+**Shared document IDs** (see `shared/firestore_shared_data.js`):
+- `exercise_library`
+- `exercise_roles`
+- `exercise_roles_vocabulary`
+- `exercise_file_schema`
+- `exercise_roles_schema`
+
+#### How session history works today
+
+- Local sessions are written into a memory cache and mirrored to localStorage.
+- When authenticated, sessions are **also** queued in `pt_firestore_queue` and written to Firestore (`users/{uid}/sessions`).
+- Firestore is treated as authoritative for session history once available; local history is migrated on first sign-in and deduped.
+
+### Transitional State
+
+**Transitional behaviors already implemented:**
+
+1. **Legacy → Firestore migration**
+   - On sign-in, local history (from `pt_tracker_data`) is compared to Firestore and missing sessions are enqueued.
+   - Migration flags are stored in `pt_tracker_history_migrated`.
+
+2. **Shared data fallback**
+   - `pt_shared` is used when available; JSON files (`exercise_library.json`, `exercise_roles.json`, etc.) are the fallback.
+   - If Firestore has missing exercises, the fallback is merged and optionally seeded back into Firestore.
+
+3. **Runtime snapshots**
+   - Runtime data (preferences, recovery, offline queue, library cache) is synced to `users/{uid}/pt_runtime/state`.
+   - Session history within runtime snapshots is **ignored** because `users/{uid}/sessions` is authoritative.
+
+**Areas that require further validation:**
+- Whether runtime snapshots should ever overwrite local library data when conflicts exist.
+- How to handle concurrent edits between local-only updates and Firestore updates in shared library data.
+
+### Future State (Firebase-dependent Offline PWA)
+
+**Target:** Firebase becomes the system of record for all user data and shared data, while the PWA remains offline-capable via Firestore persistence and service worker caching.
+
+**Planned characteristics (future, not implemented yet):**
+
+- All session history, preferences, and recovery data read/write directly to Firestore with built-in offline persistence.
+- `localStorage` becomes a short-lived cache or is removed entirely (except where required for auth token or bootstrapping).
+- Shared data (`pt_shared/*`) is authoritative and maintained through PT workflows (no JSON fallback in production).
+- Authentication becomes mandatory for end-user usage (or a clearly defined guest mode is added).
+
+**Requires additional planning:**
+- Offline auth UX and token refresh behavior.
+- Migration strategy for users who only have local data and no auth account.
+
+---
+
+## Exercise Roles System
+
+### Design Principles
+
+1. **No hardcoded enums**: derive enums at runtime from `schema/exercise_roles.schema.json`.
+2. **Exercise library is immutable**: roles are an overlay; do not mutate library structure to store roles.
+3. **Schema is the source of truth**: schema changes should flow through the app without code changes.
+4. **Bidirectional relationships**: exercises can have multiple roles, and roles apply across multiple exercises.
+
+### Data structure (roles)
 
 ```javascript
 {
@@ -73,75 +192,159 @@ const historyJSON = localStorage.getItem('pt_tracker_data');
 }
 ```
 
+### Runtime enum derivation
+
+❌ **BAD (hardcoded enums):**
+```javascript
+const regions = ['core', 'back', 'hip', 'knee'];
+```
+
+✅ **GOOD (derived from schema):**
+```javascript
+const roleSchema = schema.definitions.role;
+regions = roleSchema.properties.region.enum || [];
+capacities = roleSchema.properties.capacity.enum || [];
+contributions = roleSchema.properties.contribution.enum || [];
+```
+
+### Adding new roles or vocabulary
+
+1. Update `schema/exercise_roles.schema.json`.
+2. Update `exercise_roles_vocabulary.json`.
+3. Assign roles in `exercise_roles.json`.
+4. Bump `CACHE_NAME` in `sw-pt.js` to refresh cached JSON.
+
 ---
 
-## Exercise Roles System
+## Data Import and Export
 
-### Design Principles
+### V2 Payload Format (gzip/base64)
 
-1. **NO HARDCODED ENUMS** - All enums must be derived at runtime from `exercise_roles.schema.json`
-2. **Exercise library is immutable** - Roles are an overlay; never modify exercise library structure
-3. **Schema is the source of truth** - Always reference schema for valid values
-4. **Bidirectional relationships** - Exercises can have multiple roles, roles can have multiple exercises
+V2 export/import is the **only supported external format** and is implemented via `pt_payload_utils.js`. The same code is used in PT Tracker, PT Report, and Rehab Coverage.
 
-### How Roles Work
+**Key properties:**
 
-**Analogy:** Roles are like tags on blog posts. An exercise can serve multiple purposes (e.g., "Lunge With Rotation" builds both back stability and core control).
+- JSON is canonicalized via `JSON.stringify` before size and checksum calculations.
+- Payloads are gzip-compressed, base64-encoded, and line-wrapped to ≤ 76 chars.
+- Marker-delimited blocks allow extraction from full email text.
 
-**Key Concept:**
-- **Region** = Body area (e.g., core, hip, ankle)
-- **Capacity** = Type of deficit (e.g., strength, stability, control)
-- **Focus** = Specific sub-type (e.g., sagittal, lateral, anti-rotation) - OPTIONAL
-- **Contribution** = How effective this exercise is (low/medium/high)
+**Correct vs incorrect checksum handling**
 
-### Adding New Exercises to Roles
+❌ **WRONG (hashes raw pasted text):**
+```javascript
+const checksum = sha256(pastedText); // whitespace-sensitive, fragile
+```
 
-1. **Check the schema** for valid enum values:
-   ```bash
-   cat schema/exercise_roles.schema.json
-   ```
+✅ **CORRECT:**
+```javascript
+const obj = JSON.parse(decodedPayload);
+const canonical = JSON.stringify(obj);
+const checksum = sha256(utf8Bytes(canonical));
+```
 
-2. **Add entry to exercise_roles.json**:
-   ```json
-   "01NEWEXERCISEID123456789": {
-     "name": "My New Exercise",
-     "roles": [
-       {
-         "region": "hip",
-         "capacity": "strength",
-         "focus": "lateral",
-         "contribution": "high"
-       }
-     ]
-   }
-   ```
+**Markers and headers (required):**
 
-3. **Validate** - Coverage view will automatically show it (no code changes needed)
+```
+–START_PT_DATA_V2–
+FORMAT: V2
+ENCODING: gzip+base64
+TYPE: PT_DATA
+SIZE: <bytes>
+CHECKSUM: <sha256 hex>
+<wrapped base64>
+–END_PT_DATA_V2–
+```
 
-### Adding New Vocabulary Definitions
+A parallel marker set exists for `PT_MODIFICATIONS`.
 
-Edit `exercise_roles_vocabulary.json`:
+### PT_report Exports → PT Tracker Imports
 
+This is the highest-friction flow and uses V2 payloads with gzip+base64 to survive email/copy-paste.
+
+#### Today (current behavior)
+
+**Export (PT_report):**
+- PT edits exercises, roles, vocabulary, or dosage in `pt_report.html`.
+- Modifications are exported as a `PT_MODIFICATIONS` V2 block via `pt_payload_utils.buildV2Block`.
+- The UI provides **Copy payload only** and **Send email** (mailto). Both embed the same V2 block.
+
+**Import (PT Tracker / Coverage):**
+- PT Tracker (`pt_tracker.html`) and Coverage (`rehab_coverage.html`) accept pasted email content.
+- `pt_payload_utils.parseV2FromText` extracts the first valid `PT_MODIFICATIONS` block.
+- The parsed modifications merge into the local library/roles/vocab and then sync to Firestore when possible.
+
+**Common pitfalls:**
+- iOS copy/paste truncation leads to checksum mismatch. The importer reports the mismatch and suggests re-exporting.
+- Incorrect payload type: PT Tracker expects `PT_MODIFICATIONS`, not `PT_DATA`.
+
+#### Future (Firebase-first)
+
+Planned behavior (not implemented):
+- PT_report writes modifications directly to a shared Firestore location with versioning.
+- PT Tracker subscribes to shared changes, eliminating email exchange.
+- V2 payloads may remain as a manual export fallback but are not the primary workflow.
+
+**Requires validation:**
+- Access control rules for PT vs patient roles.
+- Version conflict strategy if patient library diverges from shared edits.
+
+### Other Export/Import Flows
+
+#### PT Tracker data export/import (JSON files)
+
+- PT Tracker supports JSON file export of full data, library-only, and history-only.
+- Import logic detects export type and either merges or replaces session history.
+- These JSON exports are **local-only** and not part of the V2 email exchange.
+
+**Example (full export)**
 ```json
 {
-  "focus": {
-    "my_new_focus": "Description of what this focus means."
-  }
+  "pt_exercise_library": [...],
+  "pt_tracker_data": [...],
+  "pt_data_version": "1",
+  "exported_at": "2025-01-01T12:00:00Z"
 }
 ```
+
+#### PT_data export (patient → PT)
+
+- `pt_tracker.html` and `rehab_coverage.html` export `PT_DATA` V2 payloads.
+- Payload includes session history, library, roles, schema, and vocabulary.
+- `pt_report.html` imports `PT_DATA` to show progress and populate editor context.
+
+---
+
+## Development Workflow
+
+### Day-to-day practices
+
+- **Static dev**: Open `pt_tracker.html` directly or serve with a simple static server. No build step.
+- **Auth-dependent paths**: To test Firestore sync, sign in via the PT Tracker menu.
+- **Shared data updates**: Use `seed_firestore.html` to push JSON files to `pt_shared`.
+
+### Local vs deployed behavior
+
+- **Service worker** caches JSON and static assets. HTML is never cached, so refreshes must re-fetch HTML from server.
+- Local testing in `file://` may break Firebase imports due to module restrictions. Use a local server for Firebase behavior.
+
+### Offline and sync considerations
+
+- Session history is written to local cache even when offline.
+- When authenticated, sessions are queued in `pt_firestore_queue` and flushed when online.
+- Runtime snapshots (`pt_runtime/state`) are updated on queue changes and preference updates.
 
 ---
 
 ## Best Practices
 
-### 1. Avoid Inline Event Handlers
+### 1. Avoid inline event handlers
 
-❌ **BAD - Inline onclick (hard to maintain, CSP issues, debugging hell):**
+❌ **BAD - inline onclick (hard to maintain, CSP issues):**
 ```html
 <button onclick="deleteExercise(123)">Delete</button>
 ```
 
-✅ **GOOD - Event delegation or addEventListener:**
+✅ **GOOD - addEventListener:**
 ```html
 <button class="delete-btn" data-exercise-id="123">Delete</button>
 
@@ -153,92 +356,23 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 </script>
 ```
 
-**Why this matters:**
-- Inline handlers violate Content Security Policy (CSP)
-- Makes debugging harder (no stack traces in DevTools)
-- Can't use event delegation efficiently
-- Harder to test
+**Current state:** Several HTML pages still use inline handlers (technical debt).
 
-**Current State:** Both `pt_tracker.html` and `rehab_coverage.html` use inline onclick handlers. This was a pragmatic choice for rapid development but should be refactored for production.
+### 2. Service worker caching strategy
 
-### 2. Service Worker Caching Strategy
+- HTML is **never cached** to avoid stale UI/logic.
+- JSON is **network-first** so exercise/roles updates propagate.
+- Static assets are **cache-first** for offline reliability.
 
-**Current approach:** Network-first for HTML, cache-first for JSON data.
+**When to bump cache version:** after updating JSON files or shared assets used offline.
 
-```javascript
-// sw-pt.js
-const CACHE_NAME = 'pt-tracker-v1.10.0';  // Bump version to force cache refresh
-
-// HTML: Always fetch fresh
-if (url.pathname.endsWith('.html')) {
-  return fetch(request); // Never cache HTML
-}
-
-// JSON: Cache-first with fallback
-return caches.match(request).then(response => {
-  return response || fetch(request);
-});
-```
-
-**When to bump cache version:**
-- After changing any JSON data files
-- After modifying cached assets
-- User reports seeing stale data
-
-### 3. iOS Safari PWA Gotchas
+### 3. iOS Safari PWA gotchas
 
 **Issue:** Each PWA home screen icon gets its own localStorage.
 
-**Symptom:** User bookmarks Coverage directly → sees 0 sessions (empty localStorage).
+**Symptom:** Coverage or PT Report appears empty when launched directly.
 
-**Solution:**
-- ✅ Always navigate to Coverage FROM PT Tracker
-- ❌ Don't create separate home screen bookmarks for Coverage
-
-**Testing on iOS:**
-```bash
-# Force cache refresh by bumping service worker version
-# Users must close and reopen the PWA
-```
-
-### 4. Runtime Enum Derivation
-
-❌ **BAD - Hardcoded:**
-```javascript
-const regions = ['core', 'back', 'hip', 'knee']; // Will break when schema changes
-```
-
-✅ **GOOD - Derived from schema:**
-```javascript
-function deriveEnums() {
-  const roleSchema = schema.definitions.role;
-  regions = roleSchema.properties.region.enum || [];
-  capacities = roleSchema.properties.capacity.enum || [];
-  contributions = roleSchema.properties.contribution.enum || [];
-}
-```
-
-**Why:** Schema is the single source of truth. Adding a new region should just work without code changes.
-
-### 5. Data Import/Export
-
-**Export format:**
-```json
-{
-  "pt_exercise_library": [...],
-  "pt_tracker_data": [...],
-  "pt_data_version": "1"
-}
-```
-
-**Import validation:**
-```javascript
-// Always check structure before importing
-if (!data.pt_exercise_library || !Array.isArray(data.pt_tracker_data)) {
-  alert('Invalid backup file structure');
-  return;
-}
-```
+**Solution:** Launch from PT Tracker or ensure the same home screen entry is used.
 
 ---
 
@@ -246,210 +380,124 @@ if (!data.pt_exercise_library || !Array.isArray(data.pt_tracker_data)) {
 
 ### Issue: Coverage shows all exercises as "not done"
 
-**Diagnosis:**
-```javascript
-// Open Coverage → Tap 🐛 debug button
-// Check: "Sessions: 0" or "Matching IDs: 0"
-```
+**Likely causes:**
+1. Firestore sessions not available (not authenticated).
+2. localStorage key mismatch or empty history.
+3. Exercise ID mismatch between library and roles.
 
-**Solutions:**
-1. **localStorage key mismatch** - Coverage reading wrong key (should be `pt_tracker_data`)
-2. **Exercise ID mismatch** - Session history uses different IDs than roles file
-3. **Stale service worker cache** - Bump `CACHE_NAME` in `sw-pt.js`
+**Checks:**
+- Coverage debug panel (🐛) shows session counts and ID matches.
+- Confirm `pt_tracker_data` exists in localStorage.
 
-### Issue: Changes to exercise_roles.json not appearing
+### Issue: V2 import reports checksum mismatch
 
-**Solution:**
-```javascript
-// 1. Bump service worker version
-const CACHE_NAME = 'pt-tracker-v1.11.0'; // Increment
+**Cause:** payload truncation or altered text (iOS Mail copy/paste is the most common culprit).
 
-// 2. Force reload in Coverage view (tap 🔄 button)
-// 3. On iOS: Close PWA completely and reopen
-```
+**Fix:**
+- Use **Copy payload only** (no extra text) and paste the entire block.
+- Avoid manual editing of headers or payload.
 
-### Issue: Exercise IDs don't match between library and roles
+### Issue: Firestore queue never flushes
 
-**Check:**
-```bash
-# Get IDs from library
-jq '.exercises[].id' exercise_library.json | head -5
+**Cause:** user not authenticated or network offline.
 
-# Get IDs from roles
-jq '.exercise_roles | keys[]' exercise_roles.json | head -5
-```
+**Fix:**
+- Sign in via PT Tracker.
+- Confirm `navigator.onLine` is true.
+- Check `pt_firestore_queue` in localStorage to ensure queued items exist.
 
-**Solution:** Exercise IDs must match exactly (case-sensitive ULIDs).
+### Issue: Shared data appears stale
 
----
+**Cause:** service worker cache and Firestore fallback precedence.
 
-## Development Workflow
-
-### Adding a New Capacity
-
-1. **Update schema** (`schema/exercise_roles.schema.json`):
-   ```json
-   "capacity": {
-     "enum": ["strength", "control", "stability", "tolerance", "mobility", "power"]
-   }
-   ```
-
-2. **Add vocabulary** (`exercise_roles_vocabulary.json`):
-   ```json
-   "capacity": {
-     "power": "Ability to generate force rapidly. Failure looks like slow movement speed."
-   }
-   ```
-
-3. **Assign exercises** (`exercise_roles.json`):
-   ```json
-   "01SOMEEXERCISEID": {
-     "roles": [
-       {
-         "region": "hip",
-         "capacity": "power",
-         "contribution": "high"
-       }
-     ]
-   }
-   ```
-
-4. **Test in Coverage view** - Should auto-populate (no code changes needed)
-
-### Adding a New Region
-
-Same process as capacity, but also consider:
-- Does this region need specific focus values?
-- Update vocabulary with clinical definitions
-- Ensure exercises in library target this region
+**Fix:**
+- Bump `CACHE_NAME` in `sw-pt.js` after JSON updates.
+- Use `seed_firestore.html` to refresh Firestore shared data.
 
 ---
 
-## File Reference
+## Configuration
 
-### Core Files
+### Firebase
 
-| File | Purpose | Modify? |
-|------|---------|---------|
-| `pt_tracker.html` | Main exercise tracker | Yes - for UI changes |
-| `rehab_coverage.html` | Coverage analysis view | Yes - for UI changes |
-| `exercise_library.json` | Exercise database | Rarely - add exercises only |
-| `exercise_roles.json` | Exercise role mappings | Frequently - assign roles |
-| `exercise_roles_vocabulary.json` | Term definitions | Occasionally - add definitions |
-| `schema/exercise_roles.schema.json` | Schema (source of truth) | Rarely - add enums only |
-| `sw-pt.js` | Service worker | When bumping cache version |
+- Configuration is hard-coded in `firebase.js` and uses CDN imports.
+- Firestore uses `persistentLocalCache()` for offline persistence.
 
-### Configuration
+### Service worker
 
 ```javascript
-// pt_tracker.html - localStorage keys
-const STORAGE_KEY = 'pt_tracker_data';
-const LIBRARY_KEY = 'pt_exercise_library';
+// sw-pt.js
+const CACHE_NAME = 'pt-tracker-v1.22.18'; // bump to refresh cached assets
+```
 
-// sw-pt.js - Cache version
-const CACHE_NAME = 'pt-tracker-v1.10.0';  // Increment to force refresh
+### Export/Import
 
-// rehab_coverage.html - Data sources
-await fetch('exercise_roles.json');
-await fetch('exercise_roles_vocabulary.json');
-await fetch('schema/exercise_roles.schema.json');
-localStorage.getItem('pt_tracker_data');  // NOT 'session_history'
+```javascript
+// pt_payload_utils.js
+const ENCODING = 'gzip+base64';
+const FORMAT = 'V2';
+```
+
+### Versioning
+
+```javascript
+// pt_tracker.html
+const PT_DATA_VERSION = '1';
 ```
 
 ---
 
-## Debugging Tools
+## Roadmap
 
-### In-App Debug Panel (Coverage View)
+The architecture is intentionally staged. Each phase includes explicit non-goals.
 
-Tap **🐛** button to see:
-- localStorage keys and sizes
-- Session count and sample IDs
-- Role count and sample IDs
-- Exercise ID matches
+### Phase 0 (Current) — Transitional Firestore
 
-### Browser Console Logs
+**Status:** In progress / current state.
 
-```javascript
-// Coverage view logs on load:
-[Schema] Loaded: {...}
-[Roles] Loaded: 23 exercises with roles
-[Library] Loaded: 147 exercises
-[History] Loaded: 20 sessions
-[Enums] Derived: {regions: [...], capacities: [...], contributions: [...]}
-```
+- Firestore is authoritative for session history when signed in.
+- localStorage is still used for cached library, offline queue, and legacy history.
+- Shared data uses Firestore when available, JSON fallback otherwise.
 
-### Manual localStorage Inspection
+**Non-goals:**
+- Full removal of localStorage.
+- Enforced auth for all users.
 
-```javascript
-// In browser console:
-JSON.parse(localStorage.getItem('pt_tracker_data'))      // Session history
-JSON.parse(localStorage.getItem('pt_exercise_library'))  // Exercise library
-localStorage.length                                       // Total keys
-```
+### Phase 1 — Stabilize Firebase Sync
 
----
+**Status:** Planned.
 
-## Architecture Decisions
+- Solidify conflict handling between local edits and Firestore updates.
+- Improve offline auth UX and error surfacing.
+- Define explicit source-of-truth rules for runtime vs shared data.
 
-### Why separate exercise_roles.json from exercise_library.json?
+**Non-goals:**
+- Replacing email-based V2 exchange entirely.
+- Removing JSON fallback for shared data.
 
-**Separation of concerns:**
-- Exercise library = immutable reference data (exercises themselves)
-- Exercise roles = clinical interpretation layer (how exercises are used)
-- Allows updating roles without touching library
-- Library can be shared across other tools (e.g., general exercise database)
+### Phase 2 — Shared Data Firebase-First
 
-### Why runtime enum derivation instead of hardcoding?
+**Status:** Planned.
 
-**Future-proofing:**
-- Adding a new capacity shouldn't require code changes
-- Schema acts as a contract between files
-- Reduces maintenance burden
-- Makes the system more flexible for clinical iteration
+- Shared library, roles, vocab, and schemas are always read from `pt_shared`.
+- JSON files become seed-only or dev-only artifacts.
+- PT Report writes directly to shared data with version control.
 
-### Why localStorage instead of a backend?
+**Non-goals:**
+- Removing offline support; it must remain PWA-capable.
+- Eliminating PT_report (editor UI still required).
 
-**Offline-first PWA:**
-- Works without internet (critical for gym use)
-- No server costs or maintenance
-- User owns their data (privacy)
-- Fast performance (no network latency)
-- Simple deployment (static files only)
+### Phase 3 — Fully Firebase-Dependent Offline PWA
 
-### Why inline onclick handlers? (Technical Debt)
+**Status:** Planned (future).
 
-**Pragmatic choice:**
-- Rapid prototyping (faster to write initially)
-- Single-file components (easier to reason about)
-- No build step required
+- All user data is stored in Firestore with offline persistence.
+- localStorage becomes a minimal boot cache (or is removed).
+- Auth becomes the primary entry point for all data access.
 
-**Should be refactored to:**
-- Event delegation for better performance
-- Separation of HTML/CSS/JS
-- CSP compliance
-- Better testability
-
----
-
-## TODOs / Known Issues
-
-### Technical Debt
-- [ ] Refactor inline onclick handlers to event listeners
-- [ ] Add unit tests for role matching logic
-- [ ] Implement proper error boundaries for data loading failures
-- [ ] Add TypeScript definitions for data structures
-
-### Feature Improvements
-- [ ] Add exercise history chart (volume over time)
-- [ ] Export coverage report as PDF
-- [ ] Add exercise video previews
-- [ ] Implement search/filter in coverage view
-
-### Performance
-- [ ] Lazy load exercise roles (only fetch when opening Coverage)
-- [ ] Add loading skeletons instead of "Loading..."
-- [ ] Optimize coverage rendering for large exercise lists
+**Non-goals:**
+- No assumption of real-time multi-user collaboration.
+- No redesign of UI/UX beyond what is required for the data shift.
 
 ---
 
@@ -457,8 +505,8 @@ localStorage.length                                       // Total keys
 
 When debugging issues:
 
-1. ✅ Bump service worker version after data changes
-2. ✅ Check localStorage keys match (`pt_tracker_data` not `session_history`)
-3. ✅ Verify exercise IDs match between library and roles
-4. ✅ Use Coverage view debug panel (🐛) to inspect data
-5. ✅ On iOS, close PWA completely and reopen after cache changes
+1. ✅ Bump service worker version after data changes.
+2. ✅ Check localStorage keys match (`pt_tracker_data` not `session_history`).
+3. ✅ Verify exercise IDs match between library and roles.
+4. ✅ Use Coverage view debug panel (🐛) to inspect data.
+5. ✅ On iOS, close PWA completely and reopen after cache changes.
