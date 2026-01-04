@@ -383,6 +383,38 @@
             }
         }
 
+        // Debug helper: summarize exercise lists so counts can be compared across pages.
+        function formatExercisePreview(exercises, label) {
+            const formatEntry = (exercise) => {
+                const name = exercise.canonical_name || exercise.name || exercise.title || 'Unnamed';
+                const id = exercise.id || exercise.exercise_id || 'no-id';
+                return `${name} (${id})`;
+            };
+
+            if (!exercises || exercises.length === 0) {
+                return `${label}: 0\n  (no exercises loaded)`;
+            }
+
+            const firstThree = exercises.slice(0, 3).map(formatEntry);
+            const lastThree = exercises.slice(-3).map(formatEntry);
+
+            return `${label}: ${exercises.length}\n` +
+                `  First 3:\n    - ${firstThree.join('\n    - ')}\n` +
+                `  Last 3:\n    - ${lastThree.join('\n    - ')}`;
+        }
+
+        // Debug helper: mirror the rehab coverage localStorage key summary.
+        function formatLocalStorageSummary() {
+            const lines = [];
+            lines.push(`localStorage keys: ${localStorage.length}`);
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key) || '';
+                lines.push(`  - ${key}: ${value.length} chars`);
+            }
+            return lines.join('\n');
+        }
+
         // State
         const exerciseFormModule = window.exerciseFormModule;
         let schema = null;
@@ -971,6 +1003,32 @@
                 } else {
                     debugLog('[Init] ⚠️ NO EXERCISES LOADED!');
                 }
+
+                // Inspect localStorage library payload to explain count differences.
+                const localStored = localStorage.getItem('pt_exercise_library');
+                let localStoredType = 'missing';
+                let localStoredCount = 0;
+                if (localStored) {
+                    try {
+                        const parsed = JSON.parse(localStored);
+                        if (Array.isArray(parsed)) {
+                            localStoredType = 'array';
+                            localStoredCount = parsed.length;
+                        } else if (Array.isArray(parsed?.exercises)) {
+                            localStoredType = 'schema';
+                            localStoredCount = parsed.exercises.length;
+                        } else {
+                            localStoredType = typeof parsed;
+                        }
+                    } catch (error) {
+                        localStoredType = 'invalid JSON';
+                    }
+                }
+
+                debugLog(`[Init] localStorage pt_exercise_library type: ${localStoredType}`);
+                debugLog(`[Init] localStorage pt_exercise_library count (raw): ${localStoredCount}`);
+                debugLog(formatExercisePreview(baselineExercises, '[Init] Shared library preview'));
+                debugLog(formatLocalStorageSummary());
 
                 // Migrate exercise_id → id (one-time, idempotent)
                 baselineExercises.forEach(ex => {

@@ -153,12 +153,72 @@ export async function loadExerciseLibraryShared({
   fallbackUrl = null,
   seedIfMissing = false
 } = {}) {
-  const data = await loadSharedDocument({
-    docId: SHARED_DOC_IDS.exerciseLibrary,
-    fallbackUrl,
-    seedIfMissing
+  // Load Firestore first so we can detect missing IDs before falling back.
+  let sharedData = null;
+  try {
+    sharedData = await readSharedDocument(SHARED_DOC_IDS.exerciseLibrary);
+  } catch (error) {
+    console.warn('[SharedData] Firestore read failed for exercise library:', error);
+  }
+
+  // Always fetch the fallback when provided so we can reconcile missing exercises.
+  let fallbackData = null;
+  if (fallbackUrl) {
+    try {
+      fallbackData = await fetchJsonFallback(fallbackUrl);
+    } catch (error) {
+      console.warn('[SharedData] Fallback fetch failed for exercise library:', error);
+    }
+  }
+
+  const extractExercises = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data.exercises)) return data.exercises;
+    if (Array.isArray(data)) return data;
+    return [];
+  };
+
+  const getExerciseId = (exercise) => exercise?.id || exercise?.exercise_id || null;
+
+  const sharedExercises = extractExercises(sharedData);
+  const fallbackExercises = extractExercises(fallbackData);
+
+  const sharedIds = new Set(sharedExercises.map(getExerciseId).filter(Boolean));
+  const missingExercises = fallbackExercises.filter((exercise) => {
+    const id = getExerciseId(exercise);
+    return !id || !sharedIds.has(id);
   });
-  return normalizeExerciseLibrary(data).exercises;
+
+  let mergedData = sharedData;
+  if (sharedExercises.length === 0 && fallbackExercises.length > 0) {
+    mergedData = fallbackData;
+  } else if (missingExercises.length > 0) {
+    console.warn(
+      `[SharedData] Exercise library missing ${missingExercises.length} entries in Firestore; merging fallback data.`
+    );
+    const mergedExercises = [...sharedExercises, ...missingExercises];
+    if (Array.isArray(sharedData)) {
+      mergedData = mergedExercises;
+    } else if (sharedData && Array.isArray(sharedData.exercises)) {
+      mergedData = { ...sharedData, exercises: mergedExercises };
+    } else {
+      mergedData = { exercises: mergedExercises };
+    }
+  }
+
+  // Seed Firestore if missing entirely, or if we detected missing exercises.
+  if (seedIfMissing && (sharedData == null || missingExercises.length > 0)) {
+    const payload = mergedData ?? fallbackData;
+    if (payload) {
+      try {
+        await seedSharedDocument(SHARED_DOC_IDS.exerciseLibrary, payload);
+      } catch (error) {
+        console.warn('[SharedData] Firestore seed failed for exercise library:', error);
+      }
+    }
+  }
+
+  return normalizeExerciseLibrary(mergedData ?? fallbackData).exercises;
 }
 
 export async function loadExerciseRolesShared({
