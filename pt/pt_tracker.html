@@ -822,7 +822,7 @@
         <div class="controls hidden" id="main-controls">
             <button class="control-btn btn-secondary" onclick="previousSet()">Previous</button>
             <button class="control-btn btn-primary" onclick="showLogSetModal()">Log Set</button>
-            <button class="control-btn btn-success" onclick="completeSet()">Complete Set</button>
+            <button class="control-btn btn-success" onclick="showNextSetModal()">Next Set</button>
         </div>
     </div>
 
@@ -972,6 +972,23 @@
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="closeLogSetModal()">Cancel</button>
                 <button class="modal-save" onclick="saveLoggedSet()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next Set Confirmation Modal -->
+    <div class="modal" id="next-set-modal" onclick="if(event.target === this) closeNextSetModal()">
+        <div class="modal-content">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-title">Next Set</div>
+            <div class="modal-form">
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Logging:</div>
+                <div style="font-size: 15px; color: var(--text-secondary);" id="next-set-summary"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeNextSetModal()">Cancel</button>
+                <button class="modal-save" onclick="editNextSet()">Edit</button>
+                <button class="modal-save" onclick="confirmNextSet()">Log & Next</button>
             </div>
         </div>
     </div>
@@ -2412,6 +2429,40 @@
             return null;
         }
 
+        function getLastUsedParamUnit(exerciseId, paramName, side = null) {
+            const sessions = loadHistory();
+            const exerciseSessions = sessions.filter(s => s.exerciseId === exerciseId);
+            exerciseSessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            for (const session of exerciseSessions) {
+                for (const set of (session.sets || [])) {
+                    if (side && set.side !== side) continue;
+                    const unit = set.formParams?.[`${paramName}_unit`];
+                    if (unit) {
+                        return unit;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // Get historical values across all exercises for a parameter
+        function getGlobalHistoricalParamValues(paramName) {
+            const sessions = loadHistory();
+            const values = new Set();
+
+            sessions.forEach(session => {
+                (session.sets || []).forEach(set => {
+                    if (set.formParams && set.formParams[paramName]) {
+                        values.add(set.formParams[paramName]);
+                    }
+                });
+            });
+
+            return Array.from(values).sort();
+        }
+
         // Format date/time to human-readable EST/EDT
         function formatDateTime(isoDateString) {
             if (!isoDateString) return '';
@@ -2428,59 +2479,56 @@
         }
 
         // Render a smart form parameter select that learns from history
-        function renderSmartParamSelect(param, exerciseId, elementId) {
-            const historicalValues = getHistoricalParamValues(exerciseId, param);
-            const lastUsed = getLastUsedParamValue(exerciseId, param);
+        const CUSTOM_PARAM_VALUE = '__custom__';
+
+        function renderSmartParamSelect(param, exerciseId, elementId, options = {}) {
+            const { side = null, includeGlobal = false } = options;
+            const historicalValues = getHistoricalParamValues(exerciseId, param, side);
+            const globalValues = includeGlobal ? getGlobalHistoricalParamValues(param) : [];
+            const lastUsed = getLastUsedParamValue(exerciseId, param, side);
             const label = param.replace(/_/g, ' ');
 
-            // Build options list
-            let options = [];
+            const mergedValues = new Set([...historicalValues, ...globalValues]);
+            if (lastUsed) mergedValues.add(lastUsed);
 
-            // Add last used first (if exists)
-            if (lastUsed) {
-                options.push(`<option value="${lastUsed}" selected>✓ ${lastUsed} (last used)</option>`);
-            }
-
-            // Add other historical values (excluding last used)
-            historicalValues.forEach(value => {
-                if (value !== lastUsed) {
-                    options.push(`<option value="${value}">${value}</option>`);
-                }
+            const sortedValues = Array.from(mergedValues).sort();
+            const placeholder = `<option value="">Select ${label}...</option>`;
+            const optionHtml = sortedValues.map(value => {
+                const selected = value === lastUsed ? 'selected' : '';
+                return `<option value="${value}" ${selected}>${value}</option>`;
             });
-
-            // Add "Other..." option
-            options.push(`<option value="__other__">Other...</option>`);
-
-            // If no last used, add blank default
-            if (!lastUsed) {
-                options.unshift(`<option value="">Select ${label}...</option>`);
-            }
 
             return `
                 <label style="font-size: 13px; margin-bottom: 4px; display: block;">${label}</label>
-                <select class="modal-select" id="${elementId}" style="margin-bottom: 12px;" data-param="${param}" onchange="handleParamSelectChange(this, '${param}')">
-                    ${options.join('')}
+                <select class="modal-select" id="${elementId}" style="margin-bottom: 8px;" data-param="${param}" data-side="${side || ''}" onchange="handleParamSelectChange(this)">
+                    ${lastUsed ? '' : placeholder}
+                    ${optionHtml.join('')}
+                    <option value="${CUSTOM_PARAM_VALUE}">Other...</option>
                 </select>
+                <input type="text" class="modal-input" id="${elementId}-custom" placeholder="Enter ${label}" style="display: none; margin-bottom: 12px;">
             `;
         }
 
-        // Handle "Other..." selection in parameter dropdowns
-        function handleParamSelectChange(selectElement, paramName) {
-            if (selectElement.value === '__other__') {
-                const newValue = prompt(`Enter custom value for ${paramName.replace(/_/g, ' ')}:`);
-                if (newValue && newValue.trim()) {
-                    const trimmed = newValue.trim();
-                    // Add new option and select it
-                    const newOption = document.createElement('option');
-                    newOption.value = trimmed;
-                    newOption.text = trimmed;
-                    newOption.selected = true;
-                    selectElement.insertBefore(newOption, selectElement.lastChild); // Before "Other..."
-                } else {
-                    // User cancelled, reset to blank
-                    selectElement.value = '';
-                }
+        function handleParamSelectChange(selectElement) {
+            const customElem = document.getElementById(`${selectElement.id}-custom`);
+            if (!customElem) return;
+
+            if (selectElement.value === CUSTOM_PARAM_VALUE) {
+                customElem.style.display = 'block';
+                customElem.focus();
+            } else {
+                customElem.style.display = 'none';
+                customElem.value = '';
             }
+        }
+
+        function readParamSelectValue(selectElement) {
+            if (!selectElement) return '';
+            if (selectElement.value === CUSTOM_PARAM_VALUE) {
+                const customElem = document.getElementById(`${selectElement.id}-custom`);
+                return customElem ? customElem.value.trim() : '';
+            }
+            return selectElement.value.trim();
         }
 
         let editingExerciseId = null;
@@ -2529,6 +2577,8 @@
         function normalizeExerciseEntry(entry) {
             const normalized = { ...entry };
             const tagSource = normalized.tags;
+            const pattern = normalized.pattern || 'both';
+            normalized.pattern = pattern;
 
             if (!normalized.id && normalized.exercise_id) {
                 normalized.id = normalized.exercise_id;
@@ -2556,6 +2606,18 @@
             }
             if (!Array.isArray(normalized.equipmentOptional)) {
                 normalized.equipmentOptional = [normalized.equipmentOptional];
+            }
+
+            if (!Array.isArray(normalized.pattern_modifiers)) {
+                normalized.pattern_modifiers = normalized.pattern_modifiers ? [normalized.pattern_modifiers] : [];
+            }
+
+            if (!Array.isArray(normalized.form_parameters_required)) {
+                normalized.form_parameters_required = normalized.form_parameters_required ? [normalized.form_parameters_required] : [];
+            }
+
+            if (!Array.isArray(normalized.sideOptions) || normalized.sideOptions.length === 0) {
+                normalized.sideOptions = getSideOptionsForPattern(pattern);
             }
 
             if (tagSource && !Array.isArray(tagSource) && Array.isArray(tagSource.functional)) {
@@ -2706,7 +2768,7 @@
                         set.formParams = {};
                         if (set.weight) {
                             set.formParams.weight = set.weight;
-                            set.formParams.weight_unit = set.weightUnit || 'lbs';
+                            set.formParams.weight_unit = set.weightUnit || 'lb';
                         }
                         if (set.resistance) {
                             set.formParams.band_resistance = set.resistance;
@@ -2844,6 +2906,13 @@
             const spec = entry?.current || {};
             const isBilateral = isBilateralPattern(entry.pattern);
             const sideOptions = entry.sideOptions || [];
+            const modifiers = entry.pattern_modifiers || [];
+            const resolvedType = spec.type
+                || (modifiers.includes('distance_feet') ? 'distance' : null)
+                || (modifiers.includes('duration_seconds') ? 'duration' : null)
+                || (modifiers.includes('hold_seconds') ? 'hold' : null)
+                || 'reps';
+            const distanceTarget = spec.distanceFeet || spec.repsPerSet || 0;
 
             // For sided exercises, multiply sets by number of sides
             // E.g., 3 sets with ['left', 'right'] = 6 total sets (3 per side)
@@ -2854,13 +2923,15 @@
             return {
                 id: entry.id,
                 name: entry.name,
-                type: spec.type || 'reps',
+                type: resolvedType,
                 sets: totalSets,
                 baseSets: baseSets, // Original sets per side
                 sideOptions: sideOptions,
                 bilateral: isBilateral,
-                repsPerSet: spec.repsPerSet || 10,
+                repsPerSet: resolvedType === 'distance' ? distanceTarget : (spec.repsPerSet || 10),
                 secondsPerRep: spec.secondsPerRep ?? 10,
+                distanceTarget: distanceTarget,
+                alternatingSide: sideOptions[0] || 'left',
                 currentSet: 1,
                 currentRep: 0,
                 sessionData: [] // Populated during execution
@@ -3100,7 +3171,9 @@
             if (!overlay.classList.contains('active')) return;
 
             const setsLeft = Math.max(currentExercise.sets - currentExercise.currentSet, 0);
+            const distanceTarget = currentExercise.distanceTarget || currentExercise.repsPerSet || 0;
             const repsLeft = Math.max((currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
+            const distanceLeft = Math.max(distanceTarget - currentExercise.currentRep, 0);
             const label = COUNTER_TYPES.includes(currentExercise.type)
                 ? `${currentExercise.currentRep}`
                 : `${formatSeconds(timerSecondsRemaining)}`;
@@ -3112,7 +3185,11 @@
             ];
 
             if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
-                metaPieces.push(`Reps left: ${repsLeft}`);
+                if (currentExercise.type === 'distance') {
+                    metaPieces.push(`Feet left: ${distanceLeft}`);
+                } else {
+                    metaPieces.push(`Reps left: ${repsLeft}`);
+                }
             }
 
             if (currentExercise.type === 'amrap' && currentExercise.secondsPerRep) {
@@ -3120,7 +3197,7 @@
             }
 
             if (currentExercise.type === 'distance') {
-                metaPieces.push(`Distance goal: ${currentExercise.repsPerSet}`);
+                metaPieces.push(`Distance goal: ${distanceTarget} ft`);
             }
 
             if (isTimerType(currentExercise.type)) {
@@ -3172,6 +3249,13 @@
             if (!COUNTER_TYPES.includes(currentExercise.type)) return;
 
             currentExercise.currentRep++;
+            const entry = getLibraryEntryById(currentExercise.id);
+            const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
+            if (hasAlternating && currentExercise.sideOptions && currentExercise.sideOptions.length > 0) {
+                const [firstSide, secondSide] = currentExercise.sideOptions;
+                currentExercise.alternatingSide = currentExercise.alternatingSide === firstSide ? secondSide : firstSide;
+                speak(`Switch to ${currentExercise.alternatingSide} side`);
+            }
             haptic('medium');
 
             const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
@@ -3229,6 +3313,7 @@
 
             const setsLeft = Math.max(currentExercise.sets - currentExercise.currentSet, 0);
             const repsLeft = Math.max((currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
+            const distanceLeft = Math.max((currentExercise.distanceTarget || currentExercise.repsPerSet || 0) - currentExercise.currentRep, 0);
 
             let remainingLabel = `Sets left: ${setsLeft}`;
 
@@ -3258,7 +3343,11 @@
             }
 
             if (COUNTER_TYPES.includes(currentExercise.type) && currentExercise.type !== 'amrap' && currentExercise.repsPerSet) {
-                remainingLabel += ` · Reps left: ${repsLeft}`;
+                if (currentExercise.type === 'distance') {
+                    remainingLabel += ` · Feet left: ${distanceLeft}`;
+                } else {
+                    remainingLabel += ` · Reps left: ${repsLeft}`;
+                }
             }
             if (currentExercise.type === 'amrap' && currentExercise.secondsPerRep) {
                 remainingLabel += ` · ${currentExercise.secondsPerRep}s AMRAP window`;
@@ -3279,14 +3368,17 @@
                 if (currentExercise.type === 'amrap') {
                     targetText += currentExercise.secondsPerRep ? `${currentExercise.secondsPerRep}s AMRAP window` : 'AMRAP';
                 } else if (currentExercise.type === 'distance') {
-                    targetText += `${currentExercise.repsPerSet || 0} distance units`;
+                    targetText += `${currentExercise.distanceTarget || currentExercise.repsPerSet || 0} ft`;
                 } else {
                     targetText += `${currentExercise.repsPerSet} reps`;
                 }
                 document.getElementById('target-info').textContent = targetText;
 
-                const progress = currentExercise.repsPerSet
-                    ? Math.min((currentExercise.currentRep / currentExercise.repsPerSet) * 100, 100)
+                const targetValue = currentExercise.type === 'distance'
+                    ? (currentExercise.distanceTarget || currentExercise.repsPerSet || 0)
+                    : currentExercise.repsPerSet;
+                const progress = targetValue
+                    ? Math.min((currentExercise.currentRep / targetValue) * 100, 100)
                     : Math.min((currentExercise.currentSet / currentExercise.sets) * 100, 100);
                 document.getElementById('progress-bar').style.width = progress + '%';
             } else {
@@ -3378,6 +3470,13 @@
                     haptic('success');
 
                     currentExercise.currentRep++;
+                    const entry = getLibraryEntryById(currentExercise.id);
+                    const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
+                    if (hasAlternating && currentExercise.sideOptions && currentExercise.sideOptions.length > 0) {
+                        const [firstSide, secondSide] = currentExercise.sideOptions;
+                        currentExercise.alternatingSide = currentExercise.alternatingSide === firstSide ? secondSide : firstSide;
+                        speak(`Switch to ${currentExercise.alternatingSide} side`);
+                    }
 
                     const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
                     if (repsLeft === 0) speak('Set complete');
@@ -3450,6 +3549,13 @@
             speak(`Logged ${achievedSeconds} seconds`);
 
             currentExercise.currentRep++;
+            const entry = getLibraryEntryById(currentExercise.id);
+            const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
+            if (hasAlternating && currentExercise.sideOptions && currentExercise.sideOptions.length > 0) {
+                const [firstSide, secondSide] = currentExercise.sideOptions;
+                currentExercise.alternatingSide = currentExercise.alternatingSide === firstSide ? secondSide : firstSide;
+                speak(`Switch to ${currentExercise.alternatingSide} side`);
+            }
 
             const repsLeft = currentExercise.repsPerSet - currentExercise.currentRep;
             if (repsLeft === 0) {
@@ -3466,22 +3572,93 @@
             }
         }
 
-        function completeSet() {
-            const reps = currentExercise.currentRep;
+        function getTargetValueForCurrentExercise() {
+            if (currentExercise.type === 'distance') {
+                return currentExercise.distanceTarget || currentExercise.repsPerSet || 0;
+            }
+            return currentExercise.repsPerSet || 0;
+        }
 
-            if (reps === 0) {
-                showActionSheet('⚠️ Complete set with 0 reps?\n\nThis will log an empty set and move to the next set.\n\nTip: Use "Log Set" to manually enter reps.', () => {
-                    finishSet();
+        function getNextSetLogValue() {
+            const targetValue = getTargetValueForCurrentExercise();
+            return currentExercise.currentRep > 0 ? currentExercise.currentRep : targetValue;
+        }
+
+        function buildNextSetSummary() {
+            const targetValue = getTargetValueForCurrentExercise();
+            const logValue = getNextSetLogValue();
+
+            if (currentExercise.type === 'distance') {
+                return `${logValue} ft (target ${targetValue} ft)`;
+            }
+
+            if (currentExercise.type === 'amrap') {
+                return `${logValue} reps (AMRAP ${currentExercise.secondsPerRep || 0}s)`;
+            }
+
+            if (isTimerType(currentExercise.type)) {
+                return `${logValue} reps @ ${currentExercise.secondsPerRep || 0}s`;
+            }
+
+            return `${logValue} reps (target ${targetValue})`;
+        }
+
+        function showNextSetModal() {
+            if (!currentExercise) return;
+            const summary = buildNextSetSummary();
+            document.getElementById('next-set-summary').textContent = summary;
+            document.getElementById('next-set-modal').classList.add('active');
+            haptic('medium');
+        }
+
+        function closeNextSetModal() {
+            document.getElementById('next-set-modal').classList.remove('active');
+            haptic('medium');
+        }
+
+        function editNextSet() {
+            closeNextSetModal();
+            const logValue = getNextSetLogValue();
+            if (currentExercise.type === 'distance') {
+                showLogSetModal({ presetDistance: logValue });
+            } else {
+                showLogSetModal({ presetReps: logValue });
+            }
+        }
+
+        function confirmNextSet() {
+            const logValue = getNextSetLogValue();
+            closeNextSetModal();
+            logCurrentSetAndAdvance({ logValue });
+        }
+
+        function logCurrentSetAndAdvance({ logValue, manualLog = false, skipZeroPrompt = false } = {}) {
+            const targetValue = getTargetValueForCurrentExercise();
+            const entry = getLibraryEntryById(currentExercise.id);
+            const finalValue = logValue ?? targetValue;
+            const isDistance = currentExercise.type === 'distance';
+
+            if (finalValue === 0 && !skipZeroPrompt) {
+                showActionSheet('⚠️ Log 0 for this set?\n\nThis will log an empty set and move to the next set.\n\nTip: Use "Log Set" to manually enter values.', () => {
+                    logCurrentSetAndAdvance({ logValue: 0, manualLog, skipZeroPrompt: true });
                 });
                 return;
             }
 
             const setData = {
                 set: currentExercise.currentSet,
-                reps: reps,
+                reps: isDistance ? 1 : finalValue,
                 type: currentExercise.type,
                 timestamp: new Date().toISOString()
             };
+
+            if (manualLog) {
+                setData.manualLog = true;
+            }
+
+            if (isDistance) {
+                setData.distanceFeet = finalValue;
+            }
 
             // Add side information for unilateral exercises (but not alternating)
             if (currentWorkingSide !== 'both' && currentWorkingSide !== 'alternating') {
@@ -3491,10 +3668,10 @@
             currentExercise.sessionData.push(setData);
 
             haptic('success');
-            speak(`Set ${currentExercise.currentSet} complete`);
+            speak(`Set ${currentExercise.currentSet} logged`);
 
             // Check for progress
-            detectProgress(currentExercise.currentSet, reps);
+            detectProgress(currentExercise.currentSet, isDistance ? finalValue : finalValue);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -3503,16 +3680,12 @@
                 stopTimer();
                 updateDisplay();
 
-                // Show rest timer if rest time is recommended
-                const entry = getLibraryEntryById(currentExercise.id);
-                const restSeconds = entry.details?.restSeconds;
+                const restSeconds = entry?.details?.restSeconds;
                 if (restSeconds && restSeconds > 0) {
                     showRestTimer(restSeconds);
                 }
             } else {
                 speak('All sets complete');
-                // Check if form parameters need to be logged
-                const entry = getLibraryEntryById(currentExercise.id);
                 const formParams = entry?.form_parameters_required || [];
                 if (formParams.length > 0) {
                     showFormParamsModal();
@@ -3520,6 +3693,10 @@
                     showSessionNotesModal();
                 }
             }
+        }
+
+        function completeSet() {
+            showNextSetModal();
         }
 
         /**
@@ -3533,8 +3710,8 @@
          *   - type: exercise type (reps, timed, hold, etc.)
          *   - timestamp: ISO datetime of completion
          *   - side: (optional) which side for unilateral exercises ('left', 'right', 'both')
-         *   - weight: (optional) weight used in lbs/kg
-         *   - weightUnit: (optional) 'lbs' or 'kg'
+         *   - weight: (optional) weight used in lb/kg
+         *   - weightUnit: (optional) 'lb' or 'kg'
          *   - resistance: (optional) resistance band level ('light', 'medium', 'heavy')
          *   - secondsAchieved: (optional) actual time held (for partial timer reps)
          *   - secondsTarget: (optional) target time (for partial timer reps)
@@ -3598,6 +3775,7 @@
 
             // For alternating exercises, show indicator instead of selector
             if (hasAlternating && sideOptions.length > 0 && !isBilateral) {
+                const alternatingSide = currentExercise?.alternatingSide || sideOptions[0] || 'left';
                 buttonsContainer.innerHTML = `
                     <div style="
                         flex: 1;
@@ -3612,7 +3790,7 @@
                             ALTERNATING
                         </div>
                         <div style="font-size: 12px; font-weight: 600; color: var(--ios-gray);">
-                            Switch sides each rep
+                            Next side: ${alternatingSide.toUpperCase()}
                         </div>
                     </div>
                 `;
@@ -3697,7 +3875,7 @@
             speak(`Working ${side} side`);
         }
 
-        function showLogSetModal() {
+        function showLogSetModal({ presetReps = null, presetDistance = null } = {}) {
             const targetReps = currentExercise.repsPerSet || 0;
             document.getElementById('log-set-title').textContent = `Log Set ${currentExercise.currentSet}`;
 
@@ -3708,7 +3886,7 @@
             const modifiers = entry.pattern_modifiers || [];
             const hasDistance = modifiers.includes('distance_feet');
             const spec = entry.current || {};
-            const targetDistance = spec.distanceFeet || 0;
+            const targetDistance = spec.distanceFeet || currentExercise.distanceTarget || 0;
 
             // Show/hide reps vs distance fields
             const repsField = document.getElementById('log-set-reps');
@@ -3716,11 +3894,11 @@
             if (hasDistance) {
                 repsField.style.display = 'none';
                 distanceField.style.display = 'block';
-                distanceField.value = targetDistance;
+                distanceField.value = presetDistance ?? targetDistance;
             } else {
                 repsField.style.display = 'block';
                 distanceField.style.display = 'none';
-                repsField.value = targetReps;
+                repsField.value = presetReps ?? targetReps;
             }
 
             // For sided exercises, show which sides need more sets
@@ -3777,24 +3955,32 @@
                         return `
                             <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace('_', ' ')}</label>
                             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                                <input type="number" class="modal-input" id="log-param-${param}" placeholder="Weight" min="0" step="0.5" style="flex: 1; margin: 0;" data-param="${param}">
+                                <input type="number" class="modal-input" id="log-param-${param}" placeholder="Weight" min="0" step="1" style="flex: 1; margin: 0;" data-param="${param}">
                                 <select class="modal-select" id="log-param-${param}-unit" style="flex: 0 0 auto; width: 80px; margin: 0;">
-                                    <option value="lbs">lbs</option>
-                                    <option value="kg">kg</option>
+                                    <option value="lb">lb</option>
                                 </select>
                             </div>
                         `;
                     } else if (param === 'distance') {
                         return `
                             <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param} (variable, e.g. step height)</label>
-                            <input type="number" class="modal-input" id="log-param-${param}" placeholder="Distance in inches" min="0" style="margin-bottom: 12px;" data-param="${param}">
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                <input type="number" class="modal-input" id="log-param-${param}" placeholder="Distance" min="0" step="1" style="flex: 1; margin: 0;" data-param="${param}">
+                                <select class="modal-select" id="log-param-${param}-unit" style="flex: 0 0 auto; width: 90px; margin: 0;">
+                                    <option value="ft">ft</option>
+                                    <option value="inch">inch</option>
+                                    <option value="cm">cm</option>
+                                    <option value="degree">degree</option>
+                                </select>
+                            </div>
                         `;
                     } else if (param === 'alternating') {
                         // Skip alternating (pattern modifier, not form param)
                         return '';
                     } else {
                         // Use smart select for all other parameters (band_resistance, eyes, surface, etc.)
-                        return renderSmartParamSelect(param, currentExercise.id, `log-param-${param}`);
+                        const includeGlobal = param === 'band_position';
+                        return renderSmartParamSelect(param, currentExercise.id, `log-param-${param}`, { includeGlobal });
                     }
                 }).join('');
                 formParamsContainer.style.display = 'block';
@@ -3952,7 +4138,7 @@
             };
 
             // Add distance if applicable
-            if (hasDistance && distance > 0) {
+            if (hasDistance && distance >= 0) {
                 setData.distanceFeet = distance;
             }
 
@@ -3972,19 +4158,28 @@
 
                 let value = inputElement.value;
                 if (param === 'weight' && value) {
-                    const weightValue = parseFloat(value);
-                    if (!isNaN(weightValue) && weightValue > 0) {
+                    const weightValue = parseInt(value, 10);
+                    if (!isNaN(weightValue) && weightValue >= 0) {
                         const unitElement = document.getElementById(`log-param-${param}-unit`);
                         formParamsData[param] = weightValue;
-                        formParamsData[`${param}_unit`] = unitElement ? unitElement.value : 'lbs';
+                        formParamsData[`${param}_unit`] = unitElement ? unitElement.value : 'lb';
                     }
                 } else if (param === 'distance' && value) {
-                    const distValue = parseFloat(value);
-                    if (!isNaN(distValue) && distValue > 0) {
+                    const distValue = parseInt(value, 10);
+                    if (!isNaN(distValue) && distValue >= 0) {
                         formParamsData[param] = distValue;
+                        const unitElement = document.getElementById(`log-param-${param}-unit`);
+                        formParamsData[`${param}_unit`] = unitElement ? unitElement.value : 'ft';
                     }
                 } else if (value && value !== '') {
-                    formParamsData[param] = value;
+                    if (inputElement.tagName === 'SELECT') {
+                        const selectValue = readParamSelectValue(inputElement);
+                        if (selectValue) {
+                            formParamsData[param] = selectValue;
+                        }
+                    } else {
+                        formParamsData[param] = value;
+                    }
                 }
             });
 
@@ -4021,7 +4216,10 @@
             if (previousSessions.length === 0) return; // First time doing this exercise
 
             const lastSession = previousSessions[previousSessions.length - 1];
-            const lastSetReps = lastSession.sets && lastSession.sets[setNumber - 1]?.reps;
+            const lastSet = lastSession.sets && lastSession.sets[setNumber - 1];
+            const lastSetReps = currentExercise.type === 'distance'
+                ? lastSet?.distanceFeet
+                : lastSet?.reps;
 
             if (!lastSetReps) return; // No comparison data
 
@@ -4054,7 +4252,7 @@
         // Form Parameters Modal (shown after completing all sets)
         let sessionFormParams = {}; // Store form parameters for the session
 
-        // Parse value and unit from strings like "10 lbs", "45 degrees", "5.5 kg"
+        // Parse value and unit from strings like "10 lb", "45 degrees", "5.5 kg"
         function parseValueAndUnit(str) {
             if (!str) return { value: '', unit: '' };
             const match = String(str).match(/^([\d.]+)\s*(.*)$/);
@@ -4066,6 +4264,7 @@
 
         // Detect if parameter values are numeric based on historical data
         function isNumericParameter(exerciseId, paramName, side = null) {
+            if (paramName === 'weight' || paramName === 'distance') return true;
             const historicalValues = getHistoricalParamValues(exerciseId, paramName, side);
             if (historicalValues.length === 0) return false;
 
@@ -4088,7 +4287,24 @@
                 if (unit) units.add(unit);
             });
 
+            const sessions = loadHistory();
+            const exerciseSessions = sessions.filter(s => s.exerciseId === exerciseId);
+            exerciseSessions.forEach(session => {
+                (session.sets || []).forEach(set => {
+                    if (side && set.side !== side) return;
+                    const unitValue = set.formParams?.[`${paramName}_unit`];
+                    if (unitValue) units.add(unitValue);
+                });
+            });
+
             return Array.from(units);
+        }
+
+        function getParamUnitOptions(paramName, historicalUnits) {
+            if (paramName === 'weight') return ['lb'];
+            if (paramName === 'distance') return ['ft', 'inch', 'cm', 'degree'];
+            const commonUnits = ['lb', 'kg', 'in', 'ft', 'cm', 'm', 'degrees', '%'];
+            return [...new Set([...(historicalUnits || []), ...commonUnits])];
         }
 
         function showFormParamsModal() {
@@ -4097,7 +4313,7 @@
             const fieldsContainer = document.getElementById('form-params-fields');
 
             // Common units offered for any numeric parameter
-            const commonUnits = ['lbs', 'kg', 'in', 'ft', 'cm', 'm', 'degrees', '%'];
+            const commonUnits = ['lb', 'kg', 'in', 'ft', 'cm', 'm', 'degrees', '%'];
 
             // Detect which sides were used in this session
             const sidesUsed = [...new Set(currentExercise.sessionData.map(s => s.side).filter(Boolean))];
@@ -4117,27 +4333,26 @@
                         // For numeric parameters, use input + unit selector
                         if (isNumeric) {
                             const historicalUnits = getHistoricalUnits(currentExercise.id, param, side);
-                            const allUnits = [...new Set([...historicalUnits, ...commonUnits])];
-                            const { value: defaultValue, unit: defaultUnit } = parseValueAndUnit(lastUsed);
-                            const selectedUnit = defaultUnit || allUnits[0] || '';
+                            const allUnits = getParamUnitOptions(param, [...historicalUnits, ...commonUnits]);
+                            const lastUnit = getLastUsedParamUnit(currentExercise.id, param, side);
+                            const parsed = parseValueAndUnit(lastUsed);
+                            const defaultValue = (param === 'weight' || param === 'distance')
+                                ? (lastUsed ?? '')
+                                : parsed.value;
+                            const selectedUnit = lastUnit || parsed.unit || allUnits[0] || '';
 
                             return `
                                 <label style="font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block; color: var(--text-secondary);">${label}</label>
                                 <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                                    <input type="number" class="modal-input" id="session-param-${side}-${param}" placeholder="${label}" min="0" step="0.5" value="${defaultValue}" style="flex: 1; margin: 0;" data-param="${param}" data-side="${side}">
+                                    <input type="number" class="modal-input" id="session-param-${side}-${param}" placeholder="${label}" min="0" step="1" value="${defaultValue}" style="flex: 1; margin: 0;" data-param="${param}" data-side="${side}">
                                     <select class="modal-select" id="session-param-${side}-${param}-unit" style="flex: 0 0 auto; width: 90px; margin: 0;">
                                         ${allUnits.map(unit => `<option value="${unit}" ${unit === selectedUnit ? 'selected' : ''}>${unit}</option>`).join('')}
                                     </select>
                                 </div>
                             `;
                         } else {
-                            return `
-                                <label style="font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block; color: var(--text-secondary);">${label}</label>
-                                <input type="text" class="modal-input" id="session-param-${side}-${param}" placeholder="Enter ${label.toLowerCase()}" value="${lastUsed || ''}" list="datalist-${side}-${param}" style="margin-bottom: 12px;" data-param="${param}" data-side="${side}">
-                                <datalist id="datalist-${side}-${param}">
-                                    ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
-                                </datalist>
-                            `;
+                            const includeGlobal = param === 'band_position';
+                            return renderSmartParamSelect(param, currentExercise.id, `session-param-${side}-${param}`, { side, includeGlobal });
                         }
                     }).join('');
 
@@ -4159,31 +4374,26 @@
                     // For numeric parameters, use input + unit selector
                     if (isNumeric) {
                         const historicalUnits = getHistoricalUnits(currentExercise.id, param);
-                        const allUnits = [...new Set([...historicalUnits, ...commonUnits])];
-                        const { value: defaultValue, unit: defaultUnit } = parseValueAndUnit(lastUsed);
-                        const selectedUnit = defaultUnit || allUnits[0] || '';
+                        const allUnits = getParamUnitOptions(param, [...historicalUnits, ...commonUnits]);
+                        const lastUnit = getLastUsedParamUnit(currentExercise.id, param);
+                        const parsed = parseValueAndUnit(lastUsed);
+                        const defaultValue = (param === 'weight' || param === 'distance')
+                            ? (lastUsed ?? '')
+                            : parsed.value;
+                        const selectedUnit = lastUnit || parsed.unit || allUnits[0] || '';
 
                         return `
                             <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${label}</label>
                             <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                                <input type="number" class="modal-input" id="session-param-${param}" placeholder="${label}" min="0" step="0.5" value="${defaultValue}" style="flex: 1; margin: 0;" data-param="${param}">
+                                <input type="number" class="modal-input" id="session-param-${param}" placeholder="${label}" min="0" step="1" value="${defaultValue}" style="flex: 1; margin: 0;" data-param="${param}">
                                 <select class="modal-select" id="session-param-${param}-unit" style="flex: 0 0 auto; width: 90px; margin: 0;">
                                     ${allUnits.map(unit => `<option value="${unit}" ${unit === selectedUnit ? 'selected' : ''}>${unit}</option>`).join('')}
                                 </select>
                             </div>
-                            <datalist id="datalist-${param}">
-                                ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
-                            </datalist>
                         `;
                     } else {
-                        // For non-numeric parameters, use datalist input
-                        return `
-                            <label style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: block;">${label}</label>
-                            <input type="text" class="modal-input" id="session-param-${param}" placeholder="Enter ${label.toLowerCase()}" value="${lastUsed || ''}" list="datalist-${param}" style="margin-bottom: 16px;" data-param="${param}">
-                            <datalist id="datalist-${param}">
-                                ${historicalValues.map(val => `<option value="${val}"></option>`).join('')}
-                            </datalist>
-                        `;
+                        const includeGlobal = param === 'band_position';
+                        return renderSmartParamSelect(param, currentExercise.id, `session-param-${param}`, { includeGlobal });
                     }
                 }).join('');
             }
@@ -4208,19 +4418,38 @@
             const formParams = entry?.form_parameters_required || [];
 
             // Collect all input elements with data-param attribute
-            const paramInputs = document.querySelectorAll('[data-param]');
+            const paramInputs = document.querySelectorAll('#form-params-modal [data-param]');
             const paramsBySide = {}; // { side: { param: value } } or { null: { param: value } }
 
             paramInputs.forEach(inputElement => {
                 const param = inputElement.getAttribute('data-param');
                 const side = inputElement.getAttribute('data-side'); // null for bilateral
-                const value = inputElement.value.trim();
-                if (!value || value === '') return;
+                if (!param || !formParams.includes(param)) return;
 
-                // Check if there's a unit selector for this parameter
-                const elementId = inputElement.id;
-                const unitElement = document.getElementById(`${elementId}-unit`);
-                const finalValue = unitElement ? `${value} ${unitElement.value}` : value;
+                let finalValue = '';
+                if (inputElement.tagName === 'SELECT') {
+                    finalValue = readParamSelectValue(inputElement);
+                } else {
+                    const value = inputElement.value.trim();
+                    if (!value) return;
+
+                    if (param === 'weight') {
+                        const parsed = parseInt(value, 10);
+                        if (isNaN(parsed)) return;
+                        finalValue = parsed;
+                    } else if (param === 'distance') {
+                        const parsed = parseInt(value, 10);
+                        if (isNaN(parsed)) return;
+                        finalValue = parsed;
+                    } else {
+                        // Check if there's a unit selector for this parameter
+                        const elementId = inputElement.id;
+                        const unitElement = document.getElementById(`${elementId}-unit`);
+                        finalValue = unitElement ? `${value} ${unitElement.value}` : value;
+                    }
+                }
+
+                if (finalValue === '' || finalValue === null || finalValue === undefined) return;
 
                 // Group by side
                 const sideKey = side || 'bilateral';
@@ -4228,6 +4457,16 @@
                     paramsBySide[sideKey] = {};
                 }
                 paramsBySide[sideKey][param] = finalValue;
+
+                if (param === 'weight') {
+                    const unitElement = document.getElementById(`${inputElement.id}-unit`);
+                    paramsBySide[sideKey][`${param}_unit`] = unitElement ? unitElement.value : 'lb';
+                }
+
+                if (param === 'distance') {
+                    const unitElement = document.getElementById(`${inputElement.id}-unit`);
+                    paramsBySide[sideKey][`${param}_unit`] = unitElement ? unitElement.value : 'ft';
+                }
             });
 
             // Apply form parameters to sets based on their side
@@ -5200,7 +5439,7 @@
                 const firstSet = session.sets[0];
                 if (firstSet.formParams) {
                     const params = [];
-                    if (firstSet.formParams.weight) params.push(`${firstSet.formParams.weight}${firstSet.formParams.weight_unit || 'lbs'}`);
+                    if (firstSet.formParams.weight) params.push(`${firstSet.formParams.weight}${firstSet.formParams.weight_unit || 'lb'}`);
                     if (firstSet.formParams.band_resistance) params.push(`[${firstSet.formParams.band_resistance}]`);
                     if (params.length > 0) {
                         parts.push(params.join(', '));
@@ -5262,14 +5501,14 @@
                         const setDetails = (session.sets || []).map((set, idx) => {
                             const sideLabel = set.side ? ` (${set.side})` : '';
                             const manualLabel = set.manualLog ? ' 📝' : '';
-                            const distanceLabel = set.distanceFeet ? `${set.distanceFeet}ft` : `${set.reps} reps`;
+                            const distanceLabel = set.distanceFeet !== undefined ? `${set.distanceFeet}ft` : `${set.reps} reps`;
 
                             // Build form parameters label
                             let formParamsLabel = '';
                             if (set.formParams) {
                                 const params = [];
                                 if (set.formParams.weight) {
-                                    params.push(`${set.formParams.weight}${set.formParams.weight_unit || 'lbs'}`);
+                                    params.push(`${set.formParams.weight}${set.formParams.weight_unit || 'lb'}`);
                                 }
                                 if (set.formParams.band_resistance) {
                                     params.push(`[${set.formParams.band_resistance}]`);
@@ -5287,7 +5526,8 @@
                                     params.push(set.formParams.slope);
                                 }
                                 if (set.formParams.distance) {
-                                    params.push(`${set.formParams.distance}in`);
+                                    const distanceUnit = set.formParams.distance_unit || 'ft';
+                                    params.push(`${set.formParams.distance}${distanceUnit}`);
                                 }
                                 if (params.length > 0) {
                                     formParamsLabel = ' ' + params.join(' ');
@@ -5296,7 +5536,7 @@
 
                             // Legacy support for old weight/resistance fields
                             if (!formParamsLabel) {
-                                const weightLabel = set.weight ? ` ${set.weight}${set.weightUnit || 'lbs'}` : '';
+                                const weightLabel = set.weight ? ` ${set.weight}${set.weightUnit || 'lb'}` : '';
                                 const resistanceLabel = set.resistance ? ` [${set.resistance}]` : '';
                                 formParamsLabel = weightLabel + resistanceLabel;
                             }
@@ -5395,13 +5635,16 @@
                 let formParamsSummary = '';
                 if (set.formParams) {
                     const params = [];
-                    if (set.formParams.weight) params.push(`${set.formParams.weight}${set.formParams.weight_unit || 'lbs'}`);
+                    if (set.formParams.weight) params.push(`${set.formParams.weight}${set.formParams.weight_unit || 'lb'}`);
                     if (set.formParams.band_resistance) params.push(`[${set.formParams.band_resistance}]`);
                     if (set.formParams.band_position) params.push(`@${set.formParams.band_position}`);
                     if (set.formParams.surface) params.push(set.formParams.surface);
                     if (set.formParams.eyes) params.push(`eyes ${set.formParams.eyes}`);
                     if (set.formParams.slope) params.push(set.formParams.slope);
-                    if (set.formParams.distance) params.push(`${set.formParams.distance}in`);
+                    if (set.formParams.distance) {
+                        const distanceUnit = set.formParams.distance_unit || 'ft';
+                        params.push(`${set.formParams.distance}${distanceUnit}`);
+                    }
                     if (params.length > 0) {
                         formParamsSummary = `<div style="font-size: 11px; color: var(--ios-gray); margin-top: 4px;">${params.join(' · ')}</div>`;
                     }
@@ -5840,6 +6083,7 @@
 
             const ex = pendingExerciseImport;
             const modifiers = ex.pattern_modifiers || [];
+            const hasDistance = modifiers.includes('distance_feet');
 
             // duration_seconds or distance_feet REPLACE reps
             const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
@@ -5871,9 +6115,9 @@
 
             // Build dosage spec from user input
             const dosageSpec = {
-                type: modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
+                type: hasDistance ? 'distance' : modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
                 sets: sets,
-                repsPerSet: reps,
+                repsPerSet: hasDistance ? distance : reps,
                 secondsPerRep: seconds
             };
 
@@ -5978,6 +6222,7 @@
 
             const modifiers = ex.pattern_modifiers || [];
             const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+            const hasDistance = modifiers.includes('distance_feet');
 
             if (replacesReps) {
                 reps = 1;
@@ -6004,9 +6249,9 @@
 
             const previousSpec = ex.current || {};
             const newSpec = {
-                type: modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
+                type: hasDistance ? 'distance' : modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
                 sets: sets,
-                repsPerSet: reps,
+                repsPerSet: hasDistance ? distance : reps,
                 secondsPerRep: seconds
             };
 
