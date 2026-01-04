@@ -886,8 +886,10 @@
         let rolesData = null;
         let vocabulary = null;
         let exerciseLibrary = null;
+        let archivedExerciseIds = new Set();
         let sessionHistory = null;
         let coverageInitialized = false;
+        const DEBUG_MATCH_LOGS = false;
 
         // Derived lists (runtime only - NO HARDCODED ENUMS)
         let regions = [];
@@ -999,8 +1001,14 @@
             }
             exerciseLibrary = await sharedLoader.loadExerciseLibraryShared({
                 fallbackUrl: 'exercise_library.json',
-                seedIfMissing: true
+                seedIfMissing: false
             });
+            archivedExerciseIds = new Set(
+                exerciseLibrary
+                    .filter(ex => ex.lifecycle?.status === 'archived' || ex.archived)
+                    .map(ex => ex.id || ex.exercise_id)
+                    .filter(Boolean)
+            );
             console.log('[Library] Loaded:', exerciseLibrary.length, 'exercises');
         }
 
@@ -1048,6 +1056,9 @@
             const focuses = new Set();
             // Data structure: rolesData.exercise_roles[exerciseId].roles[]
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
                 const exerciseData = rolesData.exercise_roles[exerciseId];
                 exerciseData.roles.forEach(role => {
                     if (role.region === region && role.capacity === capacity && role.focus) {
@@ -1066,6 +1077,9 @@
 
             // Find all exercises with matching roles
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
                 const exerciseData = rolesData.exercise_roles[exerciseId];
                 exerciseData.roles.forEach(role => {
                     if (role.region !== region || role.capacity !== capacity) return;
@@ -1080,7 +1094,7 @@
                     // Find most recent session for this exercise
                     const sessions = sessionHistory.filter(s => {
                         const match = s.exerciseId === exerciseId;
-                        if (!match && exerciseId.startsWith('01K')) {
+                        if (DEBUG_MATCH_LOGS && !match && exerciseId.startsWith('01K')) {
                             // Debug ULID exercises only
                             console.log(`[Match] Checking ${exerciseId.substring(0, 10)}... vs session ${s.exerciseId?.substring(0, 10)}... = ${match}`);
                         }
@@ -1348,6 +1362,9 @@
             const capacitiesSet = new Set();
 
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
                 const exerciseData = rolesData.exercise_roles[exerciseId];
                 exerciseData.roles.forEach(role => {
                     if (role.region === region) {

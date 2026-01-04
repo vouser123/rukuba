@@ -383,6 +383,38 @@
             }
         }
 
+        // Debug helper: summarize exercise lists so counts can be compared across pages.
+        function formatExercisePreview(exercises, label) {
+            const formatEntry = (exercise) => {
+                const name = exercise.canonical_name || exercise.name || exercise.title || 'Unnamed';
+                const id = exercise.id || exercise.exercise_id || 'no-id';
+                return `${name} (${id})`;
+            };
+
+            if (!exercises || exercises.length === 0) {
+                return `${label}: 0\n  (no exercises loaded)`;
+            }
+
+            const firstThree = exercises.slice(0, 3).map(formatEntry);
+            const lastThree = exercises.slice(-3).map(formatEntry);
+
+            return `${label}: ${exercises.length}\n` +
+                `  First 3:\n    - ${firstThree.join('\n    - ')}\n` +
+                `  Last 3:\n    - ${lastThree.join('\n    - ')}`;
+        }
+
+        // Debug helper: mirror the rehab coverage localStorage key summary.
+        function formatLocalStorageSummary() {
+            const lines = [];
+            lines.push(`localStorage keys: ${localStorage.length}`);
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key) || '';
+                lines.push(`  - ${key}: ${value.length} chars`);
+            }
+            return lines.join('\n');
+        }
+
         // State
         const exerciseFormModule = window.exerciseFormModule;
         let schema = null;
@@ -924,8 +956,10 @@
 
         async function init() {
             try {
+                debugLog('[Init] Starting exercise editor initialization');
                 const sharedLoader = window.sharedDataLoader;
                 if (!sharedLoader) {
+                    debugLog('[Init] ❌ Shared data loader missing on window.sharedDataLoader');
                     throw new Error('Shared data loader unavailable. Try reloading the page.');
                 }
 
@@ -949,7 +983,7 @@
                     }),
                     sharedLoader.loadExerciseLibraryShared({
                         fallbackUrl: './exercise_library.json',
-                        seedIfMissing: true
+                        seedIfMissing: false
                     })
                 ]);
 
@@ -969,6 +1003,32 @@
                 } else {
                     debugLog('[Init] ⚠️ NO EXERCISES LOADED!');
                 }
+
+                // Inspect localStorage library payload to explain count differences.
+                const localStored = localStorage.getItem('pt_exercise_library');
+                let localStoredType = 'missing';
+                let localStoredCount = 0;
+                if (localStored) {
+                    try {
+                        const parsed = JSON.parse(localStored);
+                        if (Array.isArray(parsed)) {
+                            localStoredType = 'array';
+                            localStoredCount = parsed.length;
+                        } else if (Array.isArray(parsed?.exercises)) {
+                            localStoredType = 'schema';
+                            localStoredCount = parsed.exercises.length;
+                        } else {
+                            localStoredType = typeof parsed;
+                        }
+                    } catch (error) {
+                        localStoredType = 'invalid JSON';
+                    }
+                }
+
+                debugLog(`[Init] localStorage pt_exercise_library type: ${localStoredType}`);
+                debugLog(`[Init] localStorage pt_exercise_library count (raw): ${localStoredCount}`);
+                debugLog(formatExercisePreview(baselineExercises, '[Init] Shared library preview'));
+                debugLog(formatLocalStorageSummary());
 
                 // Migrate exercise_id → id (one-time, idempotent)
                 baselineExercises.forEach(ex => {
@@ -997,6 +1057,7 @@
 
                 renderExerciseList();
             } catch (e) {
+                debugLog(`[Init] ❌ Failed to load schema or shared data: ${e.message}`);
                 alert('Failed to load schema or shared data: ' + e.message);
             }
         }
@@ -1024,16 +1085,34 @@
                 return;
             }
 
-            // Get canonical_name field name from schema (first string field likely to be name)
-            const nameField = Object.keys(resolvedExerciseSchema.properties).find(key => {
-                const prop = resolvedExerciseSchema.properties[key];
-                const types = Array.isArray(prop.type) ? prop.type : [prop.type];
-                return types.includes('string') && key !== 'id' && !prop.enum;
-            }) || 'canonical_name';
+            // Prefer explicit name fields before falling back to schema heuristics.
+            const preferredNameFields = ['canonical_name', 'name', 'title'];
+            let nameField = preferredNameFields.find((field) => resolvedExerciseSchema.properties?.[field]);
+            if (!nameField) {
+                // Fall back to the first string field in the schema (excluding ID/enum fields).
+                nameField = Object.keys(resolvedExerciseSchema.properties).find(key => {
+                    const prop = resolvedExerciseSchema.properties[key];
+                    const types = Array.isArray(prop.type) ? prop.type : [prop.type];
+                    return types.includes('string') && key !== 'id' && !prop.enum;
+                }) || 'canonical_name';
+            }
+
+            const getExerciseDisplayName = (exercise) => {
+                const rawName = exercise?.[nameField]
+                    || exercise?.canonical_name
+                    || exercise?.name
+                    || exercise?.title
+                    || '';
+                const trimmed = String(rawName).trim();
+                if (trimmed) return trimmed;
+                const id = exercise?.id || '';
+                if (id) return `Exercise ${id.slice(0, 8)}`;
+                return 'Exercise';
+            };
 
             container.innerHTML = allExercises.map(ex => `
                 <div class="exercise-list-item" onclick="editExercise('${ex.id}')">
-                    <div style="font-weight: 600; font-size: 16px;">${ex[nameField] || 'Unnamed Exercise'}</div>
+                    <div style="font-weight: 600; font-size: 16px;">${getExerciseDisplayName(ex)}</div>
                     <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
                         ${ex.id}
                         ${ex._isDraft ? '<span style="color: var(--ios-orange); margin-left: 8px;">● DRAFT</span>' : ''}
@@ -1158,7 +1237,7 @@
                 // Reload from shared library
                 baselineExercises = await sharedLoader.loadExerciseLibraryShared({
                     fallbackUrl: './exercise_library.json',
-                    seedIfMissing: true
+                    seedIfMissing: false
                 });
                 debugLog(`[Reload] Reloaded ${baselineExercises.length} exercises from shared library`);
                 if (baselineExercises.length > 0) {
@@ -1365,7 +1444,7 @@
             window.location.href = mailtoLink;
         }
 
-        init();
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>

@@ -238,7 +238,7 @@
             <button class="btn-secondary" onclick="loadPTMode()">✏️ PT Editor Mode (Load Base Exercises)</button>
         </div>
         <p style="color: var(--text-secondary); font-size: 13px; margin-top: 20px; max-width: 600px;">
-            <strong>PT Editor Mode:</strong> Load base exercise library from exercise_library.json to add new exercises, assign roles, or update definitions without patient data.
+            <strong>PT Editor Mode:</strong> Load base exercise library from the shared Firestore library to add new exercises, assign roles, or update definitions without patient data.
         </p>
     </div>
 
@@ -2393,7 +2393,7 @@ ${payload}`;
                 ] = await Promise.all([
                     sharedLoader.loadExerciseLibraryShared({
                         fallbackUrl: 'exercise_library.json',
-                        seedIfMissing: true
+                        seedIfMissing: false
                     }),
                     sharedLoader.loadExerciseRolesShared({
                         fallbackUrl: 'exercise_roles.json',
@@ -2411,7 +2411,7 @@ ${payload}`;
 
                 // Set global data
                 sessionHistory = []; // Empty - no patient data
-                // Map exercise_library.json format to expected format
+                // Map shared exercise library format to expected format
                 exerciseLibrary = (libraryExercises || []).map(ex => {
                     const id = ex.id || ex.exercise_id;
                     const canonicalName = ex.canonical_name || ex.name || ex.title || '';
