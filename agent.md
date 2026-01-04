@@ -8,10 +8,13 @@ This repo contains two unrelated browser apps:
 You are a coding assistant. Follow these rules:
 
 - Firebase is used for authenticated PT session history and runtime backups.
+- Firebase shared data (exercise library, roles, vocabulary, schemas) lives in Firestore and is used as the canonical sync target when available.
 - Maintain offline-first behavior with local storage; do not add external APIs beyond Firebase.
-- For the PT app, treat `/pt/exercise_guidance_seed.json` as the canonical source of exercise definitions.
+- For the PT app, treat `/pt/exercise_library.json` as the canonical source of exercise definitions.
 - Treat JSON schemas in `/pt/schema` as authoritative contracts for data shape.
 - Do not invent new field names when existing schema fields or vocab terms are available.
+- All code changes should be well-commented, especially when adding new logic or side effects.
+- Bump the PT service worker version when app behavior or assets change, without needing a reminder.
 
 ## Layout
 
@@ -21,7 +24,10 @@ You are a coding assistant. Follow these rules:
 
 - `/pt`
   - `pt/index.html` (or the main HTML file) should be treated as the entry point for the PT PWA.
-  - `pt/exercise_guidance_seed.json` contains the exercise definitions.
+  - `pt/exercise_library.json` contains the exercise definitions.
+  - `pt/exercise_library.json` is the shared exercise library JSON used as a fallback/seed for Firestore.
+  - `pt/exercise_roles.json` contains exercise-to-role mappings for coverage and reporting.
+  - `pt/exercise_roles_vocabulary.json` contains controlled vocabulary definitions for exercise roles.
   - PT-related JS/TS files should live under `/pt` (e.g., `/pt/app.js`, `/pt/components/...`).
 
 - `/pt/schema`
@@ -40,7 +46,7 @@ You are a coding assistant. Follow these rules:
 
 ## Data model guidance (PT app)
 
-- `exercise_guidance_seed.json`:
+- `exercise_library.json`:
   - Defines what each exercise is and how it is normally performed.
   - Contains no patient-specific dosage values (sets/reps/seconds for a specific day).
   - Uses these key fields (see schema for full details):
@@ -64,12 +70,21 @@ You are a coding assistant. Follow these rules:
   - Will define dosage instances (sets, reps, seconds, distance, weight).
   - Will provide values for `form_parameters`.
 
+## JSON data references (PT app)
+
+- `/pt/exercise_library.json`
+  - Purpose: canonical exercise definitions used by the PT app and fallback/seed for Firestore shared data.
+- `/pt/exercise_roles.json`
+  - Purpose: role mappings (region/capacity/focus) for coverage and reporting.
+- `/pt/exercise_roles_vocabulary.json`
+  - Purpose: controlled vocab terms for exercise roles used in the editor/coverage flows.
+
 ## Coding constraints
 
 - Use plain JavaScript and browser APIs unless explicitly asked otherwise.
 - Keep files small and modular: separate UI from data loading and storage logic.
 - When unsure about data shape, inspect:
-  - `/pt/exercise_guidance_seed.json`
+  - `/pt/exercise_library.json`
   - `/pt/schema/exercise_file.schema.json`
   - `/pt/docs/vocabularies.md`
 

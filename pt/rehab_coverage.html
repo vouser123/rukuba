@@ -886,6 +886,7 @@
         let rolesData = null;
         let vocabulary = null;
         let exerciseLibrary = null;
+        let archivedExerciseIds = new Set();
         let sessionHistory = null;
         let coverageInitialized = false;
 
@@ -1001,6 +1002,12 @@
                 fallbackUrl: 'exercise_library.json',
                 seedIfMissing: true
             });
+            archivedExerciseIds = new Set(
+                exerciseLibrary
+                    .filter(ex => ex.lifecycle?.status === 'archived' || ex.archived)
+                    .map(ex => ex.id || ex.exercise_id)
+                    .filter(Boolean)
+            );
             console.log('[Library] Loaded:', exerciseLibrary.length, 'exercises');
         }
 
@@ -1048,6 +1055,9 @@
             const focuses = new Set();
             // Data structure: rolesData.exercise_roles[exerciseId].roles[]
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
                 const exerciseData = rolesData.exercise_roles[exerciseId];
                 exerciseData.roles.forEach(role => {
                     if (role.region === region && role.capacity === capacity && role.focus) {
@@ -1066,6 +1076,9 @@
 
             // Find all exercises with matching roles
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
                 const exerciseData = rolesData.exercise_roles[exerciseId];
                 exerciseData.roles.forEach(role => {
                     if (role.region !== region || role.capacity !== capacity) return;
@@ -1348,6 +1361,9 @@
             const capacitiesSet = new Set();
 
             Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
                 const exerciseData = rolesData.exercise_roles[exerciseId];
                 exerciseData.roles.forEach(role => {
                     if (role.region === region) {

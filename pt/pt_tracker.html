@@ -2494,6 +2494,38 @@
             scheduleRuntimeSync('exercise-library');
         }
 
+        function getTodayDateString() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function updateExerciseLifecycle(entry, { archived }) {
+            const lifecycle = entry.lifecycle || {
+                status: 'active',
+                effective_start_date: null,
+                effective_end_date: null
+            };
+
+            if (archived) {
+                lifecycle.status = 'archived';
+                lifecycle.effective_end_date = getTodayDateString();
+            } else {
+                lifecycle.status = 'active';
+                lifecycle.effective_end_date = null;
+            }
+
+            entry.lifecycle = lifecycle;
+        }
+
+        async function syncExerciseLibraryToFirestore(reason) {
+            try {
+                const schemaFormattedLibrary = buildExerciseLibrarySchemaData(exerciseLibrary);
+                await saveExerciseLibraryShared(schemaFormattedLibrary);
+                console.log(`[Library] Shared library synced after ${reason}.`);
+            } catch (error) {
+                console.warn(`[Library] Shared library sync failed after ${reason}:`, error);
+            }
+        }
+
         // Synchronous load/save for roles data
         function loadRolesDataSync() {
             const stored = localStorage.getItem(ROLES_DATA_KEY);
@@ -5827,11 +5859,12 @@
                         safety_flags: []
                     },
                     lifecycle: {
-                        status: ex.archived ? 'archived' : 'active',
-                        effective_start_date: null,
-                        effective_end_date: ex.archived && ex.superseded_date
-                            ? ex.superseded_date.split('T')[0]
-                            : null
+                        status: ex.lifecycle?.status || (ex.archived ? 'archived' : 'active'),
+                        effective_start_date: ex.lifecycle?.effective_start_date || null,
+                        effective_end_date: ex.lifecycle?.effective_end_date
+                            || (ex.archived && ex.superseded_date
+                                ? ex.superseded_date.split('T')[0]
+                                : null)
                     },
                     added_date: null,
                     updated_date: ex.history && ex.history.length > 0
@@ -6309,10 +6342,12 @@
             const entry = getLibraryEntryById(exerciseId);
             showActionSheet(`Archive "${entry.name}"? You can restore it later from archived exercises.`, () => {
                 entry.archived = true;
+                updateExerciseLifecycle(entry, { archived: true });
                 persistExerciseLibrary();
                 exerciseLibrary = loadExerciseLibrary();
                 renderExerciseList();
                 haptic('success');
+                void syncExerciseLibraryToFirestore('archive');
             });
         }
 
@@ -6362,11 +6397,13 @@
         function unarchiveExercise(exerciseId) {
             const entry = getLibraryEntryById(exerciseId);
             entry.archived = false;
+            updateExerciseLifecycle(entry, { archived: false });
             persistExerciseLibrary();
             exerciseLibrary = loadExerciseLibrary();
             haptic('success');
             speak('Exercise restored');
             showArchivedExercises(); // Refresh archived view
+            void syncExerciseLibraryToFirestore('unarchive');
         }
 
         function permanentlyDeleteExercise(exerciseId) {
@@ -6377,6 +6414,7 @@
                 exerciseLibrary = loadExerciseLibrary();
                 haptic('success');
                 showArchivedExercises(); // Refresh archived view
+                void syncExerciseLibraryToFirestore('delete');
             });
         }
 
