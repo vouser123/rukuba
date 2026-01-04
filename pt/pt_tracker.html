@@ -2260,6 +2260,33 @@
         // Exercise library loaded from localStorage or starts empty
         let exerciseLibrary = loadExerciseLibrary();
 
+        async function reconcileSharedExerciseLibrary() {
+            let sharedExerciseLibrary = [];
+            let sharedLoaded = false;
+
+            try {
+                sharedExerciseLibrary = await loadExerciseLibraryShared({
+                    seedIfMissing: false
+                });
+                sharedLoaded = true;
+            } catch (error) {
+                console.warn('[Library] Shared exercise library unavailable; keeping local only.', error);
+            }
+
+            if (!sharedLoaded) {
+                return;
+            }
+
+            const mergedLibrary = mergeExerciseLibraries(sharedExerciseLibrary, exerciseLibrary);
+            if (mergedLibrary.length !== exerciseLibrary.length) {
+                console.log(`[Library] Merged shared library into local (${exerciseLibrary.length} -> ${mergedLibrary.length}).`);
+                exerciseLibrary = mergedLibrary;
+                persistExerciseLibrary();
+                renderExerciseList();
+                renderLibraryExercises();
+            }
+        }
+
         function getInitialExercise() {
             // Only restore last used exercise if it exists
             const lastExerciseId = localStorage.getItem(LAST_EXERCISE_KEY);
@@ -5693,8 +5720,7 @@
             let sharedError = null;
             try {
                 sharedExercises = await loadExerciseLibraryShared({
-                    fallbackUrl: 'exercise_library.json',
-                    seedIfMissing: true
+                    seedIfMissing: false
                 });
             } catch (error) {
                 sharedError = error;
@@ -7205,8 +7231,7 @@ ${payload}`;
 
             try {
                 sharedExerciseLibrary = await loadExerciseLibraryShared({
-                    fallbackUrl: 'exercise_library.json',
-                    seedIfMissing: true
+                    seedIfMissing: false
                 });
                 sharedExerciseLibraryLoaded = true;
             } catch (error) {
@@ -7875,8 +7900,7 @@ ${payload}`;
                 const timeoutMs = 7000;
                 const exercises = await Promise.race([
                     loadExerciseLibraryShared({
-                        fallbackUrl: 'exercise_library.json',
-                        seedIfMissing: true
+                        seedIfMissing: false
                     }),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), timeoutMs))
                 ]);
@@ -8324,6 +8348,8 @@ ${payload}`;
             showWeeklyStats,
             showExerciseDetailsModal,
             showLibraryDiagnostics,
+            // Expose for inline "Close" button in the library diagnostics modal.
+            closeLibraryDiagnostics,
             toggleHamburgerMenu,
             showSettings,
             exportForPT,
@@ -8455,6 +8481,7 @@ ${payload}`;
         updateStreakDisplay();
         // updateQuickStartShortcuts(); // REMOVED: Quick Start section removed
         setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
+        void reconcileSharedExerciseLibrary();
         // Mark app boot complete to suppress the load-failed overlay.
         window.appBooted = true;
         const loadWarning = document.getElementById('app-load-warning');

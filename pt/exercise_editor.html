@@ -982,8 +982,7 @@
                         seedIfMissing: true
                     }),
                     sharedLoader.loadExerciseLibraryShared({
-                        fallbackUrl: './exercise_library.json',
-                        seedIfMissing: true
+                        seedIfMissing: false
                     })
                 ]);
 
@@ -1085,16 +1084,34 @@
                 return;
             }
 
-            // Get canonical_name field name from schema (first string field likely to be name)
-            const nameField = Object.keys(resolvedExerciseSchema.properties).find(key => {
-                const prop = resolvedExerciseSchema.properties[key];
-                const types = Array.isArray(prop.type) ? prop.type : [prop.type];
-                return types.includes('string') && key !== 'id' && !prop.enum;
-            }) || 'canonical_name';
+            // Prefer explicit name fields before falling back to schema heuristics.
+            const preferredNameFields = ['canonical_name', 'name', 'title'];
+            let nameField = preferredNameFields.find((field) => resolvedExerciseSchema.properties?.[field]);
+            if (!nameField) {
+                // Fall back to the first string field in the schema (excluding ID/enum fields).
+                nameField = Object.keys(resolvedExerciseSchema.properties).find(key => {
+                    const prop = resolvedExerciseSchema.properties[key];
+                    const types = Array.isArray(prop.type) ? prop.type : [prop.type];
+                    return types.includes('string') && key !== 'id' && !prop.enum;
+                }) || 'canonical_name';
+            }
+
+            const getExerciseDisplayName = (exercise) => {
+                const rawName = exercise?.[nameField]
+                    || exercise?.canonical_name
+                    || exercise?.name
+                    || exercise?.title
+                    || '';
+                const trimmed = String(rawName).trim();
+                if (trimmed) return trimmed;
+                const id = exercise?.id || '';
+                if (id) return `Exercise ${id.slice(0, 8)}`;
+                return 'Exercise';
+            };
 
             container.innerHTML = allExercises.map(ex => `
                 <div class="exercise-list-item" onclick="editExercise('${ex.id}')">
-                    <div style="font-weight: 600; font-size: 16px;">${ex[nameField] || 'Unnamed Exercise'}</div>
+                    <div style="font-weight: 600; font-size: 16px;">${getExerciseDisplayName(ex)}</div>
                     <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
                         ${ex.id}
                         ${ex._isDraft ? '<span style="color: var(--ios-orange); margin-left: 8px;">● DRAFT</span>' : ''}
@@ -1218,8 +1235,7 @@
 
                 // Reload from shared library
                 baselineExercises = await sharedLoader.loadExerciseLibraryShared({
-                    fallbackUrl: './exercise_library.json',
-                    seedIfMissing: true
+                    seedIfMissing: false
                 });
                 debugLog(`[Reload] Reloaded ${baselineExercises.length} exercises from shared library`);
                 if (baselineExercises.length > 0) {

@@ -889,6 +889,7 @@
         let archivedExerciseIds = new Set();
         let sessionHistory = null;
         let coverageInitialized = false;
+        const DEBUG_MATCH_LOGS = false;
 
         // Derived lists (runtime only - NO HARDCODED ENUMS)
         let regions = [];
@@ -999,8 +1000,7 @@
                 throw new Error('Shared data loader unavailable. Try reloading the page.');
             }
             exerciseLibrary = await sharedLoader.loadExerciseLibraryShared({
-                fallbackUrl: 'exercise_library.json',
-                seedIfMissing: true
+                seedIfMissing: false
             });
             archivedExerciseIds = new Set(
                 exerciseLibrary
@@ -1093,7 +1093,7 @@
                     // Find most recent session for this exercise
                     const sessions = sessionHistory.filter(s => {
                         const match = s.exerciseId === exerciseId;
-                        if (!match && exerciseId.startsWith('01K')) {
+                        if (DEBUG_MATCH_LOGS && !match && exerciseId.startsWith('01K')) {
                             // Debug ULID exercises only
                             console.log(`[Match] Checking ${exerciseId.substring(0, 10)}... vs session ${s.exerciseId?.substring(0, 10)}... = ${match}`);
                         }
