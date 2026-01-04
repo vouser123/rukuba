@@ -1643,6 +1643,20 @@
                 generateId: generateULID
             });
 
+            const lifecycleStatusInput = document.getElementById('ex-lifecycle-status');
+            const lifecycleStartInput = document.getElementById('ex-lifecycle-start');
+            const lifecycleEndInput = document.getElementById('ex-lifecycle-end');
+
+            const lifecycleStatus = lifecycleStatusInput ? lifecycleStatusInput.value : 'active';
+            const lifecycleStart = lifecycleStartInput ? lifecycleStartInput.value : '';
+            const lifecycleEnd = lifecycleEndInput ? lifecycleEndInput.value : '';
+
+            exercise.lifecycle = {
+                status: lifecycleStatus || 'active',
+                effective_start_date: lifecycleStart ? lifecycleStart : null,
+                effective_end_date: lifecycleEnd ? lifecycleEnd : null
+            };
+
             const name = (exercise.canonical_name || '').trim();
             exercise.canonical_name = name;
 
