@@ -2260,6 +2260,34 @@
         // Exercise library loaded from localStorage or starts empty
         let exerciseLibrary = loadExerciseLibrary();
 
+        async function reconcileSharedExerciseLibrary() {
+            let sharedExerciseLibrary = [];
+            let sharedLoaded = false;
+
+            try {
+                sharedExerciseLibrary = await loadExerciseLibraryShared({
+                    fallbackUrl: 'exercise_library.json',
+                    seedIfMissing: true
+                });
+                sharedLoaded = true;
+            } catch (error) {
+                console.warn('[Library] Shared exercise library unavailable; keeping local only.', error);
+            }
+
+            if (!sharedLoaded) {
+                return;
+            }
+
+            const mergedLibrary = mergeExerciseLibraries(sharedExerciseLibrary, exerciseLibrary);
+            if (mergedLibrary.length !== exerciseLibrary.length) {
+                console.log(`[Library] Merged shared library into local (${exerciseLibrary.length} -> ${mergedLibrary.length}).`);
+                exerciseLibrary = mergedLibrary;
+                persistExerciseLibrary();
+                renderExerciseList();
+                renderLibraryExercises();
+            }
+        }
+
         function getInitialExercise() {
             // Only restore last used exercise if it exists
             const lastExerciseId = localStorage.getItem(LAST_EXERCISE_KEY);
@@ -8324,6 +8352,8 @@ ${payload}`;
             showWeeklyStats,
             showExerciseDetailsModal,
             showLibraryDiagnostics,
+            // Expose for inline "Close" button in the library diagnostics modal.
+            closeLibraryDiagnostics,
             toggleHamburgerMenu,
             showSettings,
             exportForPT,
@@ -8455,6 +8485,7 @@ ${payload}`;
         updateStreakDisplay();
         // updateQuickStartShortcuts(); // REMOVED: Quick Start section removed
         setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
+        void reconcileSharedExerciseLibrary();
         // Mark app boot complete to suppress the load-failed overlay.
         window.appBooted = true;
         const loadWarning = document.getElementById('app-load-warning');
