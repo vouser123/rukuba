@@ -1544,7 +1544,8 @@
             loadExerciseFileSchemaShared,
             loadExerciseRolesSchemaShared,
             saveExerciseRolesShared,
-            saveExerciseVocabularyShared
+            saveExerciseVocabularyShared,
+            saveExerciseLibraryShared
         } from './shared/firestore_shared_data.js';
         import {
             addDoc,
@@ -6880,7 +6881,7 @@ ${payload}`;
             }
         }
 
-        function showModificationReview(mods) {
+        async function showModificationReview(mods) {
             const newExCount = mods.newExercises?.length || 0;
             const editedExCount = Object.keys(mods.editedExercises || {}).length;
             const archivedExCount = mods.archivedExercises?.length || 0;
@@ -6905,10 +6906,46 @@ ${payload}`;
                 return;
             }
 
-            // Load current data (synchronous)
+            // Load current data (prefer shared Firestore, fallback to localStorage)
             const exerciseLibrary = loadExerciseLibrary();
-            const rolesData = loadRolesDataSync();
-            const vocabulary = loadVocabularySync();
+            let rolesData = null;
+            let vocabulary = null;
+
+            try {
+                rolesData = await loadExerciseRolesShared({
+                    fallbackUrl: 'exercise_roles.json',
+                    seedIfMissing: true
+                });
+            } catch (error) {
+                console.warn('[Import] Failed to load roles from Firestore; using local storage:', error);
+                rolesData = loadRolesDataSync();
+            }
+
+            try {
+                vocabulary = await loadExerciseVocabularyShared({
+                    fallbackUrl: 'exercise_roles_vocabulary.json',
+                    seedIfMissing: true
+                });
+            } catch (error) {
+                console.warn('[Import] Failed to load vocabulary from Firestore; using local storage:', error);
+                vocabulary = loadVocabularySync();
+            }
+
+            const localRoles = loadRolesDataSync();
+            if (localRoles?.exercise_roles) {
+                rolesData.exercise_roles = {
+                    ...rolesData.exercise_roles,
+                    ...localRoles.exercise_roles
+                };
+            }
+
+            const localVocabulary = loadVocabularySync();
+            if (localVocabulary && Object.keys(localVocabulary).length > 0) {
+                vocabulary = {
+                    ...vocabulary,
+                    ...localVocabulary
+                };
+            }
             let mergedCount = 0;
 
             // 1. Add new exercises to library
@@ -7049,6 +7086,18 @@ ${payload}`;
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
             saveRolesDataSync(rolesData);
             saveVocabularySync(vocabulary);
+
+            const schemaFormattedLibrary = buildExerciseLibrarySchemaData(exerciseLibrary);
+            try {
+                await Promise.all([
+                    saveExerciseLibraryShared(schemaFormattedLibrary),
+                    saveExerciseRolesShared(rolesData),
+                    saveExerciseVocabularyShared(vocabulary)
+                ]);
+                console.log('[Import] Shared data synced to Firestore');
+            } catch (error) {
+                console.warn('[Import] Failed to sync shared data to Firestore:', error);
+            }
 
             haptic('success');
 
