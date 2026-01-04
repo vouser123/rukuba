@@ -2523,6 +2523,13 @@
             if (!normalized.equipment) normalized.equipment = [];
             if (!normalized.equipmentOptional) normalized.equipmentOptional = [];
 
+            if (!Array.isArray(normalized.equipment)) {
+                normalized.equipment = [normalized.equipment];
+            }
+            if (!Array.isArray(normalized.equipmentOptional)) {
+                normalized.equipmentOptional = [normalized.equipmentOptional];
+            }
+
             if (tagSource && !Array.isArray(tagSource) && Array.isArray(tagSource.functional)) {
                 normalized.tags = tagSource.functional;
                 if (!normalized.anatomicRegions && Array.isArray(tagSource.heatmap)) {
@@ -7128,25 +7135,6 @@ ${payload}`;
                 alert('Error parsing data: ' + err.message + '\n\nMake sure you pasted the complete email content.');
                 console.error('Import error:', err);
             }
-        }
-
-        function normalizeExerciseEntry(exercise) {
-            if (!exercise || typeof exercise !== 'object') return exercise;
-            const normalized = { ...exercise };
-
-            if (normalized.equipment && typeof normalized.equipment === 'object' && !Array.isArray(normalized.equipment)) {
-                normalized.equipmentOptional = normalized.equipment.optional || [];
-                normalized.equipment = normalized.equipment.required || [];
-            }
-
-            if (!Array.isArray(normalized.equipment)) {
-                normalized.equipment = normalized.equipment ? [normalized.equipment] : [];
-            }
-            if (!Array.isArray(normalized.equipmentOptional)) {
-                normalized.equipmentOptional = normalized.equipmentOptional ? [normalized.equipmentOptional] : [];
-            }
-
-            return normalized;
         }
 
         function mergeExerciseLibraries(sharedLibrary, localLibrary) {
