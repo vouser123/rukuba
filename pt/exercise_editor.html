@@ -924,8 +924,10 @@
 
         async function init() {
             try {
+                debugLog('[Init] Starting exercise editor initialization');
                 const sharedLoader = window.sharedDataLoader;
                 if (!sharedLoader) {
+                    debugLog('[Init] ❌ Shared data loader missing on window.sharedDataLoader');
                     throw new Error('Shared data loader unavailable. Try reloading the page.');
                 }
 
@@ -997,6 +999,7 @@
 
                 renderExerciseList();
             } catch (e) {
+                debugLog(`[Init] ❌ Failed to load schema or shared data: ${e.message}`);
                 alert('Failed to load schema or shared data: ' + e.message);
             }
         }
@@ -1365,7 +1368,7 @@
             window.location.href = mailtoLink;
         }
 
-        init();
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
