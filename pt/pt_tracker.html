@@ -2266,6 +2266,7 @@
 
             try {
                 sharedExerciseLibrary = await loadExerciseLibraryShared({
+                    fallbackUrl: 'exercise_library.json',
                     seedIfMissing: false
                 });
                 sharedLoaded = true;
@@ -5720,6 +5721,7 @@
             let sharedError = null;
             try {
                 sharedExercises = await loadExerciseLibraryShared({
+                    fallbackUrl: 'exercise_library.json',
                     seedIfMissing: false
                 });
             } catch (error) {
@@ -7231,6 +7233,7 @@ ${payload}`;
 
             try {
                 sharedExerciseLibrary = await loadExerciseLibraryShared({
+                    fallbackUrl: 'exercise_library.json',
                     seedIfMissing: false
                 });
                 sharedExerciseLibraryLoaded = true;
@@ -7900,6 +7903,7 @@ ${payload}`;
                 const timeoutMs = 7000;
                 const exercises = await Promise.race([
                     loadExerciseLibraryShared({
+                        fallbackUrl: 'exercise_library.json',
                         seedIfMissing: false
                     }),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), timeoutMs))
