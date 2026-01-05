@@ -717,15 +717,11 @@
         };
     </script>
     <script type="module">
-        // Firebase Auth Guard + Patient UID for therapist access
+        // Firebase Auth + Auto-discover patient
         import { auth, onAuthStateChanged, db } from './firebase.js';
-        import { doc, getDoc, collection, getDocs, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+        import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-        // Check URL for patient UID (therapist accessing patient data)
-        const urlParams = new URLSearchParams(window.location.search);
-        const patientUid = urlParams.get('patientUid');
-
-        let activeUserId = null;
+        let patientUserId = null;
 
         onAuthStateChanged(auth, async (user) => {
             const authGuardOverlay = document.getElementById('auth-guard-overlay');
@@ -733,26 +729,30 @@
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
 
-                // Set active user: patientUid if provided (therapist mode), otherwise own UID
-                activeUserId = patientUid || user.uid;
+                // Query users collection where therapistUid == current user
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('therapistUid', '==', user.uid));
+                const snapshot = await getDocs(q);
 
-                if (patientUid) {
-                    console.log('[Therapist Mode] Loading patient data for UID:', patientUid);
+                if (!snapshot.empty) {
+                    patientUserId = snapshot.docs[0].id;
+                    console.log('[Therapist] Found patient UID:', patientUserId);
+                } else {
+                    console.warn('[Therapist] No patient found for this therapist');
                 }
+
+                // Make patientUserId available globally
+                window.ptReportUserId = patientUserId;
 
                 // Remove auth guard overlay
                 if (authGuardOverlay) {
                     authGuardOverlay.classList.add('auth-verified');
                 }
-
-                // Make activeUserId available globally for report logic
-                window.ptReportUserId = activeUserId;
             } else {
                 console.log('[Auth] No user signed in - blocking page access');
-                activeUserId = null;
+                patientUserId = null;
                 window.ptReportUserId = null;
 
-                // Show auth guard overlay
                 if (authGuardOverlay) {
                     authGuardOverlay.classList.remove('auth-verified');
                 }
