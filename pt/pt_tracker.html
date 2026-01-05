@@ -2389,10 +2389,7 @@
             let sharedLoaded = false;
 
             try {
-                sharedExerciseLibrary = await loadExerciseLibraryShared({
-                    fallbackUrl: 'exercise_library.json',
-                    seedIfMissing: true
-                });
+                sharedExerciseLibrary = await loadExerciseLibraryShared();
                 sharedLoaded = true;
             } catch (error) {
                 console.warn('[Library] Shared exercise library unavailable; keeping local only.', error);
@@ -2906,14 +2903,9 @@
             }
         }
 
-        // Load roles data from JSON file (cached by service worker)
+        // Load roles data from Firestore (cached locally for offline use)
         function loadRolesData() {
-            const fallbackData = loadRolesDataSync();
-            return loadExerciseRolesShared({
-                fallbackUrl: 'exercise_roles.json',
-                fallbackData,
-                seedIfMissing: true
-            }).then((data) => {
+            return loadExerciseRolesShared().then((data) => {
                 if (data) {
                     saveRolesDataSync(data);
                 }
@@ -2924,25 +2916,17 @@
             });
         }
 
-        // Load schema from JSON file (cached by service worker)
+        // Load schema from Firestore
         function loadSchema() {
-            return loadExerciseFileSchemaShared({
-                fallbackUrl: 'schema/exercise_file.schema.json',
-                seedIfMissing: true
-            }).catch(err => {
+            return loadExerciseFileSchemaShared().catch(err => {
                 console.error('Failed to load schema:', err);
                 return {};
             });
         }
 
-        // Load vocabulary from JSON file (cached by service worker)
+        // Load vocabulary from Firestore (cached locally for offline use)
         function loadVocabulary() {
-            const fallbackData = loadVocabularySync();
-            return loadExerciseVocabularyShared({
-                fallbackUrl: 'exercise_roles_vocabulary.json',
-                fallbackData,
-                seedIfMissing: true
-            }).then((data) => {
+            return loadExerciseVocabularyShared().then((data) => {
                 if (data) {
                     saveVocabularySync(data);
                 }
@@ -6209,14 +6193,11 @@
 
             // Normalize local library for the tracker view.
             const localExercises = loadExerciseLibrary();
-            // Load shared library (Firestore + fallback) for cross-page parity checks.
+            // Load shared library (Firestore) for cross-page parity checks.
             let sharedExercises = [];
             let sharedError = null;
             try {
-                sharedExercises = await loadExerciseLibraryShared({
-                    fallbackUrl: 'exercise_library.json',
-                    seedIfMissing: false
-                });
+                sharedExercises = await loadExerciseLibraryShared();
             } catch (error) {
                 sharedError = error;
             }
@@ -6236,7 +6217,7 @@
                 lines.push(`Shared library: ERROR`);
                 lines.push(`  - ${sharedError.message}`);
             } else {
-                lines.push(formatExercisePreview(sharedExercises, 'Shared library (Firestore + fallback)'));
+                lines.push(formatExercisePreview(sharedExercises, 'Shared library (Firestore)'));
             }
 
             lines.push('');
@@ -7852,10 +7833,7 @@ ${payload}`;
             let sharedVocabularyCount = 0;
 
             try {
-                sharedExerciseLibrary = await loadExerciseLibraryShared({
-                    fallbackUrl: 'exercise_library.json',
-                    seedIfMissing: false
-                });
+                sharedExerciseLibrary = await loadExerciseLibraryShared();
                 sharedExerciseLibraryLoaded = true;
             } catch (error) {
                 console.warn('[Import] Failed to load exercise library from Firestore; using local storage:', error);
@@ -7864,10 +7842,7 @@ ${payload}`;
             const exerciseLibrary = mergeExerciseLibraries(sharedExerciseLibrary, localExerciseLibrary);
 
             try {
-                rolesData = await loadExerciseRolesShared({
-                    fallbackUrl: 'exercise_roles.json',
-                    seedIfMissing: true
-                });
+                rolesData = await loadExerciseRolesShared();
                 rolesDataLoaded = true;
                 sharedRolesCount = Object.keys(rolesData?.exercise_roles || {}).length;
             } catch (error) {
@@ -7876,10 +7851,7 @@ ${payload}`;
             }
 
             try {
-                vocabulary = await loadExerciseVocabularyShared({
-                    fallbackUrl: 'exercise_roles_vocabulary.json',
-                    seedIfMissing: true
-                });
+                vocabulary = await loadExerciseVocabularyShared();
                 vocabularyLoaded = true;
                 sharedVocabularyCount = Object.keys(vocabulary || {}).length;
             } catch (error) {
@@ -8098,14 +8070,8 @@ ${payload}`;
 
                 // Load schema files
                 Promise.all([
-                    loadExerciseFileSchemaShared({
-                        fallbackUrl: 'schema/exercise_file.schema.json',
-                        seedIfMissing: true
-                    }),
-                    loadExerciseRolesSchemaShared({
-                        fallbackUrl: 'schema/exercise_roles.schema.json',
-                        seedIfMissing: true
-                    })
+                    loadExerciseFileSchemaShared(),
+                    loadExerciseRolesSchemaShared()
                 ]).then(([exerciseSchema, rolesSchema]) => {
                     const zipFiles = [
                         {
@@ -8523,10 +8489,7 @@ ${payload}`;
             try {
                 const timeoutMs = 7000;
                 const exercises = await Promise.race([
-                    loadExerciseLibraryShared({
-                        fallbackUrl: 'exercise_library.json',
-                        seedIfMissing: false
-                    }),
+                    loadExerciseLibraryShared(),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), timeoutMs))
                 ]);
                 libraryExercises = exercises || [];

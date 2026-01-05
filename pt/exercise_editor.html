@@ -1029,14 +1029,8 @@
                 }
 
                 const [schemaData, libraryExercises] = await Promise.all([
-                    sharedLoader.loadExerciseFileSchemaShared({
-                        fallbackUrl: './schema/exercise_file.schema.json',
-                        seedIfMissing: true
-                    }),
-                    sharedLoader.loadExerciseLibraryShared({
-                        fallbackUrl: './exercise_library.json',
-                        seedIfMissing: false
-                    })
+                    sharedLoader.loadExerciseFileSchemaShared(),
+                    sharedLoader.loadExerciseLibraryShared()
                 ]);
 
                 schema = schemaData;
@@ -1289,10 +1283,7 @@
                 localStorage.removeItem('pt_exercise_drafts');
 
                 // Reload from shared library
-                baselineExercises = await sharedLoader.loadExerciseLibraryShared({
-                    fallbackUrl: './exercise_library.json',
-                    seedIfMissing: false
-                });
+                baselineExercises = await sharedLoader.loadExerciseLibraryShared();
                 debugLog(`[Reload] Reloaded ${baselineExercises.length} exercises from shared library`);
                 if (baselineExercises.length > 0) {
                     const first3 = baselineExercises.slice(0, 3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');

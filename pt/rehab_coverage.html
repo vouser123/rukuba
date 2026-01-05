@@ -966,10 +966,7 @@
             if (!sharedLoader) {
                 throw new Error('Shared data loader unavailable. Try reloading the page.');
             }
-            schema = await sharedLoader.loadExerciseRolesSchemaShared({
-                fallbackUrl: 'schema/exercise_roles.schema.json',
-                seedIfMissing: true
-            });
+            schema = await sharedLoader.loadExerciseRolesSchemaShared();
             console.log('[Schema] Loaded:', schema);
         }
 
@@ -978,10 +975,7 @@
             if (!sharedLoader) {
                 throw new Error('Shared data loader unavailable. Try reloading the page.');
             }
-            rolesData = await sharedLoader.loadExerciseRolesShared({
-                fallbackUrl: 'exercise_roles.json',
-                seedIfMissing: true
-            });
+            rolesData = await sharedLoader.loadExerciseRolesShared();
             console.log('[Roles] Loaded:', Object.keys(rolesData.exercise_roles || {}).length, 'exercises with roles');
 
             // Debug: Show sample role exercise IDs
@@ -996,10 +990,7 @@
             if (!sharedLoader) {
                 throw new Error('Shared data loader unavailable. Try reloading the page.');
             }
-            vocabulary = await sharedLoader.loadExerciseVocabularyShared({
-                fallbackUrl: 'exercise_roles_vocabulary.json',
-                seedIfMissing: true
-            });
+            vocabulary = await sharedLoader.loadExerciseVocabularyShared();
 
             // Validate schema version match
             if (vocabulary.schema_version && schema.schema_version) {
@@ -1014,10 +1005,7 @@
             if (!sharedLoader) {
                 throw new Error('Shared data loader unavailable. Try reloading the page.');
             }
-            exerciseLibrary = await sharedLoader.loadExerciseLibraryShared({
-                fallbackUrl: 'exercise_library.json',
-                seedIfMissing: false
-            });
+            exerciseLibrary = await sharedLoader.loadExerciseLibraryShared();
             archivedExerciseIds = new Set(
                 exerciseLibrary
                     .filter(ex => ex.lifecycle?.status === 'archived' || ex.archived)
