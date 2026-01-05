@@ -296,8 +296,14 @@
             }
         }
 
-        function renderStats() {
-            const sessions = patientData.sessions || [];
+        function loadDashboard() {
+            // Display last updated time
+            const updateTime = new Date(patientData.exportedAt).toLocaleString();
+            document.getElementById('update-time').textContent = updateTime;
+
+            // Calculate and display stats
+            renderStats();
+            renderRecentActivity();
             renderTopExercises();
             renderExerciseRoles();
         }
