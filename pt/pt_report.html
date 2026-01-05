@@ -2615,6 +2615,26 @@ ${payload}`;
             }
         }
 
+        // Commit all changes to Firestore
+        async function commitAllChangesToFirestore() {
+            if (!window.ptReportUserId) {
+                alert('No patient UID available');
+                return;
+            }
+
+            if (!confirm('Save all changes to Firestore?\n\nThis will update the patient\'s exercise library.')) {
+                return;
+            }
+
+            try {
+                window.exerciseLibrary = exerciseLibrary;
+                await window.saveExerciseLibraryToFirestore();
+                alert('All changes saved to Firestore!');
+            } catch (error) {
+                alert('Failed to save to Firestore: ' + error.message);
+            }
+        }
+
         // Initialize on load
         window.addEventListener('DOMContentLoaded', init);
     </script>
