@@ -428,12 +428,12 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
                 <h2 style="font-size: 24px; font-weight: 600;">PT Editor Mode</h2>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn-secondary" onclick="window.location.href='pt_view.html'">👁️ View</button>
-                    <button class="btn-secondary" onclick="showPatientNotes()">💬 Notes</button>
-                    <button class="btn-secondary" onclick="showChangeHistory()">📋 Changes</button>
-                    <button class="btn-secondary" onclick="clearAllChanges()">↩️ Undo All</button>
-                    <button class="btn-primary" onclick="commitAllChangesToFirestore()">💾 Save All</button>
-                    <button class="btn-danger" onclick="toggleEditorMode()" accesskey="x">Close (Alt+X)</button>
+                    <button class="btn-secondary" data-action="goToPtView">👁️ View</button>
+                    <button class="btn-secondary" data-action="showPatientNotes">💬 Notes</button>
+                    <button class="btn-secondary" data-action="showChangeHistory">📋 Changes</button>
+                    <button class="btn-secondary" data-action="clearAllChanges">↩️ Undo All</button>
+                    <button class="btn-primary" data-action="commitAllChangesToFirestore">💾 Save All</button>
+                    <button class="btn-danger" data-action="toggleEditorMode" accesskey="x">Close (Alt+X)</button>
                 </div>
             </div>
 
@@ -1421,9 +1421,35 @@
             document.getElementById('file-input').value = '';
         }
 
+        // iOS-safe button handlers
+        function goToPtView() {
+            window.location.href = 'pt_view.html';
+        }
+
+        function bindPointerHandlers(root = document) {
+            const elements = root.querySelectorAll('[data-action]');
+            elements.forEach(el => {
+                const action = el.getAttribute('data-action');
+                const handler = (e) => {
+                    const fn = window[action];
+                    if (fn) {
+                        e.preventDefault();
+                        fn();
+                    }
+                };
+                el.addEventListener('pointerup', handler);
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') handler(e);
+                });
+            });
+        }
+
         function init() {
             if (initHasRun) return;
             initHasRun = true;
+
+            // Bind iOS-safe event handlers
+            bindPointerHandlers();
             // Check if data was loaded from Firestore
             if (window.ptReportData) {
                 sessionHistory = window.ptReportData.sessionHistory;
@@ -3182,22 +3208,20 @@ ${payload}`;
                 summary = 'No changes yet.';
             }
 
-            alert(summary);
+            // Log to console instead of popup
+            console.log('[Editor] Change Summary:', summary);
         }
 
         // Clear all changes
         function clearAllChanges() {
-            if (!confirm('Undo all changes?\n\nThis will reload the original data from Firestore.')) {
-                return;
-            }
-
+            console.log('[Editor] Clearing all changes and reloading');
             location.reload();
         }
 
         // Commit all changes to Firestore
         async function commitAllChangesToFirestore() {
             if (!window.ptReportUserId) {
-                alert('No patient UID available');
+                console.error('[Editor] No patient UID available');
                 return;
             }
 
@@ -3217,22 +3241,14 @@ ${payload}`;
                 dosageChangeCount ? `• ${dosageChangeCount} dosage update${dosageChangeCount > 1 ? 's' : ''}` : null
             ].filter(Boolean);
 
-            const destructiveWarning = (archivedExCount || deletedRoleCount)
-                ? '\n\n⚠️ Destructive review: archived exercises or deleted roles are included.'
-                : '';
-
-            const confirmMessage = `Review changes before saving:\n\n${summaryLines.length ? summaryLines.join('\n') : '• No changes detected'}${destructiveWarning}\n\nSave all changes to Firestore?`;
-
-            if (!confirm(confirmMessage)) {
-                return;
-            }
+            console.log('[Editor] Saving changes:', summaryLines.length ? summaryLines.join(', ') : 'No changes');
 
             try {
                 window.exerciseLibrary = exerciseLibrary;
                 await window.saveExerciseLibraryToFirestore();
-                alert('All changes saved to Firestore!');
+                console.log('[Editor] All changes saved to Firestore successfully');
             } catch (error) {
-                alert('Failed to save to Firestore: ' + error.message);
+                console.error('[Editor] Failed to save to Firestore:', error.message);
             }
         }
 
