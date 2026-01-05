@@ -233,6 +233,10 @@
         // Firebase auth + auto-discover patient
         import { auth, onAuthStateChanged, db } from './firebase.js';
         import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+        import {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared
+        } from './shared/firestore_shared_data.js';
 
         let patientData = null;
 
@@ -282,10 +286,15 @@
                 const runtimeSnap = await getDoc(runtimeRef);
                 const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
 
+                const sharedLibrary = await loadExerciseLibraryShared();
+                const rolesData = await loadExerciseRolesShared();
+                const runtimeLibrary = Array.isArray(runtime.exerciseLibrary) ? runtime.exerciseLibrary : [];
+                const exerciseLibrary = runtimeLibrary.length > 0 ? runtimeLibrary : sharedLibrary || [];
+
                 patientData = {
                     sessions: sessions,
-                    exerciseLibrary: runtime.exerciseLibrary || [],
-                    roles: runtime.rolesData || {},
+                    exerciseLibrary,
+                    roles: rolesData?.exercise_roles || {},
                     exportedAt: new Date().toISOString()
                 };
 
@@ -436,18 +445,28 @@
                 return;
             }
 
+            const libraryById = new Map((patientData.exerciseLibrary || []).map((ex) => [ex.id || ex.exercise_id, ex]));
+
             let html = '';
             roleEntries.forEach(([exerciseId, roleData]) => {
-                const exerciseName = roleData.name || exerciseId;
-                const assignedRoles = roleData.roles || [];
+                const libraryEntry = libraryById.get(exerciseId);
+                const exerciseName = roleData.name || libraryEntry?.name || exerciseId;
+                const assignedRoles = Array.isArray(roleData.roles) ? roleData.roles : [];
 
                 if (assignedRoles.length > 0) {
+                    const pills = assignedRoles.map((role) => {
+                        if (!role || typeof role !== 'object') return '';
+                        const focus = role.focus ? ` • ${role.focus}` : '';
+                        const contribution = role.contribution ? ` • ${role.contribution}` : '';
+                        return `<span class="pill">${role.region} • ${role.capacity}${focus}${contribution}</span>`;
+                    }).filter(Boolean).join(' ');
+
                     html += `
                         <div class="exercise-card">
                             <div class="exercise-card-content">
                                 <div class="exercise-card-title">${exerciseName}</div>
                                 <div class="exercise-card-meta">
-                                    ${assignedRoles.map(r => `<span class="pill">${r}</span>`).join(' ')}
+                                    ${pills || '<span class="pill">Roles assigned</span>'}
                                 </div>
                             </div>
                         </div>
