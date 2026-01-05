@@ -1161,7 +1161,10 @@
                     <textarea class="modal-input" id="edit-session-notes" placeholder="Session notes..." style="min-height: 60px; resize: vertical;"></textarea>
                 </div>
 
-                <!-- Delete disabled - sessions are permanent records -->
+                <!-- Delete Section -->
+                <div style="padding-top: 12px; border-top: 1px solid var(--border-color);">
+                    <button type="button" class="modal-cancel" data-action="deleteSession" style="background: var(--ios-red); color: white; width: 100%;">🗑 Delete Session</button>
+                </div>
             </div>
             <div class="modal-buttons">
                 <button class="modal-cancel" data-action="closeEditSession">Cancel</button>
@@ -1676,15 +1679,6 @@
         // Auth state
         let currentUser = null;
         let isAuthReady = false;
-        let activePatientUid = null; // For therapist: which patient's data to load
-
-        // Check URL for patient UID (therapist mode)
-        const urlParams = new URLSearchParams(window.location.search);
-        const patientUidParam = urlParams.get('patientUid');
-        if (patientUidParam) {
-            activePatientUid = patientUidParam;
-            console.log('[Therapist Mode] Loading patient data for UID:', activePatientUid);
-        }
 
         // Auth UI functions
         function showAuthModal() {
@@ -1851,12 +1845,7 @@
             const authGuardOverlay = document.getElementById('auth-guard-overlay');
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
-
-                // Set active patient UID: use URL param if in therapist mode, otherwise own UID
-                if (!activePatientUid) {
-                    activePatientUid = user.uid;
-                }
-                firestoreUserId = activePatientUid; // Set for runtime sync
+                firestoreUserId = user.uid; // Set for runtime sync
                 updateMenuAuthDisplay(); // Update menu
 
                 // Remove auth guard overlay
@@ -1881,7 +1870,6 @@
                     authGuardOverlay.classList.remove('auth-verified');
                 }
                 firestoreUserId = null;
-                activePatientUid = null;
                 updateMenuAuthDisplay(); // Update menu
             }
         });
@@ -2158,9 +2146,9 @@
 
         async function resolveFirestoreDocId(session) {
             if (session._firestoreId) return session._firestoreId;
-            if (!currentUser || !session.sessionId || !firestoreUserId) return null;
+            if (!currentUser || !session.sessionId) return null;
             try {
-                const sessionsRef = collection(db, `users/${firestoreUserId}/sessions`);
+                const sessionsRef = collection(db, `users/${currentUser.uid}/sessions`);
                 const sessionQuery = query(sessionsRef, where('sessionId', '==', session.sessionId));
                 const snapshot = await getDocs(sessionQuery);
                 const docMatch = snapshot.docs[0];
@@ -2198,10 +2186,10 @@
         }
 
         async function fetchFirestoreSessionsForLegacyMigration(user) {
-            if (!user || !firestoreUserId || firestoreHydrated || legacyHistoryFetchAttempted) return;
+            if (!user || firestoreHydrated || legacyHistoryFetchAttempted) return;
             legacyHistoryFetchAttempted = true;
             try {
-                const sessionsRef = collection(db, `users/${firestoreUserId}/sessions`);
+                const sessionsRef = collection(db, `users/${user.uid}/sessions`);
                 const snapshot = await getDocs(query(sessionsRef));
                 const sessions = snapshot.docs.map(docSnap => ({
                     _firestoreId: docSnap.id,
@@ -2231,7 +2219,7 @@
                 return;
             }
 
-            const sessionsRef = collection(db, `users/${firestoreUserId}/sessions`);
+            const sessionsRef = collection(db, `users/${user.uid}/sessions`);
             const sessionsQuery = query(sessionsRef);
             let initialLoad = true;
 
@@ -2276,7 +2264,7 @@
         }
 
         onAuthStateChanged(auth, user => {
-            // firestoreUserId is already set above in primary auth listener
+            firestoreUserId = user ? user.uid : null;
             subscribeToFirestoreSessionHistory(user);
             if (user) {
                 void loadRuntimeFromFirestore();
@@ -2327,13 +2315,13 @@
             const queue = loadFirestoreQueue();
             if (queue.length === 0) return;
 
-            console.log(`[Firestore] Flushing ${queue.length} queued sessions for user ${firestoreUserId}`);
+            console.log(`[Firestore] Flushing ${queue.length} queued sessions for user ${currentUser.uid}`);
 
             const remaining = [];
             for (const session of queue) {
                 try {
                     // Write to user-scoped collection
-                    await addDoc(collection(db, `users/${firestoreUserId}/sessions`), sanitizeSessionForFirestore(session));
+                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(session));
                     console.log('[Firestore] Queued session synced:', session.sessionId);
                 } catch (error) {
                     console.error("Firestore queued write failed:", error);
@@ -4751,7 +4739,7 @@
             try {
                 if (currentUser) {
                     // User is authenticated - attempt direct write
-                    addDoc(collection(db, `users/${firestoreUserId}/sessions`), sanitizeSessionForFirestore(finalizedSession))
+                    addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(finalizedSession))
                         .then(() => {
                             console.log('[Firestore] Session synced immediately:', finalizedSession.sessionId);
                             removeQueuedSession(finalizedSession);
@@ -5941,9 +5929,36 @@
             haptic('light');
         }
 
-        // Session deletion disabled - sessions are permanent records
         function deleteSession() {
-            alert('Session deletion is disabled. Sessions are permanent training records.');
+            if (!confirm('Are you sure you want to delete this session?\n\nThis cannot be undone.')) return;
+
+            const sessions = loadHistory();
+            const sessionToDelete = sessions[editingSessionIndex];
+            sessions.splice(editingSessionIndex, 1);
+            setSessionHistoryCache(sessions, { source: 'local-delete', syncLocalStorage: true });
+            void syncRuntimeToFirestore();
+
+            if (currentUser && sessionToDelete) {
+                resolveFirestoreDocId(sessionToDelete)
+                    .then((docId) => {
+                        if (!docId) {
+                            console.warn('[Firestore] Unable to delete session: missing doc ID');
+                            return;
+                        }
+                        return deleteDoc(doc(db, `users/${currentUser.uid}/sessions`, docId));
+                    })
+                    .then(() => {
+                        console.log('[Firestore] Session deleted:', sessionToDelete.sessionId);
+                    })
+                    .catch((error) => {
+                        console.error('[Firestore] Failed to delete session:', error);
+                    });
+            }
+
+            closeEditSession();
+            renderHistory(); // Refresh the history display
+            haptic('success');
+            alert('Session deleted');
         }
 
         function saveEditedSession() {
@@ -5969,7 +5984,7 @@
                             console.warn('[Firestore] Unable to update session: missing doc ID');
                             return;
                         }
-                        return updateDoc(doc(db, `users/${firestoreUserId}/sessions`, docId), sanitizeSessionForFirestore(session));
+                        return updateDoc(doc(db, `users/${currentUser.uid}/sessions`, docId), sanitizeSessionForFirestore(session));
                     })
                     .then(() => {
                         console.log('[Firestore] Session updated:', session.sessionId);
@@ -7069,6 +7084,7 @@
                         <div class="history-meta">${describeSpec(spec)}</div>
                         <div style="margin-top: 8px; display: flex; gap: 8px;">
                             <button class="control-btn btn-success" data-action="unarchiveExercise" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 1; padding: 8px; font-size: 14px;">Restore</button>
+                            <button class="control-btn btn-danger" data-action="permanentlyDeleteExercise" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 1; padding: 8px; font-size: 14px;">Delete Forever</button>
                         </div>
                     </div>
                 `;
@@ -7088,9 +7104,16 @@
             void syncExerciseLibraryToFirestore('unarchive');
         }
 
-        // Permanent delete removed - use archive instead
         function permanentlyDeleteExercise(exerciseId) {
-            alert('Permanent deletion is disabled. Please use Archive instead.');
+            const entry = getLibraryEntryById(exerciseId);
+            showActionSheet(`PERMANENTLY delete "${entry.name}"? This cannot be undone!`, () => {
+                exerciseLibrary = exerciseLibrary.filter(ex => ex.id !== exerciseId);
+                persistExerciseLibrary();
+                exerciseLibrary = loadExerciseLibrary();
+                haptic('success');
+                showArchivedExercises(); // Refresh archived view
+                void syncExerciseLibraryToFirestore('delete');
+            });
         }
 
         function renderExerciseList(filteredLibrary = null) {
