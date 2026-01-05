@@ -361,12 +361,14 @@
     <script type="module">
         import {
             loadExerciseLibraryShared,
-            loadExerciseFileSchemaShared
+            loadExerciseFileSchemaShared,
+            saveExerciseLibraryShared
         } from './shared/firestore_shared_data.js';
 
         window.sharedDataLoader = {
             loadExerciseLibraryShared,
-            loadExerciseFileSchemaShared
+            loadExerciseFileSchemaShared,
+            saveExerciseLibraryShared
         };
     </script>
     <script>
@@ -422,6 +424,8 @@
         let baselineExercises = [];
         let drafts = {};
         let currentExerciseId = null;
+        let sharedSaveTimer = null;
+        let sharedSaveInFlight = false;
         let exportData = null;
 
         // Resolve $refs in schema
@@ -952,6 +956,54 @@
 
         function saveDrafts() {
             localStorage.setItem('pt_exercise_drafts', JSON.stringify(drafts));
+            // Keep shared library in Firestore up to date; local JSON remains a backup.
+            scheduleSharedLibrarySave('draft-save');
+        }
+
+        function buildMergedExerciseLibrary() {
+            // Merge drafts onto baseline so Firestore reflects the latest edits.
+            const merged = [...baselineExercises];
+            Object.keys(drafts).forEach(id => {
+                const existingIndex = merged.findIndex(ex => ex.id === id);
+                if (existingIndex >= 0) {
+                    merged[existingIndex] = { ...merged[existingIndex], ...drafts[id] };
+                } else {
+                    merged.push({ ...drafts[id] });
+                }
+            });
+            return merged;
+        }
+
+        function scheduleSharedLibrarySave(reason = 'update') {
+            if (sharedSaveTimer) {
+                clearTimeout(sharedSaveTimer);
+            }
+            sharedSaveTimer = setTimeout(() => {
+                sharedSaveTimer = null;
+                if (sharedSaveInFlight) {
+                    return;
+                }
+                void syncExerciseLibraryToFirestore(reason);
+            }, 500);
+        }
+
+        async function syncExerciseLibraryToFirestore(reason) {
+            if (sharedSaveInFlight) return;
+            const sharedLoader = window.sharedDataLoader;
+            if (!sharedLoader?.saveExerciseLibraryShared) {
+                debugLog('[Firestore] Shared library save unavailable; ensure Firestore module loaded.');
+                return;
+            }
+            sharedSaveInFlight = true;
+            try {
+                const exercises = buildMergedExerciseLibrary();
+                await sharedLoader.saveExerciseLibraryShared({ exercises });
+                debugLog(`[Firestore] Shared library synced after ${reason} (${exercises.length} exercises).`);
+            } catch (error) {
+                debugLog(`[Firestore] Shared library sync failed after ${reason}: ${error.message}`);
+            } finally {
+                sharedSaveInFlight = false;
+            }
         }
 
         async function init() {
@@ -1157,7 +1209,7 @@
 
         function saveAndBackToList() {
             // Already saved via auto-save in updateFieldByPath
-            alert('Exercise saved!');
+            alert('Exercise saved and queued for Firebase sync.');
             backToList();
         }
 
@@ -1191,7 +1243,7 @@
             delete drafts[currentExerciseId];
             saveDrafts();
 
-            alert('Draft committed! This is now the baseline.\n\nReminder: You still need to export the data to save it to a file.');
+            alert('Draft committed! This is now the baseline.\n\nFirebase is now the primary save target. Export JSON only if you want a backup file.');
             backToList();
         }
 
@@ -1213,6 +1265,8 @@
             const baselineIndex = baselineExercises.findIndex(ex => ex.id === currentExerciseId);
             if (baselineIndex >= 0) {
                 baselineExercises.splice(baselineIndex, 1);
+                // Ensure deletion is reflected in Firestore immediately.
+                scheduleSharedLibrarySave('delete');
             }
 
             alert('Exercise deleted!');

@@ -822,7 +822,7 @@
         <div class="controls hidden" id="main-controls">
             <button class="control-btn btn-secondary" onclick="previousSet()">Previous</button>
             <button class="control-btn btn-primary" onclick="showLogSetModal()">Log Set</button>
-            <button class="control-btn btn-success" onclick="showNextSetModal()">Next Set</button>
+            <button class="control-btn btn-success" id="next-set-btn" onclick="showNextSetModal()">Next Set</button>
         </div>
     </div>
 
@@ -961,6 +961,8 @@
                 </div>
                 <input type="number" class="modal-input" id="log-set-reps" placeholder="Reps performed" min="0">
                 <input type="number" class="modal-input" id="log-set-distance" placeholder="Distance (feet)" min="0" step="1" style="display: none;">
+                <!-- Duration exercises log seconds instead of reps. -->
+                <input type="number" class="modal-input" id="log-set-seconds" placeholder="Seconds performed" min="0" step="1" style="display: none;">
                 <div id="log-set-side-selector" style="margin: 12px 0;"></div>
 
                 <!-- Dynamic Form Parameters -->
@@ -1841,6 +1843,8 @@
         let runtimeSyncPending = false;
         let runtimeSyncInFlight = false;
         let runtimeSyncTimer = null;
+        let sharedLibrarySyncTimer = null;
+        let sharedLibrarySyncReason = null;
 
         // Session history cache (Firestore-backed)
         let sessionHistoryCache = [];
@@ -1981,6 +1985,20 @@
             runtimeSyncTimer = setTimeout(() => {
                 runtimeSyncTimer = null;
                 void syncRuntimeToFirestore();
+            }, 500);
+        }
+
+        function scheduleSharedLibrarySync(reason = 'scheduled') {
+            // Debounce shared library writes so edits (including dosage) persist to Firebase.
+            sharedLibrarySyncReason = reason;
+            if (sharedLibrarySyncTimer) {
+                clearTimeout(sharedLibrarySyncTimer);
+            }
+            sharedLibrarySyncTimer = setTimeout(() => {
+                const nextReason = sharedLibrarySyncReason || 'scheduled';
+                sharedLibrarySyncTimer = null;
+                sharedLibrarySyncReason = null;
+                void syncExerciseLibraryToFirestore(nextReason);
             }, 500);
         }
 
@@ -2666,6 +2684,7 @@
         function persistExerciseLibrary() {
             localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
             scheduleRuntimeSync('exercise-library');
+            scheduleSharedLibrarySync('exercise-library');
         }
 
         function getTodayDateString() {
@@ -2692,7 +2711,7 @@
 
         async function syncExerciseLibraryToFirestore(reason) {
             try {
-                const schemaFormattedLibrary = buildExerciseLibrarySchemaData(exerciseLibrary);
+                const schemaFormattedLibrary = buildExerciseLibrarySchemaData(exerciseLibrary, { includeDosage: true });
                 await saveExerciseLibraryShared(schemaFormattedLibrary);
                 console.log(`[Library] Shared library synced after ${reason}.`);
             } catch (error) {
@@ -3573,6 +3592,10 @@
         }
 
         function getTargetValueForCurrentExercise() {
+            // Duration exercises track seconds per set rather than reps.
+            if (currentExercise.type === 'duration') {
+                return currentExercise.secondsPerRep || 0;
+            }
             if (currentExercise.type === 'distance') {
                 return currentExercise.distanceTarget || currentExercise.repsPerSet || 0;
             }
@@ -3580,6 +3603,10 @@
         }
 
         function getNextSetLogValue() {
+            // Keep duration "Next Set" values aligned to seconds targets.
+            if (currentExercise.type === 'duration') {
+                return currentExercise.secondsPerRep || 0;
+            }
             const targetValue = getTargetValueForCurrentExercise();
             return currentExercise.currentRep > 0 ? currentExercise.currentRep : targetValue;
         }
@@ -3590,6 +3617,11 @@
 
             if (currentExercise.type === 'distance') {
                 return `${logValue} ft (target ${targetValue} ft)`;
+            }
+
+            // Duration summaries should display seconds, not reps.
+            if (currentExercise.type === 'duration') {
+                return `${logValue}s (target ${targetValue}s)`;
             }
 
             if (currentExercise.type === 'amrap') {
@@ -3616,11 +3648,24 @@
             haptic('medium');
         }
 
+        function bindTouchActivation(elementId, handler) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            // iOS Safari sometimes misses click; touchend ensures activation.
+            element.addEventListener('touchend', (event) => {
+                event.preventDefault();
+                handler();
+            }, { passive: false });
+        }
+
         function editNextSet() {
             closeNextSetModal();
             const logValue = getNextSetLogValue();
             if (currentExercise.type === 'distance') {
                 showLogSetModal({ presetDistance: logValue });
+            // Duration exercises use seconds input in the manual log modal.
+            } else if (currentExercise.type === 'duration') {
+                showLogSetModal({ presetSeconds: logValue });
             } else {
                 showLogSetModal({ presetReps: logValue });
             }
@@ -3637,6 +3682,7 @@
             const entry = getLibraryEntryById(currentExercise.id);
             const finalValue = logValue ?? targetValue;
             const isDistance = currentExercise.type === 'distance';
+            const isDuration = currentExercise.type === 'duration';
 
             if (finalValue === 0 && !skipZeroPrompt) {
                 showActionSheet('⚠️ Log 0 for this set?\n\nThis will log an empty set and move to the next set.\n\nTip: Use "Log Set" to manually enter values.', () => {
@@ -3647,7 +3693,8 @@
 
             const setData = {
                 set: currentExercise.currentSet,
-                reps: isDistance ? 1 : finalValue,
+                // Keep reps at 1 for distance/duration so downstream logic remains consistent.
+                reps: isDistance || isDuration ? 1 : finalValue,
                 type: currentExercise.type,
                 timestamp: new Date().toISOString()
             };
@@ -3658,6 +3705,11 @@
 
             if (isDistance) {
                 setData.distanceFeet = finalValue;
+            }
+            // Store duration in seconds for duration-based exercises.
+            if (isDuration) {
+                setData.secondsAchieved = finalValue;
+                setData.secondsTarget = currentExercise.secondsPerRep || 0;
             }
 
             // Add side information for unilateral exercises (but not alternating)
@@ -3670,8 +3722,8 @@
             haptic('success');
             speak(`Set ${currentExercise.currentSet} logged`);
 
-            // Check for progress
-            detectProgress(currentExercise.currentSet, isDistance ? finalValue : finalValue);
+            // Check for progress (duration uses seconds, distance uses feet, otherwise reps).
+            detectProgress(currentExercise.currentSet, finalValue);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -3875,8 +3927,9 @@
             speak(`Working ${side} side`);
         }
 
-        function showLogSetModal({ presetReps = null, presetDistance = null } = {}) {
+        function showLogSetModal({ presetReps = null, presetDistance = null, presetSeconds = null } = {}) {
             const targetReps = currentExercise.repsPerSet || 0;
+            const targetSeconds = currentExercise.secondsPerRep || 0;
             document.getElementById('log-set-title').textContent = `Log Set ${currentExercise.currentSet}`;
 
             // Show side selector for unilateral exercises
@@ -3885,19 +3938,30 @@
             const sideOptions = entry.sideOptions || [];
             const modifiers = entry.pattern_modifiers || [];
             const hasDistance = modifiers.includes('distance_feet');
+            // Duration exercises log seconds, regardless of modifiers.
+            const isDuration = currentExercise.type === 'duration';
             const spec = entry.current || {};
             const targetDistance = spec.distanceFeet || currentExercise.distanceTarget || 0;
 
             // Show/hide reps vs distance fields
             const repsField = document.getElementById('log-set-reps');
             const distanceField = document.getElementById('log-set-distance');
+            const secondsField = document.getElementById('log-set-seconds');
             if (hasDistance) {
                 repsField.style.display = 'none';
                 distanceField.style.display = 'block';
+                secondsField.style.display = 'none';
                 distanceField.value = presetDistance ?? targetDistance;
+            } else if (isDuration) {
+                // Duration: show seconds input only.
+                repsField.style.display = 'none';
+                distanceField.style.display = 'none';
+                secondsField.style.display = 'block';
+                secondsField.value = presetSeconds ?? targetSeconds;
             } else {
                 repsField.style.display = 'block';
                 distanceField.style.display = 'none';
+                secondsField.style.display = 'none';
                 repsField.value = presetReps ?? targetReps;
             }
 
@@ -3905,7 +3969,9 @@
             const hasAlternating = entry && (entry.pattern_modifiers || []).includes('alternating');
             let subtitleText = hasDistance
                 ? `Target: ${targetDistance}ft · Enter actual distance covered`
-                : `Target: ${targetReps} reps · Enter actual reps performed`;
+                : isDuration
+                    ? `Target: ${targetSeconds}s · Enter actual seconds performed`
+                    : `Target: ${targetReps} reps · Enter actual reps performed`;
             if (sideOptions.length > 0 && !isBilateral && currentExercise.baseSets) {
                 // Count completed sets per side
                 const sideProgress = {};
@@ -3932,7 +3998,7 @@
                 const progressText = sideOptions.map(side =>
                     `${side}: ${sideProgress[side]}/${currentExercise.baseSets}`
                 ).join(', ');
-                const fieldType = hasDistance ? 'distance' : 'reps';
+                const fieldType = hasDistance ? 'distance' : isDuration ? 'seconds' : 'reps';
                 subtitleText = `${progressText} · Enter ${fieldType} for selected side`;
                 if (hasAlternating) {
                     subtitleText += ' · ⚡ ALTERNATE sides each rep';
@@ -4109,8 +4175,10 @@
             const entry = getLibraryEntryById(currentExercise.id);
             const modifiers = entry.pattern_modifiers || [];
             const hasDistance = modifiers.includes('distance_feet');
+            // Duration exercises log seconds instead of reps.
+            const isDuration = currentExercise.type === 'duration';
 
-            let reps, distance, logMessage;
+            let reps, distance, seconds, logMessage;
 
             if (hasDistance) {
                 distance = parseInt(document.getElementById('log-set-distance').value);
@@ -4120,6 +4188,15 @@
                 }
                 reps = 1; // Set to 1 for data structure, but not used
                 logMessage = `Set ${currentExercise.currentSet} logged: ${distance}ft`;
+            } else if (isDuration) {
+                seconds = parseInt(document.getElementById('log-set-seconds').value);
+                if (isNaN(seconds) || seconds < 0) {
+                    alert('Please enter valid seconds (0 or more).');
+                    return;
+                }
+                // Duration sets store seconds achieved/target; reps is a placeholder.
+                reps = 1; // Keep data structure consistent for duration sets
+                logMessage = `Set ${currentExercise.currentSet} logged: ${seconds}s`;
             } else {
                 reps = parseInt(document.getElementById('log-set-reps').value);
                 if (isNaN(reps) || reps < 0) {
@@ -4140,6 +4217,11 @@
             // Add distance if applicable
             if (hasDistance && distance >= 0) {
                 setData.distanceFeet = distance;
+            }
+            if (isDuration && seconds >= 0) {
+                // Preserve duration metrics for downstream analytics.
+                setData.secondsAchieved = seconds;
+                setData.secondsTarget = currentExercise.secondsPerRep || 0;
             }
 
             // Add side if applicable
@@ -4193,8 +4275,8 @@
             haptic('success');
             speak(logMessage);
 
-            // Check for progress
-            detectProgress(currentExercise.currentSet, hasDistance ? distance : reps);
+            // Check for progress (duration uses seconds, distance uses feet).
+            detectProgress(currentExercise.currentSet, isDuration ? seconds : hasDistance ? distance : reps);
 
             if (currentExercise.currentSet < currentExercise.sets) {
                 currentExercise.currentSet++;
@@ -4219,21 +4301,24 @@
             const lastSet = lastSession.sets && lastSession.sets[setNumber - 1];
             const lastSetReps = currentExercise.type === 'distance'
                 ? lastSet?.distanceFeet
-                : lastSet?.reps;
+                : currentExercise.type === 'duration'
+                    ? lastSet?.secondsAchieved ?? lastSet?.secondsTarget ?? lastSet?.reps
+                    : lastSet?.reps;
 
             if (!lastSetReps) return; // No comparison data
 
             const diff = reps - lastSetReps;
+            const unitLabel = currentExercise.type === 'duration' ? 'second' : 'rep';
 
             if (diff > 0) {
                 setTimeout(() => {
-                    speak(`${diff} more rep${diff > 1 ? 's' : ''} than last time!`);
+                    speak(`${diff} more ${unitLabel}${diff > 1 ? 's' : ''} than last time!`);
                     haptic('success');
                 }, 1500);
             } else if (diff < 0 && Math.abs(diff) > 2) {
                 // Only mention if significantly fewer (more than 2 reps)
                 setTimeout(() => {
-                    speak(`${Math.abs(diff)} fewer reps than last time`);
+                    speak(`${Math.abs(diff)} fewer ${unitLabel}${Math.abs(diff) > 1 ? 's' : ''} than last time`);
                 }, 1500);
             }
         }
@@ -6286,7 +6371,7 @@
             haptic('success');
         }
 
-        function buildExerciseLibrarySchemaData(internalLibrary) {
+        function buildExerciseLibrarySchemaData(internalLibrary, { includeDosage = false } = {}) {
             // Convert from internal format to schema format
             const exercises = internalLibrary.map(ex => {
                 // Parse anatomicRegions back to array
@@ -6294,7 +6379,7 @@
                     ? ex.anatomicRegions.split(',').map(s => s.trim()).filter(Boolean)
                     : [];
 
-                return {
+                const schemaExercise = {
                     id: ex.id,
                     canonical_name: ex.name,
                     description: ex.description || '',
@@ -6336,6 +6421,11 @@
                     superseded_by: ex.superseded_by || null,
                     superseded_date: ex.superseded_date || null
                 };
+                // Optionally include dosage so Firebase reflects PT tracker updates.
+                if (includeDosage && ex.current) {
+                    schemaExercise.current = ex.current;
+                }
+                return schemaExercise;
             });
 
             return {
@@ -7668,7 +7758,7 @@ ${payload}`;
             saveRolesDataSync(rolesData);
             saveVocabularySync(vocabulary);
 
-            const schemaFormattedLibrary = buildExerciseLibrarySchemaData(exerciseLibrary);
+            const schemaFormattedLibrary = buildExerciseLibrarySchemaData(exerciseLibrary, { includeDosage: true });
             try {
                 const sharedLibraryCount = sharedExerciseLibrary.length;
                 const nextLibraryCount = schemaFormattedLibrary.exercises?.length || 0;
@@ -8731,6 +8821,8 @@ ${payload}`;
         // updateQuickStartShortcuts(); // REMOVED: Quick Start section removed
         setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
         void reconcileSharedExerciseLibrary();
+        // Bind touch fallback for iOS "Next Set" button activation.
+        bindTouchActivation('next-set-btn', showNextSetModal);
         // Mark app boot complete to suppress the load-failed overlay.
         window.appBooted = true;
         const loadWarning = document.getElementById('app-load-warning');
