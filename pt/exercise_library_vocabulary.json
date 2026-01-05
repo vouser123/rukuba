@@ -1,0 +1,180 @@
+{
+  "vocabulary_version": "1.1.0",
+  "vocabulary_mode": "descriptive",
+  "authority": "Semantic guidance only; exercise_file.schema.json defines valid structure and any enum constraints.",
+  "schema_ref": {
+    "id": "exercise_file.schema.json"
+  },
+
+  "lifecycle": {
+    "_meta": {
+      "status": "active",
+      "locked": true,
+      "schema_alignment": "Matches $defs.lifecycle: status + effective_start_date + effective_end_date (all required)."
+    },
+    "status": {
+      "_meta": {
+        "status": "active",
+        "locked": true
+      },
+      "active": "This exercise definition is current and expected to appear in normal use.",
+      "archived": "This exercise definition is no longer current. It may be retained for history/compatibility but should not be used for new programming."
+    },
+    "effective_start_date": "YYYY-MM-DD or null. When known, the date this definition became active.",
+    "effective_end_date": "YYYY-MM-DD or null. When known, the date this definition stopped being active (e.g., when archived)."
+  },
+
+  "tags": {
+    "_meta": {
+      "status": "active",
+      "locked": true,
+      "schema_alignment": "Matches $defs.tags: functional[], format[], heatmap[] (all required; arrays of strings; no enums).",
+      "rule": "Because schema does not constrain tag values, all tag vocab below is guidance only."
+    },
+
+    "functional": {
+      "_meta": {
+        "status": "deprecated",
+        "locked": true,
+        "note": "Functional tags are permitted by schema but are effectively deprecated in favor of exercise roles. Keep empty unless a legacy tag is required for backward compatibility."
+      },
+      "examples": ["balance", "hip_strength", "SIJ_control"]
+    },
+
+    "format": {
+      "_meta": {
+        "status": "active",
+        "locked": false,
+        "rule": "Format tags describe the execution position or structural format. Use consistent, reusable strings."
+      },
+      "standing": "Performed upright in weight-bearing stance.",
+      "seated": "Performed while seated.",
+      "supine": "Performed lying on the back.",
+      "prone": "Performed lying on the stomach.",
+      "side_lying": "Performed lying on the side.",
+      "kneeling": "Performed in kneeling (tall kneel or half kneel).",
+      "quadruped": "Performed on hands and knees.",
+      "single_leg": "Primary challenge is single-leg stance/support.",
+      "static_hold": "Primarily isometric; hold-focused execution.",
+      "dynamic_control": "Primarily dynamic movement with control emphasis."
+    },
+
+    "heatmap": {
+      "_meta": {
+        "status": "deprecated",
+        "locked": true,
+        "note": "Heatmap tags are permitted by schema but deprecated in practice. Nothing relies on them; do not expand or re-interpret."
+      },
+      "examples": ["low_back", "glute_med", "quad", "calf"]
+    }
+  },
+
+  "pt_category": {
+    "_meta": {
+      "status": "active",
+      "locked": true,
+      "schema_alignment": "Matches pt_category enum in exercise_file.schema.json."
+    },
+    "back_sij": "Lumbar spine, pelvis, or SIJ-focused exercises.",
+    "knee": "Knee-focused strength/control/tolerance exercises.",
+    "ankle": "Ankle-focused strength/control/mobility/tolerance exercises.",
+    "hip": "Hip-focused strength/control/stability exercises.",
+    "vestibular": "Balance/vestibular system emphasis (gaze stabilization, habituation, sensory integration).",
+    "foot": "Foot-focused intrinsic strength/control/tolerance exercises.",
+    "other": "Does not fit a single primary category."
+  },
+
+  "pattern": {
+    "_meta": {
+      "status": "active",
+      "locked": true,
+      "schema_alignment": "Matches pattern enum in exercise_file.schema.json.",
+      "dosage_rule": "Base pattern defines how sets × reps (or equivalent) are interpreted before any modifiers are applied."
+    },
+    "side": {
+      "definition": "Unilateral dosage. Sets and reps are prescribed per side.",
+      "dosage_semantics": "NxM means N sets of M repetitions on EACH side (left and right).",
+      "logging": "Completion requires both sides to be performed unless program specifies otherwise.",
+      "example": "2x10 = 2 sets of 10 on the right AND 2 sets of 10 on the left."
+    },
+    "both": {
+      "definition": "Bilateral dosage. Sets and reps are performed with both sides simultaneously.",
+      "dosage_semantics": "NxM means N sets of M repetitions total, not per side.",
+      "logging": "Logged as a single bilateral unit.",
+      "example": "2x10 = 2 sets of 10 bilateral reps."
+    }
+  },
+
+  "pattern_modifiers": {
+    "_meta": {
+      "status": "active",
+      "locked": true,
+      "schema_alignment": "Matches pattern_modifiers enum in exercise_file.schema.json.",
+      "rule": "Modifiers alter how dosage is measured or executed but do not change the base pattern unless explicitly stated."
+    },
+
+    "duration_seconds": {
+      "definition": "Replaces repetition count with time per set.",
+      "dosage_semantics": "NxT means N sets, each lasting T seconds.",
+      "interaction": "Applies equally to 'side' and 'both'. For 'side', duration is per side unless combined with 'alternating'.",
+      "example": "3x30 = 3 sets of 30 seconds each."
+    },
+
+    "hold_seconds": {
+      "definition": "Adds an isometric hold component to each repetition or set.",
+      "dosage_semantics": "Hold time is applied per rep unless otherwise specified in program notes.",
+      "interaction": "Does not replace reps or duration; it augments them.",
+      "example": "3x10 with 5s hold = 3 sets of 10 reps, each rep held for 5 seconds."
+    },
+
+    "AMRAP": {
+      "definition": "As many repetitions as possible within a defined duration.",
+      "dosage_semantics": "Reps are not pre-specified; time is the controlling variable.",
+      "interaction": "Typically paired with duration_seconds.",
+      "example": "AMRAP 30s = perform as many reps as possible in 30 seconds."
+    },
+
+    "distance_feet": {
+      "definition": "Replaces repetition count with distance.",
+      "dosage_semantics": "NxD means N sets, each covering D feet.",
+      "interaction": "With 'side', distance is per side unless combined with 'alternating'.",
+      "example": "4x20 = 4 sets of 20 feet."
+    },
+
+    "alternating": {
+      "definition": "Sides alternate within a single set rather than completing all reps on one side first.",
+      "dosage_semantics": "Total reps per side remain the same as 'side'; execution order changes only.",
+      "interaction": "Does not convert 'side' to 'both'.",
+      "example": "2x5 side + alternating = 2 sets of 5 reps per side, alternating left-right-left-right."
+    }
+  },
+
+  "form_parameters_required": {
+    "_meta": {
+      "status": "active",
+      "locked": true,
+      "schema_alignment": "Matches form_parameters_required enum in exercise_file.schema.json.",
+      "rule": "These are REQUIRED-at-program-layer keys. This vocabulary defines meaning, not allowed values."
+    },
+    "eyes": "Visual condition during execution (e.g., eyes open, eyes closed, tracking).",
+    "surface": "Surface condition used during execution (e.g., firm, foam, BOSU).",
+    "band_resistance": "Resistance level of band used.",
+    "band_position": "Band placement location.",
+    "strap_position": "Strap placement location when using a strap.",
+    "slope": "Incline or decline condition.",
+    "distance": "Measured spatial parameter (e.g., step height, reach distance).",
+    "weight": "External load in pounds."
+  },
+
+  "equipment": {
+    "_meta": {
+      "status": "active",
+      "locked": false,
+      "schema_alignment": "Equipment is not an enum in schema; it is an object with required[] and optional[] arrays of strings.",
+      "rule": "Equipment represents physical objects or environmental supports required to perform an exercise."
+    },
+    "usage": "Prefer values drawn from existing equipment strings in exercise_library.json, plus 'other' when needed.",
+    "examples": ["support_surface", "strap", "Swiss Ball", "small_ball_9in", "foam_pad", "miniband", "long_band", "ankle_weights", "dumbbell", "step", "other"]
+  }
+}
+

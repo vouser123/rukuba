@@ -48,6 +48,8 @@ The architecture is in transition: local storage is still used as a fallback and
 
 ## File Reference
 
+Maintain this section whenever HTML/JS/JSON inputs change (including new pages, shared modules, data files, or service worker cache lists). Update the roles/notes so it stays exhaustive for files that are in use. The packing app is a separate project and is intentionally excluded from this document.
+
 ### Core HTML
 
 | File | Role | Notes |
@@ -55,7 +57,9 @@ The architecture is in transition: local storage is still used as a fallback and
 | `pt_tracker.html` | Patient-facing tracker | Uses Firestore auth + sessions, and localStorage for offline cache + library edits. Exports PT_DATA. Imports PT_MODIFICATIONS. |
 | `rehab_coverage.html` | Coverage analysis | Reads shared data + session history. Also supports PT_DATA export and PT_MODIFICATIONS import. |
 | `pt_report.html` | PT-facing report/editor | Imports PT_DATA, edits library/roles/vocab/dosage, exports PT_MODIFICATIONS. |
+| `exercise_editor.html` | Library editor (standalone) | Exports/imports library and PT data; overlaps with PT editor workflows. |
 | `seed_firestore.html` | Admin seeding | Writes JSON sources to `pt_shared` and migrates shared dosage into user runtime. |
+| `pt_view.html` | Shared view link | Tokenized viewer for shared PT data summaries. |
 
 ### Shared Modules & Data
 
@@ -63,15 +67,26 @@ The architecture is in transition: local storage is still used as a fallback and
 |------|------|-------|
 | `pt_payload_utils.js` | V2 export/import utilities | Canonicalizes JSON, computes SHA-256, gzip/base64 wrapping, parsing markers. |
 | `shared/firestore_shared_data.js` | Shared Firestore bridge | Loads `pt_shared/*`, merges fallback JSON, seeds missing data. |
+| `shared/exercise_form_module.js` | Exercise editor helpers | Form bindings, schema-based select options, and validation for editor UIs. |
 | `exercise_library.json` | Baseline exercise library | Static fallback for shared data. |
 | `exercise_roles.json` | Role assignments | Used by coverage and PT editor; can be seeded to Firestore. |
 | `exercise_roles_vocabulary.json` | Role definitions | Textual vocabulary for roles. |
+| `exercise_library_vocabulary.json` | Library vocabulary | Descriptions/labels tied to exercise library terms. |
 | `schema/exercise_roles.schema.json` | Enum source of truth | Runtime derivation; no hardcoded enums. |
 | `schema/exercise_file.schema.json` | Library schema | Used by PT editor and validation helpers. |
-| `sw-pt.js` | Service worker | Network-first for JSON, cache-first for static assets, HTML never cached. |
+| `sw-pt.js` | Service worker | Network-first for JSON/HTML with cached HTML fallback for offline boot; cache-first for static assets. |
 | `tests/export_import_v2_test.js` | V2 regression tests | Node-based verification of V2 payload behavior. |
+| `manifest-pt.json` | PWA manifest | App icons, start URL, display mode, theme colors. |
+| `firebase.js` | Firebase bootstrap | Initializes app, Firestore, and Auth with persistence enabled. |
+| `shared-styles.css` | Shared PT styling | Common styles for PT pages. |
+
+### PT Offline Cache Notes
+
+- `pt_tracker.html` is explicitly cached by the service worker to allow offline boot/loading.
+- Other PT HTML pages should also be cached for offline fallback; network-first remains the default when online.
 
 ---
+
 
 ## Data Architecture
 
@@ -116,6 +131,7 @@ localStorage.getItem('pt_tracker_data');
 - `exercise_library`
 - `exercise_roles`
 - `exercise_roles_vocabulary`
+- `exercise_library_vocabulary`
 - `exercise_file_schema`
 - `exercise_roles_schema`
 
@@ -158,7 +174,7 @@ localStorage.getItem('pt_tracker_data');
 
 **Requires additional planning:**
 - Offline auth UX and token refresh behavior.
-- Migration strategy for users who only have local data and no auth account.
+- Migration strategy for users who only have local data and no auth account. For the current single-user/admin setup, a lightweight backup reminder is likely sufficient; today that means exporting **PT Tracker → Export All Data** (JSON file with `pt_exercise_library` + `pt_tracker_data`) and/or saving a current V2 PT_DATA payload for reference. Revisit a full checklist only if multi-user support or enforced auth is introduced.
 
 ---
 
@@ -319,12 +335,45 @@ Planned behavior (not implemented):
 ### Day-to-day practices
 
 - **Static dev**: Open `pt_tracker.html` directly or serve with a simple static server. No build step.
+
+## 2026-01-05 — iOS-friendly Next Set modal buttons
+
+**Symptom**
+On iOS Safari, the "Cancel", "Edit", and "Log & Next" buttons in the Next Set modal do not reliably trigger their actions.
+
+**Root Cause (as understood now)**
+Inline `onclick` handlers inside modal overlays can be ignored by iOS Safari during touch interactions, so taps fail to dispatch the click event.
+
+**Fix Applied**
+Swapped the three Next Set modal buttons to `onpointerup` handlers for iOS-friendly activation without changing their underlying actions.
+
+**Notes / Risks**
+This fix depends on Pointer Events support in Safari (iOS 13+). Avoid "cleaning up" to inline `onclick` or removing pointer events without re-testing on iOS.
 - **Auth-dependent paths**: To test Firestore sync, sign in via the PT Tracker menu.
 - **Shared data updates**: Use `seed_firestore.html` to push JSON files to `pt_shared`.
 
+### Seeding shared data (`seed_firestore.html`)
+
+Use the seeder to update the shared Firestore documents and (optionally) migrate dosage values into a user runtime. The page is intended for admin use only.
+
+**Recommended order:**
+1. **Sign in** with a Firebase account that has write access.
+2. **Seed Shared Data** to write `exercise_library.json`, `exercise_roles.json`, vocab, and schemas into `pt_shared`.
+3. **Migrate PT Dosage → Runtime** if you need to copy shared dosage values into a specific user runtime library.
+4. **Reload Status** if you need a quick auth state sanity check.
+
+**When to use each action:**
+- **Seed Shared Data**: after updating JSON sources or schemas; required before expecting shared data to update in production.
+- **Migrate PT Dosage → Runtime**: when shared library dosage values should become patient runtime dosage (e.g., after changing default prescription values).
+- **Reload Status**: when the auth state seems stale or you have just signed in/out.
+
+**Options:**
+- **Overwrite existing dosage values**: replaces any runtime dosage values with shared ones. Use only when you intentionally want to reset patient-specific edits.
+- **Record migration entries in exercise history**: adds a history entry for each migrated dosage; disable if you want a clean history.
+
 ### Local vs deployed behavior
 
-- **Service worker** caches JSON and static assets. HTML is never cached, so refreshes must re-fetch HTML from server.
+- **Service worker** caches JSON and static assets. HTML is network-first with cached fallback for offline boot, so refreshes still fetch fresh HTML when online.
 - Local testing in `file://` may break Firebase imports due to module restrictions. Use a local server for Firebase behavior.
 
 ### Offline and sync considerations
@@ -360,7 +409,7 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 
 ### 2. Service worker caching strategy
 
-- HTML is **never cached** to avoid stale UI/logic.
+- HTML is **network-first** with a cached fallback for offline boot.
 - JSON is **network-first** so exercise/roles updates propagate.
 - Static assets are **cache-first** for offline reliability.
 
@@ -401,6 +450,31 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 
 **Cause:** user not authenticated or network offline.
 
+**Likely causes:**
+1. Firestore sessions not available (not authenticated).
+2. localStorage key mismatch or empty history.
+3. Exercise ID mismatch between library and roles.
+
+**Checks:**
+- Coverage debug panel (🐛) shows session counts and ID matches.
+- Confirm `pt_tracker_data` exists in localStorage.
+
+### Issue: V2 import reports checksum mismatch
+
+**Cause:** payload truncation or altered text (iOS Mail copy/paste is the most common culprit).
+
+**Fix:**
+- Use **Copy payload only** (no extra text) and paste the entire block.
+- Avoid manual editing of headers or payload.
+
+### Issue: Firestore queue never flushes
+
+**Cause:** user not authenticated or network offline.
+
+**Fix:**
+- Sign in via PT Tracker.
+- Confirm `navigator.onLine` is true.
+- Check `pt_firestore_queue` in localStorage to ensure queued items exist.
 **Fix:**
 - Sign in via PT Tracker.
 - Confirm `navigator.onLine` is true.
@@ -414,8 +488,23 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 - Bump `CACHE_NAME` in `sw-pt.js` after JSON updates.
 - Use `seed_firestore.html` to refresh Firestore shared data.
 
----
+### Issue: iOS Safari offline launch fails with “FetchEvent.respondWith received an error: Returned response is null.”
 
+**Cause (prior behavior):** the service worker did not cache HTML, so Safari could not fetch `pt_tracker.html` offline and returned no cached response.
+
+**What this means today:** the service worker now caches `pt_tracker.html`, `rehab_coverage.html`, and `pt_report.html` and falls back to cached HTML when offline, so a cold offline launch should succeed once the cache is populated.
+
+**Short-term requirement:** open the app once while online after a service worker update so the cached HTML is refreshed.
+
+**Long-term decision (Phase 1+):** consider a dedicated offline shell to avoid serving a potentially stale HTML document.
+
+### Issue: Shared data appears stale
+
+**Cause:** service worker cache and Firestore fallback precedence.
+
+**Fix:**
+- Bump `CACHE_NAME` in `sw-pt.js` after JSON updates.
+- Use `seed_firestore.html` to refresh Firestore shared data.
 ## Configuration
 
 ### Firebase
@@ -475,6 +564,12 @@ The architecture is intentionally staged. Each phase includes explicit non-goals
 - Replacing email-based V2 exchange entirely.
 - Removing JSON fallback for shared data.
 
+**Phase 1 readiness checklist (for this project):**
+1. **Conflict rules documented** (even if simple): e.g., “Firestore sessions are authoritative; local cache is only a fallback when unauthenticated.” Document the chosen precedence for runtime snapshots vs shared data, and use the same rule in all pages.
+2. **Offline auth behavior defined**: decide what the UI does when a cached Firebase auth session is unavailable offline (e.g., show read-only local cache vs require sign-in).
+3. **Offline launch validated**: PWA opens offline without a fatal `FetchEvent.respondWith` error (see Common Issues for the current iOS Safari failure mode).
+4. **Error surfacing**: users see a clear message for auth failures and sync queue failures.
+
 ### Phase 2 — Shared Data Firebase-First
 
 **Status:** Planned.
@@ -510,3 +605,28 @@ When debugging issues:
 3. ✅ Verify exercise IDs match between library and roles.
 4. ✅ Use Coverage view debug panel (🐛) to inspect data.
 5. ✅ On iOS, close PWA completely and reopen after cache changes.
+
+---
+
+## Development Notes
+
+- **2025-01-05** — **Problem:** iOS taps on "Next Set" were unreliable; duration-based exercises still prompted for reps in manual logging. **What I did:** Added an iOS touchend fallback for the Next Set button and updated the log-set flow to capture duration seconds instead of reps (stored as `secondsAchieved`/`secondsTarget`).
+
+## 2026-01-05 — Enforce pointer-based activation in PT Tracker
+
+**Symptom**
+Taps on interactive controls were unreliable in iOS Safari/PWA when inline `onclick` handlers were used.
+
+**Root Cause (as understood now)**
+`onclick` is not consistently delivered in iOS Safari/PWA, which caused some controls to miss activation.
+
+**Fix Applied**
+Replaced inline `onclick` usage in `pt/pt_tracker.html` with pointerup-based listeners and keyboard handling for non-button elements, using data attributes and centralized binding.
+
+1. ✅ Bump service worker version after data changes.
+2. ✅ Check localStorage keys match (`pt_tracker_data` not `session_history`).
+3. ✅ Verify exercise IDs match between library and roles.
+4. ✅ Use Coverage view debug panel (🐛) to inspect data.
+5. ✅ On iOS, close PWA completely and reopen after cache changes.
+**Notes / Risks**
+Do not reintroduce `onclick` or `click` handlers; the pointer-based bindings are required for iOS PWA reliability across desktop and mobile.

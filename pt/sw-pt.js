@@ -1,5 +1,5 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.22.18';
+const CACHE_NAME = 'pt-tracker-v1.22.23';
 const libraryUrl = new URL('exercise_library.json', self.location).pathname;
 const rolesUrl = new URL('exercise_roles.json', self.location).pathname;
 const vocabUrl = new URL('exercise_roles_vocabulary.json', self.location).pathname;
@@ -8,9 +8,15 @@ const exerciseSchemaUrl = new URL('schema/exercise_file.schema.json', self.locat
 const sharedStylesUrl = new URL('shared-styles.css', self.location).pathname;
 const exerciseFormModuleUrl = new URL('shared/exercise_form_module.js', self.location).pathname;
 const scopeUrl = new URL('./', self.location).pathname;
-// Cache core assets needed for offline use. Do not cache HTML. 
+// Cache core assets needed for offline use. Cache key HTML pages for offline boot.
 const urlsToCache = [
   scopeUrl,
+  new URL('pt_tracker.html', self.location).pathname,
+  new URL('rehab_coverage.html', self.location).pathname,
+  new URL('pt_report.html', self.location).pathname,
+  new URL('pt_view.html', self.location).pathname,
+  new URL('exercise_editor.html', self.location).pathname,
+  new URL('seed_firestore.html', self.location).pathname,
   libraryUrl,
   rolesUrl,
   vocabUrl,
@@ -48,13 +54,14 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // NEVER cache HTML files - always fetch fresh
-  // This ensures PT tracker gets updates and localStorage persists
+  // Fetch HTML from network first, but fall back to cached HTML when offline.
   if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname === '/pt_tracker.html') {
     event.respondWith(
       fetch(event.request).catch(() => {
-        // Only fall back to cache if completely offline AND we have it
-        return caches.match(event.request);
+        // Fall back to cached HTML when offline (or pt_tracker as a last resort)
+        return caches.match(event.request).then(response => {
+          return response || caches.match(new URL('pt_tracker.html', self.location).pathname);
+        });
       })
     );
     return;
