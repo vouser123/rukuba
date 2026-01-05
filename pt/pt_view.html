@@ -766,11 +766,15 @@
                 const date = new Date(session.date);
                 const timeAgo = getTimeAgo(date);
                 const setsCount = session.sets ? session.sets.length : 0;
+                const hasNotes = hasRecentNotes(session.exerciseId);
 
                 html += `
                     <div class="exercise-card" data-action="showExerciseHistory" data-action-arg="${session.exerciseId}" style="cursor: pointer;">
                         <div class="exercise-card-content">
-                            <div class="exercise-card-title">${session.exerciseName || session.exerciseId}</div>
+                            <div class="exercise-card-title">
+                                ${session.exerciseName || session.exerciseId}
+                                ${hasNotes ? '<span style="color: var(--ios-blue); margin-left: 6px;" title="Has notes">📝</span>' : ''}
+                            </div>
                             <div class="exercise-card-meta">
                                 ${timeAgo} • ${setsCount} set${setsCount !== 1 ? 's' : ''} completed
                             </div>
@@ -818,11 +822,15 @@
                 const lastSession = ex.sessions[ex.sessions.length - 1];
                 const lastDate = new Date(lastSession.date);
                 const timeAgo = getTimeAgo(lastDate);
+                const hasNotes = hasRecentNotes(ex.id);
 
                 html += `
                     <div class="exercise-card" data-action="showExerciseHistory" data-action-arg="${ex.id}" style="cursor: pointer;">
                         <div class="exercise-card-content">
-                            <div class="exercise-card-title">${ex.name}</div>
+                            <div class="exercise-card-title">
+                                ${ex.name}
+                                ${hasNotes ? '<span style="color: var(--ios-blue); margin-left: 6px;" title="Has notes">📝</span>' : ''}
+                            </div>
                             <div class="exercise-card-meta">
                                 ${ex.sessions.length} sessions • ${ex.totalSets} sets • Last: ${timeAgo}
                             </div>
@@ -898,6 +906,27 @@
             if (days < 7) return `${days} days ago`;
 
             return date.toLocaleDateString();
+        }
+
+        function hasRecentNotes(exerciseId) {
+            const sessions = patientData.sessions || [];
+            const fourteenDaysAgo = new Date();
+            fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+            return sessions.some(session => {
+                if (session.exerciseId !== exerciseId) return false;
+                if (new Date(session.date) < fourteenDaysAgo) return false;
+
+                // Check session notes
+                if (session.notes && session.notes.trim()) return true;
+
+                // Check set notes
+                if (session.sets && session.sets.some(set => set.notes && set.notes.trim())) {
+                    return true;
+                }
+
+                return false;
+            });
         }
 
         // Exercise History Modal
