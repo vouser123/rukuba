@@ -1740,6 +1740,15 @@
             }
         }
 
+        async function ensureAuthPersistence(rememberMe) {
+            const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+            try {
+                await setPersistence(auth, persistence);
+            } catch (error) {
+                console.warn('[Auth] Persistence unavailable; continuing with default persistence.', error);
+            }
+        }
+
         async function handleMenuSignOut() {
             try {
                 await signOut(auth);
@@ -1772,12 +1781,9 @@
                 return;
             }
 
-            try {
-                // Set persistence based on remember me
-                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
-                await setPersistence(auth, persistence);
+            await ensureAuthPersistence(rememberMe);
 
-                // Sign in
+            try {
                 await signInWithEmailAndPassword(auth, email, password);
                 hideAuthModal();
                 console.log('[Auth] Signed in successfully');
@@ -1810,12 +1816,9 @@
                 return;
             }
 
-            try {
-                // Set persistence based on remember me
-                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
-                await setPersistence(auth, persistence);
+            await ensureAuthPersistence(rememberMe);
 
-                // Create account
+            try {
                 await createUserWithEmailAndPassword(auth, email, password);
                 hideAuthModal();
                 console.log('[Auth] Account created successfully');
