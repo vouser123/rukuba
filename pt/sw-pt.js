@@ -1,5 +1,5 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.22.30';
+const CACHE_NAME = 'pt-tracker-v1.22.31';
 const sharedStylesUrl = new URL('shared-styles.css', self.location).pathname;
 const exerciseFormModuleUrl = new URL('shared/exercise_form_module.js', self.location).pathname;
 const scopeUrl = new URL('./', self.location).pathname;
@@ -12,6 +12,12 @@ const urlsToCache = [
   new URL('pt_view.html', self.location).pathname,
   new URL('exercise_editor.html', self.location).pathname,
   new URL('seed_firestore.html', self.location).pathname,
+  new URL('exercise_library.json', self.location).pathname,
+  new URL('exercise_library_vocabulary.json', self.location).pathname,
+  new URL('exercise_roles.json', self.location).pathname,
+  new URL('exercise_roles_vocabulary.json', self.location).pathname,
+  new URL('schema/exercise_file.schema.json', self.location).pathname,
+  new URL('schema/exercise_roles.schema.json', self.location).pathname,
   sharedStylesUrl,
   exerciseFormModuleUrl
 ];
