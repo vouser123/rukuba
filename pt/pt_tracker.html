@@ -208,7 +208,15 @@
         }
 
         /* Force cursor pointer on all interactive elements */
-        button, [onclick], .pill, .history-item {
+        button,
+        [data-action],
+        [data-actions],
+        [data-href],
+        [data-reload],
+        [data-open-url],
+        [data-click-target],
+        .pill,
+        .history-item {
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
@@ -678,21 +686,21 @@
             <div id="streak-display" style="font-size: 14px; font-weight: 600; color: var(--ios-orange);"></div>
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div class="exercise-name" id="exercise-name" onclick="showQuickSwitcher()" style="cursor: pointer;">No Exercise Selected ▾</div>
+            <div class="exercise-name" id="exercise-name" data-action="showQuickSwitcher" role="button" tabindex="0" style="cursor: pointer;">No Exercise Selected ▾</div>
             <div style="display: flex; gap: 4px;">
-                <button onclick="showWeeklyStats()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📈</button>
-                <button onclick="showExerciseDetailsModal()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
-                <button onclick="toggleHamburgerMenu()" style="background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 4px 8px;">☰</button>
+                <button data-action="showWeeklyStats" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📈</button>
+                <button data-action="showExerciseDetailsModal" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
+                <button data-action="toggleHamburgerMenu" style="background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 4px 8px;">☰</button>
             </div>
         </div>
     </div>
 
     <!-- Hamburger Menu Overlay & Slide-out -->
-    <div id="hamburger-overlay" onclick="toggleHamburgerMenu()" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9998;"></div>
+    <div id="hamburger-overlay" data-action="toggleHamburgerMenu" role="button" tabindex="0" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9998;"></div>
     <div id="hamburger-menu" style="display: none; position: fixed; top: 0; right: 0; bottom: 0; width: 280px; background: var(--bg-secondary); z-index: 9999; box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3); overflow-y: auto;">
         <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 18px; font-weight: 600;">Menu</div>
-            <button onclick="toggleHamburgerMenu()" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Close</button>
+            <button data-action="toggleHamburgerMenu" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Close</button>
         </div>
         <div style="padding: 0;">
             <!-- Auth Status -->
@@ -714,31 +722,31 @@
                 </div>
             </div>
 
-            <div onclick="window.location.href='pt_report.html'" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+            <div data-href="pt_report.html" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">✏️</span>
                 <span>PT Editor Mode</span>
             </div>
-            <div onclick="window.location.href='rehab_coverage.html'" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+            <div data-href="rehab_coverage.html" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">📊</span>
                 <span>Coverage View</span>
             </div>
-            <div onclick="showSettings(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+            <div data-actions="showSettings,toggleHamburgerMenu" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">⚙️</span>
                 <span>Settings</span>
             </div>
-            <div onclick="exportForPT(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+            <div data-actions="exportForPT,toggleHamburgerMenu" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">🏥</span>
                 <span>Export for PT</span>
             </div>
-            <div onclick="importPTModifications(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+            <div data-actions="importPTModifications,toggleHamburgerMenu" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">📨</span>
                 <span>Import PT Modifications</span>
             </div>
-            <div onclick="showLibraryDiagnostics(); toggleHamburgerMenu();" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+            <div data-actions="showLibraryDiagnostics,toggleHamburgerMenu" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">🧪</span>
                 <span>Library Debug</span>
             </div>
-            <div onclick="location.reload()" style="padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+            <div data-reload="true" role="button" tabindex="0" style="padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">🔄</span>
                 <span>Reload</span>
             </div>
@@ -755,7 +763,7 @@
                     Snapshot of local + shared library sources to explain count differences.
                 </div>
                 <div id="library-debug-output" style="white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; color: var(--text-primary); background: var(--bg-secondary); padding: 12px; border-radius: 10px;"></div>
-                <button class="modal-cancel" style="margin-top: 16px; width: 100%;" onclick="closeLibraryDiagnostics()">Close</button>
+                <button class="modal-cancel" style="margin-top: 16px; width: 100%;" data-action="closeLibraryDiagnostics">Close</button>
             </div>
         </div>
     </div>
@@ -764,7 +772,7 @@
     <div id="session-plan-container" style="padding: 12px 15px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: none;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
             <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Today's Session</div>
-            <button onclick="endSessionEarly()" style="background: transparent; border: none; color: var(--ios-red); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 8px;">End Session</button>
+            <button data-action="endSessionEarly" style="background: transparent; border: none; color: var(--ios-red); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 8px;">End Session</button>
         </div>
         <div id="session-plan-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
     </div>
@@ -776,7 +784,7 @@
             <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
                 The tracker scripts didn’t initialize. Buttons may not work. Try reloading the page.
             </div>
-            <button class="control-btn btn-primary" onclick="location.reload()">Reload</button>
+            <button class="control-btn btn-primary" data-reload="true">Reload</button>
         </div>
     </div>
 
@@ -793,7 +801,7 @@
 
         <!-- Counter Mode -->
         <div id="counter-mode" class="hidden">
-            <div class="counter-display" id="counter-display" onclick="incrementCounter()" aria-live="assertive">0</div>
+            <div class="counter-display" id="counter-display" data-action="incrementCounter" role="button" tabindex="0" aria-live="assertive">0</div>
             <div class="target-info" id="target-info">Target: 10 reps</div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
@@ -809,32 +817,32 @@
                 <div class="progress-bar" id="timer-progress-bar"></div>
             </div>
             <div class="controls" style="margin-bottom: 20px;">
-                <button class="control-btn btn-primary" id="timer-start-btn" onclick="startTimer()">Start Timer</button>
-                <button class="control-btn btn-danger hidden" id="timer-stop-btn" onclick="stopTimer()">Pause</button>
-                <button class="control-btn btn-secondary hidden" id="timer-reset-btn" onclick="resetTimer()">Reset</button>
+                <button class="control-btn btn-primary" id="timer-start-btn" data-action="startTimer">Start Timer</button>
+                <button class="control-btn btn-danger hidden" id="timer-stop-btn" data-action="stopTimer">Pause</button>
+                <button class="control-btn btn-secondary hidden" id="timer-reset-btn" data-action="resetTimer">Reset</button>
             </div>
             <!-- Log partial rep (only shown when paused) -->
             <div class="controls" id="timer-log-controls" style="margin-bottom: 10px; display: none;">
-                <button class="control-btn btn-warning" onclick="logPartialTimerRep()" style="font-size: 13px; padding: 8px;">⏱️ Log This Time & Next Rep</button>
+                <button class="control-btn btn-warning" data-action="logPartialTimerRep" style="font-size: 13px; padding: 8px;">⏱️ Log This Time & Next Rep</button>
             </div>
         </div>
 
         <div class="controls hidden" id="main-controls">
-            <button class="control-btn btn-secondary" onclick="previousSet()">Previous</button>
-            <button class="control-btn btn-primary" onclick="showLogSetModal()">Log Set</button>
-            <button class="control-btn btn-success" id="next-set-btn" onclick="showNextSetModal()">Next Set</button>
+            <button class="control-btn btn-secondary" data-action="previousSet">Previous</button>
+            <button class="control-btn btn-primary" data-action="showLogSetModal">Log Set</button>
+            <button class="control-btn btn-success" id="next-set-btn" data-action="showNextSetModal">Next Set</button>
         </div>
     </div>
 
     <div class="footer">
-        <button class="btn-secondary" onclick="showExerciseList()">Exercises</button>
-        <button class="btn-secondary" onclick="showHistory()">History</button>
-        <button class="btn-secondary" onclick="window.location.href='rehab_coverage.html'">Coverage</button>
-        <button class="btn-secondary" onclick="togglePocketMode(true)">Pocket Tap</button>
+        <button class="btn-secondary" data-action="showExerciseList">Exercises</button>
+        <button class="btn-secondary" data-action="showHistory">History</button>
+        <button class="btn-secondary" data-href="rehab_coverage.html">Coverage</button>
+        <button class="btn-secondary" data-action="togglePocketMode" data-action-arg-bool="true">Pocket Tap</button>
     </div>
 
     <!-- Exercise Selection Modal -->
-    <div class="modal" id="exercise-modal" onclick="if(event.target === this) closeExerciseModal()">
+    <div class="modal" id="exercise-modal" data-action="closeExerciseModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Select Exercise</div>
@@ -853,14 +861,14 @@
                 <input type="number" class="modal-input" id="target-input" placeholder="Target (seconds or distance)" value="10">
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeExerciseModal()">Cancel</button>
-                <button class="modal-save" onclick="saveExercise()">Start</button>
+                <button class="modal-cancel" data-action="closeExerciseModal">Cancel</button>
+                <button class="modal-save" data-action="saveExercise">Start</button>
             </div>
         </div>
     </div>
 
     <!-- Exercise List Modal -->
-    <div class="modal" id="exercise-list-modal" onclick="if(event.target === this) closeExerciseList()">
+    <div class="modal" id="exercise-list-modal" data-action="closeExerciseList" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">My Exercises</div>
@@ -868,12 +876,12 @@
             <!-- Sticky Actions at Top -->
             <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); background: var(--modal-bg);">
                 <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                    <button class="control-btn btn-primary" onclick="showPlanSessionModal()" style="flex: 1; font-size: 14px;">📅 Plan Session</button>
-                    <button class="control-btn btn-primary" onclick="showLibraryBrowser()" style="flex: 1; font-size: 14px;">📚 Browse Library</button>
+                    <button class="control-btn btn-primary" data-action="showPlanSessionModal" style="flex: 1; font-size: 14px;">📅 Plan Session</button>
+                    <button class="control-btn btn-primary" data-action="showLibraryBrowser" style="flex: 1; font-size: 14px;">📚 Browse Library</button>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="control-btn btn-secondary" onclick="showArchivedExercises()" style="flex: 1; font-size: 13px;" id="archived-btn">📦 Archived</button>
-                    <button class="control-btn btn-secondary" onclick="showDataBackup()" style="flex: 1; font-size: 13px;">💾 Data</button>
+                    <button class="control-btn btn-secondary" data-action="showArchivedExercises" style="flex: 1; font-size: 13px;" id="archived-btn">📦 Archived</button>
+                    <button class="control-btn btn-secondary" data-action="showDataBackup" style="flex: 1; font-size: 13px;">💾 Data</button>
                 </div>
             </div>
 
@@ -888,7 +896,7 @@
     </div>
 
     <!-- Form Parameters Modal (shown after completing all sets) -->
-    <div class="modal" id="form-params-modal" onclick="if(event.target === this) closeFormParamsModal()">
+    <div class="modal" id="form-params-modal" data-action="closeFormParamsModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Exercise Parameters</div>
@@ -899,8 +907,8 @@
                 <div id="form-params-fields"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="skipFormParams()">Skip</button>
-                <button class="modal-save" onclick="saveFormParams()">Save & Continue</button>
+                <button class="modal-cancel" data-action="skipFormParams">Skip</button>
+                <button class="modal-save" data-action="saveFormParams">Save & Continue</button>
             </div>
         </div>
     </div>
@@ -936,7 +944,7 @@
         </div>
     </div>
 
-    <div class="modal" id="session-notes-modal" onclick="if(event.target === this) closeSessionNotesModal()">
+    <div class="modal" id="session-notes-modal" data-action="closeSessionNotesModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Session Notes (Optional)</div>
@@ -944,14 +952,14 @@
                 <textarea class="modal-input" id="session-notes" placeholder="How did it feel? Any pain? Progress notes..." style="min-height: 100px; resize: vertical;"></textarea>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="confirmSkipNotes()">Skip Notes</button>
-                <button class="modal-save" onclick="saveSessionWithNotes(document.getElementById('session-notes').value)">Save & Finish</button>
+                <button class="modal-cancel" data-action="confirmSkipNotes">Skip Notes</button>
+                <button class="modal-save" data-action="saveSessionWithNotes" data-action-arg-source="#session-notes">Save & Finish</button>
             </div>
         </div>
     </div>
 
     <!-- Log Set Modal -->
-    <div class="modal" id="log-set-modal" onclick="if(event.target === this) closeLogSetModal()">
+    <div class="modal" id="log-set-modal" data-action="closeLogSetModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title" id="log-set-title">Log Set</div>
@@ -972,14 +980,14 @@
                 </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeLogSetModal()">Cancel</button>
-                <button class="modal-save" onclick="saveLoggedSet()">Save</button>
+                <button class="modal-cancel" data-action="closeLogSetModal">Cancel</button>
+                <button class="modal-save" data-action="saveLoggedSet">Save</button>
             </div>
         </div>
     </div>
 
     <!-- Next Set Confirmation Modal -->
-    <div class="modal" id="next-set-modal" onclick="if(event.target === this) closeNextSetModal()">
+    <div class="modal" id="next-set-modal" data-action="closeNextSetModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Next Set</div>
@@ -988,15 +996,15 @@
                 <div style="font-size: 15px; color: var(--text-secondary);" id="next-set-summary"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeNextSetModal()">Cancel</button>
-                <button class="modal-save" onclick="editNextSet()">Edit</button>
-                <button class="modal-save" onclick="confirmNextSet()">Log & Next</button>
+                <button class="modal-cancel" data-action="closeNextSetModal">Cancel</button>
+                <button class="modal-save" data-action="editNextSet">Edit</button>
+                <button class="modal-save" data-action="confirmNextSet">Log & Next</button>
             </div>
         </div>
     </div>
 
     <!-- Exercise Details Modal -->
-    <div class="modal" id="exercise-details-modal" onclick="if(event.target === this) closeExerciseDetailsModal()">
+    <div class="modal" id="exercise-details-modal" data-action="closeExerciseDetailsModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title" id="exercise-details-title">Exercise Details</div>
@@ -1022,8 +1030,8 @@
                 <input type="number" class="modal-input" id="exercise-rest-seconds" placeholder="Rest between sets (seconds, optional)" min="0">
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeExerciseDetailsModal()">Cancel</button>
-                <button class="modal-save" onclick="saveExerciseDetails()">Save</button>
+                <button class="modal-cancel" data-action="closeExerciseDetailsModal">Cancel</button>
+                <button class="modal-save" data-action="saveExerciseDetails">Save</button>
             </div>
         </div>
     </div>
@@ -1041,14 +1049,14 @@
                 </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="skipRest()">Skip Rest</button>
-                <button class="modal-save" onclick="closeRestTimer()">Continue</button>
+                <button class="modal-cancel" data-action="skipRest">Skip Rest</button>
+                <button class="modal-save" data-action="closeRestTimer">Continue</button>
             </div>
         </div>
     </div>
 
     <!-- Quick Exercise Switcher Modal -->
-    <div class="modal" id="quick-switcher-modal" onclick="if(event.target === this) closeQuickSwitcher()">
+    <div class="modal" id="quick-switcher-modal" data-action="closeQuickSwitcher" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Switch Exercise</div>
@@ -1060,7 +1068,7 @@
     </div>
 
     <!-- History Modal -->
-    <div class="modal" id="history-modal" onclick="if(event.target === this) closeHistoryModal()">
+    <div class="modal" id="history-modal" data-action="closeHistoryModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">History</div>
@@ -1074,16 +1082,16 @@
                     <div class="history-list" id="session-history-list"></div>
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <button class="control-btn btn-secondary" onclick="exportWeeklySummary()" style="flex: 1;">📈 7-Day Summary</button>
-                    <button class="control-btn btn-primary" onclick="exportForPT()" style="flex: 1;">Full Report</button>
-                    <button class="control-btn btn-secondary" onclick="reloadApp()" style="flex: 1;">Reload app (use after updates)</button>
+                    <button class="control-btn btn-secondary" data-action="exportWeeklySummary" style="flex: 1;">📈 7-Day Summary</button>
+                    <button class="control-btn btn-primary" data-action="exportForPT" style="flex: 1;">Full Report</button>
+                    <button class="control-btn btn-secondary" data-action="reloadApp" style="flex: 1;">Reload app (use after updates)</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Edit Session Modal -->
-    <div class="modal" id="edit-session-modal" onclick="if(event.target === this) closeEditSession()">
+    <div class="modal" id="edit-session-modal" data-action="closeEditSession" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Edit Session</div>
@@ -1104,7 +1112,7 @@
                 <div style="margin-bottom: 20px;">
                     <label style="font-weight: 600; margin-bottom: 8px; display: block;">Sets</label>
                     <div id="edit-session-sets-container"></div>
-                    <button type="button" class="modal-cancel" onclick="addSetToEditSession()" style="margin-top: 8px; font-size: 13px; padding: 6px 12px;">+ Add Set</button>
+                    <button type="button" class="modal-cancel" data-action="addSetToEditSession" style="margin-top: 8px; font-size: 13px; padding: 6px 12px;">+ Add Set</button>
                 </div>
 
                 <!-- Notes -->
@@ -1115,18 +1123,18 @@
 
                 <!-- Delete Section -->
                 <div style="padding-top: 12px; border-top: 1px solid var(--border-color);">
-                    <button type="button" class="modal-cancel" onclick="deleteSession()" style="background: var(--ios-red); color: white; width: 100%;">🗑 Delete Session</button>
+                    <button type="button" class="modal-cancel" data-action="deleteSession" style="background: var(--ios-red); color: white; width: 100%;">🗑 Delete Session</button>
                 </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeEditSession()">Cancel</button>
-                <button class="modal-save" onclick="saveEditedSession()">Save Changes</button>
+                <button class="modal-cancel" data-action="closeEditSession">Cancel</button>
+                <button class="modal-save" data-action="saveEditedSession">Save Changes</button>
             </div>
         </div>
     </div>
 
     <!-- Body Heatmap Modal - REPLACED BY REHAB COVERAGE VIEW
-    <div class="modal" id="body-heatmap-modal" onclick="if(event.target === this) closeBodyHeatmap()">
+    <div class="modal" id="body-heatmap-modal" data-action="closeBodyHeatmap" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Body Parts Worked (Last 7 Days)</div>
@@ -1160,7 +1168,7 @@
     -->
 
     <!-- All Sessions Modal (grouped by workout session) -->
-    <div class="modal" id="all-sessions-modal" onclick="if(event.target === this) closeAllSessions()">
+    <div class="modal" id="all-sessions-modal" data-action="closeAllSessions" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Complete Workout Sessions</div>
@@ -1171,13 +1179,13 @@
                 <div id="all-sessions-list"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeAllSessions()">Close</button>
+                <button class="modal-cancel" data-action="closeAllSessions">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Weekly Stats Modal -->
-    <div class="modal" id="weekly-stats-modal" onclick="if(event.target === this) closeWeeklyStats()">
+    <div class="modal" id="weekly-stats-modal" data-action="closeWeeklyStats" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Weekly Stats</div>
@@ -1188,14 +1196,14 @@
                 <div id="weekly-adherence"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeWeeklyStats()">Close</button>
-                <button class="modal-save" onclick="showAllSessions()">View All Sessions</button>
+                <button class="modal-cancel" data-action="closeWeeklyStats">Close</button>
+                <button class="modal-save" data-action="showAllSessions">View All Sessions</button>
             </div>
         </div>
     </div>
 
     <!-- Exercise Progress Modal -->
-    <div class="modal" id="exercise-progress-modal" onclick="if(event.target === this) closeExerciseProgress()">
+    <div class="modal" id="exercise-progress-modal" data-action="closeExerciseProgress" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title" id="progress-modal-title">Exercise Progress</div>
@@ -1205,13 +1213,13 @@
                 <div id="progress-sessions" style="margin-bottom: 16px;"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeExerciseProgress()">Close</button>
+                <button class="modal-cancel" data-action="closeExerciseProgress">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Exercise Library Browser Modal -->
-    <div class="modal" id="library-browser-modal" onclick="if(event.target === this) closeLibraryBrowser()">
+    <div class="modal" id="library-browser-modal" data-action="closeLibraryBrowser" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Exercise Library</div>
@@ -1229,14 +1237,14 @@
                 <div class="history-list" id="library-exercises-list" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeLibraryBrowser()">Close</button>
-                <button class="modal-save" id="bulk-import-btn" onclick="bulkImportExercises()" style="display: none;">Import Selected</button>
+                <button class="modal-cancel" data-action="closeLibraryBrowser">Close</button>
+                <button class="modal-save" id="bulk-import-btn" data-action="bulkImportExercises" style="display: none;">Import Selected</button>
             </div>
         </div>
     </div>
 
     <!-- Exercise Detail View Modal -->
-    <div class="modal" id="exercise-detail-modal" onclick="if(event.target === this) closeExerciseDetail()">
+    <div class="modal" id="exercise-detail-modal" data-action="closeExerciseDetail" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title" id="exercise-detail-title">Exercise Details</div>
@@ -1244,44 +1252,44 @@
                 <div id="exercise-detail-content" style="max-height: 500px; overflow-y: auto;"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeExerciseDetail()">Back</button>
-                <button class="modal-save" id="import-exercise-btn" onclick="importLibraryExercise()">Import to My Exercises</button>
+                <button class="modal-cancel" data-action="closeExerciseDetail">Back</button>
+                <button class="modal-save" id="import-exercise-btn" data-action="importLibraryExercise">Import to My Exercises</button>
             </div>
         </div>
     </div>
 
     <!-- Data / Backup Modal -->
-    <div class="modal" id="data-backup-modal" onclick="if(event.target === this) closeDataBackup()">
+    <div class="modal" id="data-backup-modal" data-action="closeDataBackup" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Data / Backup</div>
             <div class="modal-form">
                 <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 16px;">Export your data to save a backup or commit to GitHub.</div>
-                <button class="control-btn btn-primary" onclick="exportAllData()" style="width: 100%; margin-bottom: 12px; font-weight: 600;">💾 Export All Data</button>
+                <button class="control-btn btn-primary" data-action="exportAllData" style="width: 100%; margin-bottom: 12px; font-weight: 600;">💾 Export All Data</button>
                 <div style="font-size: 12px; color: var(--ios-gray); margin: -8px 0 16px 0; text-align: center;">Single file with library, history, and version</div>
-                <button class="control-btn btn-secondary" onclick="exportExerciseLibrary()" style="width: 100%; margin-bottom: 12px;">📚 Export Exercise Library</button>
-                <button class="control-btn btn-secondary" onclick="exportExerciseHistory()" style="width: 100%; margin-bottom: 20px;">📊 Export Exercise History</button>
+                <button class="control-btn btn-secondary" data-action="exportExerciseLibrary" style="width: 100%; margin-bottom: 12px;">📚 Export Exercise Library</button>
+                <button class="control-btn btn-secondary" data-action="exportExerciseHistory" style="width: 100%; margin-bottom: 20px;">📊 Export Exercise History</button>
 
                 <div style="border-top: 1px solid var(--ios-separator); padding-top: 16px; margin-top: 4px;">
                     <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Restore from backup file</div>
                     <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="handleImportFile(event)">
-                    <button class="control-btn btn-secondary" onclick="document.getElementById('import-file-input').click()" style="width: 100%; margin-bottom: 12px;">📥 Import Data</button>
+                    <button class="control-btn btn-secondary" data-click-target="import-file-input" style="width: 100%; margin-bottom: 12px;">📥 Import Data</button>
                 </div>
 
                 <div style="border-top: 1px solid var(--ios-separator); padding-top: 16px; margin-top: 4px;">
                     <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Advanced: Schema-driven exercise editor</div>
-                    <button class="control-btn btn-primary" onclick="window.open('./exercise_editor.html', '_blank')" style="width: 100%;">🛠️ Open Exercise Editor</button>
+                    <button class="control-btn btn-primary" data-open-url="./exercise_editor.html" data-open-target="_blank" style="width: 100%;">🛠️ Open Exercise Editor</button>
                     <div style="font-size: 11px; color: var(--ios-gray); margin-top: 8px; text-align: center;">Create/edit exercises with full schema validation</div>
                 </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeDataBackup()">Close</button>
+                <button class="modal-cancel" data-action="closeDataBackup">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Settings Modal -->
-    <div class="modal" id="settings-modal" onclick="if(event.target === this) closeSettings()">
+    <div class="modal" id="settings-modal" data-action="closeSettings" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">⚙️ Settings</div>
@@ -1291,26 +1299,26 @@
                 <div style="margin-bottom: 24px;">
                     <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; padding-left: 8px;">📊 DATA & BACKUP</div>
                     <div style="background: var(--bg-primary); border-radius: 12px; overflow: hidden;">
-                        <button onclick="exportAllData()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button data-action="exportAllData" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>💾 Export All Data</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">›</span>
                             </div>
                             <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Library + history + version</div>
                         </button>
-                        <button onclick="exportExerciseLibrary()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button data-action="exportExerciseLibrary" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>📚 Export Library Only</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">›</span>
                             </div>
                         </button>
-                        <button onclick="exportExerciseHistory()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button data-action="exportExerciseHistory" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>📊 Export History Only</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">›</span>
                             </div>
                         </button>
-                        <button onclick="document.getElementById('import-file-input').click()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button data-click-target="import-file-input" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>📥 Import Data</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">›</span>
@@ -1324,14 +1332,14 @@
                 <div style="margin-bottom: 24px;">
                     <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; padding-left: 8px;">💪 EXERCISE LIBRARY</div>
                     <div style="background: var(--bg-primary); border-radius: 12px; overflow: hidden;">
-                        <button onclick="closeSettings(); showLibraryBrowser();" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button data-actions="closeSettings,showLibraryBrowser" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>📚 Browse Library</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">›</span>
                             </div>
                             <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Professional PT exercises</div>
                         </button>
-                        <button onclick="window.open('./exercise_editor.html', '_blank')" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button data-open-url="./exercise_editor.html" data-open-target="_blank" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>🛠️ Exercise Editor</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">↗</span>
@@ -1376,7 +1384,7 @@
                                 <span style="color: var(--ios-gray); font-size: 13px;" id="app-version-display">v1.4.0</span>
                             </div>
                         </div>
-                        <button onclick="reloadApp()" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button data-action="reloadApp" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>🔄 Reload App</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">›</span>
@@ -1400,13 +1408,13 @@
 
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeSettings()">Close</button>
+                <button class="modal-cancel" data-action="closeSettings">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Dosage Prompt Modal -->
-    <div class="modal" id="dosage-prompt-modal" onclick="if(event.target === this) closeDosagePrompt()">
+    <div class="modal" id="dosage-prompt-modal" data-action="closeDosagePrompt" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">💊 Set Initial Dosage</div>
@@ -1437,14 +1445,14 @@
                 </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeDosagePrompt()">Cancel</button>
-                <button class="modal-save" onclick="confirmDosage()">Add to My Program</button>
+                <button class="modal-cancel" data-action="closeDosagePrompt">Cancel</button>
+                <button class="modal-save" data-action="confirmDosage">Add to My Program</button>
             </div>
         </div>
     </div>
 
     <!-- Edit Dosage Modal -->
-    <div class="modal" id="edit-dosage-modal" onclick="if(event.target === this) closeEditDosage()">
+    <div class="modal" id="edit-dosage-modal" data-action="closeEditDosage" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">✏️ Edit Dosage</div>
@@ -1472,14 +1480,14 @@
                 </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeEditDosage()">Cancel</button>
-                <button class="modal-save" onclick="saveEditedDosage()">Save Changes</button>
+                <button class="modal-cancel" data-action="closeEditDosage">Cancel</button>
+                <button class="modal-save" data-action="saveEditedDosage">Save Changes</button>
             </div>
         </div>
     </div>
 
     <!-- Plan Session Modal -->
-    <div class="modal" id="plan-session-modal" onclick="if(event.target === this) closePlanSessionModal()">
+    <div class="modal" id="plan-session-modal" data-action="closePlanSessionModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">Plan Today's Session</div>
@@ -1488,24 +1496,24 @@
                 <div id="plan-session-list" class="history-list" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closePlanSessionModal()">Cancel</button>
-                <button class="modal-save" id="start-session-btn" onclick="startPlannedSession()">Start Session</button>
+                <button class="modal-cancel" data-action="closePlanSessionModal">Cancel</button>
+                <button class="modal-save" id="start-session-btn" data-action="startPlannedSession">Start Session</button>
             </div>
         </div>
     </div>
 
     <!-- iOS Action Sheet -->
-    <div class="action-sheet-backdrop" id="action-sheet-backdrop" onclick="hideActionSheet()"></div>
+    <div class="action-sheet-backdrop" id="action-sheet-backdrop" data-action="hideActionSheet" role="button" tabindex="0"></div>
     <div class="action-sheet" id="action-sheet">
         <div class="action-sheet-content">
             <div class="action-sheet-message" id="action-sheet-message"></div>
-            <button class="action-sheet-button destructive" id="action-sheet-confirm" onclick="confirmActionSheet()">Confirm</button>
+            <button class="action-sheet-button destructive" id="action-sheet-confirm" data-action="confirmActionSheet">Confirm</button>
         </div>
-        <button class="action-sheet-cancel" onclick="hideActionSheet()">Cancel</button>
+        <button class="action-sheet-cancel" data-action="hideActionSheet">Cancel</button>
     </div>
 
     <!-- Export for PT Modal (Email) -->
-    <div class="modal" id="export-pt-modal" onclick="if(event.target === this) closeExportPTModal()">
+    <div class="modal" id="export-pt-modal" data-action="closeExportPTModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">📤 Send to PT</div>
@@ -1517,15 +1525,15 @@
                 <textarea class="modal-input" id="pt-note" placeholder="Optional: Add a note for your PT" style="min-height: 80px; resize: vertical;"></textarea>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeExportPTModal()">Cancel</button>
-                <button class="modal-save" onclick="copyPtPayloadOnly()">📋 Copy Payload Only</button>
-                <button class="modal-save" onclick="sendToPT()">📧 Send Email</button>
+                <button class="modal-cancel" data-action="closeExportPTModal">Cancel</button>
+                <button class="modal-save" data-action="copyPtPayloadOnly">📋 Copy Payload Only</button>
+                <button class="modal-save" data-action="sendToPT">📧 Send Email</button>
             </div>
         </div>
     </div>
 
     <!-- Import PT Modifications Modal (Paste) -->
-    <div class="modal" id="import-pt-modal" onclick="if(event.target === this) closeImportPTModal()">
+    <div class="modal" id="import-pt-modal" data-action="closeImportPTModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
             <div class="modal-drag-handle"></div>
             <div class="modal-title">📨 Import from PT</div>
@@ -1547,15 +1555,15 @@
                 "></textarea>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeImportPTModal()">Cancel</button>
-                <button class="modal-save" onclick="processPastedImport()">Import</button>
+                <button class="modal-cancel" data-action="closeImportPTModal">Cancel</button>
+                <button class="modal-save" data-action="processPastedImport">Import</button>
             </div>
         </div>
     </div>
 
     <!-- Eyes-free pocket tap overlay -->
-    <div class="pocket-overlay" id="pocket-overlay" onclick="handlePocketTap()" aria-live="assertive">
-        <button class="pocket-close" onclick="togglePocketMode(false); event.stopPropagation();" aria-label="Exit Pocket Mode">✕</button>
+    <div class="pocket-overlay" id="pocket-overlay" data-action="handlePocketTap" role="button" tabindex="0" aria-live="assertive">
+        <button class="pocket-close" data-action="togglePocketMode" data-action-arg-bool="false" data-stop-propagation="true" aria-label="Exit Pocket Mode">✕</button>
         <div class="pocket-pad" role="button" aria-label="Pocket tap target">
             <div id="pocket-label">Tap to count</div>
             <div class="pocket-meta" id="pocket-meta">Reps left · Sets left</div>
@@ -3648,14 +3656,79 @@
             haptic('medium');
         }
 
+        // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
+        // Problem: inline onclick and click handlers are unreliable on iOS PWA. Fix: use pointerup + keydown bindings.
+        function bindPointerHandlers(root = document) {
+            const elements = root.querySelectorAll('[data-action], [data-actions], [data-href], [data-reload], [data-open-url], [data-click-target]');
+            elements.forEach((element) => {
+                if (element.dataset.pointerBound === 'true') return;
+                element.dataset.pointerBound = 'true';
+
+                const handleActivation = (event) => {
+                    if (element.dataset.requireSelf === 'true' && event.target !== element) return;
+                    if (element.dataset.stopPropagation === 'true') event.stopPropagation();
+
+                    if (element.dataset.actions) {
+                        element.dataset.actions.split(',').forEach((actionName) => {
+                            const action = window[actionName.trim()];
+                            if (typeof action === 'function') action();
+                        });
+                        return;
+                    }
+
+                    if (element.dataset.action) {
+                        const action = window[element.dataset.action];
+                        if (typeof action === 'function') {
+                            const args = [];
+                            if (element.dataset.actionArgSource) {
+                                const source = document.querySelector(element.dataset.actionArgSource);
+                                args.push(source ? source.value : '');
+                            }
+                            if (element.dataset.actionArgNumber !== undefined) args.push(Number(element.dataset.actionArgNumber));
+                            if (element.dataset.actionArgBool !== undefined) args.push(element.dataset.actionArgBool === 'true');
+                            if (element.dataset.actionArg !== undefined) args.push(element.dataset.actionArg);
+                            if (element.dataset.actionPassEvent === 'true') args.push(event);
+                            action(...args);
+                        }
+                        return;
+                    }
+
+                    if (element.dataset.href) {
+                        window.location.href = element.dataset.href;
+                        return;
+                    }
+                    if (element.dataset.reload === 'true') {
+                        window.location.reload();
+                        return;
+                    }
+                    if (element.dataset.openUrl) {
+                        window.open(element.dataset.openUrl, element.dataset.openTarget || '_blank');
+                        return;
+                    }
+                    if (element.dataset.clickTarget) {
+                        const target = document.getElementById(element.dataset.clickTarget);
+                        if (target) target.click();
+                    }
+                };
+
+                element.addEventListener('pointerup', handleActivation);
+                if (element.tagName !== 'BUTTON') {
+                    element.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            handleActivation(event);
+                        }
+                    });
+                }
+            });
+        }
+
         function bindTouchActivation(elementId, handler) {
             const element = document.getElementById(elementId);
             if (!element) return;
-            // iOS Safari sometimes misses click; touchend ensures activation.
-            element.addEventListener('touchend', (event) => {
-                event.preventDefault();
-                handler();
-            }, { passive: false });
+            if (element.dataset.pointerBound === 'true') return;
+            // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
+            // Problem: onclick can miss taps on iOS; Fix: pointerup activation while preserving existing handler.
+            element.addEventListener('pointerup', handler);
         }
 
         function editNextSet() {
@@ -3891,7 +3964,7 @@
                     const emoji = side === 'left' ? '👈' : side === 'right' ? '👉' : '';
 
                     return `
-                        <div onclick="selectCurrentSide('${side}')" style="
+                        <div data-action="selectCurrentSide" data-action-arg="${side}" role="button" tabindex="0" style="
                             flex: 1;
                             cursor: pointer;
                             padding: 14px 10px;
@@ -3913,6 +3986,7 @@
                     `;
                 }).join('');
 
+                bindPointerHandlers(buttonsContainer);
                 selectorContainer.style.display = 'block';
             } else {
                 selectorContainer.style.display = 'none';
@@ -4076,7 +4150,7 @@
                         const emoji = side === 'left' ? '👈' : side === 'right' ? '👉' : '';
 
                         return `
-                            <div onclick="selectLogSetSide('${side}')" style="
+                            <div data-action="selectLogSetSide" data-action-arg="${side}" role="button" tabindex="0" style="
                                 flex: 1;
                                 cursor: pointer;
                                 padding: 16px 12px;
@@ -4098,6 +4172,7 @@
                         `;
                     }).join('') +
                     '</div>';
+                bindPointerHandlers(sideContainer);
             } else {
                 sideContainer.innerHTML = '';
                 logSetSide = 'both';
@@ -4140,7 +4215,7 @@
                     const emoji = s === 'left' ? '👈' : s === 'right' ? '👉' : '';
 
                     return `
-                        <div onclick="selectLogSetSide('${s}')" style="
+                        <div data-action="selectLogSetSide" data-action-arg="${s}" role="button" tabindex="0" style="
                             flex: 1;
                             cursor: pointer;
                             padding: 16px 12px;
@@ -4162,6 +4237,7 @@
                     `;
                 }).join('') +
                 '</div>';
+            bindPointerHandlers(sideContainer);
 
             haptic('light');
         }
@@ -4695,10 +4771,11 @@
             exercisesContainer.innerHTML = sortedExercises.map(id => {
                 const entry = getLibraryEntryById(id);
                 if (!entry || entry.archived) return '';
-                return `<button class="pill" style="cursor: pointer; padding: 8px 14px; background: var(--ios-blue); color: white; font-weight: 500; white-space: normal; word-wrap: break-word; text-align: left; line-height: 1.4;" onclick="quickStartExercise('${id}')">${entry.name}</button>`;
+                return `<button class="pill" data-action="quickStartExercise" data-action-arg="${id}" style="cursor: pointer; padding: 8px 14px; background: var(--ios-blue); color: white; font-weight: 500; white-space: normal; word-wrap: break-word; text-align: left; line-height: 1.4;">${entry.name}</button>`;
             }).filter(Boolean).join('');
 
             container.style.display = exercisesContainer.innerHTML ? 'block' : 'none';
+            bindPointerHandlers(exercisesContainer);
         }
 
         function quickStartExercise(exerciseId) {
@@ -4739,7 +4816,7 @@
                 const spec = ex.current || {};
                 const isSelected = sessionPlan.includes(ex.id);
                 return `
-                    <div class="history-item" onclick="toggleExerciseInPlan('${ex.id}')" style="cursor: pointer; background: ${isSelected ? 'rgba(0,122,255,0.1)' : 'transparent'}; border: 2px solid ${isSelected ? 'var(--ios-blue)' : 'transparent'};">
+                    <div class="history-item" data-action="toggleExerciseInPlan" data-action-arg="${ex.id}" role="button" tabindex="0" style="cursor: pointer; background: ${isSelected ? 'rgba(0,122,255,0.1)' : 'transparent'}; border: 2px solid ${isSelected ? 'var(--ios-blue)' : 'transparent'};">
                         <div style="display: flex; align-items: center; justify-content: space-between;">
                             <div style="flex: 1;">
                                 <div style="font-weight: 600;">${ex.name}</div>
@@ -4750,6 +4827,7 @@
                     </div>
                 `;
             }).join('');
+            bindPointerHandlers(container);
 
             // Update button state
             const btn = document.getElementById('start-session-btn');
@@ -4804,7 +4882,7 @@
                 const isCurrent = currentExercise && currentExercise.id === id;
 
                 return `
-                    <div onclick="switchToPlannedExercise('${id}')" style="padding: 8px 12px; border-radius: 8px; background: ${isCurrent ? 'var(--ios-blue)' : isCompleted ? 'var(--ios-green)' : 'var(--bg-primary)'}; color: ${isCurrent || isCompleted ? 'white' : 'var(--text-primary)'}; cursor: pointer; display: flex; align-items: center; gap: 8px; ${isCompleted ? 'opacity: 0.7;' : ''}">
+                    <div data-action="switchToPlannedExercise" data-action-arg="${id}" role="button" tabindex="0" style="padding: 8px 12px; border-radius: 8px; background: ${isCurrent ? 'var(--ios-blue)' : isCompleted ? 'var(--ios-green)' : 'var(--bg-primary)'}; color: ${isCurrent || isCompleted ? 'white' : 'var(--text-primary)'}; cursor: pointer; display: flex; align-items: center; gap: 8px; ${isCompleted ? 'opacity: 0.7;' : ''}">
                         <div style="font-size: 16px;">${isCompleted ? '✓' : isCurrent ? '▶' : '○'}</div>
                         <div style="flex: 1; font-size: 14px; font-weight: ${isCurrent ? '600' : '500'};">${entry.name}</div>
                     </div>
@@ -4813,6 +4891,7 @@
 
             listContainer.innerHTML = planItems;
             container.style.display = 'block';
+            bindPointerHandlers(listContainer);
         }
 
         function switchToPlannedExercise(exerciseId) {
@@ -4917,7 +4996,7 @@
                                     const exTotalReps = ex.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
                                     const avgReps = (exTotalReps / ex.sets.length).toFixed(1);
                                     return `
-                                        <div style="padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer;" onclick="showExerciseProgress('${ex.exerciseId}')">
+                                        <div style="padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer;" data-action="showExerciseProgress" data-action-arg="${ex.exerciseId}" role="button" tabindex="0">
                                             <div style="font-weight: 600; font-size: 13px; margin-bottom: 2px;">${ex.exerciseName}</div>
                                             <div style="font-size: 11px; color: var(--text-secondary);">
                                                 ${ex.sets.length} sets × ${avgReps} avg = ${exTotalReps} total reps
@@ -4930,6 +5009,7 @@
                         </div>
                     `;
                 }).join('');
+                bindPointerHandlers(container);
             }
 
             document.getElementById('all-sessions-modal').classList.add('active');
@@ -5109,7 +5189,7 @@
                 <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                     <div style="font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ios-blue);">Exercises (Last 7 Days)</div>
                     ${sortedExercises.map(([exId, group]) => `
-                        <div style="padding: 8px; border-bottom: 1px solid var(--border-color); cursor: pointer;" onclick="showExerciseProgress('${exId}')">
+                        <div style="padding: 8px; border-bottom: 1px solid var(--border-color); cursor: pointer;" data-action="showExerciseProgress" data-action-arg="${exId}" role="button" tabindex="0">
                             <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${group.name}</div>
                             <div style="font-size: 12px; color: var(--text-secondary);">
                                 ${group.sessions.length}× sessions · ${group.totalSets} sets · ${group.totalReps} reps
@@ -5118,6 +5198,7 @@
                     `).join('')}
                 </div>
             `;
+            bindPointerHandlers(container);
         }
 
         function renderWeeklyAdherence(allSessions) {
@@ -5640,13 +5721,14 @@
                                         <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${setDetails}</div>
                                         ${notesHtml}
                                     </div>
-                                    <button onclick="editSession(${sessionIndex}); event.stopPropagation();" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap;">Edit</button>
+                                    <button data-action="editSession" data-action-arg-number="${sessionIndex}" data-stop-propagation="true" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap;">Edit</button>
                                 </div>
                             </div>
                         `;
                     })
                     .join('');
             }
+            bindPointerHandlers(sessionHistoryList);
         }
 
         // Session Editing
@@ -5739,7 +5821,7 @@
                     <div style="padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px; margin-bottom: 8px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="font-weight: 600;">Set ${idx + 1}</span>
-                            <button onclick="deleteEditSessionSet(${idx})" style="background: rgba(255,59,48,0.1); color: var(--ios-red); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Delete</button>
+                            <button data-action="deleteEditSessionSet" data-action-arg-number="${idx}" style="background: rgba(255,59,48,0.1); color: var(--ios-red); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Delete</button>
                         </div>
                         <div style="display: flex; gap: 8px;">
                             ${valueField}
@@ -5749,6 +5831,7 @@
                     </div>
                 `;
             }).join('');
+            bindPointerHandlers(container);
         }
 
         function updateEditSessionSet(input) {
@@ -5904,10 +5987,11 @@
                 <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">⚡ Recent Exercises</div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
                     ${recentExercises.map(ex =>
-                        `<button class="pill" style="cursor: pointer; padding: 6px 12px; background: var(--ios-blue); color: white;" onclick="selectExerciseFromList('${ex.id}'); event.stopPropagation();">${ex.name}</button>`
+                        `<button class="pill" data-action="selectExerciseFromList" data-action-arg="${ex.id}" data-stop-propagation="true" style="cursor: pointer; padding: 6px 12px; background: var(--ios-blue); color: white;">${ex.name}</button>`
                     ).join('')}
                 </div>
             `;
+            bindPointerHandlers(container);
         }
 
         function closeExerciseList() {
@@ -6821,6 +6905,8 @@
         function showActionSheetWithOptions(message, actions) {
             const sheet = document.createElement('div');
             sheet.className = 'action-sheet active';
+            sheet.setAttribute('role', 'button');
+            sheet.setAttribute('tabindex', '0');
             sheet.innerHTML = `
                 <div class="action-sheet-content">
                     <div class="action-sheet-message">${message}</div>
@@ -6835,19 +6921,25 @@
 
             const buttons = sheet.querySelectorAll('.action-sheet-button');
             buttons.forEach((btn, idx) => {
-                btn.onclick = () => {
+                btn.addEventListener('pointerup', () => {
                     if (idx < actions.length) {
                         actions[idx].callback();
                     }
                     document.body.removeChild(sheet);
-                };
+                });
             });
 
-            sheet.onclick = (e) => {
+            sheet.addEventListener('pointerup', (e) => {
                 if (e.target === sheet) {
                     document.body.removeChild(sheet);
                 }
-            };
+            });
+
+            sheet.addEventListener('keydown', (e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && e.target === sheet) {
+                    document.body.removeChild(sheet);
+                }
+            });
         }
 
         function renderTagFilters() {
@@ -6855,8 +6947,9 @@
             const availableTags = getAvailableTags();
             container.innerHTML = availableTags.map(tag => {
                 const active = filterTags.includes(tag);
-                return `<span class="pill" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};" onclick="toggleFilterTag('${tag}')">${tag}</span>`;
+                return `<span class="pill" data-action="toggleFilterTag" data-action-arg="${tag}" role="button" tabindex="0" style="cursor: pointer; background: ${active ? 'var(--ios-blue)' : 'rgba(0,122,255,0.1)'}; color: ${active ? 'white' : 'var(--ios-blue)'};">${tag}</span>`;
             }).join(' ');
+            bindPointerHandlers(container);
         }
 
         function toggleFilterTag(tag) {
@@ -6937,12 +7030,13 @@
                         <div>${ex.name}</div>
                         <div class="history-meta">${describeSpec(spec)}</div>
                         <div style="margin-top: 8px; display: flex; gap: 8px;">
-                            <button class="control-btn btn-success" onclick="unarchiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Restore</button>
-                            <button class="control-btn btn-danger" onclick="permanentlyDeleteExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Delete Forever</button>
+                            <button class="control-btn btn-success" data-action="unarchiveExercise" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 1; padding: 8px; font-size: 14px;">Restore</button>
+                            <button class="control-btn btn-danger" data-action="permanentlyDeleteExercise" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 1; padding: 8px; font-size: 14px;">Delete Forever</button>
                         </div>
                     </div>
                 `;
             }).join('');
+            bindPointerHandlers(container);
         }
 
         function unarchiveExercise(exerciseId) {
@@ -7044,20 +7138,21 @@
 
                 return `
                     <div class="history-item" style="cursor: pointer; border-left: 4px solid ${adherenceColor};">
-                        <div onclick="selectExerciseFromList('${ex.id}')">${ex.name}${detailsIndicator}${alternatingIndicator}</div>
+                        <div data-action="selectExerciseFromList" data-action-arg="${ex.id}" role="button" tabindex="0">${ex.name}${detailsIndicator}${alternatingIndicator}</div>
                         ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
                         <div class="history-meta">${describeSpec(spec)}</div>
                         ${statsHtml}
                         <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button class="control-btn ${ex.favorite ? 'btn-primary' : 'btn-secondary'}" onclick="toggleFavorite('${ex.id}'); event.stopPropagation();" style="flex: 0 0 auto; padding: 8px 12px; font-size: 18px;">${ex.favorite ? '⭐' : '☆'}</button>
-                            <button class="control-btn btn-primary" onclick="showEditDosageModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">💊 Dosage</button>
-                            ${totalSessions > 0 ? `<button class="control-btn btn-success" onclick="showExerciseProgress('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">📊 Progress</button>` : ''}
-                            <button class="control-btn btn-secondary" onclick="showExerciseDetailsModal('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
-                            <button class="control-btn btn-danger" onclick="archiveExercise('${ex.id}'); event.stopPropagation();" style="flex: 1; padding: 8px; font-size: 14px;">Archive</button>
+                            <button class="control-btn ${ex.favorite ? 'btn-primary' : 'btn-secondary'}" data-action="toggleFavorite" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 0 0 auto; padding: 8px 12px; font-size: 18px;">${ex.favorite ? '⭐' : '☆'}</button>
+                            <button class="control-btn btn-primary" data-action="showEditDosageModal" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 1; padding: 8px; font-size: 14px;">💊 Dosage</button>
+                            ${totalSessions > 0 ? `<button class="control-btn btn-success" data-action="showExerciseProgress" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 1; padding: 8px; font-size: 14px;">📊 Progress</button>` : ''}
+                            <button class="control-btn btn-secondary" data-action="showExerciseDetailsModal" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 1; padding: 8px; font-size: 14px;">Details</button>
+                            <button class="control-btn btn-danger" data-action="archiveExercise" data-action-arg="${ex.id}" data-stop-propagation="true" style="flex: 1; padding: 8px; font-size: 14px;">Archive</button>
                         </div>
                     </div>
                 `;
             }).join('');
+            bindPointerHandlers(container);
         }
 
         function selectExerciseFromList(exerciseId) {
@@ -8089,7 +8184,7 @@ ${payload}`;
                 overlay.style.width = coords.width;
                 overlay.style.height = coords.height;
                 overlay.textContent = part === 'leg' ? 'leg' : '';
-                overlay.onclick = () => showBodyPartDetails(part, sessions);
+                overlay.addEventListener('pointerup', () => showBodyPartDetails(part, sessions));
 
                 diagram.appendChild(overlay);
             });
@@ -8186,12 +8281,13 @@ ${payload}`;
                 const isCurrent = ex.id === currentExercise.id;
                 const patternBadge = ' ' + getPatternBadge(ex.pattern);
                 return `
-                    <div class="history-item" style="cursor: pointer; background: ${isCurrent ? 'rgba(0,122,255,0.1)' : 'white'};" onclick="quickSwitchTo('${ex.id}')">
+                    <div class="history-item" style="cursor: pointer; background: ${isCurrent ? 'rgba(0,122,255,0.1)' : 'white'};" data-action="quickSwitchTo" data-action-arg="${ex.id}" role="button" tabindex="0">
                         <div>${isCurrent ? '▶ ' : ''}${ex.name}${patternBadge}${ex.favorite ? ' ⭐' : ''}</div>
                         <div class="history-meta">${describeSpec(ex.current || {})}</div>
                     </div>
                 `;
             }).join('');
+            bindPointerHandlers(container);
 
             document.getElementById('quick-switcher-modal').classList.add('active');
             haptic('medium');
@@ -8392,9 +8488,11 @@ ${payload}`;
                                        id="ex-check-${ex.id}"
                                        ${isChecked ? 'checked' : ''}
                                        ${checkboxDisabled ? 'disabled' : ''}
-                                       onclick="toggleExerciseSelection('${ex.id}', event)"
+                                       data-action="toggleExerciseSelection"
+                                       data-action-arg="${ex.id}"
+                                       data-action-pass-event="true"
                                        style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
-                                <div style="flex: 1; cursor: pointer;" onclick="showExerciseDetail('${ex.id}')">
+                                <div style="flex: 1; cursor: pointer;" data-action="showExerciseDetail" data-action-arg="${ex.id}" role="button" tabindex="0">
                                     <div style="font-weight: 600; margin-bottom: 4px;">
                                         ${ex.canonical_name}
                                         ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
@@ -8414,6 +8512,7 @@ ${payload}`;
                     }
                 }).join('');
                 console.log('Library exercises rendered successfully');
+                bindPointerHandlers(container);
             } catch (error) {
                 console.error('Error rendering library list:', error);
                 container.innerHTML = `<div class="history-item" style="color: var(--ios-red);">Error loading exercises. Check console for details.</div>`;
@@ -8701,6 +8800,8 @@ ${payload}`;
             logPartialTimerRep,
             previousSet,
             showLogSetModal,
+            // Problem: Next Set actions were not reachable from data-action bindings; Fix: expose Next Set handlers on window.
+            showNextSetModal,
             completeSet,
             showExerciseList,
             showHistory,
@@ -8722,6 +8823,10 @@ ${payload}`;
             saveSessionWithNotes,
             closeLogSetModal,
             saveLoggedSet,
+            // Problem: Next Set modal buttons were not wired to window; Fix: expose modal handlers on window.
+            closeNextSetModal,
+            editNextSet,
+            confirmNextSet,
             closeExerciseDetailsModal,
             saveExerciseDetails,
             skipRest,
@@ -8786,15 +8891,19 @@ ${payload}`;
             showExerciseDetail
         });
 
-        // Auth button event listeners
-        document.getElementById('auth-signin-btn').addEventListener('click', handleSignIn);
-        document.getElementById('auth-signup-btn').addEventListener('click', handleSignUp);
-        document.getElementById('auth-forgot-password').addEventListener('click', handleForgotPassword);
-        document.getElementById('auth-skip-btn').addEventListener('click', hideAuthModal);
+        // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
+        // Problem: inline onclick can miss taps on iOS. Fix: bind pointerup/keydown handlers once on load.
+        bindPointerHandlers();
 
-        // Menu auth button event listeners
-        document.getElementById('menu-signin-btn').addEventListener('click', handleMenuSignIn);
-        document.getElementById('menu-signout-btn').addEventListener('click', handleMenuSignOut);
+        // Auth button event listeners (pointer-based for iOS Safari/PWA reliability).
+        document.getElementById('auth-signin-btn').addEventListener('pointerup', handleSignIn);
+        document.getElementById('auth-signup-btn').addEventListener('pointerup', handleSignUp);
+        document.getElementById('auth-forgot-password').addEventListener('pointerup', handleForgotPassword);
+        document.getElementById('auth-skip-btn').addEventListener('pointerup', hideAuthModal);
+
+        // Menu auth button event listeners (pointer-based for iOS Safari/PWA reliability).
+        document.getElementById('menu-signin-btn').addEventListener('pointerup', handleMenuSignIn);
+        document.getElementById('menu-signout-btn').addEventListener('pointerup', handleMenuSignOut);
 
         // Allow Enter key to submit auth form
         document.getElementById('auth-password').addEventListener('keypress', (e) => {
@@ -8821,7 +8930,8 @@ ${payload}`;
         // updateQuickStartShortcuts(); // REMOVED: Quick Start section removed
         setTimeout(checkSessionRecovery, 500); // Check for recovery after UI loads
         void reconcileSharedExerciseLibrary();
-        // Bind touch fallback for iOS "Next Set" button activation.
+        // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
+        // Problem: onclick can miss "Next Set" taps on iOS. Fix: ensure pointerup binding stays in place.
         bindTouchActivation('next-set-btn', showNextSetModal);
         // Mark app boot complete to suppress the load-failed overlay.
         window.appBooted = true;
