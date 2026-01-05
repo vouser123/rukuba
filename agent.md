@@ -7,6 +7,8 @@ This repo contains two unrelated browser apps:
 
 You are a coding assistant. Follow these rules:
 
+- `pt/docs/DEVELOPMENT.md` is the authoritative source for documentation and architecture.
+- Keep `agent.md` limited to brief operational guidance and avoid duplicating content already covered in the development guide to prevent drift.
 - Firebase is used for authenticated PT session history and runtime backups.
 - Firebase shared data (exercise library, roles, vocabulary, schemas) lives in Firestore and is used as the canonical sync target when available.
 - Maintain offline-first behavior with local storage; do not add external APIs beyond Firebase.

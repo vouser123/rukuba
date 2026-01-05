@@ -335,6 +335,20 @@ Planned behavior (not implemented):
 ### Day-to-day practices
 
 - **Static dev**: Open `pt_tracker.html` directly or serve with a simple static server. No build step.
+
+## 2026-01-05 — iOS-friendly Next Set modal buttons
+
+**Symptom**
+On iOS Safari, the "Cancel", "Edit", and "Log & Next" buttons in the Next Set modal do not reliably trigger their actions.
+
+**Root Cause (as understood now)**
+Inline `onclick` handlers inside modal overlays can be ignored by iOS Safari during touch interactions, so taps fail to dispatch the click event.
+
+**Fix Applied**
+Swapped the three Next Set modal buttons to `onpointerup` handlers for iOS-friendly activation without changing their underlying actions.
+
+**Notes / Risks**
+This fix depends on Pointer Events support in Safari (iOS 13+). Avoid "cleaning up" to inline `onclick` or removing pointer events without re-testing on iOS.
 - **Auth-dependent paths**: To test Firestore sync, sign in via the PT Tracker menu.
 - **Shared data updates**: Use `seed_firestore.html` to push JSON files to `pt_shared`.
 
@@ -561,3 +575,9 @@ When debugging issues:
 3. ✅ Verify exercise IDs match between library and roles.
 4. ✅ Use Coverage view debug panel (🐛) to inspect data.
 5. ✅ On iOS, close PWA completely and reopen after cache changes.
+
+---
+
+## Development Notes
+
+- **2025-01-05** — **Problem:** iOS taps on "Next Set" were unreliable; duration-based exercises still prompted for reps in manual logging. **What I did:** Added an iOS touchend fallback for the Next Set button and updated the log-set flow to capture duration seconds instead of reps (stored as `secondsAchieved`/`secondsTarget`).
