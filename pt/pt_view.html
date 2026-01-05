@@ -539,53 +539,6 @@
             document.getElementById('total-sets').textContent = totalSets;
         }
 
-        function renderTopExercises() {
-            const sessions = patientData.sessions || [];
-
-            // Group by exercise
-            const exerciseGroups = {};
-            sessions.forEach(session => {
-                const id = session.exerciseId;
-                if (!exerciseGroups[id]) {
-                    exerciseGroups[id] = {
-                        name: session.exerciseName || id,
-                        sessions: [],
-                        totalSets: 0
-                    };
-                }
-                exerciseGroups[id].sessions.push(session);
-                exerciseGroups[id].totalSets += (session.sets || []).length;
-            });
-
-            // Sort by session count and take top 10
-            const topExercises = Object.values(exerciseGroups)
-                .sort((a, b) => b.sessions.length - a.sessions.length)
-                .slice(0, 10);
-
-            const container = document.getElementById('top-exercises');
-
-            if (topExercises.length === 0) {
-                container.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; padding: 12px;">No exercises recorded yet</div>';
-                return;
-            }
-
-            let html = '';
-            topExercises.forEach(ex => {
-                html += `
-                    <div class="exercise-card">
-                        <div class="exercise-card-content">
-                            <div class="exercise-card-title">${ex.name}</div>
-                            <div class="exercise-card-meta">
-                                ${ex.sessions.length} session${ex.sessions.length !== 1 ? 's' : ''} • ${ex.totalSets} set${ex.totalSets !== 1 ? 's' : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-        }
-
         function renderRecentActivity() {
             const sessions = patientData.sessions || [];
             const weekAgo = new Date();
