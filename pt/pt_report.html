@@ -662,42 +662,43 @@
         </div>
     </div>
 
-    <!-- Export Modifications Modal (Email) -->
-    <div id="export-email-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
-        <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%;">
-            <h2 style="margin: 0 0 16px 0; font-size: 20px;">📤 Send to Patient</h2>
-            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
-                Enter the patient's email address (optional). You can copy the payload only or open your email client with the modifications ready to send.
-            </p>
-            <input type="email" id="patient-email" placeholder="patient@example.com" style="
-                width: 100%;
-                padding: 12px;
-                font-size: 15px;
-                border: 1px solid var(--border-color);
-                border-radius: 8px;
-                background: var(--bg-secondary);
-                color: var(--text-primary);
-                margin-bottom: 12px;
-            ">
-            <textarea id="pt-message" placeholder="Optional: Add a message for your patient" style="
-                width: 100%;
-                min-height: 80px;
-                padding: 12px;
-                font-size: 14px;
-                border: 1px solid var(--border-color);
-                border-radius: 8px;
-                background: var(--bg-secondary);
-                color: var(--text-primary);
-                resize: vertical;
-                margin-bottom: 16px;
-            "></textarea>
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button class="btn-secondary" onclick="closeExportEmailModal()">Cancel</button>
-                <button class="btn-primary" onclick="copyModificationsPayload()">📋 Copy Payload Only</button>
-                <button class="btn-primary" onclick="sendModificationsToPatient()">📧 Send Email</button>
-            </div>
+    <!-- TODO: Remove email export modal if direct Firestore workflow is working well
+<div id="export-email-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
+    <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%;">
+        <h2 style="margin: 0 0 16px 0; font-size: 20px;">📤 Send to Patient</h2>
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+            Enter the patient's email address (optional). You can copy the payload only or open your email client with the modifications ready to send.
+        </p>
+        <input type="email" id="patient-email" placeholder="patient@example.com" style="
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        ">
+        <textarea id="pt-message" placeholder="Optional: Add a message for your patient" style="
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            resize: vertical;
+            margin-bottom: 16px;
+        "></textarea>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn-secondary" onclick="closeExportEmailModal()">Cancel</button>
+            <button class="btn-primary" onclick="copyModificationsPayload()">📋 Copy Payload Only</button>
+            <button class="btn-primary" onclick="sendModificationsToPatient()">📧 Send Email</button>
         </div>
     </div>
+</div>
+-->
 
     <!-- Notes Modal -->
     <div id="notes-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 20000; padding: 20px;">
@@ -2562,6 +2563,8 @@
             };
         }
 
+        // TODO: Remove email export functions if direct Firestore workflow is working well
+        /*
         function showExportEmailModal() {
             const newExCount = modifications.newExercises.length;
             const editedExCount = Object.keys(modifications.editedExercises).length;
@@ -2652,6 +2655,7 @@ ${payload}`;
             // Legacy function - now redirects to email flow
             showExportEmailModal();
         }
+        */
 
         // PT Mode - load base files without patient data
         async function loadPTMode() {
