@@ -253,6 +253,7 @@
         import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let patientData = null;
+        let currentPatientUid = null;
 
         onAuthStateChanged(auth, async (user) => {
             const authScreen = document.getElementById('auth-screen');
@@ -273,6 +274,8 @@
                 } else {
                     patientUid = user.uid; // View own data
                 }
+
+                currentPatientUid = patientUid;
 
                 // Load patient data from Firestore
                 await loadPatientData(patientUid);
@@ -346,14 +349,12 @@
         let lastReadNoteTime = localStorage.getItem('pt_view_lastReadNoteTime') || new Date(0).toISOString();
 
         async function loadNotes() {
-            if (!patientData || !patientData.sessions || patientData.sessions.length === 0) return;
+            if (!currentPatientUid) return;
 
             try {
-                const patientUid = patientData.sessions[0]?.patientUid || auth.currentUser.uid;
-                const notesRef = collection(db, `users/${patientUid}/notes`);
-                const q = query(notesRef, orderBy('createdAt', 'desc'));
-
                 const { orderBy } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
+                const notesRef = collection(db, `users/${currentPatientUid}/notes`);
+                const q = query(notesRef, orderBy('createdAt', 'desc'));
                 const snapshot = await getDocs(q);
 
                 const notesList = document.getElementById('notes-list');
@@ -386,14 +387,12 @@
         }
 
         async function checkForNewNotes() {
-            if (!patientData || !patientData.sessions || patientData.sessions.length === 0) return;
+            if (!currentPatientUid) return;
 
             try {
-                const patientUid = patientData.sessions[0]?.patientUid || auth.currentUser.uid;
-                const notesRef = collection(db, `users/${patientUid}/notes`);
-                const q = query(notesRef, where('createdAt', '>', lastReadNoteTime));
-
                 const { where } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
+                const notesRef = collection(db, `users/${currentPatientUid}/notes`);
+                const q = query(notesRef, where('createdAt', '>', lastReadNoteTime));
                 const snapshot = await getDocs(q);
 
                 if (!snapshot.empty) {
