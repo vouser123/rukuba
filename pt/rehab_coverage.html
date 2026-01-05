@@ -736,7 +736,7 @@
         </div>
     </div>
 
-    <button class="back-button" onclick="goBack()">← Back to PT Tracker</button>
+    <button class="back-button" onclick="goBack()" id="back-button">← Back</button>
 
     <script src="pt_payload_utils.js"></script>
     <script type="module">
@@ -796,11 +796,17 @@
                 const q = query(usersRef, where('therapistUid', '==', user.uid));
                 const snapshot = await getDocs(q);
 
+                let isTherapist = false;
                 if (!snapshot.empty) {
                     patientUserId = snapshot.docs[0].id;
+                    isTherapist = true;
                     console.log('[Therapist] Viewing patient coverage:', patientUserId);
+                    document.getElementById('back-button').textContent = '← Back to Report';
+                    document.getElementById('back-button').onclick = () => window.location.href = 'pt_report.html';
                 } else {
                     patientUserId = user.uid; // View own data
+                    document.getElementById('back-button').textContent = '← Back to Tracker';
+                    document.getElementById('back-button').onclick = () => window.location.href = 'pt_tracker.html';
                 }
 
                 const sessionsRef = collection(db, `users/${patientUserId}/sessions`);
