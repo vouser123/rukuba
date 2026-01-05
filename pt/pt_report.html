@@ -3208,20 +3208,21 @@ ${payload}`;
                 summary = 'No changes yet.';
             }
 
-            // Log to console instead of popup
-            console.log('[Editor] Change Summary:', summary);
+            alert(summary);
         }
 
         // Clear all changes
         function clearAllChanges() {
-            console.log('[Editor] Clearing all changes and reloading');
+            if (!confirm('Undo all changes?\n\nThis will reload the original data from Firestore.')) {
+                return;
+            }
             location.reload();
         }
 
         // Commit all changes to Firestore
         async function commitAllChangesToFirestore() {
             if (!window.ptReportUserId) {
-                console.error('[Editor] No patient UID available');
+                alert('No patient UID available');
                 return;
             }
 
@@ -3241,14 +3242,22 @@ ${payload}`;
                 dosageChangeCount ? `• ${dosageChangeCount} dosage update${dosageChangeCount > 1 ? 's' : ''}` : null
             ].filter(Boolean);
 
-            console.log('[Editor] Saving changes:', summaryLines.length ? summaryLines.join(', ') : 'No changes');
+            const destructiveWarning = (archivedExCount || deletedRoleCount)
+                ? '\n\n⚠️ Destructive review: archived exercises or deleted roles are included.'
+                : '';
+
+            const confirmMessage = `Review changes before saving:\n\n${summaryLines.length ? summaryLines.join('\n') : '• No changes detected'}${destructiveWarning}\n\nSave all changes to Firestore?`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
 
             try {
                 window.exerciseLibrary = exerciseLibrary;
                 await window.saveExerciseLibraryToFirestore();
-                console.log('[Editor] All changes saved to Firestore successfully');
+                alert('All changes saved to Firestore!');
             } catch (error) {
-                console.error('[Editor] Failed to save to Firestore:', error.message);
+                alert('Failed to save to Firestore: ' + error.message);
             }
         }
 
