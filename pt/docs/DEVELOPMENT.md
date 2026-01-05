@@ -48,6 +48,8 @@ The architecture is in transition: local storage is still used as a fallback and
 
 ## File Reference
 
+Maintain this section whenever HTML/JS/JSON inputs change (including new pages, shared modules, data files, or service worker cache lists). Update the roles/notes so it stays exhaustive for files that are in use. The packing app is a separate project and is intentionally excluded from this document.
+
 ### Core HTML
 
 | File | Role | Notes |
@@ -57,6 +59,7 @@ The architecture is in transition: local storage is still used as a fallback and
 | `pt_report.html` | PT-facing report/editor | Imports PT_DATA, edits library/roles/vocab/dosage, exports PT_MODIFICATIONS. |
 | `exercise_editor.html` | Library editor (standalone) | Exports/imports library and PT data; overlaps with PT editor workflows. |
 | `seed_firestore.html` | Admin seeding | Writes JSON sources to `pt_shared` and migrates shared dosage into user runtime. |
+| `pt_view.html` | Shared view link | Tokenized viewer for shared PT data summaries. |
 
 ### Shared Modules & Data
 
@@ -75,8 +78,15 @@ The architecture is in transition: local storage is still used as a fallback and
 | `tests/export_import_v2_test.js` | V2 regression tests | Node-based verification of V2 payload behavior. |
 | `manifest-pt.json` | PWA manifest | App icons, start URL, display mode, theme colors. |
 | `firebase.js` | Firebase bootstrap | Initializes app, Firestore, and Auth with persistence enabled. |
+| `shared-styles.css` | Shared PT styling | Common styles for PT pages. |
+
+### PT Offline Cache Notes
+
+- `pt_tracker.html` is explicitly cached by the service worker to allow offline boot/loading.
+- Other PT HTML pages should also be cached for offline fallback; network-first remains the default when online.
 
 ---
+
 
 ## Data Architecture
 

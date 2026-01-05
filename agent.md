@@ -15,6 +15,7 @@ You are a coding assistant. Follow these rules:
 - Do not invent new field names when existing schema fields or vocab terms are available.
 - All code changes should be well-commented, especially when adding new logic or side effects.
 - Bump the PT service worker version when app behavior or assets change, without needing a reminder.
+- Keep `pt/docs/DEVELOPMENT.md` (File Reference + offline cache notes) up to date whenever PT HTML/JS/JSON usage or caching behavior changes.
 
 ## Layout
 
