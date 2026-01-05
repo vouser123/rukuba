@@ -651,6 +651,75 @@
             display: none;
         }
 
+        #auth-guard-overlay.auth-checking {
+            display: none;
+        }
+
+        .auth-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .auth-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .auth-modal-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            width: min(420px, 90vw);
+            padding: 20px;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .auth-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .auth-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .auth-modal-close {
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .auth-modal-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .auth-modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .auth-modal-actions button {
+            flex: 1;
+            min-height: 48px;
+        }
+
         /* Body Heatmap - REPLACED BY REHAB COVERAGE VIEW
         .body-diagram {
             position: relative;
@@ -711,7 +780,7 @@
 </head>
 <body>
     <!-- Auth Guard Overlay -->
-    <div id="auth-guard-overlay">
+    <div id="auth-guard-overlay" class="auth-checking">
         <h2>🔐 Authentication Required</h2>
         <p>You must be signed in to access the PT Tracker.</p>
         <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; padding: 12px 32px; font-size: 16px;">Sign In</button>
@@ -957,33 +1026,30 @@
         </div>
     </div>
 
-    <!-- Session Notes Modal -->
-    <!-- Auth Modal -->
-    <div class="modal" id="auth-modal" style="background: rgba(0,0,0,0.6);">
-        <div class="modal-content">
-            <div class="modal-drag-handle"></div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
-                <div class="modal-title">Sign In to Sync</div>
-                <button id="auth-skip-btn" style="background: transparent; border: none; color: var(--ios-blue); font-size: 16px; cursor: pointer; padding: 8px;">Skip</button>
+    <!-- Auth Sign In Modal -->
+    <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
+        <div class="auth-modal-content">
+            <div class="auth-modal-header">
+                <div class="auth-modal-title" id="auth-modal-title">Sign In to Continue</div>
+                <button type="button" class="auth-modal-close" id="auth-modal-close" aria-label="Close sign in">×</button>
             </div>
-            <div class="modal-form">
-                <div style="font-size: 15px; color: var(--ios-gray); margin-bottom: 16px; text-align: center;">
-                    Sign in to sync your session data across devices
-                </div>
-                <input type="email" class="modal-input" id="auth-email" placeholder="Email" autocomplete="email">
-                <input type="password" class="modal-input" id="auth-password" placeholder="Password" autocomplete="current-password">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 0 4px;">
-                    <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px; cursor: pointer;">
-                    <label for="auth-remember" style="font-size: 15px; color: var(--text-secondary); cursor: pointer;">Remember me</label>
-                </div>
-                <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; margin-bottom: 12px; text-align: center;"></div>
-                <div style="text-align: center; margin-bottom: 12px;">
-                    <a href="#" id="auth-forgot-password" style="color: var(--ios-blue); font-size: 14px; text-decoration: none;">Forgot Password?</a>
-                </div>
+            <div class="auth-modal-subtitle">Use your therapist account to sync session data across devices.</div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="auth-email">Email</label>
+                <input type="email" class="form-input" id="auth-email" placeholder="name@example.com" autocomplete="email">
             </div>
-            <div class="modal-buttons">
-                <button class="modal-cancel" id="auth-signup-btn">Sign Up</button>
-                <button class="modal-save" id="auth-signin-btn">Sign In</button>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="auth-password">Password</label>
+                <input type="password" class="form-input" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px;">
+                <label for="auth-remember" style="font-size: 14px; color: var(--text-secondary); cursor: pointer;">Remember me on this device</label>
+            </div>
+            <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; text-align: center;"></div>
+            <div class="auth-modal-actions">
+                <button type="button" class="btn-secondary" id="auth-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="auth-signin-btn">Sign In</button>
             </div>
         </div>
     </div>
@@ -1651,14 +1717,12 @@
         import {
             auth,
             signInWithEmailAndPassword,
-            createUserWithEmailAndPassword,
             signOut,
             onAuthStateChanged,
             setPersistence,
             browserLocalPersistence,
             browserSessionPersistence
         } from './firebase.js';
-        import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         import {
             loadExerciseLibraryShared,
@@ -1701,26 +1765,48 @@
         // Auth state
         let currentUser = null;
         let isAuthReady = false;
+        let authModalActive = false;
+        let authModalLastFocus = null;
 
         // Auth UI functions
         function showAuthModal() {
             const modal = document.getElementById('auth-modal');
+            if (!modal) return;
+            authModalLastFocus = document.activeElement;
             modal.classList.add('active');
-            document.getElementById('auth-email').focus();
+            modal.setAttribute('aria-hidden', 'false');
+            authModalActive = true;
+            clearAuthError();
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput) {
+                emailInput.focus();
+                emailInput.select();
+            }
         }
 
         function hideAuthModal() {
             const modal = document.getElementById('auth-modal');
+            if (!modal || !authModalActive) return;
             modal.classList.remove('active');
-            document.getElementById('auth-error').style.display = 'none';
-            document.getElementById('auth-email').value = '';
-            document.getElementById('auth-password').value = '';
+            modal.setAttribute('aria-hidden', 'true');
+            authModalActive = false;
+            if (authModalLastFocus && typeof authModalLastFocus.focus === 'function') {
+                authModalLastFocus.focus();
+            }
         }
 
         function showAuthError(message) {
             const errorDiv = document.getElementById('auth-error');
+            if (!errorDiv) return;
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
+        }
+
+        function clearAuthError() {
+            const errorDiv = document.getElementById('auth-error');
+            if (!errorDiv) return;
+            errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
         }
 
         function updateMenuAuthDisplay() {
@@ -1754,8 +1840,6 @@
         }
 
         function handleMenuSignIn() {
-            // Show skip button when accessed via menu
-            document.getElementById('auth-skip-btn').style.display = 'block';
             showAuthModal();
             // Close menu
             const toggleMenu = window.toggleHamburgerMenu;
@@ -1768,92 +1852,25 @@
             const rememberMe = document.getElementById('auth-remember').checked;
 
             if (!email || !password) {
-                showAuthError('Please enter email and password');
+                showAuthError('Enter both email and password to sign in.');
                 return;
             }
 
             try {
-                // Set persistence based on remember me
                 const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
                 await setPersistence(auth, persistence);
-
-                // Sign in
                 await signInWithEmailAndPassword(auth, email, password);
-                hideAuthModal();
                 console.log('[Auth] Signed in successfully');
             } catch (error) {
                 console.error('[Auth] Sign in error:', error);
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    showAuthError('Invalid email or password');
+                    showAuthError('Incorrect email or password.');
                 } else if (error.code === 'auth/invalid-email') {
-                    showAuthError('Invalid email address');
+                    showAuthError('Please enter a valid email address.');
                 } else if (error.code === 'auth/too-many-requests') {
-                    showAuthError('Too many attempts. Try again later');
+                    showAuthError('Too many attempts. Please try again later.');
                 } else {
-                    showAuthError('Sign in failed. Please try again');
-                }
-            }
-        }
-
-        async function handleSignUp() {
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
-            const rememberMe = document.getElementById('auth-remember').checked;
-
-            if (!email || !password) {
-                showAuthError('Please enter email and password');
-                return;
-            }
-
-            if (password.length < 6) {
-                showAuthError('Password must be at least 6 characters');
-                return;
-            }
-
-            try {
-                // Set persistence based on remember me
-                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
-                await setPersistence(auth, persistence);
-
-                // Create account
-                await createUserWithEmailAndPassword(auth, email, password);
-                hideAuthModal();
-                console.log('[Auth] Account created successfully');
-            } catch (error) {
-                console.error('[Auth] Sign up error:', error);
-                if (error.code === 'auth/email-already-in-use') {
-                    showAuthError('Email already in use. Try signing in instead');
-                } else if (error.code === 'auth/invalid-email') {
-                    showAuthError('Invalid email address');
-                } else if (error.code === 'auth/weak-password') {
-                    showAuthError('Password is too weak');
-                } else {
-                    showAuthError('Sign up failed. Please try again');
-                }
-            }
-        }
-
-        async function handleForgotPassword(e) {
-            e.preventDefault();
-            const email = document.getElementById('auth-email').value.trim();
-
-            if (!email) {
-                showAuthError('Please enter your email address first');
-                return;
-            }
-
-            try {
-                await sendPasswordResetEmail(auth, email);
-                showAuthError(''); // Clear error
-                alert(`Password reset email sent to ${email}.\n\nCheck your inbox and spam folder.`);
-            } catch (error) {
-                console.error('[Auth] Password reset error:', error);
-                if (error.code === 'auth/user-not-found') {
-                    showAuthError('No account found with this email');
-                } else if (error.code === 'auth/invalid-email') {
-                    showAuthError('Invalid email address');
-                } else {
-                    showAuthError('Failed to send reset email. Try again');
+                    showAuthError('Sign in failed. Please try again.');
                 }
             }
         }
@@ -1865,6 +1882,10 @@
 
             // Auth Guard: Block page if no user is signed in
             const authGuardOverlay = document.getElementById('auth-guard-overlay');
+            if (authGuardOverlay) {
+                // Avoid flashing the sign-in prompt before auth state is resolved.
+                authGuardOverlay.classList.remove('auth-checking');
+            }
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
                 firestoreUserId = user.uid; // Set for runtime sync
@@ -1874,6 +1895,7 @@
                 if (authGuardOverlay) {
                     authGuardOverlay.classList.add('auth-verified');
                 }
+                hideAuthModal();
 
                 // Flush queue when authenticated
                 if (navigator.onLine) {
@@ -2386,10 +2408,7 @@
             let sharedLoaded = false;
 
             try {
-                sharedExerciseLibrary = await loadExerciseLibraryShared({
-                    fallbackUrl: 'exercise_library.json',
-                    seedIfMissing: true
-                });
+                sharedExerciseLibrary = await loadExerciseLibraryShared();
                 sharedLoaded = true;
             } catch (error) {
                 console.warn('[Library] Shared exercise library unavailable; keeping local only.', error);
@@ -2903,14 +2922,9 @@
             }
         }
 
-        // Load roles data from JSON file (cached by service worker)
+        // Load roles data from Firestore (cached locally for offline use)
         function loadRolesData() {
-            const fallbackData = loadRolesDataSync();
-            return loadExerciseRolesShared({
-                fallbackUrl: 'exercise_roles.json',
-                fallbackData,
-                seedIfMissing: true
-            }).then((data) => {
+            return loadExerciseRolesShared().then((data) => {
                 if (data) {
                     saveRolesDataSync(data);
                 }
@@ -2921,25 +2935,17 @@
             });
         }
 
-        // Load schema from JSON file (cached by service worker)
+        // Load schema from Firestore
         function loadSchema() {
-            return loadExerciseFileSchemaShared({
-                fallbackUrl: 'schema/exercise_file.schema.json',
-                seedIfMissing: true
-            }).catch(err => {
+            return loadExerciseFileSchemaShared().catch(err => {
                 console.error('Failed to load schema:', err);
                 return {};
             });
         }
 
-        // Load vocabulary from JSON file (cached by service worker)
+        // Load vocabulary from Firestore (cached locally for offline use)
         function loadVocabulary() {
-            const fallbackData = loadVocabularySync();
-            return loadExerciseVocabularyShared({
-                fallbackUrl: 'exercise_roles_vocabulary.json',
-                fallbackData,
-                seedIfMissing: true
-            }).then((data) => {
+            return loadExerciseVocabularyShared().then((data) => {
                 if (data) {
                     saveVocabularySync(data);
                 }
@@ -6206,14 +6212,11 @@
 
             // Normalize local library for the tracker view.
             const localExercises = loadExerciseLibrary();
-            // Load shared library (Firestore + fallback) for cross-page parity checks.
+            // Load shared library (Firestore) for cross-page parity checks.
             let sharedExercises = [];
             let sharedError = null;
             try {
-                sharedExercises = await loadExerciseLibraryShared({
-                    fallbackUrl: 'exercise_library.json',
-                    seedIfMissing: false
-                });
+                sharedExercises = await loadExerciseLibraryShared();
             } catch (error) {
                 sharedError = error;
             }
@@ -6233,7 +6236,7 @@
                 lines.push(`Shared library: ERROR`);
                 lines.push(`  - ${sharedError.message}`);
             } else {
-                lines.push(formatExercisePreview(sharedExercises, 'Shared library (Firestore + fallback)'));
+                lines.push(formatExercisePreview(sharedExercises, 'Shared library (Firestore)'));
             }
 
             lines.push('');
@@ -7134,11 +7137,11 @@
 
         async function showNotesModal() {
             if (!currentUser) {
-                alert('Please sign in to view notes');
+                showAuthModal();
                 return;
             }
 
-            document.getElementById('notes-modal').style.display = 'flex';
+            document.getElementById('notes-modal').classList.add('active');
             await loadNotes();
 
             // Mark notes as read
@@ -7166,7 +7169,7 @@
         }
 
         function closeNotesModal() {
-            document.getElementById('notes-modal').style.display = 'none';
+            document.getElementById('notes-modal').classList.remove('active');
         }
 
         async function loadNotes() {
@@ -7849,10 +7852,7 @@ ${payload}`;
             let sharedVocabularyCount = 0;
 
             try {
-                sharedExerciseLibrary = await loadExerciseLibraryShared({
-                    fallbackUrl: 'exercise_library.json',
-                    seedIfMissing: false
-                });
+                sharedExerciseLibrary = await loadExerciseLibraryShared();
                 sharedExerciseLibraryLoaded = true;
             } catch (error) {
                 console.warn('[Import] Failed to load exercise library from Firestore; using local storage:', error);
@@ -7861,10 +7861,7 @@ ${payload}`;
             const exerciseLibrary = mergeExerciseLibraries(sharedExerciseLibrary, localExerciseLibrary);
 
             try {
-                rolesData = await loadExerciseRolesShared({
-                    fallbackUrl: 'exercise_roles.json',
-                    seedIfMissing: true
-                });
+                rolesData = await loadExerciseRolesShared();
                 rolesDataLoaded = true;
                 sharedRolesCount = Object.keys(rolesData?.exercise_roles || {}).length;
             } catch (error) {
@@ -7873,10 +7870,7 @@ ${payload}`;
             }
 
             try {
-                vocabulary = await loadExerciseVocabularyShared({
-                    fallbackUrl: 'exercise_roles_vocabulary.json',
-                    seedIfMissing: true
-                });
+                vocabulary = await loadExerciseVocabularyShared();
                 vocabularyLoaded = true;
                 sharedVocabularyCount = Object.keys(vocabulary || {}).length;
             } catch (error) {
@@ -8095,14 +8089,8 @@ ${payload}`;
 
                 // Load schema files
                 Promise.all([
-                    loadExerciseFileSchemaShared({
-                        fallbackUrl: 'schema/exercise_file.schema.json',
-                        seedIfMissing: true
-                    }),
-                    loadExerciseRolesSchemaShared({
-                        fallbackUrl: 'schema/exercise_roles.schema.json',
-                        seedIfMissing: true
-                    })
+                    loadExerciseFileSchemaShared(),
+                    loadExerciseRolesSchemaShared()
                 ]).then(([exerciseSchema, rolesSchema]) => {
                     const zipFiles = [
                         {
@@ -8520,10 +8508,7 @@ ${payload}`;
             try {
                 const timeoutMs = 7000;
                 const exercises = await Promise.race([
-                    loadExerciseLibraryShared({
-                        fallbackUrl: 'exercise_library.json',
-                        seedIfMissing: false
-                    }),
+                    loadExerciseLibraryShared(),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), timeoutMs))
                 ]);
                 libraryExercises = exercises || [];
@@ -9085,38 +9070,77 @@ ${payload}`;
         // Problem: inline onclick can miss taps on iOS. Fix: bind pointerup/keydown handlers once on load.
         bindPointerHandlers();
 
-        // Auth button event listeners (pointer-based for iOS Safari/PWA reliability).
-        document.getElementById('auth-signin-btn').addEventListener('pointerup', handleSignIn);
-        document.getElementById('auth-signup-btn').addEventListener('pointerup', handleSignUp);
-        document.getElementById('auth-forgot-password').addEventListener('pointerup', handleForgotPassword);
-        document.getElementById('auth-skip-btn').addEventListener('pointerup', hideAuthModal);
+        function bindAuthModalEvents() {
+            const guardButton = document.getElementById('auth-guard-signin-btn');
+            const modal = document.getElementById('auth-modal');
+            const closeButton = document.getElementById('auth-modal-close');
+            const cancelButton = document.getElementById('auth-cancel-btn');
+            const signInButton = document.getElementById('auth-signin-btn');
+            const passwordInput = document.getElementById('auth-password');
+            const emailInput = document.getElementById('auth-email');
 
-        // Auth guard button
-        document.getElementById('auth-guard-signin-btn').addEventListener('pointerup', () => {
-            // Hide skip button when accessed via auth guard
-            document.getElementById('auth-skip-btn').style.display = 'none';
-            showAuthModal();
-        });
-
-        // Menu auth button event listeners (pointer-based for iOS Safari/PWA reliability).
-        document.getElementById('menu-signin-btn').addEventListener('pointerup', handleMenuSignIn);
-        document.getElementById('menu-signout-btn').addEventListener('pointerup', handleMenuSignOut);
-
-        // Allow Enter key to submit auth form
-        document.getElementById('auth-password').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleSignIn();
+            if (guardButton) {
+                guardButton.addEventListener('pointerup', showAuthModal);
+                guardButton.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        showAuthModal();
+                    }
+                });
             }
-        });
 
-        // Check for #signin hash (from coverage page redirect)
-        if (window.location.hash === '#signin') {
-            window.location.hash = ''; // Clear hash
-            setTimeout(() => {
-                if (!currentUser) {
-                    showAuthModal();
+            if (signInButton) {
+                signInButton.addEventListener('pointerup', handleSignIn);
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        hideAuthModal();
+                    }
+                });
+            }
+
+            const submitOnEnter = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleSignIn();
                 }
-            }, 500); // Wait for auth state to be ready
+            };
+
+            if (emailInput) {
+                emailInput.addEventListener('keydown', submitOnEnter);
+            }
+
+            if (passwordInput) {
+                passwordInput.addEventListener('keydown', submitOnEnter);
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (authModalActive && event.key === 'Escape') {
+                    event.preventDefault();
+                    hideAuthModal();
+                }
+            });
+        }
+
+        bindAuthModalEvents();
+
+        const menuSignInButton = document.getElementById('menu-signin-btn');
+        const menuSignOutButton = document.getElementById('menu-signout-btn');
+        if (menuSignInButton) {
+            menuSignInButton.addEventListener('pointerup', handleMenuSignIn);
+        }
+        if (menuSignOutButton) {
+            menuSignOutButton.addEventListener('pointerup', handleMenuSignOut);
         }
 
         // Initialize

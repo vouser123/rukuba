@@ -2,8 +2,6 @@ You are working in a PWA repository for a physical therapy (PT) exercise tracker
 
 This flow is used cross-platform, including Windows Surface devices used by the PT (Edge/Chrome). The solution must be browser-native, platform-agnostic, and work offline as a PWA.
 
-Copy/paste this entire prompt into Codex and follow it exactly.
-
 ⸻
 
 IMPORTANT POLICY (this is the starting point of the system)

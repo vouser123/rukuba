@@ -37,6 +37,27 @@
             font-size: 14px;
         }
 
+        .report-patient {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .report-debug {
+            color: var(--text-secondary);
+            font-size: 10px;
+            margin-top: 6px;
+            opacity: 0.6;
+        }
+
+        .report-header-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
         .section {
             margin-bottom: 30px;
             padding: 20px;
@@ -226,19 +247,124 @@
         #auth-guard-overlay.auth-verified {
             display: none;
         }
+
+        #auth-guard-overlay.auth-checking {
+            display: none;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 20000;
+        }
+
+        .auth-modal.active {
+            display: flex;
+        }
+
+        .auth-modal-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            width: min(420px, 100%);
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .auth-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .auth-modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .auth-modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .auth-modal-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .auth-modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .auth-modal-actions button {
+            flex: 1;
+            min-height: 48px;
+        }
     </style>
 </head>
 <body>
     <!-- Auth Guard Overlay -->
-    <div id="auth-guard-overlay">
+    <div id="auth-guard-overlay" class="auth-checking">
         <h2>🔐 Authentication Required</h2>
         <p>You must be signed in to access the PT Progress Report.</p>
+        <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; min-height: 48px; padding: 12px 24px;">Sign In</button>
+    </div>
+
+    <!-- Auth Sign In Modal -->
+    <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
+        <div class="auth-modal-content">
+            <div class="auth-modal-header">
+                <div class="auth-modal-title" id="auth-modal-title">Sign In to Continue</div>
+                <button type="button" class="auth-modal-close" id="auth-modal-close" aria-label="Close sign in">×</button>
+            </div>
+            <div class="auth-modal-subtitle">Use your therapist account to access patient progress data.</div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="auth-email">Email</label>
+                <input type="email" class="form-input" id="auth-email" placeholder="name@example.com" autocomplete="email">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="auth-password">Password</label>
+                <input type="password" class="form-input" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px;">
+                <label for="auth-remember" style="font-size: 14px; color: var(--text-secondary); cursor: pointer;">Remember me on this device</label>
+            </div>
+            <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; text-align: center;"></div>
+            <div class="auth-modal-actions">
+                <button type="button" class="btn-secondary" id="auth-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="auth-signin-btn">Sign In</button>
+            </div>
+        </div>
     </div>
 
 
     <div class="report-header">
         <div class="report-title">Physical Therapy Progress Report</div>
         <div class="report-date" id="report-date"></div>
+        <div class="report-patient" id="report-patient">Patient: <span id="report-patient-id">--</span></div>
+        <div class="report-debug" id="report-debug">debug: pt_report</div>
+        <div class="report-header-actions">
+            <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 PT View</a>
+            <a class="btn-secondary" href="pt_report.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📋 PT Report</a>
+        </div>
     </div>
 
     <div class="section" id="patient-note-section" style="display: none;">
@@ -269,9 +395,14 @@
     <div id="import-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center;">
         <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
         <h2 style="margin-bottom: 20px;">PT Progress Report Viewer</h2>
+        <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">Patient: <span id="import-patient-id">--</span></div>
         <p style="color: var(--text-secondary); margin-bottom: 30px; max-width: 500px;">
             Import a progress report to view patient metrics, or load base files to add/edit exercises.
         </p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
+            <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 Open PT View</a>
+            <a class="btn-secondary" href="pt_report.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📋 Open PT Report</a>
+        </div>
         <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)">
         <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
             <button class="btn-primary" onclick="showImportPasteModal()">📥 Import Patient Report</button>
@@ -280,12 +411,14 @@
         <p style="color: var(--text-secondary); font-size: 13px; margin-top: 20px; max-width: 600px;">
             <strong>PT Editor Mode:</strong> Load base exercise library from the shared Firestore library to add new exercises, assign roles, or update definitions without patient data.
         </p>
+        <div style="color: var(--text-secondary); font-size: 10px; margin-top: 18px; opacity: 0.6;" id="import-debug">debug: pt_report</div>
     </div>
 
     <div class="action-buttons" style="display: none;" id="action-buttons">
         <button class="btn-secondary" onclick="window.location.href='pt_view.html'">👁️ View Dashboard</button>
         <button class="btn-secondary" onclick="toggleEditorMode()">✏️ Edit Mode</button>
         <button class="btn-secondary" onclick="window.print()">🖨️ Print</button>
+        <button class="btn-secondary" onclick="resetReport()">📥 Load New</button>
         <button class="btn-secondary" onclick="window.location.href='rehab_coverage.html'">← Back</button>
     </div>
 
@@ -740,49 +873,220 @@
     </script>
     <script type="module">
         // Firebase Auth + Auto-discover patient + Load patient data
-        import { auth, onAuthStateChanged, db } from './firebase.js';
+        import {
+            auth,
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence,
+            db
+        } from './firebase.js';
         import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let patientUserId = null;
+        let authModalActive = false;
+        let authModalLastFocus = null;
+
+        function updatePatientDisplay(patientId, userEmail) {
+            const reportPatientId = document.getElementById('report-patient-id');
+            const importPatientId = document.getElementById('import-patient-id');
+            const reportDebug = document.getElementById('report-debug');
+            const importDebug = document.getElementById('import-debug');
+            const displayId = patientId || 'Unknown';
+
+            if (reportPatientId) reportPatientId.textContent = displayId;
+            if (importPatientId) importPatientId.textContent = displayId;
+            if (reportDebug) reportDebug.textContent = `debug: pt_report • ${userEmail || 'signed out'}`;
+            if (importDebug) importDebug.textContent = `debug: pt_report • ${userEmail || 'signed out'}`;
+        }
 
         onAuthStateChanged(auth, async (user) => {
             const authGuardOverlay = document.getElementById('auth-guard-overlay');
 
+            if (authGuardOverlay) {
+                // Avoid flashing the sign-in prompt before auth state is resolved.
+                authGuardOverlay.classList.remove('auth-checking');
+            }
+
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
 
-                // Query users collection where therapistUid == current user
-                const usersRef = collection(db, 'users');
-                const q = query(usersRef, where('therapistUid', '==', user.uid));
-                const snapshot = await getDocs(q);
+                // Authenticated users should never be blocked by the guard overlay,
+                // even if downstream Firestore reads fail or take time to resolve.
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.add('auth-verified');
+                }
+                hideAuthModal();
 
-                if (!snapshot.empty) {
-                    patientUserId = snapshot.docs[0].id;
-                    console.log('[Therapist] Found patient UID:', patientUserId);
+                try {
+                    // Query users collection where therapistUid == current user.
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where('therapistUid', '==', user.uid));
+                    const snapshot = await getDocs(q);
 
-                    // Load patient data from Firestore
+                    if (!snapshot.empty) {
+                        patientUserId = snapshot.docs[0].id;
+                        console.log('[Therapist] Found patient UID:', patientUserId);
+                    } else {
+                        patientUserId = user.uid;
+                        console.warn('[Therapist] No patient found for this therapist; loading therapist data.');
+                    }
+
+                    // Load patient data from Firestore.
                     await loadPatientDataFromFirestore(patientUserId);
-                } else {
-                    console.warn('[Therapist] No patient found for this therapist');
+                } catch (error) {
+                    // Signed-in users may still see data load warnings, but should not be re-prompted to sign in.
+                    console.error('[Therapist] Failed to resolve patient account:', error);
                 }
 
                 // Make patientUserId available globally
                 window.ptReportUserId = patientUserId;
-
-                // Remove auth guard overlay
-                if (authGuardOverlay) {
-                    authGuardOverlay.classList.add('auth-verified');
-                }
+                updatePatientDisplay(patientUserId || user.uid, user.email);
             } else {
                 console.log('[Auth] No user signed in - blocking page access');
                 patientUserId = null;
                 window.ptReportUserId = null;
+                updatePatientDisplay(null, null);
 
                 if (authGuardOverlay) {
                     authGuardOverlay.classList.remove('auth-verified');
                 }
             }
         });
+
+        function showAuthError(message) {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function clearAuthError() {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal) return;
+            authModalLastFocus = document.activeElement;
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            authModalActive = true;
+            clearAuthError();
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput) {
+                emailInput.focus();
+                emailInput.select();
+            }
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal || !authModalActive) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            authModalActive = false;
+            if (authModalLastFocus && typeof authModalLastFocus.focus === 'function') {
+                authModalLastFocus.focus();
+            }
+        }
+
+        async function handleAuthSignIn() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Enter both email and password to sign in.');
+                return;
+            }
+
+            try {
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error('[Auth] Sign in failed:', error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showAuthError('Incorrect email or password.');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Please enter a valid email address.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Please try again later.');
+                } else {
+                    showAuthError('Sign in failed. Please try again.');
+                }
+            }
+        }
+
+        function bindAuthModalEvents() {
+            const guardButton = document.getElementById('auth-guard-signin-btn');
+            const modal = document.getElementById('auth-modal');
+            const closeButton = document.getElementById('auth-modal-close');
+            const cancelButton = document.getElementById('auth-cancel-btn');
+            const signInButton = document.getElementById('auth-signin-btn');
+            const passwordInput = document.getElementById('auth-password');
+            const emailInput = document.getElementById('auth-email');
+
+            if (guardButton) {
+                guardButton.addEventListener('pointerup', showAuthModal);
+                guardButton.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        showAuthModal();
+                    }
+                });
+            }
+
+            if (signInButton) {
+                signInButton.addEventListener('pointerup', handleAuthSignIn);
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        hideAuthModal();
+                    }
+                });
+            }
+
+            const submitOnEnter = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleAuthSignIn();
+                }
+            };
+
+            if (emailInput) {
+                emailInput.addEventListener('keydown', submitOnEnter);
+            }
+
+            if (passwordInput) {
+                passwordInput.addEventListener('keydown', submitOnEnter);
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (authModalActive && event.key === 'Escape') {
+                    event.preventDefault();
+                    hideAuthModal();
+                }
+            });
+        }
+
+        // Bind auth modal interactions once the module loads.
+        bindAuthModalEvents();
 
         async function loadPatientDataFromFirestore(uid) {
             try {
@@ -796,15 +1100,19 @@
                 const runtimeSnap = await getDoc(runtimeRef);
                 const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
 
-                // Load shared data (roles, schema, vocabulary)
+                // Load shared data (roles, schema, vocabulary, library)
                 const sharedData = await window.sharedDataLoader.loadExerciseRolesShared();
                 const schema = await window.sharedDataLoader.loadExerciseFileSchemaShared();
                 const vocabulary = await window.sharedDataLoader.loadExerciseVocabularyShared();
+                const sharedLibrary = await window.sharedDataLoader.loadExerciseLibraryShared();
+
+                const runtimeLibrary = Array.isArray(runtime.exerciseLibrary) ? runtime.exerciseLibrary : [];
+                const exerciseLibrary = runtimeLibrary.length > 0 ? runtimeLibrary : sharedLibrary || [];
 
                 // Populate global variables (accessed by main script below)
                 window.ptReportData = {
                     sessionHistory: sessions,
-                    exerciseLibrary: runtime.exerciseLibrary || [],
+                    exerciseLibrary,
                     rolesData: sharedData,
                     schema: schema,
                     vocabulary: vocabulary
@@ -814,6 +1122,12 @@
                     sessions: sessions.length,
                     exercises: runtime.exerciseLibrary?.length || 0
                 });
+
+                if (document.readyState === 'loading') {
+                    window.addEventListener('DOMContentLoaded', init, { once: true });
+                } else {
+                    init();
+                }
             } catch (error) {
                 console.error('[Firestore] Failed to load patient data:', error);
                 alert('Failed to load patient data: ' + error.message);
@@ -931,6 +1245,7 @@
         let schema = null;
         let vocabulary = null;
         let patientEmailCache = '';
+        let initHasRun = false;
 
         // Track PT modifications
         let modifications = {
@@ -1107,6 +1422,8 @@
         }
 
         function init() {
+            if (initHasRun) return;
+            initHasRun = true;
             // Check if data was loaded from Firestore
             if (window.ptReportData) {
                 sessionHistory = window.ptReportData.sessionHistory;
@@ -1903,9 +2220,80 @@
             }
         }
 
+        function getTodayDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function normalizeForCompare(value) {
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed === '' ? null : trimmed;
+            }
+            if (Array.isArray(value)) {
+                return value.length === 0 ? null : value;
+            }
+            if (typeof value === 'object') {
+                return Object.keys(value).length === 0 ? null : value;
+            }
+            return value;
+        }
+
+        function isBlankValue(value) {
+            return normalizeForCompare(value) === null;
+        }
+
+        function getChangedFields(existing, updated, fields) {
+            if (!existing) return [];
+            return fields.filter((key) => {
+                const existingValue = normalizeForCompare(existing[key]);
+                const updatedValue = normalizeForCompare(updated[key]);
+                return JSON.stringify(existingValue) !== JSON.stringify(updatedValue);
+            });
+        }
+
+        function getBlankFields(existing, updated, fields) {
+            if (!existing) return [];
+            return fields.filter((key) => {
+                if (key === 'id') return false;
+                const updatedValue = updated[key];
+                const existingValue = existing[key];
+                return isBlankValue(updatedValue) && !isBlankValue(existingValue);
+            });
+        }
+
+        function applyExistingValues(updated, existing, fields) {
+            fields.forEach((key) => {
+                updated[key] = existing[key];
+            });
+        }
+
+        function formatFieldLabel(fieldKey) {
+            const fieldLabels = {
+                canonical_name: 'Name',
+                pt_category: 'PT Category',
+                description: 'Description',
+                primary_muscles: 'Primary muscles',
+                secondary_muscles: 'Secondary muscles',
+                pattern: 'Pattern',
+                pattern_modifiers: 'Pattern modifiers',
+                equipment: 'Equipment',
+                form_parameters_required: 'Form parameters',
+                tags: 'Tags',
+                guidance: 'Guidance',
+                lifecycle: 'Lifecycle',
+                added_date: 'Added date',
+                updated_date: 'Updated date'
+            };
+            return fieldLabels[fieldKey] || fieldKey;
+        }
+
         async function saveExercise() {
             // Make exerciseLibrary available globally for Firestore save
             window.exerciseLibrary = exerciseLibrary;
+            const existingExercise = currentEditingExerciseId
+                ? exerciseLibrary.find(ex => ex.id === currentEditingExerciseId)
+                : null;
             const exercise = exerciseFormModule.serializeExerciseFromBindings({
                 bindings: exerciseFormBindings,
                 schema,
@@ -1930,6 +2318,35 @@
             const name = (exercise.canonical_name || '').trim();
             exercise.canonical_name = name;
 
+            const blankFields = getBlankFields(existingExercise, exercise, exerciseFormBindings.restrictToFields);
+            if (blankFields.length > 0) {
+                const confirmClear = confirm(
+                    `The following fields are blank and will clear existing data:\n\n` +
+                    `${blankFields.map(field => `• ${formatFieldLabel(field)}`).join('\n')}\n\n` +
+                    `Press OK to clear them, or Cancel to keep existing values.`
+                );
+                if (!confirmClear) {
+                    applyExistingValues(exercise, existingExercise, blankFields);
+                }
+            }
+
+            const changedFields = getChangedFields(existingExercise, exercise, exerciseFormBindings.restrictToFields);
+
+            if (existingExercise && changedFields.length === 0) {
+                alert('No changes detected to save.');
+                return;
+            }
+
+            const today = getTodayDate();
+            if (existingExercise) {
+                exercise.updated_date = today;
+            } else {
+                if (!exercise.added_date) {
+                    exercise.added_date = today;
+                }
+                exercise.updated_date = today;
+            }
+
             const errors = exerciseFormModule.validateExercise(
                 exercise,
                 schema,
@@ -1947,6 +2364,16 @@
 
             const exerciseId = exercise.id;
             const newExerciseIndex = modifications.newExercises.findIndex(ex => ex.id === exerciseId);
+
+            const reviewSummary = existingExercise
+                ? `Review changes for "${name}":\n\n` +
+                  `${changedFields.length ? changedFields.map(field => `• ${formatFieldLabel(field)}`).join('\n') : '• (no field changes detected)'}\n\n` +
+                  `Press OK to save, or Cancel to review again.`
+                : `Save new exercise "${name}"?\n\nPress OK to save, or Cancel to review again.`;
+
+            if (!confirm(reviewSummary)) {
+                return;
+            }
 
             if (currentEditingExerciseId) {
                 if (newExerciseIndex !== -1) {
@@ -2008,10 +2435,12 @@
                 modifications.archivedExercises.push(currentEditingExerciseId);
             }
 
-            // Remove from exerciseLibrary (locally only)
-            const index = exerciseLibrary.findIndex(ex => ex.id === currentEditingExerciseId);
-            if (index !== -1) {
-                exerciseLibrary.splice(index, 1);
+            if (exercise) {
+                exercise.lifecycle = {
+                    ...(exercise.lifecycle || {}),
+                    status: 'archived'
+                };
+                modifications.editedExercises[currentEditingExerciseId] = exercise;
             }
 
             // Clear form
@@ -2187,7 +2616,7 @@
         }
 
         function deleteRole(exerciseId, roleIndex, roleType) {
-            if (!confirm('Delete this role?')) {
+            if (!confirm('Delete this role?\n\nThis will be exported as a role removal.')) {
                 return;
             }
 
@@ -2671,22 +3100,10 @@ ${payload}`;
                     schemaData,
                     vocabData
                 ] = await Promise.all([
-                    sharedLoader.loadExerciseLibraryShared({
-                        fallbackUrl: 'exercise_library.json',
-                        seedIfMissing: false
-                    }),
-                    sharedLoader.loadExerciseRolesShared({
-                        fallbackUrl: 'exercise_roles.json',
-                        seedIfMissing: true
-                    }),
-                    sharedLoader.loadExerciseFileSchemaShared({
-                        fallbackUrl: 'schema/exercise_file.schema.json',
-                        seedIfMissing: true
-                    }),
-                    sharedLoader.loadExerciseVocabularyShared({
-                        fallbackUrl: 'exercise_roles_vocabulary.json',
-                        seedIfMissing: true
-                    })
+                    sharedLoader.loadExerciseLibraryShared(),
+                    sharedLoader.loadExerciseRolesShared(),
+                    sharedLoader.loadExerciseFileSchemaShared(),
+                    sharedLoader.loadExerciseVocabularyShared()
                 ]);
 
                 // Set global data
@@ -2784,7 +3201,29 @@ ${payload}`;
                 return;
             }
 
-            if (!confirm('Save all changes to Firestore?\n\nThis will update the patient\'s exercise library.')) {
+            const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
+
+            const summaryLines = [
+                newExCount ? `• ${newExCount} new exercise${newExCount > 1 ? 's' : ''}` : null,
+                editedExCount ? `• ${editedExCount} edited exercise${editedExCount > 1 ? 's' : ''}` : null,
+                archivedExCount ? `• ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}` : null,
+                newRoleCount ? `• ${newRoleCount} new role${newRoleCount > 1 ? 's' : ''}` : null,
+                deletedRoleCount ? `• ${deletedRoleCount} deleted role${deletedRoleCount > 1 ? 's' : ''}` : null,
+                dosageChangeCount ? `• ${dosageChangeCount} dosage update${dosageChangeCount > 1 ? 's' : ''}` : null
+            ].filter(Boolean);
+
+            const destructiveWarning = (archivedExCount || deletedRoleCount)
+                ? '\n\n⚠️ Destructive review: archived exercises or deleted roles are included.'
+                : '';
+
+            const confirmMessage = `Review changes before saving:\n\n${summaryLines.length ? summaryLines.join('\n') : '• No changes detected'}${destructiveWarning}\n\nSave all changes to Firestore?`;
+
+            if (!confirm(confirmMessage)) {
                 return;
             }
 
