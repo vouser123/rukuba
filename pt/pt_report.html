@@ -295,8 +295,10 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
                 <h2 style="font-size: 24px; font-weight: 600;">PT Editor Mode</h2>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn-secondary" onclick="location.reload()">🔄 Reload</button>
-                    <button class="btn-danger" onclick="toggleEditorMode()" accesskey="x">Close Editor (Alt+X)</button>
+                    <button class="btn-secondary" onclick="showChangeHistory()">📋 Changes</button>
+                    <button class="btn-secondary" onclick="clearAllChanges()">↩️ Undo All</button>
+                    <button class="btn-primary" onclick="commitAllChangesToFirestore()">💾 Save All</button>
+                    <button class="btn-danger" onclick="toggleEditorMode()" accesskey="x">Close (Alt+X)</button>
                 </div>
             </div>
 
@@ -2613,6 +2615,58 @@ ${payload}`;
                 console.error('Error loading PT mode:', error);
                 alert('Error loading PT Mode: ' + error.message + '\n\nMake sure you have internet connection and the shared data is accessible.');
             }
+        }
+
+        // Show change history
+        function showChangeHistory() {
+            const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
+
+            let summary = 'Current Changes:\n\n';
+
+            if (newExCount > 0) {
+                summary += `New Exercises (${newExCount}):\n`;
+                modifications.newExercises.forEach(ex => summary += `  • ${ex.canonical_name || ex.name}\n`);
+                summary += '\n';
+            }
+
+            if (editedExCount > 0) {
+                summary += `Edited Exercises (${editedExCount}):\n`;
+                Object.values(modifications.editedExercises).forEach(ex => summary += `  • ${ex.canonical_name || ex.name}\n`);
+                summary += '\n';
+            }
+
+            if (archivedExCount > 0) {
+                summary += `Archived Exercises (${archivedExCount}):\n`;
+                modifications.archivedExercises.forEach(id => {
+                    const ex = exerciseLibrary.find(e => e.id === id);
+                    summary += `  • ${ex?.canonical_name || ex?.name || id}\n`;
+                });
+                summary += '\n';
+            }
+
+            if (newRoleCount > 0) summary += `New Roles: ${newRoleCount}\n`;
+            if (deletedRoleCount > 0) summary += `Deleted Roles: ${deletedRoleCount}\n`;
+            if (dosageChangeCount > 0) summary += `Dosage Changes: ${dosageChangeCount}\n`;
+
+            if (newExCount + editedExCount + archivedExCount + newRoleCount + deletedRoleCount + dosageChangeCount === 0) {
+                summary = 'No changes yet.';
+            }
+
+            alert(summary);
+        }
+
+        // Clear all changes
+        function clearAllChanges() {
+            if (!confirm('Undo all changes?\n\nThis will reload the original data from Firestore.')) {
+                return;
+            }
+
+            location.reload();
         }
 
         // Commit all changes to Firestore
