@@ -392,14 +392,15 @@
         <h2 style="margin-bottom: 20px;">PT Progress Report Viewer</h2>
         <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">Patient: <span id="import-patient-id">--</span></div>
         <p style="color: var(--text-secondary); margin-bottom: 30px; max-width: 500px;">
-            Import a progress report to view patient metrics, or load base files to add/edit exercises.
+            View patient data from Firestore, or load base files to add/edit exercises.
         </p>
         <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
             <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 Open PT View</a>
         </div>
-        <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+        <!-- TODO: Patient data now loads from Firestore automatically -->
+        <!-- <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)"> -->
         <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
-            <button class="btn-primary" onclick="showImportPasteModal()">📥 Import Patient Report</button>
+            <!-- <button class="btn-primary" onclick="showImportPasteModal()">📥 Import Patient Report</button> -->
             <button class="btn-secondary" onclick="loadPTMode()">✏️ PT Editor Mode (Load Base Exercises)</button>
         </div>
         <p style="color: var(--text-secondary); font-size: 13px; margin-top: 20px; max-width: 600px;">
@@ -1245,30 +1246,70 @@
             if (!window.ptReportUserId) return;
 
             try {
-                const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
+                const { collection, getDocs, query, orderBy, doc: firestoreDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
                 const notesRef = collection(db, `users/${window.ptReportUserId}/notes`);
                 const q = query(notesRef, orderBy('createdAt', 'desc'));
                 const snapshot = await getDocs(q);
 
                 const notesList = document.getElementById('notes-list');
+                const now = Date.now();
+                const oneHour = 60 * 60 * 1000;
 
-                if (snapshot.empty) {
+                // Filter out deleted and archived notes
+                const noteDocuments = [];
+                snapshot.forEach(docSnap => {
+                    const note = docSnap.data();
+                    if (!note.deleted && !note.archivedByTherapist) {
+                        noteDocuments.push({ id: docSnap.id, data: note });
+                    }
+                });
+
+                // Mark patient notes as read by therapist
+                const unreadPatientNotes = noteDocuments.filter(doc =>
+                    doc.data.createdBy === 'patient' && !doc.data.readByTherapist
+                );
+                for (const noteDoc of unreadPatientNotes) {
+                    try {
+                        const noteRef = firestoreDoc(db, `users/${window.ptReportUserId}/notes/${noteDoc.id}`);
+                        await updateDoc(noteRef, { readByTherapist: true });
+                    } catch (error) {
+                        console.error('[Firestore] Failed to mark note as read:', error);
+                    }
+                }
+
+                if (noteDocuments.length === 0) {
                     notesList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No notes yet</div>';
                     return;
                 }
 
                 let html = '';
-                snapshot.forEach(doc => {
-                    const note = doc.data();
-                    const date = new Date(note.createdAt).toLocaleString();
+                noteDocuments.forEach(noteDoc => {
+                    const note = noteDoc.data;
+                    const noteId = noteDoc.id;
+                    const date = new Date(note.createdAt);
+                    const dateStr = date.toLocaleString();
                     const isTherapist = note.createdBy === 'therapist';
+                    const canUndo = (now - date.getTime() < oneHour); // Allow undo for any note within 1 hour
+
+                    // Show read status for both sides
+                    let readStatus = '';
+                    if (isTherapist) {
+                        readStatus = note.readByPatient ? '✓ Read by Patient' : '○ Sent';
+                    } else {
+                        readStatus = note.readByTherapist ? '✓ Read by you' : '○ New';
+                    }
 
                     html += `
                         <div style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: ${isTherapist ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'}; border-left: 3px solid ${isTherapist ? 'var(--ios-blue)' : 'var(--ios-green)'};">
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
-                                <strong>${isTherapist ? 'You (Therapist)' : 'Patient'}</strong> • ${date}
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                <div><strong>${isTherapist ? 'You (Therapist)' : 'Patient'}</strong> • ${dateStr}</div>
+                                <span style="font-size: 10px; color: var(--text-secondary);">${readStatus}</span>
                             </div>
-                            <div style="white-space: pre-wrap;">${note.text}</div>
+                            <div style="white-space: pre-wrap; margin-bottom: 8px;">${note.text}</div>
+                            <div style="display: flex; gap: 8px; font-size: 12px;">
+                                <button onclick="archiveNoteReport('${noteId}')" style="background: transparent; border: none; color: var(--ios-red); cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
+                                ${canUndo ? `<button onclick="undoSendNoteReport('${noteId}')" style="background: transparent; border: none; color: var(--ios-orange); cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                            </div>
                         </div>
                     `;
                 });
@@ -1276,6 +1317,44 @@
                 notesList.innerHTML = html;
             } catch (error) {
                 console.error('[Firestore] Failed to load notes:', error);
+            }
+        };
+
+        window.archiveNoteReport = async function(noteId) {
+            if (!window.ptReportUserId) return;
+
+            try {
+                const { doc: firestoreDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
+                const noteRef = firestoreDoc(db, `users/${window.ptReportUserId}/notes/${noteId}`);
+                await updateDoc(noteRef, {
+                    archivedByTherapist: true
+                });
+                await window.loadNotes();
+            } catch (error) {
+                console.error('[Firestore] Failed to archive note:', error);
+                alert('Failed to hide note');
+            }
+        };
+
+        window.undoSendNoteReport = async function(noteId) {
+            if (!window.ptReportUserId) return;
+
+            if (!confirm('Delete this note? It will be removed for both you and the patient.')) {
+                return;
+            }
+
+            try {
+                const { doc: firestoreDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
+                const noteRef = firestoreDoc(db, `users/${window.ptReportUserId}/notes/${noteId}`);
+                await updateDoc(noteRef, {
+                    deleted: true,
+                    deletedAt: new Date().toISOString(),
+                    deletedBy: 'therapist'
+                });
+                await window.loadNotes();
+            } catch (error) {
+                console.error('[Firestore] Failed to delete note:', error);
+                alert('Failed to delete note');
             }
         };
 

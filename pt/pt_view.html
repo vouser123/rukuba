@@ -163,7 +163,10 @@
     <div id="dashboard-screen" class="dashboard-container" style="display: none;">
         <div class="header">
             <div>
-                <h1>📊 Patient Dashboard</h1>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h1>📊 Patient Dashboard</h1>
+                    <span class="badge readonly-badge">READ-ONLY</span>
+                </div>
                 <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
                     Read-only view
                 </div>
@@ -175,7 +178,6 @@
                         💬 Notes
                         <span id="notes-badge" style="display: none; position: absolute; top: 2px; right: 2px; background: var(--ios-red); color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; font-weight: 600;"></span>
                     </button>
-                    <span class="badge readonly-badge">READ-ONLY</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <a class="btn-secondary" href="pt_report.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">↩ PT Report</a>
@@ -445,16 +447,40 @@
                 // Filter notes by date if not showing all
                 const sevenDaysAgo = new Date();
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                const now = Date.now();
+                const oneHour = 60 * 60 * 1000;
 
                 let notes = [];
+                const noteDocuments = [];
                 snapshot.forEach(docSnap => {
                     const note = docSnap.data();
                     const noteDate = new Date(note.createdAt);
 
+                    // Filter out deleted notes and therapist-archived notes
+                    if (note.deleted || note.archivedByTherapist) {
+                        return;
+                    }
+
                     if (showAllNotes || noteDate >= sevenDaysAgo) {
                         notes.push(note);
+                        noteDocuments.push({ id: docSnap.id, data: note });
                     }
                 });
+
+                // Mark patient notes as read by therapist
+                if (isTherapist) {
+                    const unreadPatientNotes = noteDocuments.filter(doc =>
+                        doc.data.createdBy === 'patient' && !doc.data.readByTherapist
+                    );
+                    for (const noteDoc of unreadPatientNotes) {
+                        try {
+                            const noteRef = doc(db, `users/${currentPatientUid}/notes/${noteDoc.id}`);
+                            await updateDoc(noteRef, { readByTherapist: true });
+                        } catch (error) {
+                            console.error('[Firestore] Failed to mark note as read:', error);
+                        }
+                    }
+                }
 
                 if (notes.length === 0) {
                     notesList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No recent notes</div>';
@@ -462,16 +488,34 @@
                 }
 
                 let html = '';
-                notes.forEach(note => {
-                    const date = new Date(note.createdAt).toLocaleString();
+                noteDocuments.forEach(noteDoc => {
+                    const note = noteDoc.data;
+                    const noteId = noteDoc.id;
+                    const date = new Date(note.createdAt);
+                    const dateStr = date.toLocaleString();
                     const isPatient = note.createdBy === 'patient';
+                    const isTherapistNote = note.createdBy === 'therapist';
+                    const canUndo = (now - date.getTime() < oneHour); // Allow undo for any note within 1 hour
+
+                    // Show read status for both sides
+                    let readStatus = '';
+                    if (isTherapistNote) {
+                        readStatus = note.readByPatient ? '✓ Read by Patient' : '○ Sent';
+                    } else {
+                        readStatus = note.readByTherapist ? '✓ Read by you' : '○ New';
+                    }
 
                     html += `
                         <div style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: ${isPatient ? 'var(--bg-secondary)' : 'var(--bg-tertiary)'}; border-left: 3px solid ${isPatient ? 'var(--ios-green)' : 'var(--ios-blue)'};">
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
-                                <strong>${isPatient ? 'Patient' : 'PT'}</strong> • ${date}
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                <div><strong>${isPatient ? 'Patient' : 'You (PT)'}</strong> • ${dateStr}</div>
+                                <span style="font-size: 10px; color: var(--text-secondary);">${readStatus}</span>
                             </div>
-                            <div style="white-space: pre-wrap;">${note.text}</div>
+                            <div style="white-space: pre-wrap; margin-bottom: 8px;">${note.text}</div>
+                            <div style="display: flex; gap: 8px; font-size: 12px;">
+                                <button data-action="archiveNoteView" data-action-arg="${noteId}" style="background: transparent; border: none; color: var(--ios-red); cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
+                                ${canUndo ? `<button data-action="undoSendNoteView" data-action-arg="${noteId}" style="background: transparent; border: none; color: var(--ios-orange); cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                            </div>
                         </div>
                     `;
                 });
@@ -510,6 +554,42 @@
             } catch (error) {
                 console.error('[Firestore] Failed to send note:', error);
                 alert('Failed to send note');
+            }
+        }
+
+        async function archiveNoteView(noteId) {
+            if (!currentPatientUid) return;
+
+            try {
+                const noteRef = doc(db, `users/${currentPatientUid}/notes/${noteId}`);
+                await updateDoc(noteRef, {
+                    archivedByTherapist: true
+                });
+                await loadNotes();
+            } catch (error) {
+                console.error('[Firestore] Failed to archive note:', error);
+                alert('Failed to hide note');
+            }
+        }
+
+        async function undoSendNoteView(noteId) {
+            if (!currentPatientUid) return;
+
+            if (!confirm('Delete this note? It will be removed for both you and the patient.')) {
+                return;
+            }
+
+            try {
+                const noteRef = doc(db, `users/${currentPatientUid}/notes/${noteId}`);
+                await updateDoc(noteRef, {
+                    deleted: true,
+                    deletedAt: new Date().toISOString(),
+                    deletedBy: 'therapist'
+                });
+                await loadNotes();
+            } catch (error) {
+                console.error('[Firestore] Failed to delete note:', error);
+                alert('Failed to delete note');
             }
         }
 
@@ -931,6 +1011,8 @@
             showNotesModal,
             closeNotesModal,
             sendNote,
+            archiveNoteView,
+            undoSendNoteView,
             toggleNotesFilter,
             goToCoverage,
             refreshData,

@@ -796,7 +796,11 @@
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="exercise-name" id="exercise-name" data-action="showQuickSwitcher" role="button" tabindex="0" style="cursor: pointer;">No Exercise Selected ▾</div>
-            <div style="display: flex; gap: 4px;">
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <div id="notes-indicator" style="display: none; position: relative; padding: 4px 8px;">
+                    <span style="font-size: 16px; font-weight: 600; color: var(--ios-blue);">💬</span>
+                    <span id="notes-count-badge" style="position: absolute; top: 0; right: 0; background: var(--ios-red); color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; font-weight: 600; min-width: 18px; text-align: center;"></span>
+                </div>
                 <button data-action="showWeeklyStats" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📈</button>
                 <button data-action="showExerciseDetailsModal" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px;">📋</button>
                 <button data-action="toggleHamburgerMenu" style="background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 4px 8px;">☰</button>
@@ -831,13 +835,16 @@
                 </div>
             </div>
 
+            <div data-actions="showNotesModal,toggleHamburgerMenu" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px; width: 24px; text-align: center; position: relative;">
+                    💬
+                    <span id="menu-notes-badge" style="display: none; position: absolute; top: -4px; right: -4px; background: var(--ios-red); color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; font-weight: 600;"></span>
+                </span>
+                <span>Notes</span>
+            </div>
             <div data-href="pt_report.html" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">✏️</span>
                 <span>PT Editor Mode</span>
-            </div>
-            <div data-href="rehab_coverage.html" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 20px; width: 24px; text-align: center;">📊</span>
-                <span>Coverage View</span>
             </div>
             <div data-actions="showSettings,toggleHamburgerMenu" role="button" tabindex="0" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px; width: 24px; text-align: center;">⚙️</span>
@@ -7211,7 +7218,16 @@
             // Mark notes as read
             lastReadNoteTime = new Date().toISOString();
             localStorage.setItem('lastReadNoteTime', lastReadNoteTime);
-            document.getElementById('notes-badge').style.display = 'none';
+
+            // Hide all note indicators
+            const badge = document.getElementById('notes-badge');
+            if (badge) badge.style.display = 'none';
+
+            const menuBadge = document.getElementById('menu-notes-badge');
+            if (menuBadge) menuBadge.style.display = 'none';
+
+            const notesIndicator = document.getElementById('notes-indicator');
+            if (notesIndicator) notesIndicator.style.display = 'none';
 
             // Reset button styling
             const notesButton = document.getElementById('notes-btn');
@@ -7231,10 +7247,30 @@
                 const snapshot = await getDocs(q);
 
                 if (!snapshot.empty) {
+                    const count = snapshot.size;
+
+                    // Update modal badge
                     const badge = document.getElementById('notes-badge');
                     const notesButton = document.getElementById('notes-btn');
-                    badge.textContent = snapshot.size;
-                    badge.style.display = 'block';
+                    if (badge) {
+                        badge.textContent = count;
+                        badge.style.display = 'block';
+                    }
+
+                    // Update menu badge
+                    const menuBadge = document.getElementById('menu-notes-badge');
+                    if (menuBadge) {
+                        menuBadge.textContent = count;
+                        menuBadge.style.display = 'block';
+                    }
+
+                    // Update header indicator
+                    const notesIndicator = document.getElementById('notes-indicator');
+                    const notesCountBadge = document.getElementById('notes-count-badge');
+                    if (notesIndicator && notesCountBadge) {
+                        notesIndicator.style.display = 'block';
+                        notesCountBadge.textContent = count;
+                    }
 
                     // Make button more prominent with highlighted styling
                     if (notesButton) {
@@ -7262,23 +7298,64 @@
 
                 const notesList = document.getElementById('notes-list');
 
-                if (snapshot.empty) {
+                const now = Date.now();
+                const oneHour = 60 * 60 * 1000;
+
+                // Filter out archived notes (patient only sees their own archives)
+                const visibleNotes = [];
+                snapshot.docs.forEach(docSnap => {
+                    const note = docSnap.data();
+                    if (!note.deleted && (!note.archivedByPatient)) {
+                        visibleNotes.push({ id: docSnap.id, data: note });
+                    }
+                });
+
+                // Mark therapist notes as read by patient
+                const unreadTherapistNotes = visibleNotes.filter(noteDoc =>
+                    noteDoc.data.createdBy === 'therapist' && !noteDoc.data.readByPatient
+                );
+                for (const noteDoc of unreadTherapistNotes) {
+                    try {
+                        const noteRef = doc(db, `users/${currentUser.uid}/notes/${noteDoc.id}`);
+                        await updateDoc(noteRef, { readByPatient: true });
+                    } catch (error) {
+                        console.error('[Firestore] Failed to mark note as read:', error);
+                    }
+                }
+
+                if (visibleNotes.length === 0) {
                     notesList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No notes yet</div>';
                     return;
                 }
 
                 let html = '';
-                snapshot.forEach(docSnap => {
-                    const note = docSnap.data();
-                    const date = new Date(note.createdAt).toLocaleString();
+                visibleNotes.forEach(noteDoc => {
+                    const note = noteDoc.data;
+                    const noteId = noteDoc.id;
+                    const date = new Date(note.createdAt);
+                    const dateStr = date.toLocaleString();
                     const isPatient = note.createdBy === 'patient';
+                    const canUndo = (now - date.getTime() < oneHour); // Allow undo for any note within 1 hour
+
+                    // Show read status for both sides
+                    let readStatus = '';
+                    if (isPatient) {
+                        readStatus = note.readByTherapist ? '✓ Read by PT' : '○ Sent';
+                    } else {
+                        readStatus = note.readByPatient ? '✓ Read by you' : '○ New';
+                    }
 
                     html += `
                         <div style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: ${isPatient ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'}; border-left: 3px solid ${isPatient ? 'var(--ios-green)' : 'var(--ios-blue)'};">
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
-                                <strong>${isPatient ? 'You' : 'PT'}</strong> • ${date}
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                <div><strong>${isPatient ? 'You' : 'PT'}</strong> • ${dateStr}</div>
+                                <span style="font-size: 10px; color: var(--text-secondary);">${readStatus}</span>
                             </div>
-                            <div style="white-space: pre-wrap;">${note.text}</div>
+                            <div style="white-space: pre-wrap; margin-bottom: 8px;">${note.text}</div>
+                            <div style="display: flex; gap: 8px; font-size: 12px;">
+                                <button data-action="archiveNote" data-action-arg="${noteId}" style="background: transparent; border: none; color: var(--ios-red); cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
+                                ${canUndo ? `<button data-action="undoSendNote" data-action-arg="${noteId}" style="background: transparent; border: none; color: var(--ios-orange); cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                            </div>
                         </div>
                     `;
                 });
@@ -7318,6 +7395,44 @@
             } catch (error) {
                 console.error('[Firestore] Failed to send note:', error);
                 alert('Failed to send note: ' + error.message);
+            }
+        }
+
+        async function archiveNote(noteId) {
+            if (!currentUser) return;
+
+            try {
+                const noteRef = doc(db, `users/${currentUser.uid}/notes/${noteId}`);
+                await updateDoc(noteRef, {
+                    archivedByPatient: true
+                });
+                await loadNotes();
+                haptic('success');
+            } catch (error) {
+                console.error('[Firestore] Failed to archive note:', error);
+                alert('Failed to hide note');
+            }
+        }
+
+        async function undoSendNote(noteId) {
+            if (!currentUser) return;
+
+            if (!confirm('Delete this note? It will be removed for both you and your PT.')) {
+                return;
+            }
+
+            try {
+                const noteRef = doc(db, `users/${currentUser.uid}/notes/${noteId}`);
+                await updateDoc(noteRef, {
+                    deleted: true,
+                    deletedAt: new Date().toISOString(),
+                    deletedBy: 'patient'
+                });
+                await loadNotes();
+                haptic('success');
+            } catch (error) {
+                console.error('[Firestore] Failed to delete note:', error);
+                alert('Failed to delete note');
             }
         }
 
@@ -8368,12 +8483,7 @@ ${payload}`;
             const display = document.getElementById('streak-display');
 
             if (thisWeek > 0) {
-                display.textContent = `${thisWeek} session${thisWeek > 1 ? 's' : ''} this week`;
-                if (thisWeek >= 3) display.textContent += ' 💪';
-            } else if (lastWeek > 0) {
-                display.textContent = `${lastWeek} last week`;
-            } else if (totalWeeks > 0) {
-                display.textContent = `${totalWeeks} week${totalWeeks > 1 ? 's' : ''} tracked`;
+                display.textContent = `📅 ${thisWeek}`;
             } else {
                 display.textContent = '';
             }
@@ -9143,7 +9253,9 @@ ${payload}`;
             showExerciseDetail,
             showNotesModal,
             closeNotesModal,
-            sendNote
+            sendNote,
+            archiveNote,
+            undoSendNote
         });
 
         // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
