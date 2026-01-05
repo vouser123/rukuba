@@ -797,6 +797,24 @@
                 alert('Failed to load patient data: ' + error.message);
             }
         }
+
+        // Save exercise library to Firestore
+        window.saveExerciseLibraryToFirestore = async function() {
+            if (!window.ptReportUserId) {
+                console.error('[Firestore] No patient UID available');
+                return;
+            }
+
+            try {
+                const runtimeRef = doc(db, `users/${window.ptReportUserId}/pt_runtime/state`);
+                await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
+                    .then(({ setDoc }) => setDoc(runtimeRef, { exerciseLibrary: window.exerciseLibrary }, { merge: true }));
+                console.log('[Firestore] Exercise library saved');
+            } catch (error) {
+                console.error('[Firestore] Failed to save exercise library:', error);
+                throw error;
+            }
+        };
     </script>
     <script>
         const exerciseFormModule = window.exerciseFormModule;
@@ -1779,6 +1797,8 @@
         }
 
         async function saveExercise() {
+            // Make exerciseLibrary available globally for Firestore save
+            window.exerciseLibrary = exerciseLibrary;
             const exercise = exerciseFormModule.serializeExerciseFromBindings({
                 bindings: exerciseFormBindings,
                 schema,
@@ -1831,11 +1851,18 @@
                 if (index !== -1) {
                     exerciseLibrary[index] = exercise;
                 }
-                alert(`Exercise "${name}" updated! Remember to export modifications.`);
             } else {
                 modifications.newExercises.push(exercise);
                 exerciseLibrary.push(exercise);
-                alert(`Exercise "${name}" added! Remember to export modifications.`);
+            }
+
+            // Save to Firestore
+            window.exerciseLibrary = exerciseLibrary;
+            try {
+                await window.saveExerciseLibraryToFirestore();
+                alert(`Exercise "${name}" saved to Firestore!`);
+            } catch (error) {
+                alert(`Failed to save to Firestore: ${error.message}`);
             }
 
             await runExportRegressionCheck(exerciseId, exercise);
