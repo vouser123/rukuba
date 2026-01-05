@@ -9085,22 +9085,52 @@ ${payload}`;
         // Problem: inline onclick can miss taps on iOS. Fix: bind pointerup/keydown handlers once on load.
         bindPointerHandlers();
 
-        // Auth button event listeners (pointer-based for iOS Safari/PWA reliability).
-        document.getElementById('auth-signin-btn').addEventListener('pointerup', handleSignIn);
-        document.getElementById('auth-signup-btn').addEventListener('pointerup', handleSignUp);
-        document.getElementById('auth-forgot-password').addEventListener('pointerup', handleForgotPassword);
-        document.getElementById('auth-skip-btn').addEventListener('pointerup', hideAuthModal);
+        // Auth button event listeners (pointer-based with touchend fallback for iOS Safari/PWA reliability).
+        const AUTH_ACTIVATION_GUARD_MS = 400;
+        let lastAuthActivationAt = 0;
+
+        function triggerAuthActivation(handler, event) {
+            const now = Date.now();
+            if (now - lastAuthActivationAt < AUTH_ACTIVATION_GUARD_MS) {
+                return;
+            }
+            lastAuthActivationAt = now;
+            handler(event);
+        }
+
+        function bindAuthActivation(element, handler) {
+            if (!element) return;
+            element.addEventListener('pointerup', (event) => {
+                triggerAuthActivation(handler, event);
+            });
+            // iOS Safari can miss pointerup on some buttons; touchend provides a reliable fallback.
+            element.addEventListener('touchend', (event) => {
+                event.preventDefault();
+                triggerAuthActivation(handler, event);
+            }, { passive: false });
+            element.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    triggerAuthActivation(handler, event);
+                }
+            });
+        }
+
+        bindAuthActivation(document.getElementById('auth-signin-btn'), handleSignIn);
+        bindAuthActivation(document.getElementById('auth-signup-btn'), handleSignUp);
+        bindAuthActivation(document.getElementById('auth-forgot-password'), handleForgotPassword);
+        bindAuthActivation(document.getElementById('auth-skip-btn'), hideAuthModal);
 
         // Auth guard button
-        document.getElementById('auth-guard-signin-btn').addEventListener('pointerup', () => {
-            // Hide skip button when accessed via auth guard
+        bindAuthActivation(document.getElementById('auth-guard-signin-btn'), () => {
+            // Hide skip button when accessed via auth guard.
             document.getElementById('auth-skip-btn').style.display = 'none';
             showAuthModal();
         });
 
         // Menu auth button event listeners (pointer-based for iOS Safari/PWA reliability).
-        document.getElementById('menu-signin-btn').addEventListener('pointerup', handleMenuSignIn);
-        document.getElementById('menu-signout-btn').addEventListener('pointerup', handleMenuSignOut);
+        bindAuthActivation(document.getElementById('menu-signin-btn'), handleMenuSignIn);
+        bindAuthActivation(document.getElementById('menu-signout-btn'), handleMenuSignOut);
 
         // Allow Enter key to submit auth form
         document.getElementById('auth-password').addEventListener('keypress', (e) => {

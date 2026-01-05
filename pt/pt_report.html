@@ -900,32 +900,36 @@
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
 
-                // Query users collection where therapistUid == current user
-                const usersRef = collection(db, 'users');
-                const q = query(usersRef, where('therapistUid', '==', user.uid));
-                const snapshot = await getDocs(q);
+                // Authenticated users should never be blocked by the guard overlay,
+                // even if downstream Firestore reads fail or take time to resolve.
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.add('auth-verified');
+                }
+                hideAuthModal();
 
-                if (!snapshot.empty) {
-                    patientUserId = snapshot.docs[0].id;
-                    console.log('[Therapist] Found patient UID:', patientUserId);
+                try {
+                    // Query users collection where therapistUid == current user.
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where('therapistUid', '==', user.uid));
+                    const snapshot = await getDocs(q);
 
-                    // Load patient data from Firestore
-                    await loadPatientDataFromFirestore(patientUserId);
-                } else {
-                    console.warn('[Therapist] No patient found for this therapist');
+                    if (!snapshot.empty) {
+                        patientUserId = snapshot.docs[0].id;
+                        console.log('[Therapist] Found patient UID:', patientUserId);
+
+                        // Load patient data from Firestore.
+                        await loadPatientDataFromFirestore(patientUserId);
+                    } else {
+                        console.warn('[Therapist] No patient found for this therapist');
+                    }
+                } catch (error) {
+                    // Signed-in users may still see data load warnings, but should not be re-prompted to sign in.
+                    console.error('[Therapist] Failed to resolve patient account:', error);
                 }
 
                 // Make patientUserId available globally
                 window.ptReportUserId = patientUserId;
                 updatePatientDisplay(patientUserId || user.uid, user.email);
-
-                // Remove auth guard overlay
-                if (authGuardOverlay) {
-                    authGuardOverlay.classList.add('auth-verified');
-                }
-
-                // Close the auth modal after successful sign-in.
-                hideAuthModal();
             } else {
                 console.log('[Auth] No user signed in - blocking page access');
                 patientUserId = null;

@@ -1,5 +1,5 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.22.26';
+const CACHE_NAME = 'pt-tracker-v1.22.28';
 const rolesSchemaUrl = new URL('schema/exercise_roles.schema.json', self.location).pathname;
 const exerciseSchemaUrl = new URL('schema/exercise_file.schema.json', self.location).pathname;
 const sharedStylesUrl = new URL('shared-styles.css', self.location).pathname;
