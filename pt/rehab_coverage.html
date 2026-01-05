@@ -253,6 +253,104 @@
             flex: 1;
         }
 
+        /* Auth Guard Overlay */
+        #auth-guard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #auth-guard-overlay h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        #auth-guard-overlay p {
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.5;
+            max-width: 400px;
+        }
+
+        #auth-guard-overlay.auth-verified {
+            display: none;
+        }
+
+        .auth-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .auth-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .auth-modal-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            width: min(420px, 90vw);
+            padding: 20px;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .auth-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .auth-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .auth-modal-close {
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .auth-modal-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .auth-modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .auth-modal-actions button {
+            flex: 1;
+            min-height: 48px;
+        }
+
         .vocab-section {
             margin-bottom: 20px;
         }
@@ -550,6 +648,41 @@
     </style>
 </head>
 <body>
+    <!-- Auth Guard Overlay -->
+    <div id="auth-guard-overlay">
+        <h2>🔐 Authentication Required</h2>
+        <p>You must be signed in to access Rehab Coverage.</p>
+        <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; min-height: 48px; padding: 12px 24px;">Sign In</button>
+    </div>
+
+    <!-- Auth Sign In Modal -->
+    <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
+        <div class="auth-modal-content">
+            <div class="auth-modal-header">
+                <div class="auth-modal-title" id="auth-modal-title">Sign In to Continue</div>
+                <button type="button" class="auth-modal-close" id="auth-modal-close" aria-label="Close sign in">×</button>
+            </div>
+            <div class="auth-modal-subtitle">Use your therapist account to review coverage data.</div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="auth-email">Email</label>
+                <input type="email" class="form-input" id="auth-email" placeholder="name@example.com" autocomplete="email">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="auth-password">Password</label>
+                <input type="password" class="form-input" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px;">
+                <label for="auth-remember" style="font-size: 14px; color: var(--text-secondary); cursor: pointer;">Remember me on this device</label>
+            </div>
+            <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; text-align: center;"></div>
+            <div class="auth-modal-actions">
+                <button type="button" class="btn-secondary" id="auth-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="auth-signin-btn">Sign In</button>
+            </div>
+        </div>
+    </div>
+
     <div class="header">
         <h1>Rehab Coverage</h1>
         <button class="header-btn" onclick="toggleMenu()">☰</button>
@@ -577,7 +710,7 @@
             <div id="menu-auth-signed-out" style="display: none;">
                 <div style="padding: 16px; background: #f5f5f5;">
                     <div style="font-size: 12px; color: #666; margin-bottom: 8px;">Cloud sync disabled</div>
-                    <button onclick="window.location.href='pt_tracker.html#signin'" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign In</button>
+                    <button id="menu-signin-btn" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign In</button>
                 </div>
             </div>
         </div>
@@ -741,7 +874,16 @@
     <script src="pt_payload_utils.js"></script>
     <script type="module">
         // Firebase auth + auto-discover patient for therapist
-        import { auth, db, onAuthStateChanged, signOut } from './firebase.js';
+        import {
+            auth,
+            db,
+            onAuthStateChanged,
+            signOut,
+            signInWithEmailAndPassword,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence
+        } from './firebase.js';
         import {
             loadExerciseLibraryShared,
             loadExerciseRolesShared,
@@ -759,6 +901,140 @@
         let currentUser = null;
         let coverageUnsubscribe = null;
         let patientUserId = null; // For therapist access
+        let authModalActive = false;
+        let authModalLastFocus = null;
+
+        function showAuthError(message) {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function clearAuthError() {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal) return;
+            authModalLastFocus = document.activeElement;
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            authModalActive = true;
+            clearAuthError();
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput) {
+                emailInput.focus();
+                emailInput.select();
+            }
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal || !authModalActive) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            authModalActive = false;
+            if (authModalLastFocus && typeof authModalLastFocus.focus === 'function') {
+                authModalLastFocus.focus();
+            }
+        }
+
+        async function handleAuthSignIn() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Enter both email and password to sign in.');
+                return;
+            }
+
+            try {
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error('[Auth] Sign in failed:', error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showAuthError('Incorrect email or password.');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Please enter a valid email address.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Please try again later.');
+                } else {
+                    showAuthError('Sign in failed. Please try again.');
+                }
+            }
+        }
+
+        function bindAuthModalEvents() {
+            const guardButton = document.getElementById('auth-guard-signin-btn');
+            const modal = document.getElementById('auth-modal');
+            const closeButton = document.getElementById('auth-modal-close');
+            const cancelButton = document.getElementById('auth-cancel-btn');
+            const signInButton = document.getElementById('auth-signin-btn');
+            const passwordInput = document.getElementById('auth-password');
+            const emailInput = document.getElementById('auth-email');
+
+            if (guardButton) {
+                guardButton.addEventListener('pointerup', showAuthModal);
+                guardButton.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        showAuthModal();
+                    }
+                });
+            }
+
+            if (signInButton) {
+                signInButton.addEventListener('pointerup', handleAuthSignIn);
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        hideAuthModal();
+                    }
+                });
+            }
+
+            const submitOnEnter = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleAuthSignIn();
+                }
+            };
+
+            if (emailInput) {
+                emailInput.addEventListener('keydown', submitOnEnter);
+            }
+
+            if (passwordInput) {
+                passwordInput.addEventListener('keydown', submitOnEnter);
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (authModalActive && event.key === 'Escape') {
+                    event.preventDefault();
+                    hideAuthModal();
+                }
+            });
+        }
+
+        bindAuthModalEvents();
 
         function updateMenuAuthDisplay() {
             const signedInSection = document.getElementById('menu-auth-signed-in');
@@ -775,10 +1051,26 @@
             }
         }
 
-        window.subscribeToCoverageHistory = (onUpdate) => new Promise(async (resolve) => {
+        function handleAuthState(user) {
+            currentUser = user;
+            updateMenuAuthDisplay();
+
+            const authGuardOverlay = document.getElementById('auth-guard-overlay');
+            if (user) {
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.add('auth-verified');
+                }
+                hideAuthModal();
+            } else {
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.remove('auth-verified');
+                }
+            }
+        }
+
+        window.subscribeToCoverageHistory = (onUpdate) => new Promise((resolve) => {
             onAuthStateChanged(auth, async (user) => {
-                currentUser = user;
-                updateMenuAuthDisplay();
+                handleAuthState(user);
 
                 if (coverageUnsubscribe) {
                     coverageUnsubscribe();
@@ -830,49 +1122,6 @@
             });
         });
 
-        window.subscribeToCoverageHistory = (onUpdate) => new Promise((resolve) => {
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                updateMenuAuthDisplay();
-
-                if (coverageUnsubscribe) {
-                    coverageUnsubscribe();
-                    coverageUnsubscribe = null;
-                }
-
-                if (!user) {
-                    onUpdate([]);
-                    resolve();
-                    return;
-                }
-
-                const sessionsRef = collection(db, `users/${user.uid}/sessions`);
-                const sessionsQuery = query(sessionsRef);
-                let initialLoad = true;
-
-                coverageUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
-                    const sessions = snapshot.docs.map(docSnap => ({
-                        _firestoreId: docSnap.id,
-                        ...docSnap.data()
-                    }));
-                    sessions.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
-                    onUpdate(sessions);
-
-                    if (initialLoad) {
-                        initialLoad = false;
-                        console.log('[Firestore] Coverage session history loaded');
-                        resolve();
-                    }
-                }, (error) => {
-                    console.error('[Firestore] Coverage session listener error:', error);
-                    if (initialLoad) {
-                        initialLoad = false;
-                        resolve();
-                    }
-                });
-            });
-        });
-
         window.coverageAuthReady = true;
         window.dispatchEvent(new Event('coverageAuthReady'));
 
@@ -885,15 +1134,27 @@
         window.sharedDataReady = true;
         window.dispatchEvent(new Event('sharedDataReady'));
 
-        document.getElementById('menu-signout-btn').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
+        const menuSignOutButton = document.getElementById('menu-signout-btn');
+        const menuSignInButton = document.getElementById('menu-signin-btn');
+
+        if (menuSignOutButton) {
+            menuSignOutButton.addEventListener('pointerup', async () => {
+                try {
+                    await signOut(auth);
+                    window.toggleMenu();
+                } catch (error) {
+                    console.error('[Auth] Sign out error:', error);
+                    alert('Failed to sign out');
+                }
+            });
+        }
+
+        if (menuSignInButton) {
+            menuSignInButton.addEventListener('pointerup', () => {
+                showAuthModal();
                 window.toggleMenu();
-            } catch (error) {
-                console.error('[Auth] Sign out error:', error);
-                alert('Failed to sign out');
-            }
-        });
+            });
+        }
     </script>
     <script>
         // Global data stores
@@ -939,14 +1200,11 @@
         async function init() {
             try {
                 await ensureSharedDataLoaderReady();
-                // Load all data files
-                await Promise.all([
-                    loadSchema(),
-                    loadRoles(),
-                    loadVocabulary(),
-                    loadExerciseLibrary(),
-                    loadSessionHistory()
-                ]);
+                await loadSchema();
+                await loadRoles();
+                await loadVocabulary();
+                await loadExerciseLibrary();
+                await loadSessionHistory();
 
                 // Derive enums from schema
                 deriveEnums();

@@ -916,12 +916,13 @@
                     if (!snapshot.empty) {
                         patientUserId = snapshot.docs[0].id;
                         console.log('[Therapist] Found patient UID:', patientUserId);
-
-                        // Load patient data from Firestore.
-                        await loadPatientDataFromFirestore(patientUserId);
                     } else {
-                        console.warn('[Therapist] No patient found for this therapist');
+                        patientUserId = user.uid;
+                        console.warn('[Therapist] No patient found for this therapist; loading therapist data.');
                     }
+
+                    // Load patient data from Firestore.
+                    await loadPatientDataFromFirestore(patientUserId);
                 } catch (error) {
                     // Signed-in users may still see data load warnings, but should not be re-prompted to sign in.
                     console.error('[Therapist] Failed to resolve patient account:', error);
@@ -1087,15 +1088,19 @@
                 const runtimeSnap = await getDoc(runtimeRef);
                 const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
 
-                // Load shared data (roles, schema, vocabulary)
+                // Load shared data (roles, schema, vocabulary, library)
                 const sharedData = await window.sharedDataLoader.loadExerciseRolesShared();
                 const schema = await window.sharedDataLoader.loadExerciseFileSchemaShared();
                 const vocabulary = await window.sharedDataLoader.loadExerciseVocabularyShared();
+                const sharedLibrary = await window.sharedDataLoader.loadExerciseLibraryShared();
+
+                const runtimeLibrary = Array.isArray(runtime.exerciseLibrary) ? runtime.exerciseLibrary : [];
+                const exerciseLibrary = runtimeLibrary.length > 0 ? runtimeLibrary : sharedLibrary || [];
 
                 // Populate global variables (accessed by main script below)
                 window.ptReportData = {
                     sessionHistory: sessions,
-                    exerciseLibrary: runtime.exerciseLibrary || [],
+                    exerciseLibrary,
                     rolesData: sharedData,
                     schema: schema,
                     vocabulary: vocabulary
