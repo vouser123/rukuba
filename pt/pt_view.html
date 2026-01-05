@@ -271,6 +271,7 @@
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">Use your account to access the PT dashboard.</p>
             <div id="auth-credential-fields"></div>
             <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; margin-bottom: 12px; text-align: center;"></div>
+            <button id="auth-reset-btn" type="button" style="margin-bottom: 12px; background: none; border: none; color: var(--ios-blue); font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;">Forgot password?</button>
             <div style="display: flex; gap: 10px;">
                 <button id="auth-cancel-btn" class="btn-secondary" style="flex: 1;">Cancel</button>
                 <button id="auth-signin-btn" class="btn-primary" style="flex: 1;">Sign In</button>
@@ -281,7 +282,7 @@
     <script type="module">
         // Firebase auth + auto-discover patient
         import { auth, onAuthStateChanged, db } from './firebase.js';
-        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import { signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
         import { collection, getDocs, query, where, doc, getDoc, addDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
         import {
             loadExerciseLibraryShared,
@@ -924,25 +925,34 @@
         function closeAuthModal() {
             const modal = document.getElementById('auth-modal');
             modal.style.display = 'none';
-            document.getElementById('auth-error').style.display = 'none';
+            const errorDiv = document.getElementById('auth-error');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+                errorDiv.style.color = 'var(--ios-red)';
+            }
             clearAuthCredentialFields();
+        }
+
+        function showAuthMessage(message, tone = 'error') {
+            const errorDiv = document.getElementById('auth-error');
+            if (!errorDiv) return;
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            errorDiv.style.color = tone === 'success' ? 'var(--ios-green)' : 'var(--ios-red)';
         }
 
         async function handleSignIn() {
             const emailInput = document.getElementById('auth-email');
             const passwordInput = document.getElementById('auth-password');
-            const errorDiv = document.getElementById('auth-error');
             if (!emailInput || !passwordInput) {
-                errorDiv.textContent = 'Tap "Sign In" to enter your credentials.';
-                errorDiv.style.display = 'block';
+                showAuthMessage('Tap "Sign In" to enter your credentials.');
                 return;
             }
             const email = emailInput.value.trim();
             const password = passwordInput.value;
 
             if (!email || !password) {
-                errorDiv.textContent = 'Please enter both email and password';
-                errorDiv.style.display = 'block';
+                showAuthMessage('Please enter both email and password');
                 return;
             }
 
@@ -951,8 +961,37 @@
                 closeAuthModal();
             } catch (error) {
                 console.error('[Auth] Sign in error:', error);
-                errorDiv.textContent = error.message || 'Failed to sign in';
-                errorDiv.style.display = 'block';
+                showAuthMessage(error.message || 'Failed to sign in');
+            }
+        }
+
+        async function handlePasswordReset() {
+            // Send a Firebase password reset email using the existing auth instance.
+            const emailInput = document.getElementById('auth-email');
+            if (!emailInput) {
+                showAuthMessage('Tap "Sign In" to enter your email first.');
+                return;
+            }
+            const email = emailInput.value.trim();
+            if (!email) {
+                showAuthMessage('Enter your email to reset your password.');
+                return;
+            }
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showAuthMessage('Password reset email sent. Check your inbox.', 'success');
+            } catch (error) {
+                console.error('[Auth] Password reset failed:', error);
+                if (error.code === 'auth/invalid-email') {
+                    showAuthMessage('Please enter a valid email address.');
+                } else if (error.code === 'auth/user-not-found') {
+                    showAuthMessage('No account found for that email.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthMessage('Too many attempts. Please try again later.');
+                } else {
+                    showAuthMessage('Password reset failed. Please try again.');
+                }
             }
         }
 
@@ -963,6 +1002,7 @@
             const closeButton = document.getElementById('auth-modal-close');
             const cancelButton = document.getElementById('auth-cancel-btn');
             const signInButton = document.getElementById('auth-signin-btn');
+            const resetButton = document.getElementById('auth-reset-btn');
 
             if (screenButton) {
                 screenButton.addEventListener('pointerup', showAuthModal);
@@ -978,6 +1018,10 @@
 
             if (signInButton) {
                 signInButton.addEventListener('pointerup', handleSignIn);
+            }
+
+            if (resetButton) {
+                resetButton.addEventListener('pointerup', handlePasswordReset);
             }
 
             // Close modal on outside click
