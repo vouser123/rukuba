@@ -153,14 +153,14 @@
 </head>
 <body>
     <!-- Auth Screen -->
-    <div id="auth-screen" class="auth-container" style="display: none;">
+    <div id="auth-screen" class="auth-container" style="display: flex;">
         <h2>🔐 PT View Access</h2>
         <p>Sign in to view patient dashboard.</p>
         <button id="auth-screen-signin-btn" class="btn-primary" style="margin-top: 16px; padding: 12px 32px; font-size: 16px;">Sign In</button>
     </div>
 
     <!-- Dashboard Screen -->
-    <div id="dashboard-screen" class="dashboard-container">
+    <div id="dashboard-screen" class="dashboard-container" style="display: none;">
         <div class="header">
             <div>
                 <h1>📊 Patient Dashboard</h1>
@@ -315,19 +315,21 @@
                 } else {
                     patientUid = user.uid; // View own data
                     isTherapist = false;
+                    console.log('[Patient] Viewing own data:', patientUid);
                 }
 
                 currentPatientUid = patientUid;
 
                 // Load patient data from Firestore
+                console.log('[PT View] Loading patient data...');
                 await loadPatientData(patientUid);
 
-                if (patientData) {
-                    authScreen.style.display = 'none';
-                    dashboardScreen.style.display = 'block';
-                    loadDashboard();
-                }
+                console.log('[PT View] Switching to dashboard screen');
+                authScreen.style.display = 'none';
+                dashboardScreen.style.display = 'block';
+                loadDashboard();
             } else {
+                console.log('[Auth] User not signed in');
                 authScreen.style.display = 'flex';
                 dashboardScreen.style.display = 'none';
             }
@@ -363,7 +365,13 @@
                 });
             } catch (error) {
                 console.error('[Firestore] Failed to load patient data:', error);
-                alert('Failed to load patient data');
+                // Set empty data on error
+                patientData = {
+                    sessions: [],
+                    exerciseLibrary: [],
+                    roles: {},
+                    exportedAt: new Date().toISOString()
+                };
             }
         }
 
