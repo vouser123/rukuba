@@ -3080,22 +3080,10 @@ ${payload}`;
                     schemaData,
                     vocabData
                 ] = await Promise.all([
-                    sharedLoader.loadExerciseLibraryShared({
-                        fallbackUrl: 'exercise_library.json',
-                        seedIfMissing: false
-                    }),
-                    sharedLoader.loadExerciseRolesShared({
-                        fallbackUrl: 'exercise_roles.json',
-                        seedIfMissing: true
-                    }),
-                    sharedLoader.loadExerciseFileSchemaShared({
-                        fallbackUrl: 'schema/exercise_file.schema.json',
-                        seedIfMissing: true
-                    }),
-                    sharedLoader.loadExerciseVocabularyShared({
-                        fallbackUrl: 'exercise_roles_vocabulary.json',
-                        seedIfMissing: true
-                    })
+                    sharedLoader.loadExerciseLibraryShared(),
+                    sharedLoader.loadExerciseRolesShared(),
+                    sharedLoader.loadExerciseFileSchemaShared(),
+                    sharedLoader.loadExerciseVocabularyShared()
                 ]);
 
                 // Set global data
