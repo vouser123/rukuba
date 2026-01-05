@@ -1,5 +1,5 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.22.22';
+const CACHE_NAME = 'pt-tracker-v1.22.23';
 const libraryUrl = new URL('exercise_library.json', self.location).pathname;
 const rolesUrl = new URL('exercise_roles.json', self.location).pathname;
 const vocabUrl = new URL('exercise_roles_vocabulary.json', self.location).pathname;
@@ -14,6 +14,7 @@ const urlsToCache = [
   new URL('pt_tracker.html', self.location).pathname,
   new URL('rehab_coverage.html', self.location).pathname,
   new URL('pt_report.html', self.location).pathname,
+  new URL('exercise_editor.html', self.location).pathname,
   libraryUrl,
   rolesUrl,
   vocabUrl,
