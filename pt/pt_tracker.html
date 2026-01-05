@@ -651,6 +651,10 @@
             display: none;
         }
 
+        #auth-guard-overlay.auth-checking {
+            display: none;
+        }
+
         .auth-modal {
             position: fixed;
             inset: 0;
@@ -776,7 +780,7 @@
 </head>
 <body>
     <!-- Auth Guard Overlay -->
-    <div id="auth-guard-overlay">
+    <div id="auth-guard-overlay" class="auth-checking">
         <h2>🔐 Authentication Required</h2>
         <p>You must be signed in to access the PT Tracker.</p>
         <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; padding: 12px 32px; font-size: 16px;">Sign In</button>
@@ -1878,6 +1882,10 @@
 
             // Auth Guard: Block page if no user is signed in
             const authGuardOverlay = document.getElementById('auth-guard-overlay');
+            if (authGuardOverlay) {
+                // Avoid flashing the sign-in prompt before auth state is resolved.
+                authGuardOverlay.classList.remove('auth-checking');
+            }
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
                 firestoreUserId = user.uid; // Set for runtime sync

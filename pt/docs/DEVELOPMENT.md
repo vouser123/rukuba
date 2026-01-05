@@ -84,6 +84,7 @@ Maintain this section whenever HTML/JS/JSON inputs change (including new pages, 
 
 - `pt_tracker.html` is explicitly cached by the service worker to allow offline boot/loading.
 - Other PT HTML pages should also be cached for offline fallback; network-first remains the default when online.
+- Shared JSON + schema fallbacks (`exercise_library.json`, `exercise_roles.json`, vocabularies, and `schema/*.json`) are pre-cached so Firestore outages still load roles and exercises.
 
 ---
 

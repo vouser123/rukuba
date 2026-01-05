@@ -150,7 +150,9 @@ function normalizeExerciseLibrary(data) {
 }
 
 export async function loadExerciseLibraryShared({
-  fallbackUrl = null,
+  // Default to the bundled JSON so we always have a local fallback.
+  // This restores phase-1 behavior when Firestore is empty or unavailable.
+  fallbackUrl = 'exercise_library.json',
   seedIfMissing = false
 } = {}) {
   // Load Firestore first so we can detect missing IDs before falling back.
@@ -237,7 +239,8 @@ export async function loadExerciseLibraryShared({
 }
 
 export async function loadExerciseRolesShared({
-  fallbackUrl = null,
+  // Default to bundled JSON so roles still load when Firestore is empty.
+  fallbackUrl = 'exercise_roles.json',
   fallbackData = null,
   seedIfMissing = false
 } = {}) {
@@ -251,7 +254,8 @@ export async function loadExerciseRolesShared({
 }
 
 export async function loadExerciseVocabularyShared({
-  fallbackUrl = null,
+  // Default to bundled JSON vocab to support offline + Firestore fallback.
+  fallbackUrl = 'exercise_roles_vocabulary.json',
   fallbackData = null,
   seedIfMissing = false
 } = {}) {
@@ -265,7 +269,8 @@ export async function loadExerciseVocabularyShared({
 }
 
 export async function loadExerciseFileSchemaShared({
-  fallbackUrl = null,
+  // Default to bundled schema for offline and Firestore fallback.
+  fallbackUrl = 'schema/exercise_file.schema.json',
   seedIfMissing = false
 } = {}) {
   const data = await loadSharedDocument({
@@ -366,7 +371,8 @@ export async function migrateSharedDosageToRuntime({
 }
 
 export async function loadExerciseRolesSchemaShared({
-  fallbackUrl = null,
+  // Default to bundled schema for offline and Firestore fallback.
+  fallbackUrl = 'schema/exercise_roles.schema.json',
   seedIfMissing = false
 } = {}) {
   const data = await loadSharedDocument({
