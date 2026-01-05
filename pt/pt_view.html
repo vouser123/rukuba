@@ -152,28 +152,10 @@
     </style>
 </head>
 <body>
-    <!-- Auth Screen (Token Entry) -->
+    <!-- Auth Screen -->
     <div id="auth-screen" class="auth-container">
         <h2>🔐 PT View Access</h2>
-        <p>Enter the share token provided by your patient to view their exercise dashboard.</p>
-
-        <input type="text"
-               id="token-input"
-               class="token-input"
-               placeholder="Enter 8-character token"
-               maxlength="8"
-               autocomplete="off"
-               autocapitalize="characters">
-
-        <button class="btn-primary" onclick="validateToken()" style="width: 100%; margin-bottom: 12px;">
-            View Dashboard
-        </button>
-
-        <div id="error-container"></div>
-
-        <p style="font-size: 12px; color: var(--ios-gray); margin-top: 24px;">
-            This is a read-only view. You can see patient progress but cannot make changes.
-        </p>
+        <p>Sign in to view patient dashboard.</p>
     </div>
 
     <!-- Dashboard Screen -->
@@ -182,7 +164,7 @@
             <div>
                 <h1>📊 Patient Dashboard</h1>
                 <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                    Token: <span id="display-token" style="font-family: 'Courier New', monospace; font-weight: 600;"></span>
+                    Read-only view
                 </div>
             </div>
             <span class="badge readonly-badge">READ-ONLY</span>
@@ -244,61 +226,77 @@
         </div>
     </div>
 
-    <script>
-        // Token validation and data loading
+    <script type="module">
+        // Firebase auth + auto-discover patient
+        import { auth, onAuthStateChanged, db } from './firebase.js';
+        import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
         let patientData = null;
 
-        function validateToken() {
-            const token = document.getElementById('token-input').value.trim().toUpperCase();
+        onAuthStateChanged(auth, async (user) => {
+            const authScreen = document.getElementById('auth-screen');
+            const dashboardScreen = document.getElementById('dashboard-screen');
 
-            if (!token || token.length !== 8) {
-                showError('Please enter a valid 8-character token');
-                return;
-            }
+            if (user) {
+                console.log('[Auth] User signed in:', user.email);
 
-            // Try to load data from localStorage with token key
-            const shareKey = `PT_SHARE_${token}`;
-            const storedData = localStorage.getItem(shareKey);
+                // Auto-discover patient
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('therapistUid', '==', user.uid));
+                const snapshot = await getDocs(q);
 
-            if (!storedData) {
-                showError('Invalid token. Please check with your patient and try again.');
-                return;
-            }
-
-            try {
-                patientData = JSON.parse(storedData);
-
-                // Validate data structure
-                if (!patientData.sessions || !patientData.exerciseLibrary) {
-                    throw new Error('Invalid data structure');
+                let patientUid;
+                if (!snapshot.empty) {
+                    patientUid = snapshot.docs[0].id;
+                    console.log('[Therapist] Viewing patient:', patientUid);
+                } else {
+                    patientUid = user.uid; // View own data
                 }
 
-                // Load dashboard
-                loadDashboard(token);
-            } catch (e) {
-                console.error('Failed to parse patient data:', e);
-                showError('Data appears corrupted. Please ask patient to regenerate share link.');
+                // Load patient data from Firestore
+                await loadPatientData(patientUid);
+
+                if (patientData) {
+                    authScreen.style.display = 'none';
+                    dashboardScreen.style.display = 'block';
+                    loadDashboard();
+                }
+            } else {
+                authScreen.style.display = 'flex';
+                dashboardScreen.style.display = 'none';
+            }
+        });
+
+        async function loadPatientData(uid) {
+            try {
+                // Load sessions
+                const sessionsRef = collection(db, `users/${uid}/sessions`);
+                const sessionsSnap = await getDocs(sessionsRef);
+                const sessions = sessionsSnap.docs.map(d => d.data());
+
+                // Load runtime
+                const runtimeRef = doc(db, `users/${uid}/pt_runtime/state`);
+                const runtimeSnap = await getDoc(runtimeRef);
+                const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
+
+                patientData = {
+                    sessions: sessions,
+                    exerciseLibrary: runtime.exerciseLibrary || [],
+                    roles: runtime.rolesData || {},
+                    exportedAt: new Date().toISOString()
+                };
+
+                console.log('[Firestore] Loaded patient data:', {
+                    sessions: sessions.length,
+                    exercises: patientData.exerciseLibrary.length
+                });
+            } catch (error) {
+                console.error('[Firestore] Failed to load patient data:', error);
+                alert('Failed to load patient data');
             }
         }
 
-        function showError(message) {
-            const errorContainer = document.getElementById('error-container');
-            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
-
-            // Clear error after 5 seconds
-            setTimeout(() => {
-                errorContainer.innerHTML = '';
-            }, 5000);
-        }
-
-        function loadDashboard(token) {
-            // Hide auth screen, show dashboard
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('dashboard-screen').style.display = 'block';
-
-            // Display token
-            document.getElementById('display-token').textContent = token;
-
+        function loadDashboard() {
             // Display last updated time
             const updateTime = new Date(patientData.exportedAt).toLocaleString();
             document.getElementById('update-time').textContent = updateTime;
@@ -478,17 +476,6 @@
 
             return date.toLocaleDateString();
         }
-
-        // Check for token in URL
-        window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlToken = urlParams.get('token');
-
-            if (urlToken) {
-                document.getElementById('token-input').value = urlToken;
-                validateToken();
-            }
-        });
     </script>
 </body>
 </html>

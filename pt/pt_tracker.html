@@ -618,6 +618,39 @@
             display: none !important;
         }
 
+        /* Auth Guard Overlay */
+        #auth-guard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #auth-guard-overlay h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        #auth-guard-overlay p {
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.5;
+            max-width: 400px;
+        }
+
+        #auth-guard-overlay.auth-verified {
+            display: none;
+        }
+
         /* Body Heatmap - REPLACED BY REHAB COVERAGE VIEW
         .body-diagram {
             position: relative;
@@ -677,6 +710,13 @@
     </style>
 </head>
 <body>
+    <!-- Auth Guard Overlay -->
+    <div id="auth-guard-overlay">
+        <h2>🔐 Authentication Required</h2>
+        <p>You must be signed in to access the PT Tracker.</p>
+        <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; padding: 12px 32px; font-size: 16px;">Sign In</button>
+    </div>
+
     <div class="header">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
             <div>
@@ -881,6 +921,10 @@
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="control-btn btn-secondary" data-action="showArchivedExercises" style="flex: 1; font-size: 13px;" id="archived-btn">📦 Archived</button>
+                    <button class="control-btn btn-secondary" data-action="showNotesModal" style="flex: 1; font-size: 13px; position: relative;" id="notes-btn">
+                        💬 Notes
+                        <span id="notes-badge" style="display: none; position: absolute; top: 4px; right: 4px; background: var(--ios-red); color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; font-weight: 600;"></span>
+                    </button>
                     <button class="control-btn btn-secondary" data-action="showDataBackup" style="flex: 1; font-size: 13px;">💾 Data</button>
                 </div>
             </div>
@@ -954,6 +998,24 @@
             <div class="modal-buttons">
                 <button class="modal-cancel" data-action="confirmSkipNotes">Skip Notes</button>
                 <button class="modal-save" data-action="saveSessionWithNotes" data-action-arg-source="#session-notes">Save & Finish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PT Notes Modal -->
+    <div class="modal" id="notes-modal" data-action="closeNotesModal" data-require-self="true" role="button" tabindex="0">
+        <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-drag-handle"></div>
+            <h2 style="font-size: 20px; margin-bottom: 16px;">💬 PT Notes</h2>
+            <div id="notes-list" style="flex: 1; overflow-y: auto; margin-bottom: 16px;">
+                <!-- Notes loaded here -->
+            </div>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <textarea id="new-note-text" placeholder="Write a note for your PT..." style="width: 100%; min-height: 80px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; resize: vertical; margin-bottom: 12px;"></textarea>
+                <div class="modal-buttons">
+                    <button class="modal-cancel" data-action="closeNotesModal">Cancel</button>
+                    <button class="modal-save" data-action="sendNote">Send Note</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1692,6 +1754,8 @@
         }
 
         function handleMenuSignIn() {
+            // Show skip button when accessed via menu
+            document.getElementById('auth-skip-btn').style.display = 'block';
             showAuthModal();
             // Close menu
             const toggleMenu = window.toggleHamburgerMenu;
@@ -1799,10 +1863,17 @@
             currentUser = user;
             isAuthReady = true;
 
+            // Auth Guard: Block page if no user is signed in
+            const authGuardOverlay = document.getElementById('auth-guard-overlay');
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
                 firestoreUserId = user.uid; // Set for runtime sync
                 updateMenuAuthDisplay(); // Update menu
+
+                // Remove auth guard overlay
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.add('auth-verified');
+                }
 
                 // Flush queue when authenticated
                 if (navigator.onLine) {
@@ -1814,8 +1885,15 @@
                     runtimeSyncPending = false;
                     syncRuntimeToFirestore();
                 }
+
+                // Check for new notes from therapist
+                checkForNewNotes();
             } else {
-                console.log('[Auth] No user signed in - app will work offline only');
+                console.log('[Auth] No user signed in - blocking page access');
+                // Show auth guard overlay
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.remove('auth-verified');
+                }
                 firestoreUserId = null;
                 updateMenuAuthDisplay(); // Update menu
             }
@@ -7051,6 +7129,115 @@
             void syncExerciseLibraryToFirestore('unarchive');
         }
 
+        // PT Notes functionality
+        let lastReadNoteTime = localStorage.getItem('lastReadNoteTime') || new Date(0).toISOString();
+
+        async function showNotesModal() {
+            if (!currentUser) {
+                alert('Please sign in to view notes');
+                return;
+            }
+
+            document.getElementById('notes-modal').style.display = 'flex';
+            await loadNotes();
+
+            // Mark notes as read
+            lastReadNoteTime = new Date().toISOString();
+            localStorage.setItem('lastReadNoteTime', lastReadNoteTime);
+            document.getElementById('notes-badge').style.display = 'none';
+        }
+
+        async function checkForNewNotes() {
+            if (!currentUser) return;
+
+            try {
+                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+                const q = query(notesRef, where('createdBy', '==', 'therapist'), where('createdAt', '>', lastReadNoteTime));
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    const badge = document.getElementById('notes-badge');
+                    badge.textContent = snapshot.size;
+                    badge.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('[Firestore] Failed to check new notes:', error);
+            }
+        }
+
+        function closeNotesModal() {
+            document.getElementById('notes-modal').style.display = 'none';
+        }
+
+        async function loadNotes() {
+            if (!currentUser) return;
+
+            try {
+                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+                const q = query(notesRef, orderBy('createdAt', 'desc'));
+                const snapshot = await getDocs(q);
+
+                const notesList = document.getElementById('notes-list');
+
+                if (snapshot.empty) {
+                    notesList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No notes yet</div>';
+                    return;
+                }
+
+                let html = '';
+                snapshot.forEach(docSnap => {
+                    const note = docSnap.data();
+                    const date = new Date(note.createdAt).toLocaleString();
+                    const isPatient = note.createdBy === 'patient';
+
+                    html += `
+                        <div style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: ${isPatient ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'}; border-left: 3px solid ${isPatient ? 'var(--ios-green)' : 'var(--ios-blue)'};">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
+                                <strong>${isPatient ? 'You' : 'PT'}</strong> • ${date}
+                            </div>
+                            <div style="white-space: pre-wrap;">${note.text}</div>
+                        </div>
+                    `;
+                });
+
+                notesList.innerHTML = html;
+            } catch (error) {
+                console.error('[Firestore] Failed to load notes:', error);
+            }
+        }
+
+        async function sendNote() {
+            const text = document.getElementById('new-note-text').value.trim();
+
+            if (!text) {
+                alert('Please enter a note');
+                return;
+            }
+
+            if (!currentUser) {
+                alert('Please sign in to send notes');
+                return;
+            }
+
+            try {
+                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+
+                await addDoc(notesRef, {
+                    text: text,
+                    createdBy: 'patient',
+                    createdAt: new Date().toISOString(),
+                    authorUid: currentUser.uid
+                });
+
+                document.getElementById('new-note-text').value = '';
+                await loadNotes();
+                haptic('success');
+            } catch (error) {
+                console.error('[Firestore] Failed to send note:', error);
+                alert('Failed to send note: ' + error.message);
+            }
+        }
+
         function permanentlyDeleteExercise(exerciseId) {
             const entry = getLibraryEntryById(exerciseId);
             showActionSheet(`PERMANENTLY delete "${entry.name}"? This cannot be undone!`, () => {
@@ -8888,7 +9075,10 @@ ${payload}`;
             quickSwitchTo,
             toggleExerciseSelection,
             toggleShowOnlyNew,
-            showExerciseDetail
+            showExerciseDetail,
+            showNotesModal,
+            closeNotesModal,
+            sendNote
         });
 
         // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
@@ -8900,6 +9090,13 @@ ${payload}`;
         document.getElementById('auth-signup-btn').addEventListener('pointerup', handleSignUp);
         document.getElementById('auth-forgot-password').addEventListener('pointerup', handleForgotPassword);
         document.getElementById('auth-skip-btn').addEventListener('pointerup', hideAuthModal);
+
+        // Auth guard button
+        document.getElementById('auth-guard-signin-btn').addEventListener('pointerup', () => {
+            // Hide skip button when accessed via auth guard
+            document.getElementById('auth-skip-btn').style.display = 'none';
+            showAuthModal();
+        });
 
         // Menu auth button event listeners (pointer-based for iOS Safari/PWA reliability).
         document.getElementById('menu-signin-btn').addEventListener('pointerup', handleMenuSignIn);

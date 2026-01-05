@@ -740,7 +740,7 @@
 
     <script src="pt_payload_utils.js"></script>
     <script type="module">
-        // Firebase auth check
+        // Firebase auth + auto-discover patient for therapist
         import { auth, db, onAuthStateChanged, signOut } from './firebase.js';
         import {
             loadExerciseLibraryShared,
@@ -751,11 +751,14 @@
         import {
             collection,
             onSnapshot,
-            query
+            query,
+            where,
+            getDocs
         } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let currentUser = null;
         let coverageUnsubscribe = null;
+        let patientUserId = null; // For therapist access
 
         function updateMenuAuthDisplay() {
             const signedInSection = document.getElementById('menu-auth-signed-in');
@@ -772,8 +775,8 @@
             }
         }
 
-        window.subscribeToCoverageHistory = (onUpdate) => new Promise((resolve) => {
-            onAuthStateChanged(auth, (user) => {
+        window.subscribeToCoverageHistory = (onUpdate) => new Promise(async (resolve) => {
+            onAuthStateChanged(auth, async (user) => {
                 currentUser = user;
                 updateMenuAuthDisplay();
 
@@ -788,7 +791,19 @@
                     return;
                 }
 
-                const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+                // Auto-discover patient if therapist
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('therapistUid', '==', user.uid));
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    patientUserId = snapshot.docs[0].id;
+                    console.log('[Therapist] Viewing patient coverage:', patientUserId);
+                } else {
+                    patientUserId = user.uid; // View own data
+                }
+
+                const sessionsRef = collection(db, `users/${patientUserId}/sessions`);
                 const sessionsQuery = query(sessionsRef);
                 let initialLoad = true;
 
