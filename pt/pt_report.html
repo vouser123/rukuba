@@ -1351,14 +1351,17 @@
                             </div>
                             <div style="white-space: pre-wrap; margin-bottom: 8px;">${note.text}</div>
                             <div style="display: flex; gap: 8px; font-size: 12px;">
-                                <button onclick="archiveNoteReport('${noteId}')" style="background: transparent; border: none; color: var(--ios-red); cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
-                                ${canUndo ? `<button onclick="undoSendNoteReport('${noteId}')" style="background: transparent; border: none; color: var(--ios-orange); cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                                <button data-action="archiveNoteReport" data-action-arg="${noteId}" style="background: transparent; border: none; color: var(--ios-red); cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
+                                ${canUndo ? `<button data-action="undoSendNoteReport" data-action-arg="${noteId}" style="background: transparent; border: none; color: var(--ios-orange); cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
                             </div>
                         </div>
                     `;
                 });
 
                 notesList.innerHTML = html;
+
+                // Bind event handlers to dynamically created buttons
+                bindPointerHandlers(notesList);
             } catch (error) {
                 console.error('[Firestore] Failed to load notes:', error);
             }

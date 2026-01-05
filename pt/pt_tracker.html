@@ -1744,6 +1744,7 @@
             getDoc,
             getDocs,
             onSnapshot,
+            orderBy,
             query,
             setDoc,
             updateDoc,
@@ -7495,6 +7496,10 @@
                 alert('Failed to delete note');
             }
         }
+
+        // Expose note functions to window for bindPointerHandlers
+        window.archiveNote = archiveNote;
+        window.undoSendNote = undoSendNote;
 
         function permanentlyDeleteExercise(exerciseId) {
             const entry = getLibraryEntryById(exerciseId);
