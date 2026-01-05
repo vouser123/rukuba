@@ -999,6 +999,24 @@
         </div>
     </div>
 
+    <!-- PT Notes Modal -->
+    <div class="modal" id="notes-modal" data-action="closeNotesModal" data-require-self="true" role="button" tabindex="0">
+        <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-drag-handle"></div>
+            <h2 style="font-size: 20px; margin-bottom: 16px;">💬 PT Notes</h2>
+            <div id="notes-list" style="flex: 1; overflow-y: auto; margin-bottom: 16px;">
+                <!-- Notes loaded here -->
+            </div>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <textarea id="new-note-text" placeholder="Write a note for your PT..." style="width: 100%; min-height: 80px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; resize: vertical; margin-bottom: 12px;"></textarea>
+                <div class="modal-buttons">
+                    <button class="modal-cancel" data-action="closeNotesModal">Cancel</button>
+                    <button class="modal-save" data-action="sendNote">Send Note</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Log Set Modal -->
     <div class="modal" id="log-set-modal" data-action="closeLogSetModal" data-require-self="true" role="button" tabindex="0">
         <div class="modal-content">
@@ -7105,6 +7123,90 @@
             void syncExerciseLibraryToFirestore('unarchive');
         }
 
+        // PT Notes functionality
+        async function showNotesModal() {
+            if (!currentUser) {
+                alert('Please sign in to view notes');
+                return;
+            }
+
+            document.getElementById('notes-modal').style.display = 'flex';
+            await loadNotes();
+        }
+
+        function closeNotesModal() {
+            document.getElementById('notes-modal').style.display = 'none';
+        }
+
+        async function loadNotes() {
+            if (!currentUser) return;
+
+            try {
+                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+                const q = query(notesRef, orderBy('createdAt', 'desc'));
+                const snapshot = await getDocs(q);
+
+                const notesList = document.getElementById('notes-list');
+
+                if (snapshot.empty) {
+                    notesList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No notes yet</div>';
+                    return;
+                }
+
+                let html = '';
+                snapshot.forEach(docSnap => {
+                    const note = docSnap.data();
+                    const date = new Date(note.createdAt).toLocaleString();
+                    const isPatient = note.createdBy === 'patient';
+
+                    html += `
+                        <div style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: ${isPatient ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'}; border-left: 3px solid ${isPatient ? 'var(--ios-green)' : 'var(--ios-blue)'};">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
+                                <strong>${isPatient ? 'You' : 'PT'}</strong> • ${date}
+                            </div>
+                            <div style="white-space: pre-wrap;">${note.text}</div>
+                        </div>
+                    `;
+                });
+
+                notesList.innerHTML = html;
+            } catch (error) {
+                console.error('[Firestore] Failed to load notes:', error);
+            }
+        }
+
+        async function sendNote() {
+            const text = document.getElementById('new-note-text').value.trim();
+
+            if (!text) {
+                alert('Please enter a note');
+                return;
+            }
+
+            if (!currentUser) {
+                alert('Please sign in to send notes');
+                return;
+            }
+
+            try {
+                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+
+                await addDoc(notesRef, {
+                    text: text,
+                    createdBy: 'patient',
+                    createdAt: new Date().toISOString(),
+                    authorUid: currentUser.uid
+                });
+
+                document.getElementById('new-note-text').value = '';
+                await loadNotes();
+                haptic('success');
+            } catch (error) {
+                console.error('[Firestore] Failed to send note:', error);
+                alert('Failed to send note: ' + error.message);
+            }
+        }
+
         function permanentlyDeleteExercise(exerciseId) {
             const entry = getLibraryEntryById(exerciseId);
             showActionSheet(`PERMANENTLY delete "${entry.name}"? This cannot be undone!`, () => {
@@ -8942,7 +9044,10 @@ ${payload}`;
             quickSwitchTo,
             toggleExerciseSelection,
             toggleShowOnlyNew,
-            showExerciseDetail
+            showExerciseDetail,
+            showNotesModal,
+            closeNotesModal,
+            sendNote
         });
 
         // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
