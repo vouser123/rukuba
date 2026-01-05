@@ -226,6 +226,72 @@
         #auth-guard-overlay.auth-verified {
             display: none;
         }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 20000;
+        }
+
+        .auth-modal.active {
+            display: flex;
+        }
+
+        .auth-modal-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            width: min(420px, 100%);
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .auth-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .auth-modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .auth-modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .auth-modal-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .auth-modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .auth-modal-actions button {
+            flex: 1;
+            min-height: 48px;
+        }
     </style>
 </head>
 <body>
@@ -233,6 +299,35 @@
     <div id="auth-guard-overlay">
         <h2>🔐 Authentication Required</h2>
         <p>You must be signed in to access the PT Progress Report.</p>
+        <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; min-height: 48px; padding: 12px 24px;">Sign In</button>
+    </div>
+
+    <!-- Auth Sign In Modal -->
+    <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
+        <div class="auth-modal-content">
+            <div class="auth-modal-header">
+                <div class="auth-modal-title" id="auth-modal-title">Sign In to Continue</div>
+                <button type="button" class="auth-modal-close" id="auth-modal-close" aria-label="Close sign in">×</button>
+            </div>
+            <div class="auth-modal-subtitle">Use your therapist account to access patient progress data.</div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="auth-email">Email</label>
+                <input type="email" class="form-input" id="auth-email" placeholder="name@example.com" autocomplete="email">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="auth-password">Password</label>
+                <input type="password" class="form-input" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px;">
+                <label for="auth-remember" style="font-size: 14px; color: var(--text-secondary); cursor: pointer;">Remember me on this device</label>
+            </div>
+            <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; text-align: center;"></div>
+            <div class="auth-modal-actions">
+                <button type="button" class="btn-secondary" id="auth-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="auth-signin-btn">Sign In</button>
+            </div>
+        </div>
     </div>
 
 
@@ -737,10 +832,20 @@
     </script>
     <script type="module">
         // Firebase Auth + Auto-discover patient + Load patient data
-        import { auth, onAuthStateChanged, db } from './firebase.js';
+        import {
+            auth,
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence,
+            db
+        } from './firebase.js';
         import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let patientUserId = null;
+        let authModalActive = false;
+        let authModalLastFocus = null;
 
         onAuthStateChanged(auth, async (user) => {
             const authGuardOverlay = document.getElementById('auth-guard-overlay');
@@ -770,6 +875,9 @@
                 if (authGuardOverlay) {
                     authGuardOverlay.classList.add('auth-verified');
                 }
+
+                // Close the auth modal after successful sign-in.
+                hideAuthModal();
             } else {
                 console.log('[Auth] No user signed in - blocking page access');
                 patientUserId = null;
@@ -780,6 +888,139 @@
                 }
             }
         });
+
+        function showAuthError(message) {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function clearAuthError() {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal) return;
+            authModalLastFocus = document.activeElement;
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            authModalActive = true;
+            clearAuthError();
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput) {
+                emailInput.focus();
+                emailInput.select();
+            }
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal || !authModalActive) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            authModalActive = false;
+            if (authModalLastFocus && typeof authModalLastFocus.focus === 'function') {
+                authModalLastFocus.focus();
+            }
+        }
+
+        async function handleAuthSignIn() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Enter both email and password to sign in.');
+                return;
+            }
+
+            try {
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error('[Auth] Sign in failed:', error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showAuthError('Incorrect email or password.');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Please enter a valid email address.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Please try again later.');
+                } else {
+                    showAuthError('Sign in failed. Please try again.');
+                }
+            }
+        }
+
+        function bindAuthModalEvents() {
+            const guardButton = document.getElementById('auth-guard-signin-btn');
+            const modal = document.getElementById('auth-modal');
+            const closeButton = document.getElementById('auth-modal-close');
+            const cancelButton = document.getElementById('auth-cancel-btn');
+            const signInButton = document.getElementById('auth-signin-btn');
+            const passwordInput = document.getElementById('auth-password');
+            const emailInput = document.getElementById('auth-email');
+
+            if (guardButton) {
+                guardButton.addEventListener('pointerup', showAuthModal);
+                guardButton.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        showAuthModal();
+                    }
+                });
+            }
+
+            if (signInButton) {
+                signInButton.addEventListener('pointerup', handleAuthSignIn);
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        hideAuthModal();
+                    }
+                });
+            }
+
+            const submitOnEnter = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleAuthSignIn();
+                }
+            };
+
+            if (emailInput) {
+                emailInput.addEventListener('keydown', submitOnEnter);
+            }
+
+            if (passwordInput) {
+                passwordInput.addEventListener('keydown', submitOnEnter);
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (authModalActive && event.key === 'Escape') {
+                    event.preventDefault();
+                    hideAuthModal();
+                }
+            });
+        }
+
+        // Bind auth modal interactions once the module loads.
+        bindAuthModalEvents();
 
         async function loadPatientDataFromFirestore(uid) {
             try {
