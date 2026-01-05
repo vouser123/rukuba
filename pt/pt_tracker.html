@@ -713,7 +713,8 @@
     <!-- Auth Guard Overlay -->
     <div id="auth-guard-overlay">
         <h2>🔐 Authentication Required</h2>
-        <p>You must be signed in to access the PT Tracker. Please use the menu to sign in or create an account.</p>
+        <p>You must be signed in to access the PT Tracker.</p>
+        <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; padding: 12px 32px; font-size: 16px;">Sign In</button>
     </div>
 
     <div class="header">
@@ -1731,6 +1732,8 @@
         }
 
         function handleMenuSignIn() {
+            // Show skip button when accessed via menu
+            document.getElementById('auth-skip-btn').style.display = 'block';
             showAuthModal();
             // Close menu
             const toggleMenu = window.toggleHamburgerMenu;
@@ -8950,6 +8953,13 @@ ${payload}`;
         document.getElementById('auth-signup-btn').addEventListener('pointerup', handleSignUp);
         document.getElementById('auth-forgot-password').addEventListener('pointerup', handleForgotPassword);
         document.getElementById('auth-skip-btn').addEventListener('pointerup', hideAuthModal);
+
+        // Auth guard button
+        document.getElementById('auth-guard-signin-btn').addEventListener('pointerup', () => {
+            // Hide skip button when accessed via auth guard
+            document.getElementById('auth-skip-btn').style.display = 'none';
+            showAuthModal();
+        });
 
         // Menu auth button event listeners (pointer-based for iOS Safari/PWA reliability).
         document.getElementById('menu-signin-btn').addEventListener('pointerup', handleMenuSignIn);
