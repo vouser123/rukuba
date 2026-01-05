@@ -450,6 +450,31 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 
 **Cause:** user not authenticated or network offline.
 
+**Likely causes:**
+1. Firestore sessions not available (not authenticated).
+2. localStorage key mismatch or empty history.
+3. Exercise ID mismatch between library and roles.
+
+**Checks:**
+- Coverage debug panel (🐛) shows session counts and ID matches.
+- Confirm `pt_tracker_data` exists in localStorage.
+
+### Issue: V2 import reports checksum mismatch
+
+**Cause:** payload truncation or altered text (iOS Mail copy/paste is the most common culprit).
+
+**Fix:**
+- Use **Copy payload only** (no extra text) and paste the entire block.
+- Avoid manual editing of headers or payload.
+
+### Issue: Firestore queue never flushes
+
+**Cause:** user not authenticated or network offline.
+
+**Fix:**
+- Sign in via PT Tracker.
+- Confirm `navigator.onLine` is true.
+- Check `pt_firestore_queue` in localStorage to ensure queued items exist.
 **Fix:**
 - Sign in via PT Tracker.
 - Confirm `navigator.onLine` is true.
@@ -473,8 +498,13 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 
 **Long-term decision (Phase 1+):** consider a dedicated offline shell to avoid serving a potentially stale HTML document.
 
----
+### Issue: Shared data appears stale
 
+**Cause:** service worker cache and Firestore fallback precedence.
+
+**Fix:**
+- Bump `CACHE_NAME` in `sw-pt.js` after JSON updates.
+- Use `seed_firestore.html` to refresh Firestore shared data.
 ## Configuration
 
 ### Firebase
@@ -593,5 +623,10 @@ Taps on interactive controls were unreliable in iOS Safari/PWA when inline `oncl
 **Fix Applied**
 Replaced inline `onclick` usage in `pt/pt_tracker.html` with pointerup-based listeners and keyboard handling for non-button elements, using data attributes and centralized binding.
 
+1. ✅ Bump service worker version after data changes.
+2. ✅ Check localStorage keys match (`pt_tracker_data` not `session_history`).
+3. ✅ Verify exercise IDs match between library and roles.
+4. ✅ Use Coverage view debug panel (🐛) to inspect data.
+5. ✅ On iOS, close PWA completely and reopen after cache changes.
 **Notes / Risks**
 Do not reintroduce `onclick` or `click` handlers; the pointer-based bindings are required for iOS PWA reliability across desktop and mobile.
