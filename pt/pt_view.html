@@ -236,13 +236,17 @@
         <div style="background: var(--bg-primary); max-width: 600px; margin: 40px auto; border-radius: 12px; max-height: 80vh; display: flex; flex-direction: column;" data-stop-propagation="true">
             <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="font-size: 20px; font-weight: 600;">💬 Notes</h3>
-                <button data-action="closeNotesModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button id="notes-filter-toggle" data-action="toggleNotesFilter" class="btn-secondary" style="font-size: 13px; padding: 6px 12px;">Show All</button>
+                    <button data-action="closeNotesModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+                </div>
             </div>
             <div id="notes-list" style="flex: 1; overflow-y: auto; padding: 20px;">
                 <!-- Notes loaded here -->
             </div>
             <div style="padding: 20px; border-top: 1px solid var(--border-color);">
-                <p style="color: var(--text-secondary); font-size: 13px; text-align: center;">Read-only view. Use PT Tracker to add notes.</p>
+                <textarea id="note-input" placeholder="Add a note..." style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; font-size: 14px; resize: vertical; min-height: 80px; background: var(--bg-secondary); color: var(--text-primary);"></textarea>
+                <button data-action="sendNote" class="btn-primary" style="margin-top: 10px; width: 100%;">📝 Send Note</button>
             </div>
         </div>
     </div>
@@ -250,10 +254,12 @@
     <script type="module">
         // Firebase auth + auto-discover patient
         import { auth, onAuthStateChanged, db } from './firebase.js';
-        import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, doc, getDoc, addDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let patientData = null;
         let currentPatientUid = null;
+        let isTherapist = false;
+        let currentUser = null;
 
         onAuthStateChanged(auth, async (user) => {
             const authScreen = document.getElementById('auth-screen');
@@ -261,6 +267,7 @@
 
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
+                currentUser = user;
 
                 // Auto-discover patient
                 const usersRef = collection(db, 'users');
@@ -270,9 +277,11 @@
                 let patientUid;
                 if (!snapshot.empty) {
                     patientUid = snapshot.docs[0].id;
+                    isTherapist = true;
                     console.log('[Therapist] Viewing patient:', patientUid);
                 } else {
                     patientUid = user.uid; // View own data
+                    isTherapist = false;
                 }
 
                 currentPatientUid = patientUid;
@@ -347,6 +356,14 @@
         }
 
         let lastReadNoteTime = localStorage.getItem('pt_view_lastReadNoteTime') || new Date(0).toISOString();
+        let showAllNotes = false;
+
+        function toggleNotesFilter() {
+            showAllNotes = !showAllNotes;
+            const btn = document.getElementById('notes-filter-toggle');
+            btn.textContent = showAllNotes ? 'Show Recent' : 'Show All';
+            loadNotes();
+        }
 
         async function loadNotes() {
             if (!currentPatientUid) return;
@@ -364,9 +381,27 @@
                     return;
                 }
 
-                let html = '';
+                // Filter notes by date if not showing all
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+                let notes = [];
                 snapshot.forEach(docSnap => {
                     const note = docSnap.data();
+                    const noteDate = new Date(note.createdAt);
+
+                    if (showAllNotes || noteDate >= sevenDaysAgo) {
+                        notes.push(note);
+                    }
+                });
+
+                if (notes.length === 0) {
+                    notesList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No recent notes</div>';
+                    return;
+                }
+
+                let html = '';
+                notes.forEach(note => {
                     const date = new Date(note.createdAt).toLocaleString();
                     const isPatient = note.createdBy === 'patient';
 
@@ -383,6 +418,37 @@
                 notesList.innerHTML = html;
             } catch (error) {
                 console.error('[Firestore] Failed to load notes:', error);
+            }
+        }
+
+        async function sendNote() {
+            const input = document.getElementById('note-input');
+            const text = input.value.trim();
+
+            if (!text) {
+                alert('Please enter a note');
+                return;
+            }
+
+            if (!currentUser || !currentPatientUid) {
+                alert('Not authenticated');
+                return;
+            }
+
+            try {
+                const notesRef = collection(db, `users/${currentPatientUid}/notes`);
+                await addDoc(notesRef, {
+                    text: text,
+                    createdBy: isTherapist ? 'therapist' : 'patient',
+                    createdAt: new Date().toISOString(),
+                    authorUid: currentUser.uid
+                });
+
+                input.value = '';
+                await loadNotes();
+            } catch (error) {
+                console.error('[Firestore] Failed to send note:', error);
+                alert('Failed to send note');
             }
         }
 
@@ -661,6 +727,8 @@
         Object.assign(window, {
             showNotesModal,
             closeNotesModal,
+            sendNote,
+            toggleNotesFilter,
             goToCoverage,
             refreshData
         });
