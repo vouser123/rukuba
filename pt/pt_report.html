@@ -717,9 +717,9 @@
         };
     </script>
     <script type="module">
-        // Firebase Auth + Auto-discover patient
+        // Firebase Auth + Auto-discover patient + Load patient data
         import { auth, onAuthStateChanged, db } from './firebase.js';
-        import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let patientUserId = null;
 
@@ -737,6 +737,9 @@
                 if (!snapshot.empty) {
                     patientUserId = snapshot.docs[0].id;
                     console.log('[Therapist] Found patient UID:', patientUserId);
+
+                    // Load patient data from Firestore
+                    await loadPatientDataFromFirestore(patientUserId);
                 } else {
                     console.warn('[Therapist] No patient found for this therapist');
                 }
@@ -758,6 +761,42 @@
                 }
             }
         });
+
+        async function loadPatientDataFromFirestore(uid) {
+            try {
+                // Load sessions
+                const sessionsRef = collection(db, `users/${uid}/sessions`);
+                const sessionsSnap = await getDocs(sessionsRef);
+                const sessions = sessionsSnap.docs.map(d => d.data());
+
+                // Load runtime (exercise library)
+                const runtimeRef = doc(db, `users/${uid}/pt_runtime/state`);
+                const runtimeSnap = await getDoc(runtimeRef);
+                const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
+
+                // Load shared data (roles, schema, vocabulary)
+                const sharedData = await window.sharedDataLoader.loadExerciseRolesShared();
+                const schema = await window.sharedDataLoader.loadExerciseFileSchemaShared();
+                const vocabulary = await window.sharedDataLoader.loadExerciseVocabularyShared();
+
+                // Populate global variables (accessed by main script below)
+                window.ptReportData = {
+                    sessionHistory: sessions,
+                    exerciseLibrary: runtime.exerciseLibrary || [],
+                    rolesData: sharedData,
+                    schema: schema,
+                    vocabulary: vocabulary
+                };
+
+                console.log('[Firestore] Loaded patient data:', {
+                    sessions: sessions.length,
+                    exercises: runtime.exerciseLibrary?.length || 0
+                });
+            } catch (error) {
+                console.error('[Firestore] Failed to load patient data:', error);
+                alert('Failed to load patient data: ' + error.message);
+            }
+        }
     </script>
     <script>
         const exerciseFormModule = window.exerciseFormModule;
@@ -943,9 +982,30 @@
         }
 
         function init() {
-            // Hide report sections initially (but not editor-mode sections)
-            document.querySelectorAll('body > .section').forEach(el => el.style.display = 'none');
-            document.querySelector('.report-header').style.display = 'none';
+            // Check if data was loaded from Firestore
+            if (window.ptReportData) {
+                sessionHistory = window.ptReportData.sessionHistory;
+                exerciseLibrary = window.ptReportData.exerciseLibrary;
+                rolesData = window.ptReportData.rolesData;
+                schema = window.ptReportData.schema;
+                vocabulary = window.ptReportData.vocabulary;
+
+                // Auto-load report view
+                document.getElementById('import-screen').style.display = 'none';
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'block');
+                document.querySelector('.report-header').style.display = 'block';
+                document.getElementById('action-buttons').style.display = 'flex';
+                document.getElementById('report-date').textContent = `Loaded: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+
+                renderOverallMetrics();
+                renderCoverageSummary();
+                renderRecentActivity();
+                renderExerciseHistory();
+            } else {
+                // Hide report sections initially (fallback to import mode)
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'none');
+                document.querySelector('.report-header').style.display = 'none';
+            }
         }
 
         function renderOverallMetrics() {
