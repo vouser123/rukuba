@@ -988,9 +988,15 @@
                 <div style="font-size: 15px; color: var(--text-secondary);" id="next-set-summary"></div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" onclick="closeNextSetModal()">Cancel</button>
-                <button class="modal-save" onclick="editNextSet()">Edit</button>
-                <button class="modal-save" onclick="confirmNextSet()">Log & Next</button>
+                <!-- Problem: iOS Safari can ignore inline onclick handlers inside modals. -->
+                <!-- Fix: use pointerup handlers for reliable iOS-friendly activation. -->
+                <button type="button" class="modal-cancel" onpointerup="closeNextSetModal()">Cancel</button>
+                <!-- Problem: iOS Safari can ignore inline onclick handlers inside modals. -->
+                <!-- Fix: use pointerup handlers for reliable iOS-friendly activation. -->
+                <button type="button" class="modal-save" onpointerup="editNextSet()">Edit</button>
+                <!-- Problem: iOS Safari can ignore inline onclick handlers inside modals. -->
+                <!-- Fix: use pointerup handlers for reliable iOS-friendly activation. -->
+                <button type="button" class="modal-save" onpointerup="confirmNextSet()">Log & Next</button>
             </div>
         </div>
     </div>
