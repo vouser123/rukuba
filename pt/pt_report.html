@@ -717,20 +717,41 @@
         };
     </script>
     <script type="module">
-        // Firebase Auth Guard
-        import { auth, onAuthStateChanged } from './firebase.js';
+        // Firebase Auth Guard + Patient UID for therapist access
+        import { auth, onAuthStateChanged, db } from './firebase.js';
+        import { doc, getDoc, collection, getDocs, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-        onAuthStateChanged(auth, (user) => {
+        // Check URL for patient UID (therapist accessing patient data)
+        const urlParams = new URLSearchParams(window.location.search);
+        const patientUid = urlParams.get('patientUid');
+
+        let activeUserId = null;
+
+        onAuthStateChanged(auth, async (user) => {
             const authGuardOverlay = document.getElementById('auth-guard-overlay');
 
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
+
+                // Set active user: patientUid if provided (therapist mode), otherwise own UID
+                activeUserId = patientUid || user.uid;
+
+                if (patientUid) {
+                    console.log('[Therapist Mode] Loading patient data for UID:', patientUid);
+                }
+
                 // Remove auth guard overlay
                 if (authGuardOverlay) {
                     authGuardOverlay.classList.add('auth-verified');
                 }
+
+                // Make activeUserId available globally for report logic
+                window.ptReportUserId = activeUserId;
             } else {
                 console.log('[Auth] No user signed in - blocking page access');
+                activeUserId = null;
+                window.ptReportUserId = null;
+
                 // Show auth guard overlay
                 if (authGuardOverlay) {
                     authGuardOverlay.classList.remove('auth-verified');
