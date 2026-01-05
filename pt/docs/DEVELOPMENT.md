@@ -571,3 +571,17 @@ When debugging issues:
 ## Development Notes
 
 - **2025-01-05** — **Problem:** iOS taps on "Next Set" were unreliable; duration-based exercises still prompted for reps in manual logging. **What I did:** Added an iOS touchend fallback for the Next Set button and updated the log-set flow to capture duration seconds instead of reps (stored as `secondsAchieved`/`secondsTarget`).
+
+## 2026-01-05 — Enforce pointer-based activation in PT Tracker
+
+**Symptom**
+Taps on interactive controls were unreliable in iOS Safari/PWA when inline `onclick` handlers were used.
+
+**Root Cause (as understood now)**
+`onclick` is not consistently delivered in iOS Safari/PWA, which caused some controls to miss activation.
+
+**Fix Applied**
+Replaced inline `onclick` usage in `pt/pt_tracker.html` with pointerup-based listeners and keyboard handling for non-button elements, using data attributes and centralized binding.
+
+**Notes / Risks**
+Do not reintroduce `onclick` or `click` handlers; the pointer-based bindings are required for iOS PWA reliability across desktop and mobile.
