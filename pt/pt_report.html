@@ -360,10 +360,12 @@
         <div class="report-title">Physical Therapy Progress Report</div>
         <div class="report-date" id="report-date"></div>
         <div class="report-patient" id="report-patient">Patient: <span id="report-patient-id">--</span></div>
+        <div style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;" id="logged-in-display">Logged in as: <span id="logged-in-email">--</span></div>
         <div class="report-debug" id="report-debug">debug: pt_report</div>
         <div class="report-header-actions">
             <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 PT View</a>
             <a class="btn-secondary" href="pt_report.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📋 PT Report</a>
+            <button class="btn-secondary" id="logout-btn" style="display: none;">🚪 Log Out</button>
         </div>
     </div>
 
@@ -401,7 +403,6 @@
         </p>
         <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
             <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 Open PT View</a>
-            <a class="btn-secondary" href="pt_report.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📋 Open PT Report</a>
         </div>
         <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)">
         <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
@@ -893,12 +894,24 @@
             const importPatientId = document.getElementById('import-patient-id');
             const reportDebug = document.getElementById('report-debug');
             const importDebug = document.getElementById('import-debug');
+            const loggedInEmail = document.getElementById('logged-in-email');
+            const loggedInDisplay = document.getElementById('logged-in-display');
+            const logoutBtn = document.getElementById('logout-btn');
             const displayId = patientId || 'Unknown';
 
             if (reportPatientId) reportPatientId.textContent = displayId;
             if (importPatientId) importPatientId.textContent = displayId;
             if (reportDebug) reportDebug.textContent = `debug: pt_report • ${userEmail || 'signed out'}`;
             if (importDebug) importDebug.textContent = `debug: pt_report • ${userEmail || 'signed out'}`;
+
+            if (userEmail) {
+                if (loggedInEmail) loggedInEmail.textContent = userEmail;
+                if (loggedInDisplay) loggedInDisplay.style.display = 'block';
+                if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+            } else {
+                if (loggedInDisplay) loggedInDisplay.style.display = 'none';
+                if (logoutBtn) logoutBtn.style.display = 'none';
+            }
         }
 
         onAuthStateChanged(auth, async (user) => {
@@ -1083,6 +1096,20 @@
                     hideAuthModal();
                 }
             });
+
+            // Bind logout button
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('pointerup', async () => {
+                    try {
+                        await signOut(auth);
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('[Auth] Logout failed:', error);
+                        alert('Failed to log out: ' + error.message);
+                    }
+                });
+            }
         }
 
         // Bind auth modal interactions once the module loads.

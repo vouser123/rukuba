@@ -7148,6 +7148,14 @@
             lastReadNoteTime = new Date().toISOString();
             localStorage.setItem('lastReadNoteTime', lastReadNoteTime);
             document.getElementById('notes-badge').style.display = 'none';
+
+            // Reset button styling
+            const notesButton = document.getElementById('notes-btn');
+            if (notesButton) {
+                notesButton.style.background = '';
+                notesButton.style.color = '';
+                notesButton.style.fontWeight = '';
+            }
         }
 
         async function checkForNewNotes() {
@@ -7160,8 +7168,16 @@
 
                 if (!snapshot.empty) {
                     const badge = document.getElementById('notes-badge');
+                    const notesButton = document.getElementById('notes-btn');
                     badge.textContent = snapshot.size;
                     badge.style.display = 'block';
+
+                    // Make button more prominent with highlighted styling
+                    if (notesButton) {
+                        notesButton.style.background = 'var(--ios-blue)';
+                        notesButton.style.color = 'white';
+                        notesButton.style.fontWeight = '600';
+                    }
                 }
             } catch (error) {
                 console.error('[Firestore] Failed to check new notes:', error);

@@ -169,6 +169,7 @@
                 </div>
             </div>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                <div style="color: var(--text-secondary); font-size: 13px;" id="logged-in-display-view">Logged in as: <span id="logged-in-email-view">--</span></div>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <button class="btn-secondary" data-action="showNotesModal" style="padding: 8px 16px; position: relative;">
                         💬 Notes
@@ -176,7 +177,10 @@
                     </button>
                     <span class="badge readonly-badge">READ-ONLY</span>
                 </div>
-                <a class="btn-secondary" href="pt_report.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">↩ PT Report</a>
+                <div style="display: flex; gap: 8px;">
+                    <a class="btn-secondary" href="pt_report.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">↩ PT Report</a>
+                    <button class="btn-secondary" id="logout-btn-view" style="display: none;">🚪 Log Out</button>
+                </div>
             </div>
         </div>
 
@@ -297,10 +301,18 @@
         onAuthStateChanged(auth, async (user) => {
             const authScreen = document.getElementById('auth-screen');
             const dashboardScreen = document.getElementById('dashboard-screen');
+            const loggedInEmail = document.getElementById('logged-in-email-view');
+            const loggedInDisplay = document.getElementById('logged-in-display-view');
+            const logoutBtn = document.getElementById('logout-btn-view');
 
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
                 currentUser = user;
+
+                // Update logged-in display
+                if (loggedInEmail) loggedInEmail.textContent = user.email;
+                if (loggedInDisplay) loggedInDisplay.style.display = 'block';
+                if (logoutBtn) logoutBtn.style.display = 'inline-flex';
 
                 // Auto-discover patient
                 const usersRef = collection(db, 'users');
@@ -330,6 +342,8 @@
                 loadDashboard();
             } else {
                 console.log('[Auth] User not signed in');
+                if (loggedInDisplay) loggedInDisplay.style.display = 'none';
+                if (logoutBtn) logoutBtn.style.display = 'none';
                 authScreen.style.display = 'flex';
                 dashboardScreen.style.display = 'none';
             }
@@ -395,6 +409,14 @@
             lastReadNoteTime = new Date().toISOString();
             localStorage.setItem('pt_view_lastReadNoteTime', lastReadNoteTime);
             document.getElementById('notes-badge').style.display = 'none';
+
+            // Reset button styling
+            const notesButton = document.querySelector('[data-action="showNotesModal"]');
+            if (notesButton) {
+                notesButton.style.background = '';
+                notesButton.style.color = '';
+                notesButton.style.fontWeight = '';
+            }
         }
 
         function closeNotesModal() {
@@ -508,9 +530,22 @@
                 const snapshot = await getDocs(q);
 
                 if (!snapshot.empty) {
-                    const badge = document.getElementById('notes-badge');
-                    badge.textContent = snapshot.size;
-                    badge.style.display = 'block';
+                    // Filter for patient notes only (on pt_view, highlight patient messages)
+                    const patientNotes = snapshot.docs.filter(doc => doc.data().createdBy === 'patient');
+
+                    if (patientNotes.length > 0) {
+                        const badge = document.getElementById('notes-badge');
+                        const notesButton = document.querySelector('[data-action="showNotesModal"]');
+                        badge.textContent = patientNotes.length;
+                        badge.style.display = 'block';
+
+                        // Make button more prominent with animation
+                        if (notesButton) {
+                            notesButton.style.background = 'var(--ios-blue)';
+                            notesButton.style.color = 'white';
+                            notesButton.style.fontWeight = '600';
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('[Firestore] Failed to check notes:', error);
@@ -800,6 +835,21 @@
             if (modal) {
                 modal.addEventListener('pointerup', (e) => {
                     if (e.target === modal) closeAuthModal();
+                });
+            }
+
+            // Bind logout button
+            const logoutBtn = document.getElementById('logout-btn-view');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('pointerup', async () => {
+                    try {
+                        const { signOut } = await import('./firebase.js');
+                        await signOut(auth);
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('[Auth] Logout failed:', error);
+                        alert('Failed to log out: ' + error.message);
+                    }
                 });
             }
         });
