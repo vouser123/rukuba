@@ -1047,6 +1047,7 @@
                 <label for="auth-remember" style="font-size: 14px; color: var(--text-secondary); cursor: pointer;">Remember me on this device</label>
             </div>
             <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; text-align: center;"></div>
+            <button type="button" id="auth-reset-btn" style="margin-top: 8px; background: none; border: none; color: var(--ios-blue); font-size: 14px; font-weight: 600; cursor: pointer;">Forgot password?</button>
             <div class="auth-modal-actions">
                 <button type="button" class="btn-secondary" id="auth-cancel-btn">Cancel</button>
                 <button type="button" class="btn-primary" id="auth-signin-btn">Sign In</button>
@@ -1721,7 +1722,8 @@
             onAuthStateChanged,
             setPersistence,
             browserLocalPersistence,
-            browserSessionPersistence
+            browserSessionPersistence,
+            sendPasswordResetEmail
         } from './firebase.js';
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         import {
@@ -1860,11 +1862,16 @@
             }
         }
 
-        function showAuthError(message) {
+        function showAuthMessage(message, tone = 'error') {
             const errorDiv = document.getElementById('auth-error');
             if (!errorDiv) return;
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
+            errorDiv.style.color = tone === 'success' ? 'var(--ios-green)' : 'var(--ios-red)';
+        }
+
+        function showAuthError(message) {
+            showAuthMessage(message, 'error');
         }
 
         function clearAuthError() {
@@ -1872,6 +1879,7 @@
             if (!errorDiv) return;
             errorDiv.textContent = '';
             errorDiv.style.display = 'none';
+            errorDiv.style.color = 'var(--ios-red)';
         }
 
         function updateMenuAuthDisplay() {
@@ -1942,6 +1950,36 @@
                     showAuthError('Too many attempts. Please try again later.');
                 } else {
                     showAuthError('Sign in failed. Please try again.');
+                }
+            }
+        }
+
+        async function handlePasswordReset() {
+            // Send a Firebase password reset email using the existing auth instance.
+            const emailInput = document.getElementById('auth-email');
+            if (!emailInput) {
+                showAuthError('Tap "Sign In" to enter your email first.');
+                return;
+            }
+            const email = emailInput.value.trim();
+            if (!email) {
+                showAuthError('Enter your email to reset your password.');
+                return;
+            }
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showAuthMessage('Password reset email sent. Check your inbox.', 'success');
+            } catch (error) {
+                console.error('[Auth] Password reset failed:', error);
+                if (error.code === 'auth/invalid-email') {
+                    showAuthError('Please enter a valid email address.');
+                } else if (error.code === 'auth/user-not-found') {
+                    showAuthError('No account found for that email.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Please try again later.');
+                } else {
+                    showAuthError('Password reset failed. Please try again.');
                 }
             }
         }
@@ -9268,6 +9306,7 @@ ${payload}`;
             const closeButton = document.getElementById('auth-modal-close');
             const cancelButton = document.getElementById('auth-cancel-btn');
             const signInButton = document.getElementById('auth-signin-btn');
+            const resetButton = document.getElementById('auth-reset-btn');
 
             if (guardButton) {
                 guardButton.addEventListener('pointerup', showAuthModal);
@@ -9281,6 +9320,10 @@ ${payload}`;
 
             if (signInButton) {
                 signInButton.addEventListener('pointerup', handleSignIn);
+            }
+
+            if (resetButton) {
+                resetButton.addEventListener('pointerup', handlePasswordReset);
             }
 
             if (closeButton) {

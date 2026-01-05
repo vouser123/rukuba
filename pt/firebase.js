@@ -11,6 +11,7 @@ import {
   signOut,
   onAuthStateChanged,
   setPersistence,
+  sendPasswordResetEmail,
   browserLocalPersistence,
   browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
@@ -39,6 +40,7 @@ export {
   signOut,
   onAuthStateChanged,
   setPersistence,
+  sendPasswordResetEmail,
   browserLocalPersistence,
   browserSessionPersistence
 };
