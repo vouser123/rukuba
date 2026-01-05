@@ -921,7 +921,10 @@
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="control-btn btn-secondary" data-action="showArchivedExercises" style="flex: 1; font-size: 13px;" id="archived-btn">📦 Archived</button>
-                    <button class="control-btn btn-secondary" data-action="showNotesModal" style="flex: 1; font-size: 13px;">💬 Notes</button>
+                    <button class="control-btn btn-secondary" data-action="showNotesModal" style="flex: 1; font-size: 13px; position: relative;" id="notes-btn">
+                        💬 Notes
+                        <span id="notes-badge" style="display: none; position: absolute; top: 4px; right: 4px; background: var(--ios-red); color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; font-weight: 600;"></span>
+                    </button>
                     <button class="control-btn btn-secondary" data-action="showDataBackup" style="flex: 1; font-size: 13px;">💾 Data</button>
                 </div>
             </div>
@@ -1882,6 +1885,9 @@
                     runtimeSyncPending = false;
                     syncRuntimeToFirestore();
                 }
+
+                // Check for new notes from therapist
+                checkForNewNotes();
             } else {
                 console.log('[Auth] No user signed in - blocking page access');
                 // Show auth guard overlay
@@ -7124,6 +7130,8 @@
         }
 
         // PT Notes functionality
+        let lastReadNoteTime = localStorage.getItem('lastReadNoteTime') || new Date(0).toISOString();
+
         async function showNotesModal() {
             if (!currentUser) {
                 alert('Please sign in to view notes');
@@ -7132,6 +7140,29 @@
 
             document.getElementById('notes-modal').style.display = 'flex';
             await loadNotes();
+
+            // Mark notes as read
+            lastReadNoteTime = new Date().toISOString();
+            localStorage.setItem('lastReadNoteTime', lastReadNoteTime);
+            document.getElementById('notes-badge').style.display = 'none';
+        }
+
+        async function checkForNewNotes() {
+            if (!currentUser) return;
+
+            try {
+                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+                const q = query(notesRef, where('createdBy', '==', 'therapist'), where('createdAt', '>', lastReadNoteTime));
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    const badge = document.getElementById('notes-badge');
+                    badge.textContent = snapshot.size;
+                    badge.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('[Firestore] Failed to check new notes:', error);
+            }
         }
 
         function closeNotesModal() {
