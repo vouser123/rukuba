@@ -263,14 +263,7 @@
                 <button id="auth-modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
             </div>
             <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">Use your account to access the PT dashboard.</p>
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px;">Email</label>
-                <input type="email" id="auth-email" placeholder="your@email.com" style="width: 100%; padding: 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
-            </div>
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px;">Password</label>
-                <input type="password" id="auth-password" placeholder="••••••••" style="width: 100%; padding: 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
-            </div>
+            <div id="auth-credential-fields"></div>
             <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; margin-bottom: 12px; text-align: center;"></div>
             <div style="display: flex; gap: 10px;">
                 <button id="auth-cancel-btn" class="btn-secondary" style="flex: 1;">Cancel</button>
@@ -730,24 +723,107 @@
         }
 
         // Auth modal functions
+        function ensureAuthCredentialFields() {
+            const fieldsContainer = document.getElementById('auth-credential-fields');
+            if (!fieldsContainer || fieldsContainer.childElementCount > 0) return;
+            // Create credential inputs only after explicit user action to avoid iOS PWA autofill prompts.
+            const emailGroup = document.createElement('div');
+            emailGroup.style.marginBottom = '12px';
+
+            const emailLabel = document.createElement('label');
+            emailLabel.style.display = 'block';
+            emailLabel.style.fontSize = '14px';
+            emailLabel.style.fontWeight = '500';
+            emailLabel.style.marginBottom = '6px';
+            emailLabel.setAttribute('for', 'auth-email');
+            emailLabel.textContent = 'Email';
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.id = 'auth-email';
+            emailInput.placeholder = 'your@email.com';
+            emailInput.autocomplete = 'email';
+            emailInput.style.width = '100%';
+            emailInput.style.padding = '10px';
+            emailInput.style.fontSize = '14px';
+            emailInput.style.border = '1px solid var(--border-color)';
+            emailInput.style.borderRadius = '8px';
+            emailInput.style.background = 'var(--bg-secondary)';
+            emailInput.style.color = 'var(--text-primary)';
+
+            emailGroup.appendChild(emailLabel);
+            emailGroup.appendChild(emailInput);
+
+            const passwordGroup = document.createElement('div');
+            passwordGroup.style.marginBottom = '16px';
+
+            const passwordLabel = document.createElement('label');
+            passwordLabel.style.display = 'block';
+            passwordLabel.style.fontSize = '14px';
+            passwordLabel.style.fontWeight = '500';
+            passwordLabel.style.marginBottom = '6px';
+            passwordLabel.setAttribute('for', 'auth-password');
+            passwordLabel.textContent = 'Password';
+
+            const passwordInput = document.createElement('input');
+            passwordInput.type = 'password';
+            passwordInput.id = 'auth-password';
+            passwordInput.placeholder = '••••••••';
+            passwordInput.autocomplete = 'current-password';
+            passwordInput.style.width = '100%';
+            passwordInput.style.padding = '10px';
+            passwordInput.style.fontSize = '14px';
+            passwordInput.style.border = '1px solid var(--border-color)';
+            passwordInput.style.borderRadius = '8px';
+            passwordInput.style.background = 'var(--bg-secondary)';
+            passwordInput.style.color = 'var(--text-primary)';
+
+            passwordGroup.appendChild(passwordLabel);
+            passwordGroup.appendChild(passwordInput);
+
+            fieldsContainer.appendChild(emailGroup);
+            fieldsContainer.appendChild(passwordGroup);
+
+            passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleSignIn();
+            });
+        }
+
+        function clearAuthCredentialFields() {
+            const fieldsContainer = document.getElementById('auth-credential-fields');
+            if (!fieldsContainer) return;
+            // Remove credential inputs when the modal closes so they are not mounted on navigation.
+            fieldsContainer.innerHTML = '';
+        }
+
         function showAuthModal() {
             const modal = document.getElementById('auth-modal');
+            ensureAuthCredentialFields();
             modal.style.display = 'flex';
-            document.getElementById('auth-email').focus();
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput) {
+                emailInput.focus();
+            }
         }
 
         function closeAuthModal() {
             const modal = document.getElementById('auth-modal');
             modal.style.display = 'none';
             document.getElementById('auth-error').style.display = 'none';
-            document.getElementById('auth-email').value = '';
-            document.getElementById('auth-password').value = '';
+            clearAuthCredentialFields();
         }
 
         async function handleSignIn() {
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
+            const emailInput = document.getElementById('auth-email');
+            const passwordInput = document.getElementById('auth-password');
             const errorDiv = document.getElementById('auth-error');
+            if (!emailInput || !passwordInput) {
+                errorDiv.textContent = 'Tap "Sign In" to enter your credentials.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
 
             if (!email || !password) {
                 errorDiv.textContent = 'Please enter both email and password';
@@ -772,7 +848,6 @@
             const closeButton = document.getElementById('auth-modal-close');
             const cancelButton = document.getElementById('auth-cancel-btn');
             const signInButton = document.getElementById('auth-signin-btn');
-            const passwordInput = document.getElementById('auth-password');
 
             if (screenButton) {
                 screenButton.addEventListener('pointerup', showAuthModal);
@@ -788,12 +863,6 @@
 
             if (signInButton) {
                 signInButton.addEventListener('pointerup', handleSignIn);
-            }
-
-            if (passwordInput) {
-                passwordInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') handleSignIn();
-                });
             }
 
             // Close modal on outside click
