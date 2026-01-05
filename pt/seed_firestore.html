@@ -161,21 +161,12 @@
             <div class="hint">
                 Sign in with a Firebase-authenticated account before seeding. Use this page for admin actions only.
             </div>
-            <div class="auth-grid">
-                <div>
-                    <label for="auth-email">Email</label>
-                    <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com">
-                </div>
-                <div>
-                    <label for="auth-password">Password</label>
-                    <input id="auth-password" type="password" autocomplete="current-password" placeholder="••••••••">
-                </div>
-                <div class="actions">
-                    <button class="btn-primary" id="login-btn">Sign In</button>
-                    <button class="btn-secondary" id="logout-btn">Sign Out</button>
-                </div>
-                <div class="hint" id="auth-status">Waiting for auth…</div>
+            <div class="auth-grid" id="auth-credential-fields"></div>
+            <div class="actions">
+                <button class="btn-primary" id="auth-reveal-btn">Sign In</button>
+                <button class="btn-secondary" id="logout-btn">Sign Out</button>
             </div>
+            <div class="hint" id="auth-status">Waiting for auth…</div>
         </div>
         <div class="status" id="status">Waiting for auth…</div>
     </div>
@@ -198,10 +189,11 @@
         const reloadBtn = document.getElementById('reload-btn');
         const overwriteDosageToggle = document.getElementById('overwrite-dosage');
         const recordHistoryToggle = document.getElementById('record-history');
-        const loginBtn = document.getElementById('login-btn');
+        const authRevealBtn = document.getElementById('auth-reveal-btn');
         const logoutBtn = document.getElementById('logout-btn');
-        const authEmailInput = document.getElementById('auth-email');
-        const authPasswordInput = document.getElementById('auth-password');
+        const authFieldsContainer = document.getElementById('auth-credential-fields');
+        let authEmailInput = null;
+        let authPasswordInput = null;
 
         let currentUser = null;
 
@@ -218,9 +210,68 @@
 
         function describeAuthState(user) {
             if (!user) {
-                return 'Not signed in. Use the login form above before seeding.';
+                return 'Not signed in. Use Sign In to authenticate before seeding.';
             }
             return `Signed in as ${user.email || user.uid}. Ready for Firebase updates.`;
+        }
+
+        function ensureAuthCredentialFields() {
+            if (!authFieldsContainer || authFieldsContainer.childElementCount > 0) return;
+            // Create credential inputs only after explicit user action to avoid iOS PWA autofill prompts.
+            const emailField = document.createElement('div');
+            const emailLabel = document.createElement('label');
+            emailLabel.setAttribute('for', 'auth-email');
+            emailLabel.textContent = 'Email';
+            const emailInput = document.createElement('input');
+            emailInput.id = 'auth-email';
+            emailInput.type = 'email';
+            emailInput.autocomplete = 'email';
+            emailInput.placeholder = 'you@example.com';
+            emailField.appendChild(emailLabel);
+            emailField.appendChild(emailInput);
+
+            const passwordField = document.createElement('div');
+            const passwordLabel = document.createElement('label');
+            passwordLabel.setAttribute('for', 'auth-password');
+            passwordLabel.textContent = 'Password';
+            const passwordInput = document.createElement('input');
+            passwordInput.id = 'auth-password';
+            passwordInput.type = 'password';
+            passwordInput.autocomplete = 'current-password';
+            passwordInput.placeholder = '••••••••';
+            passwordField.appendChild(passwordLabel);
+            passwordField.appendChild(passwordInput);
+
+            const loginActions = document.createElement('div');
+            loginActions.className = 'actions';
+            const loginButton = document.createElement('button');
+            loginButton.className = 'btn-primary';
+            loginButton.id = 'login-btn';
+            loginButton.textContent = 'Sign In';
+            loginActions.appendChild(loginButton);
+
+            authFieldsContainer.appendChild(emailField);
+            authFieldsContainer.appendChild(passwordField);
+            authFieldsContainer.appendChild(loginActions);
+
+            authEmailInput = emailInput;
+            authPasswordInput = passwordInput;
+
+            loginButton.addEventListener('click', handleLoginSubmit);
+            passwordInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleLoginSubmit();
+                }
+            });
+        }
+
+        function clearAuthCredentialFields() {
+            if (!authFieldsContainer) return;
+            // Remove credential inputs once auth is complete so they are not mounted on navigation.
+            authFieldsContainer.innerHTML = '';
+            authEmailInput = null;
+            authPasswordInput = null;
         }
 
         async function handleSeed() {
@@ -272,12 +323,11 @@
             }
         }
 
-        seedBtn.addEventListener('click', handleSeed);
-        migrateBtn.addEventListener('click', handleDosageMigration);
-        reloadBtn.addEventListener('click', () => {
-            setStatus(describeAuthState(currentUser));
-        });
-        loginBtn.addEventListener('click', async () => {
+        async function handleLoginSubmit() {
+            if (!authEmailInput || !authPasswordInput) {
+                authStatusEl.textContent = 'Tap Sign In to enter credentials.';
+                return;
+            }
             const email = authEmailInput.value.trim();
             const password = authPasswordInput.value;
             if (!email || !password) {
@@ -289,10 +339,22 @@
                 await setPersistence(auth, browserLocalPersistence);
                 await signInWithEmailAndPassword(auth, email, password);
                 authStatusEl.textContent = 'Signed in successfully.';
-                authPasswordInput.value = '';
+                clearAuthCredentialFields();
             } catch (error) {
                 console.error('Sign in failed:', error);
                 authStatusEl.textContent = `Sign in failed: ${error.message}`;
+            }
+        }
+
+        seedBtn.addEventListener('click', handleSeed);
+        migrateBtn.addEventListener('click', handleDosageMigration);
+        reloadBtn.addEventListener('click', () => {
+            setStatus(describeAuthState(currentUser));
+        });
+        authRevealBtn.addEventListener('click', () => {
+            ensureAuthCredentialFields();
+            if (authEmailInput) {
+                authEmailInput.focus();
             }
         });
         logoutBtn.addEventListener('click', async () => {
@@ -300,6 +362,7 @@
             try {
                 await signOut(auth);
                 authStatusEl.textContent = 'Signed out.';
+                clearAuthCredentialFields();
             } catch (error) {
                 console.error('Sign out failed:', error);
                 authStatusEl.textContent = `Sign out failed: ${error.message}`;

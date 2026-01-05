@@ -54,12 +54,12 @@ Maintain this section whenever HTML/JS/JSON inputs change (including new pages, 
 
 | File | Role | Notes |
 |------|------|-------|
-| `pt_tracker.html` | Patient-facing tracker | Uses Firestore auth + sessions, and localStorage for offline cache + library edits. Exports PT_DATA. Imports PT_MODIFICATIONS. |
-| `rehab_coverage.html` | Coverage analysis | Reads shared data + session history. Also supports PT_DATA export and PT_MODIFICATIONS import. |
-| `pt_report.html` | PT-facing report/editor | Imports PT_DATA, edits library/roles/vocab/dosage, exports PT_MODIFICATIONS. |
+| `pt_tracker.html` | Patient-facing tracker | Uses Firestore auth + sessions, and localStorage for offline cache + library edits. Exports PT_DATA. Imports PT_MODIFICATIONS. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts. |
+| `rehab_coverage.html` | Coverage analysis | Reads shared data + session history. Also supports PT_DATA export and PT_MODIFICATIONS import. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts. |
+| `pt_report.html` | PT-facing report/editor | Imports PT_DATA, edits library/roles/vocab/dosage, exports PT_MODIFICATIONS. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts. |
 | `exercise_editor.html` | Library editor (standalone) | Exports/imports library and PT data; overlaps with PT editor workflows. |
-| `seed_firestore.html` | Admin seeding | Writes JSON sources to `pt_shared` and migrates shared dosage into user runtime. |
-| `pt_view.html` | Shared view link | Tokenized viewer for shared PT data summaries. |
+| `seed_firestore.html` | Admin seeding | Writes JSON sources to `pt_shared` and migrates shared dosage into user runtime. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts. |
+| `pt_view.html` | Shared view link | Tokenized viewer for shared PT data summaries. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts. |
 
 ### Shared Modules & Data
 
@@ -517,7 +517,7 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 
 ```javascript
 // sw-pt.js
-const CACHE_NAME = 'pt-tracker-v1.22.18'; // bump to refresh cached assets
+const CACHE_NAME = 'pt-tracker-v1.22.32'; // bump to refresh cached assets
 ```
 
 ### Export/Import
