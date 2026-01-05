@@ -149,6 +149,77 @@
             text-align: center;
             font-size: 13px;
         }
+
+        /* Scrollable containers */
+        #recent-activity,
+        #top-exercises {
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Exercise history modal */
+        #exercise-history-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #exercise-history-modal.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 40px;
+        }
+
+        .exercise-history-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .exercise-history-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .exercise-history-body {
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+        }
     </style>
 </head>
 <body>
@@ -257,6 +328,25 @@
             <div style="padding: 20px; border-top: 1px solid var(--border-color);">
                 <textarea id="note-input" placeholder="Add a note..." style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; font-size: 14px; resize: vertical; min-height: 80px; background: var(--bg-secondary); color: var(--text-primary);"></textarea>
                 <button data-action="sendNote" class="btn-primary" style="margin-top: 10px; width: 100%;">📝 Send Note</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exercise History Modal -->
+    <div id="exercise-history-modal" data-action="closeExerciseHistory" data-require-self="true">
+        <div class="exercise-history-content" data-stop-propagation="true">
+            <div class="exercise-history-header">
+                <div>
+                    <h3 style="font-size: 20px; font-weight: 600; margin: 0;" id="exercise-history-title">Exercise History</h3>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;" id="exercise-history-subtitle"></div>
+                </div>
+                <button data-action="closeExerciseHistory" style="background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-secondary); line-height: 1;">×</button>
+            </div>
+            <div class="exercise-history-body">
+                <input type="text" id="exercise-history-search" class="search-input" placeholder="Search sessions by date or notes...">
+                <div id="exercise-history-list">
+                    <!-- Sessions loaded here -->
+                </div>
             </div>
         </div>
     </div>
@@ -662,8 +752,7 @@
 
             const recentSessions = sessions
                 .filter(s => new Date(s.date) >= weekAgo)
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 10);
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
 
             const container = document.getElementById('recent-activity');
 
@@ -679,7 +768,7 @@
                 const setsCount = session.sets ? session.sets.length : 0;
 
                 html += `
-                    <div class="exercise-card">
+                    <div class="exercise-card" data-action="showExerciseHistory" data-action-arg="${session.exerciseId}" style="cursor: pointer;">
                         <div class="exercise-card-content">
                             <div class="exercise-card-title">${session.exerciseName || session.exerciseId}</div>
                             <div class="exercise-card-meta">
@@ -691,6 +780,7 @@
             });
 
             container.innerHTML = html;
+            bindPointerHandlers(container);
         }
 
         function renderTopExercises() {
@@ -730,7 +820,7 @@
                 const timeAgo = getTimeAgo(lastDate);
 
                 html += `
-                    <div class="exercise-card">
+                    <div class="exercise-card" data-action="showExerciseHistory" data-action-arg="${ex.id}" style="cursor: pointer;">
                         <div class="exercise-card-content">
                             <div class="exercise-card-title">${ex.name}</div>
                             <div class="exercise-card-meta">
@@ -742,6 +832,7 @@
             });
 
             container.innerHTML = html;
+            bindPointerHandlers(container);
         }
 
         function renderExerciseRoles() {
@@ -808,6 +899,112 @@
 
             return date.toLocaleDateString();
         }
+
+        // Exercise History Modal
+        let currentExerciseSessions = [];
+        let filteredExerciseSessions = [];
+
+        function showExerciseHistory(exerciseId) {
+            const sessions = patientData.sessions || [];
+            const exerciseSessions = sessions.filter(s => s.exerciseId === exerciseId);
+
+            if (exerciseSessions.length === 0) return;
+
+            currentExerciseSessions = exerciseSessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+            filteredExerciseSessions = [...currentExerciseSessions];
+
+            const exerciseName = exerciseSessions[0].exerciseName || exerciseId;
+            document.getElementById('exercise-history-title').textContent = exerciseName;
+            document.getElementById('exercise-history-subtitle').textContent = `${exerciseSessions.length} session${exerciseSessions.length !== 1 ? 's' : ''} total`;
+
+            renderExerciseHistoryList();
+
+            const modal = document.getElementById('exercise-history-modal');
+            modal.classList.add('active');
+
+            // Bind search
+            const searchInput = document.getElementById('exercise-history-search');
+            searchInput.value = '';
+            searchInput.oninput = filterExerciseHistory;
+
+            bindPointerHandlers(modal);
+        }
+
+        function renderExerciseHistoryList() {
+            const container = document.getElementById('exercise-history-list');
+
+            if (filteredExerciseSessions.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No matching sessions found</div>';
+                return;
+            }
+
+            let html = '';
+            filteredExerciseSessions.forEach(session => {
+                const date = new Date(session.date);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                const timeAgo = getTimeAgo(date);
+                const sets = session.sets || [];
+
+                html += `
+                    <div style="background: var(--bg-secondary); border-radius: 10px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px;">${dateStr}</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">${timeAgo}</div>
+                            </div>
+                            <div style="background: var(--ios-blue); color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                                ${sets.length} set${sets.length !== 1 ? 's' : ''}
+                            </div>
+                        </div>
+                        ${sets.length > 0 ? `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                ${sets.map((set, idx) => `
+                                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">
+                                        Set ${idx + 1}: ${set.reps || '—'} reps ${set.weight ? `• ${set.weight} lbs` : ''}
+                                        ${set.notes ? `<div style="font-style: italic; color: var(--text-secondary); margin-left: 10px;">Note: ${set.notes}</div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        ${session.notes ? `
+                            <div style="margin-top: 12px; padding: 10px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px; font-style: italic;">
+                                ${session.notes}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function filterExerciseHistory() {
+            const searchTerm = document.getElementById('exercise-history-search').value.toLowerCase();
+
+            if (!searchTerm) {
+                filteredExerciseSessions = [...currentExerciseSessions];
+            } else {
+                filteredExerciseSessions = currentExerciseSessions.filter(session => {
+                    const dateStr = new Date(session.date).toLocaleDateString().toLowerCase();
+                    const notes = (session.notes || '').toLowerCase();
+                    const setNotes = (session.sets || []).map(s => (s.notes || '').toLowerCase()).join(' ');
+
+                    return dateStr.includes(searchTerm) ||
+                           notes.includes(searchTerm) ||
+                           setNotes.includes(searchTerm);
+                });
+            }
+
+            renderExerciseHistoryList();
+        }
+
+        function closeExerciseHistory() {
+            document.getElementById('exercise-history-modal').classList.remove('active');
+        }
+
+        // Expose to window for data-action binding
+        window.showExerciseHistory = showExerciseHistory;
+        window.closeExerciseHistory = closeExerciseHistory;
 
         // iOS-safe button handlers
         function goToCoverage() {
