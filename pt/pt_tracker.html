@@ -618,6 +618,39 @@
             display: none !important;
         }
 
+        /* Auth Guard Overlay */
+        #auth-guard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #auth-guard-overlay h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        #auth-guard-overlay p {
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.5;
+            max-width: 400px;
+        }
+
+        #auth-guard-overlay.auth-verified {
+            display: none;
+        }
+
         /* Body Heatmap - REPLACED BY REHAB COVERAGE VIEW
         .body-diagram {
             position: relative;
@@ -677,6 +710,12 @@
     </style>
 </head>
 <body>
+    <!-- Auth Guard Overlay -->
+    <div id="auth-guard-overlay">
+        <h2>🔐 Authentication Required</h2>
+        <p>You must be signed in to access the PT Tracker. Please use the menu to sign in or create an account.</p>
+    </div>
+
     <div class="header">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
             <div>
@@ -1799,10 +1838,17 @@
             currentUser = user;
             isAuthReady = true;
 
+            // Auth Guard: Block page if no user is signed in
+            const authGuardOverlay = document.getElementById('auth-guard-overlay');
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
                 firestoreUserId = user.uid; // Set for runtime sync
                 updateMenuAuthDisplay(); // Update menu
+
+                // Remove auth guard overlay
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.add('auth-verified');
+                }
 
                 // Flush queue when authenticated
                 if (navigator.onLine) {
@@ -1815,7 +1861,11 @@
                     syncRuntimeToFirestore();
                 }
             } else {
-                console.log('[Auth] No user signed in - app will work offline only');
+                console.log('[Auth] No user signed in - blocking page access');
+                // Show auth guard overlay
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.remove('auth-verified');
+                }
                 firestoreUserId = null;
                 updateMenuAuthDisplay(); // Update menu
             }

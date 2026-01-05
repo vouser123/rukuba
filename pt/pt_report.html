@@ -193,9 +193,49 @@
             background-size: 16px;
             padding-right: 40px;
         }
+
+        /* Auth Guard Overlay */
+        #auth-guard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #auth-guard-overlay h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        #auth-guard-overlay p {
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.5;
+            max-width: 400px;
+        }
+
+        #auth-guard-overlay.auth-verified {
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <!-- Auth Guard Overlay -->
+    <div id="auth-guard-overlay">
+        <h2>🔐 Authentication Required</h2>
+        <p>You must be signed in to access the PT Progress Report.</p>
+    </div>
+
+
     <div class="report-header">
         <div class="report-title">Physical Therapy Progress Report</div>
         <div class="report-date" id="report-date"></div>
@@ -675,6 +715,28 @@
             loadExerciseVocabularyShared,
             loadExerciseFileSchemaShared
         };
+    </script>
+    <script type="module">
+        // Firebase Auth Guard
+        import { auth, onAuthStateChanged } from './firebase.js';
+
+        onAuthStateChanged(auth, (user) => {
+            const authGuardOverlay = document.getElementById('auth-guard-overlay');
+
+            if (user) {
+                console.log('[Auth] User signed in:', user.email);
+                // Remove auth guard overlay
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.add('auth-verified');
+                }
+            } else {
+                console.log('[Auth] No user signed in - blocking page access');
+                // Show auth guard overlay
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.remove('auth-verified');
+                }
+            }
+        });
     </script>
     <script>
         const exerciseFormModule = window.exerciseFormModule;
