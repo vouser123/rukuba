@@ -40,7 +40,7 @@ export {
   signOut,
   onAuthStateChanged,
   setPersistence,
-  sendPasswordResetEmail,
+  // sendPasswordResetEmail, // TODO: Fix password reset
   browserLocalPersistence,
   browserSessionPersistence
 };

@@ -880,8 +880,8 @@
             signInWithEmailAndPassword,
             setPersistence,
             browserLocalPersistence,
-            browserSessionPersistence,
-            sendPasswordResetEmail
+            browserSessionPersistence
+            // sendPasswordResetEmail // TODO: Fix password reset
         } from './firebase.js';
         import {
             loadExerciseLibraryShared,
@@ -1062,8 +1062,9 @@
             }
 
             try {
-                await sendPasswordResetEmail(auth, email);
-                showAuthMessage('Password reset email sent. Check your inbox.', 'success');
+                // await sendPasswordResetEmail(auth, email); // TODO: Fix password reset
+                // showAuthMessage('Password reset email sent. Check your inbox.', 'success');
+                showAuthMessage('Password reset temporarily disabled. Contact admin.', 'error');
             } catch (error) {
                 console.error('[Auth] Password reset failed:', error);
                 if (error.code === 'auth/invalid-email') {

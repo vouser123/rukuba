@@ -1722,9 +1722,9 @@
             onAuthStateChanged,
             setPersistence,
             browserLocalPersistence,
-            browserSessionPersistence,
-            sendPasswordResetEmail
+            browserSessionPersistence
         } from './firebase.js';
+        // import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"; // TODO: Fix password reset
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         import {
             loadExerciseLibraryShared,
@@ -1968,8 +1968,9 @@
             }
 
             try {
-                await sendPasswordResetEmail(auth, email);
-                showAuthMessage('Password reset email sent. Check your inbox.', 'success');
+                // await sendPasswordResetEmail(auth, email); // TODO: Fix password reset
+                // showAuthMessage('Password reset email sent. Check your inbox.', 'success');
+                showAuthMessage('Password reset temporarily disabled. Contact your therapist.', 'error');
             } catch (error) {
                 console.error('[Auth] Password reset failed:', error);
                 if (error.code === 'auth/invalid-email') {
@@ -7327,12 +7328,19 @@
         }
 
         async function loadNotes() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                console.log('[Notes] No current user, cannot load notes');
+                return;
+            }
+
+            console.log('[Notes] Loading notes for user:', currentUser.uid);
 
             try {
                 const notesRef = collection(db, `users/${currentUser.uid}/notes`);
                 const q = query(notesRef, orderBy('createdAt', 'desc'));
                 const snapshot = await getDocs(q);
+
+                console.log('[Notes] Fetched notes, total count:', snapshot.size);
 
                 const notesList = document.getElementById('notes-list');
 
@@ -7348,6 +7356,8 @@
                     }
                 });
 
+                console.log('[Notes] Visible notes after filtering:', visibleNotes.length);
+
                 // Mark therapist notes as read by patient
                 const unreadTherapistNotes = visibleNotes.filter(noteDoc =>
                     noteDoc.data.createdBy === 'therapist' && !noteDoc.data.readByPatient
@@ -7362,6 +7372,7 @@
                 }
 
                 if (visibleNotes.length === 0) {
+                    console.log('[Notes] No visible notes, showing empty message');
                     notesList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No notes yet</div>';
                     return;
                 }
@@ -7399,6 +7410,9 @@
                 });
 
                 notesList.innerHTML = html;
+
+                // Bind event handlers to dynamically created buttons
+                bindPointerHandlers(notesList);
             } catch (error) {
                 console.error('[Firestore] Failed to load notes:', error);
             }
@@ -7417,15 +7431,23 @@
                 return;
             }
 
+            console.log('[Notes] Sending note for user:', currentUser.uid);
+
             try {
                 const notesRef = collection(db, `users/${currentUser.uid}/notes`);
 
-                await addDoc(notesRef, {
+                const noteData = {
                     text: text,
                     createdBy: 'patient',
                     createdAt: new Date().toISOString(),
                     authorUid: currentUser.uid
-                });
+                };
+
+                console.log('[Notes] Note data:', noteData);
+
+                await addDoc(notesRef, noteData);
+
+                console.log('[Notes] Note sent successfully');
 
                 document.getElementById('new-note-text').value = '';
                 await loadNotes();
