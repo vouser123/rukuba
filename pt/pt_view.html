@@ -727,14 +727,14 @@
             topExercises.forEach(ex => {
                 const lastSession = ex.sessions[ex.sessions.length - 1];
                 const lastDate = new Date(lastSession.date);
-                const daysAgo = Math.max(0, Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24)));
+                const timeAgo = getTimeAgo(lastDate);
 
                 html += `
                     <div class="exercise-card">
                         <div class="exercise-card-content">
                             <div class="exercise-card-title">${ex.name}</div>
                             <div class="exercise-card-meta">
-                                ${ex.sessions.length} sessions • ${ex.totalSets} sets • Last: ${daysAgo === 0 ? 'Today' : daysAgo + ' days ago'}
+                                ${ex.sessions.length} sessions • ${ex.totalSets} sets • Last: ${timeAgo}
                             </div>
                         </div>
                     </div>
