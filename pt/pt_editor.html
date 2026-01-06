@@ -7,27 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>PT Editor</title>
 
-    <!-- Firebase Configuration -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js';
-        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js';
-        import { getFirestore } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDdFofqGJ0vRGHP8yjJJ9V6KwvMB3MiPkc",
-            authDomain: "pwa-test-f3cc9.firebaseapp.com",
-            projectId: "pwa-test-f3cc9",
-            storageBucket: "pwa-test-f3cc9.firebasestorage.app",
-            messagingSenderId: "710678875017",
-            appId: "1:710678875017:web:f3cc9fc8bce3c85a7e4d97",
-            measurementId: "G-Z8SLKX6QD9"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        window.firebaseApp = app;
-        window.auth = getAuth(app);
-        window.db = getFirestore(app);
-    </script>
+    <!-- Firebase Configuration: Use shared instance from firebase.js -->
 
     <style>
         :root {
@@ -341,10 +321,26 @@
         📴 Offline - Changes saved locally (Queue: <span id="queue-count">0</span>)
     </div>
 
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="auth-container" style="display: flex;">
+        <h2>🔐 PT Editor Access</h2>
+        <p>Sign in to edit exercises.</p>
+        <button id="auth-screen-signin-btn" class="btn-primary" style="margin-top: 16px; padding: 12px 32px; font-size: 16px;">Sign In</button>
+    </div>
+
+    <!-- Editor Screen -->
+    <div id="editor-screen" style="display: none;">
+
+    <!-- Debug Panel -->
+    <div id="debug-panel" style="position: fixed; top: 60px; right: 10px; background: rgba(0,0,0,0.9); color: white; padding: 12px; border-radius: 8px; font-size: 11px; z-index: 10000; max-width: 300px; font-family: monospace;">
+        <div style="font-weight: 600; margin-bottom: 8px; color: #FFD700;">🐛 Debug Info</div>
+        <div id="debug-content"></div>
+    </div>
+
     <!-- Header -->
     <div class="header">
         <button data-action="goBack" class="btn-secondary">← Back</button>
-        <h1>PT Editor <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">v0.4.8</span></h1>
+        <h1>PT Editor <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">v0.4.9</span></h1>
         <button data-action="reloadApp" class="btn-secondary" title="Reload to get latest version">🔄</button>
     </div>
 
@@ -747,50 +743,53 @@
 
     <!-- Main Script -->
     <script type="module">
+        import { auth, db } from './firebase.js';
         import { doc, getDoc, setDoc, collection, query, where, orderBy, limit as firestoreLimit, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js';
         import {
             createExercise,
             updateExercise,
             archiveExercise,
+            getAllExercises,
             createRole,
             deleteRole,
             updateVocabulary
-        } from './shared/pt_data_api.js?v=0.4.8';
-        import { loadExerciseLibraryShared } from './shared/firestore_shared_data.js?v=0.4.8';
-        import { bindActionHandlers, showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js?v=0.4.8';
-        import * as ptDataAPI from './shared/pt_data_api.js?v=0.4.8';
-        import { replayQueue } from './shared/offline_queue.js?v=0.4.8';
+        } from './shared/pt_data_api.js?v=0.4.9';
+        import { bindActionHandlers, showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js?v=0.4.9';
+        import * as ptDataAPI from './shared/pt_data_api.js?v=0.4.9';
+        import { replayQueue } from './shared/offline_queue.js?v=0.4.9';
         import { ulid } from 'https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js';
 
         let exercises = [];
         let currentExercise = null;
         let exerciseRoles = {};
 
-        // Initialize on load
-        window.addEventListener('load', async () => {
-            console.log('[PT Editor] Initializing...');
+        // Auth state handler (same pattern as pt_view.html)
+        auth.onAuthStateChanged(async (user) => {
+            const authScreen = document.getElementById('auth-screen');
+            const editorScreen = document.getElementById('editor-screen');
 
-            // Wait for Firebase auth to be initialized
-            while (!window.auth) {
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
-
-            // Auth state handler (fires automatically when Firebase restores session)
-            window.auth.onAuthStateChanged(async (user) => {
             if (!user) {
-                console.log('[Auth] No user signed in, redirecting to pt_view');
-                window.location.href = 'pt_view.html';
+                console.log('[Auth] No user signed in, showing auth screen');
+                if (authScreen) authScreen.style.display = 'flex';
+                if (editorScreen) editorScreen.style.display = 'none';
                 return;
             }
 
             console.log('[Auth] User signed in:', user.uid);
 
-            // Load exercise library
-            const library = await loadExerciseLibraryShared();
-            exercises = library.exercises || [];
-            exerciseRoles = library.exerciseRoles || {};
+            // Hide auth screen, show editor
+            if (authScreen) authScreen.style.display = 'none';
+            if (editorScreen) editorScreen.style.display = 'block';
 
-            console.log('[PT Editor] Loaded', exercises.length, 'exercises');
+            // Load all exercises from Firestore
+            console.log('[PT Editor] Loading exercises from Firestore...');
+            exercises = await getAllExercises(false); // false = exclude archived
+            exerciseRoles = {}; // TODO: Load roles from Firestore
+
+            console.log('[PT Editor] Loaded', exercises.length, 'exercises from Firestore');
+
+            // Update comprehensive debug panel
+            updateDebugPanel();
 
             // Extract all unique equipment from exercises
             extractAllEquipment();
@@ -803,13 +802,72 @@
 
             // Populate exercise selector for dosage
             populateDosageExerciseSelector();
-            });
         });
 
         // Auto-replay offline queue when connection restored
         window.addEventListener('offlinequeue:online', async () => {
             await replayQueue(ptDataAPI);
         });
+
+        // Sign-in button handler
+        const signInBtn = document.getElementById('auth-screen-signin-btn');
+        if (signInBtn) {
+            signInBtn.addEventListener('click', () => {
+                window.location.href = 'pt_view.html';
+            });
+        }
+
+        // Update debug panel with comprehensive info
+        function updateDebugPanel() {
+            const debugContent = document.getElementById('debug-content');
+            if (!debugContent) return;
+
+            let html = '';
+
+            // Auth info
+            html += `<div style="margin-bottom: 8px; padding: 6px; background: rgba(255,255,255,0.1); border-radius: 4px;">`;
+            html += `<strong>Auth:</strong><br>`;
+            html += `User: ${auth.currentUser?.email || auth.currentUser?.uid || 'Not signed in'}<br>`;
+            html += `</div>`;
+
+            // Exercises info
+            html += `<div style="margin-bottom: 8px; padding: 6px; background: rgba(255,255,255,0.1); border-radius: 4px;">`;
+            html += `<strong>Exercises:</strong> ${exercises.length}<br>`;
+            if (exercises.length > 0) {
+                html += `<strong>Sample IDs:</strong><br>`;
+                exercises.slice(0, 5).forEach(ex => {
+                    html += `&nbsp;&nbsp;${ex.id}: ${ex.canonical_name}<br>`;
+                });
+            } else {
+                html += `<span style="color: #FF3B30;">NO EXERCISES LOADED!</span><br>`;
+            }
+            html += `</div>`;
+
+            // Roles info
+            const roleKeys = Object.keys(exerciseRoles);
+            html += `<div style="margin-bottom: 8px; padding: 6px; background: rgba(255,255,255,0.1); border-radius: 4px;">`;
+            html += `<strong>Roles:</strong> ${roleKeys.length} exercises with roles<br>`;
+            if (roleKeys.length > 0) {
+                html += `<strong>Sample:</strong><br>`;
+                roleKeys.slice(0, 3).forEach(id => {
+                    const roles = exerciseRoles[id];
+                    html += `&nbsp;&nbsp;${id}: ${roles.length} roles<br>`;
+                });
+            }
+            html += `</div>`;
+
+            // localStorage info
+            html += `<div style="margin-bottom: 8px; padding: 6px; background: rgba(255,255,255,0.1); border-radius: 4px;">`;
+            html += `<strong>localStorage:</strong> ${localStorage.length} keys<br>`;
+            for (let i = 0; i < Math.min(5, localStorage.length); i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                html += `&nbsp;&nbsp;${key}: ${value.length} chars<br>`;
+            }
+            html += `</div>`;
+
+            debugContent.innerHTML = html;
+        }
 
         // Render exercise list
         function renderExerciseList() {
@@ -1479,5 +1537,7 @@
             loadDynamicList('tags-heatmap-list', exercise.tags?.heatmap);
         }
     </script>
+
+    </div> <!-- End of editor-screen -->
 </body>
 </html>

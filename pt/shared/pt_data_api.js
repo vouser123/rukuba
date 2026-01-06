@@ -10,8 +10,11 @@
  * @module pt_data_api
  */
 
+// Import shared Firebase instances from firebase.js
+import { db, auth } from '../firebase.js';
+
+// Import Firestore methods (must match firebase.js version: 12.7.0)
 import {
-    getFirestore,
     doc,
     getDoc,
     setDoc,
@@ -24,9 +27,7 @@ import {
     orderBy,
     limit,
     serverTimestamp
-} from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
-
-import { getAuth } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 // Phase 4: Offline queue support
 import { withOfflineQueue } from './offline_queue.js';
@@ -117,7 +118,7 @@ async function withRetry(operation, maxAttempts = 3) {
  * Offline Handling: Will be wrapped with offline queue in Phase 4
  */
 async function insertExerciseCompletion(event) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
@@ -133,7 +134,7 @@ async function insertExerciseCompletion(event) {
     }
 
     const completionULID = generateULID();
-    const db = getFirestore();
+    
 
     // Build completion document
     // Use client timestamp if provided (from offline queue), otherwise server timestamp
@@ -181,12 +182,12 @@ async function insertExerciseCompletion(event) {
  * @returns {Promise<Array>} Array of completion documents
  */
 export async function getExerciseCompletions(exerciseId, limitCount = 100) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
 
-    const db = getFirestore();
+    
     // Query from canonical sessions root with exerciseId filter
     const sessionsRef = collection(db, 'users', userId, 'sessions');
 
@@ -219,7 +220,7 @@ export async function getExerciseCompletions(exerciseId, limitCount = 100) {
  * @returns {Promise<{id: string, version: number}>}
  */
 async function createExercise(def) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
@@ -244,7 +245,7 @@ async function createExercise(def) {
     }
 
     const exerciseId = generateULID();
-    const db = getFirestore();
+    
 
     // Create metadata document
     const metadataRef = doc(db, 'exercise_definitions', exerciseId);
@@ -281,7 +282,7 @@ async function createExercise(def) {
  * @returns {Promise<string|null>} Exercise ID if found, null otherwise
  */
 async function findDuplicateExercise(name) {
-    const db = getFirestore();
+    
     const normalizedName = name.trim().toLowerCase();
 
     // Query all exercises (this is expensive - consider indexing)
@@ -312,12 +313,12 @@ async function findDuplicateExercise(name) {
  * @returns {Promise<{id: string, version: number}>}
  */
 async function updateExercise(id, changes) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
 
-    const db = getFirestore();
+    
     const metadataRef = doc(db, 'exercise_definitions', id);
     const metadataSnap = await getDoc(metadataRef);
 
@@ -369,7 +370,7 @@ async function updateExercise(id, changes) {
  * @returns {Promise<void>}
  */
 async function archiveExercise(id) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
@@ -391,7 +392,7 @@ async function archiveExercise(id) {
  * @returns {Promise<void>}
  */
 async function unarchiveExercise(id) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
@@ -413,7 +414,7 @@ async function unarchiveExercise(id) {
  * @returns {Promise<object>} Exercise data with id and version
  */
 export async function getExercise(id) {
-    const db = getFirestore();
+    
     const metadataRef = doc(db, 'exercise_definitions', id);
     const metadataSnap = await getDoc(metadataRef);
 
@@ -443,7 +444,7 @@ export async function getExercise(id) {
  * @returns {Promise<Array>} Array of exercise definitions
  */
 export async function getAllExercises(includeArchived = false) {
-    const db = getFirestore();
+    
     const defsRef = collection(db, 'exercise_definitions');
     const snapshot = await getDocs(defsRef);
 
@@ -484,7 +485,7 @@ export async function getAllExercises(includeArchived = false) {
  * @returns {Promise<string>} Role ID
  */
 async function createRole(exerciseId, roleDef) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
@@ -495,7 +496,7 @@ async function createRole(exerciseId, roleDef) {
     }
 
     const roleId = generateULID();
-    const db = getFirestore();
+    
 
     // Ensure exercise_roles metadata exists
     const metadataRef = doc(db, 'exercise_roles', exerciseId);
@@ -538,12 +539,12 @@ async function createRole(exerciseId, roleDef) {
  * @returns {Promise<void>}
  */
 async function deleteRole(exerciseId, roleId) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
 
-    const db = getFirestore();
+    
     const metadataRef = doc(db, 'exercise_roles', exerciseId);
     const metadataSnap = await getDoc(metadataRef);
 
@@ -573,7 +574,7 @@ async function deleteRole(exerciseId, roleId) {
  * @returns {Promise<Array>} Array of roles
  */
 export async function getRoles(exerciseId, includeDeleted = false) {
-    const db = getFirestore();
+    
     const metadataRef = doc(db, 'exercise_roles', exerciseId);
     const metadataSnap = await getDoc(metadataRef);
 
@@ -603,12 +604,12 @@ export async function getRoles(exerciseId, includeDeleted = false) {
  * @returns {Promise<void>}
  */
 async function updateVocabulary(category, term, definition) {
-    const userId = getCurrentUserId();
+    const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
 
-    const db = getFirestore();
+    
     const termId = term.replace(/[^a-zA-Z0-9_]/g, '_');
 
     // Ensure category metadata exists
@@ -647,7 +648,7 @@ async function updateVocabulary(category, term, definition) {
  * @returns {Promise<object>} Object of term -> definition
  */
 export async function getVocabulary(category) {
-    const db = getFirestore();
+    
     const categoryRef = doc(db, 'vocabulary', category);
     const categorySnap = await getDoc(categoryRef);
 
