@@ -15,6 +15,16 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Exercise definitions - allow all authenticated users to read/write
+    match /exercise_definitions/{exerciseId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    match /exercise_definitions/{exerciseId}/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

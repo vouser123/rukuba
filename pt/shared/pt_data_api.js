@@ -444,30 +444,23 @@ export async function getExercise(id) {
  * @returns {Promise<Array>} Array of exercise definitions
  */
 export async function getAllExercises(includeArchived = false) {
-    
-    const defsRef = collection(db, 'exercise_definitions');
-    const snapshot = await getDocs(defsRef);
+    // Read from OLD schema: pt_shared/exercise_library (blob with exercises array)
+    // TODO: After migration (Phase 5), switch to new schema: exercise_definitions/{id}/versions/vX
 
-    const exercises = [];
-    for (const defDoc of snapshot.docs) {
-        const latestVersion = defDoc.data().latestVersion;
-        const versionRef = doc(db, 'exercise_definitions', defDoc.id, 'versions', `v${latestVersion}`);
-        const versionSnap = await getDoc(versionRef);
+    const libraryRef = doc(db, 'pt_shared', 'exercise_library');
+    const librarySnap = await getDoc(libraryRef);
 
-        if (versionSnap.exists()) {
-            const exerciseData = versionSnap.data();
+    if (!librarySnap.exists()) {
+        console.warn('[getAllExercises] exercise_library document not found');
+        return [];
+    }
 
-            // Filter archived if requested
-            if (!includeArchived && exerciseData.archived) {
-                continue;
-            }
+    const libraryData = librarySnap.data();
+    const exercises = libraryData.exercises || [];
 
-            exercises.push({
-                id: defDoc.id,
-                version: latestVersion,
-                ...exerciseData
-            });
-        }
+    // Filter archived if requested
+    if (!includeArchived) {
+        return exercises.filter(ex => !ex.archived);
     }
 
     return exercises;
