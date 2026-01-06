@@ -219,7 +219,7 @@ export async function getExerciseCompletions(exerciseId, limitCount = 100) {
  * @param {array} def.tags - Exercise tags
  * @returns {Promise<{id: string, version: number}>}
  */
-async function createExercise(def) {
+async function createExerciseDefinition(def) {
     const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
@@ -312,7 +312,7 @@ async function findDuplicateExercise(name) {
  * @param {object} changes - Fields to update
  * @returns {Promise<{id: string, version: number}>}
  */
-async function updateExercise(id, changes) {
+async function updateExerciseDefinition(id, changes) {
     const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
@@ -369,14 +369,14 @@ async function updateExercise(id, changes) {
  * @param {string} id - Exercise ULID
  * @returns {Promise<void>}
  */
-async function archiveExercise(id) {
+async function archiveExerciseDefinition(id) {
     const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
 
     // Create new version with archived flag
-    await updateExercise(id, {
+    await updateExerciseDefinition(id, {
         archived: true,
         archivedAt: serverTimestamp(),
         archivedBy: userId
@@ -391,14 +391,14 @@ async function archiveExercise(id) {
  * @param {string} id - Exercise ULID
  * @returns {Promise<void>}
  */
-async function unarchiveExercise(id) {
+async function unarchiveExerciseDefinition(id) {
     const userId = auth.currentUser?.uid;
     if (!userId) {
         throw new Error('User not authenticated');
     }
 
     // Create new version with archived=false
-    await updateExercise(id, {
+    await updateExerciseDefinition(id, {
         archived: false,
         unarchivedAt: serverTimestamp(),
         unarchivedBy: userId
@@ -546,6 +546,15 @@ export async function updateExercise(id, changes) {
  */
 export async function archiveExercise(id) {
     return await updateExercise(id, { archived: true });
+}
+
+/**
+ * Unarchive exercise (OLD schema: pt_shared/exercise_library)
+ * @param {string} id - Exercise ID
+ * @returns {Promise<string>} Exercise ID
+ */
+async function unarchiveExercise(id) {
+    return await updateExercise(id, { archived: false });
 }
 
 // ============================================
