@@ -2474,7 +2474,7 @@
             }
         }
 
-        function addRole() {
+        window.addRole = function addRole() {
             // Get region value (from select or custom input)
             let region = document.getElementById('new-region').value;
             if (region === '__custom__') {
@@ -2541,7 +2541,7 @@
         }
 
         // BUG FIX: Convert to async to await Firestore save before showing success
-        async function deleteRole(roleIndex) {
+        window.deleteRole = async function deleteRole(roleIndex) {
             if (!confirm('Delete this role?')) return;
 
             rolesData.exercise_roles[currentEditExerciseId].roles.splice(roleIndex, 1);
