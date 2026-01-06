@@ -553,7 +553,7 @@ export async function archiveExercise(id) {
  * @param {string} id - Exercise ID
  * @returns {Promise<string>} Exercise ID
  */
-async function unarchiveExercise(id) {
+export async function unarchiveExercise(id) {
     return await updateExercise(id, { archived: false });
 }
 
