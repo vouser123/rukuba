@@ -753,10 +753,10 @@
             createRole,
             deleteRole,
             updateVocabulary
-        } from './shared/pt_data_api.js?v=0.4.11';
-        import { showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js?v=0.4.11';
-        import * as ptDataAPI from './shared/pt_data_api.js?v=0.4.11';
-        import { replayQueue } from './shared/offline_queue.js?v=0.4.11';
+        } from './shared/pt_data_api.js?v=0.4.12';
+        import { showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js?v=0.4.12';
+        import * as ptDataAPI from './shared/pt_data_api.js?v=0.4.12';
+        import { replayQueue } from './shared/offline_queue.js?v=0.4.12';
         import { ulid } from 'https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js';
 
         // iOS-safe pointer-based event binding
@@ -825,6 +825,9 @@
 
             // Extract all unique equipment from exercises
             extractAllEquipment();
+
+            // Load role schema from Firestore
+            loadRolesSchema();
 
             // Populate library list
             renderExerciseList();
@@ -1087,6 +1090,7 @@
 
         // Global equipment options (union from all exercises)
         let allEquipmentOptions = [];
+        let allMuscles = []; // Union of primary + secondary muscles for role region dropdown
 
         // Extract all unique equipment from exercises
         function extractAllEquipment() {
@@ -1114,6 +1118,28 @@
                 console.error('[Equipment] Failed to extract equipment:', error);
                 allEquipmentOptions = [];
             }
+        }
+
+        // Load role regions from pt_shared/exercise_roles_schema
+        let rolesSchema = {};
+        async function loadRolesSchema() {
+            try {
+                const { loadExerciseRolesSchemaShared } = await import('./shared/firestore_shared_data.js');
+                rolesSchema = await loadExerciseRolesSchemaShared();
+                populateRoleRegionDropdown();
+            } catch (error) {
+                console.error('[Roles Schema] Failed to load:', error);
+            }
+        }
+
+        // Populate role region dropdown from schema enums
+        function populateRoleRegionDropdown() {
+            const select = document.getElementById('new-role-region');
+            if (!select) return;
+
+            const regions = rolesSchema?.properties?.region?.enum || [];
+            select.innerHTML = '<option value="">-- Select region --</option>' +
+                regions.map(region => `<option value="${region}">${region}</option>`).join('');
         }
 
         // Add dynamic field functions
