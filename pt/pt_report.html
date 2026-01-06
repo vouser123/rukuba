@@ -1255,9 +1255,9 @@
 
         // Save exercise library to Firestore
         window.saveExerciseLibraryToFirestore = async function() {
+            // BUG FIX: Throw error instead of silent return when patient UID missing
             if (!window.ptReportUserId) {
-                console.error('[Firestore] No patient UID available');
-                return;
+                throw new Error('No patient UID available - please sign in again');
             }
 
             try {

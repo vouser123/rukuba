@@ -427,6 +427,7 @@
         let sharedSaveTimer = null;
         let sharedSaveInFlight = false;
         let exportData = null;
+        let saveInProgress = false; // BUG FIX: iOS multi-tap guard
 
         // Resolve $refs in schema
         function resolveRef(ref, rootSchema) {
@@ -1202,9 +1203,56 @@
         }
 
         function saveAndBackToList() {
-            // Already saved via auto-save in updateFieldByPath
-            alert('Exercise saved and queued for Firebase sync.');
-            backToList();
+            // BUG FIX: iOS multi-tap guard - prevent duplicate saves
+            if (saveInProgress) return;
+            saveInProgress = true;
+
+            const saveBtn = document.querySelector('button[onclick="saveAndBackToList()"]');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.style.opacity = '0.5';
+            }
+
+            try {
+                const current = getCurrentExercise();
+
+                // BUG FIX: Validate required fields before save
+                const errors = [];
+                if (!current.name || current.name.trim() === '') {
+                    errors.push('Exercise name is required');
+                }
+                if (!current.description || current.description.trim() === '') {
+                    errors.push('Description is required');
+                }
+
+                if (errors.length > 0) {
+                    alert('Cannot save:\n\n' + errors.join('\n'));
+                    return;
+                }
+
+                // BUG FIX: Check for duplicate names (case-insensitive, trimmed)
+                const normalizedName = current.name.trim().toLowerCase();
+                const duplicate = baselineExercises.find(ex =>
+                    ex.id !== current.id &&
+                    ex.name && ex.name.trim().toLowerCase() === normalizedName
+                );
+
+                if (duplicate) {
+                    if (!confirm(`An exercise named "${duplicate.name}" already exists.\n\nCreate anyway?`)) {
+                        return;
+                    }
+                }
+
+                // Already saved via auto-save in updateFieldByPath
+                alert('Exercise saved and queued for Firebase sync.');
+                backToList();
+            } finally {
+                saveInProgress = false;
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
+                }
+            }
         }
 
         function discardDraft() {

@@ -887,7 +887,8 @@
             loadExerciseLibraryShared,
             loadExerciseRolesShared,
             loadExerciseVocabularyShared,
-            loadExerciseRolesSchemaShared
+            loadExerciseRolesSchemaShared,
+            saveExerciseRolesShared  // BUG FIX: Add save function for roles persistence
         } from './shared/firestore_shared_data.js';
         import {
             collection,
@@ -2465,9 +2466,15 @@
             // Add the role
             rolesData.exercise_roles[currentEditExerciseId].roles.push(newRole);
 
+            // BUG FIX: Save roles to Firestore immediately
+            saveExerciseRolesShared(rolesData).catch(err => {
+                console.error('[Firestore] Failed to save roles:', err);
+                alert('Warning: Role added but failed to save to Firestore: ' + err.message);
+            });
+
             // Refresh the view
             selectExerciseToEdit(currentEditExerciseId);
-            alert('Role added! Remember to export when done.');
+            alert('Role added and saved to Firestore!');
         }
 
         function deleteRole(roleIndex) {
@@ -2480,9 +2487,15 @@
                 delete rolesData.exercise_roles[currentEditExerciseId];
             }
 
+            // BUG FIX: Save roles to Firestore immediately
+            saveExerciseRolesShared(rolesData).catch(err => {
+                console.error('[Firestore] Failed to save roles:', err);
+                alert('Warning: Role deleted but failed to save to Firestore: ' + err.message);
+            });
+
             // Refresh the view
             selectExerciseToEdit(currentEditExerciseId);
-            alert('Role deleted! Remember to export when done.');
+            alert('Role deleted and saved to Firestore!');
         }
 
         // Export for PT - opens V2 export modal

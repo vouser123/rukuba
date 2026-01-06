@@ -633,3 +633,334 @@ Replaced inline `onclick` usage in `pt/pt_tracker.html` with pointerup-based lis
 5. ✅ On iOS, close PWA completely and reopen after cache changes.
 **Notes / Risks**
 Do not reintroduce `onclick` or `click` handlers; the pointer-based bindings are required for iOS PWA reliability across desktop and mobile.
+
+---
+
+## 2026-01-05 — Bug Fixes: Exercise Creation & Save Issues
+
+### ✅ FIXED: Exercise Editor Validation & Duplication Issues
+
+**Problems:**
+1. Could create exercises without required name/description fields
+2. iOS multi-tap on save button created 3 duplicate exercises
+3. No duplicate name detection across exercises
+
+**Root Causes:**
+- `saveAndBackToList()` (exercise_editor.html:1204) had no pre-save validation
+- Save button lacked debouncing and disabled state during Firestore sync
+- No duplicate checking before creating new exercise
+
+**Solutions Applied:**
+1. Added pre-save validation for required fields (name, description) with clear error messages
+2. Implemented iOS multi-tap guard with button disable during save operation
+3. Added duplicate name detection (case-insensitive, trimmed) with user confirmation
+
+**Files Changed:** `exercise_editor.html` (lines 430, 1205-1256)
+
+**Code Pattern Added:**
+```javascript
+let saveInProgress = false; // Multi-tap guard flag
+
+function saveAndBackToList() {
+    if (saveInProgress) return; // Prevent duplicate clicks
+    saveInProgress = true;
+
+    // Disable button UI
+    const saveBtn = document.querySelector('button[onclick="saveAndBackToList()"]');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.5';
+    }
+
+    try {
+        // Validate required fields
+        const errors = [];
+        if (!current.name || current.name.trim() === '') {
+            errors.push('Exercise name is required');
+        }
+        if (!current.description || current.description.trim() === '') {
+            errors.push('Description is required');
+        }
+
+        if (errors.length > 0) {
+            alert('Cannot save:\n\n' + errors.join('\n'));
+            return;
+        }
+
+        // Check for duplicate names
+        const normalizedName = current.name.trim().toLowerCase();
+        const duplicate = baselineExercises.find(ex =>
+            ex.id !== current.id &&
+            ex.name && ex.name.trim().toLowerCase() === normalizedName
+        );
+
+        if (duplicate) {
+            if (!confirm(`An exercise named "${duplicate.name}" already exists.\n\nCreate anyway?`)) {
+                return;
+            }
+        }
+
+        // Proceed with save...
+    } finally {
+        saveInProgress = false;
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.style.opacity = '1';
+        }
+    }
+}
+```
+
+---
+
+### ✅ FIXED: PT Report Silent Save Failure
+
+**Problem:** PT edited exercise descriptions but changes didn't persist to Firestore
+
+**Root Cause:** `saveExerciseLibraryToFirestore()` (pt_report.html:1258) silently returned if `ptReportUserId` was missing, showing success alert despite no Firestore write
+
+**Solution:** Changed silent return to throw error, which propagates to catch block showing proper error to user
+
+**Files Changed:** `pt_report.html` (line 1259-1260)
+
+**Code Change:**
+```javascript
+// BEFORE (silent failure):
+if (!window.ptReportUserId) {
+    console.error('[Firestore] No patient UID available');
+    return; // User sees success but data never saves!
+}
+
+// AFTER (proper error):
+if (!window.ptReportUserId) {
+    throw new Error('No patient UID available - please sign in again');
+}
+```
+
+**Impact:** Users now see clear error message when save fails due to missing authentication
+
+---
+
+### ✅ FIXED: Rehab Coverage Roles Not Persisting
+
+**Problem:** Role assignments appeared "saved" but disappeared on page reload
+
+**Root Cause:** `saveExerciseRolesShared` was NOT imported from `firestore_shared_data.js`, so role modifications only updated in-memory `rolesData` object and never persisted to Firestore
+
+**Solution:**
+1. Added `saveExerciseRolesShared` to imports (line 891)
+2. Called save function immediately after role add/delete operations (lines 2470, 2491)
+3. Updated user feedback messages to reflect actual save status
+
+**Files Changed:** `rehab_coverage.html` (lines 891, 2469-2473, 2490-2494)
+
+**Code Added:**
+```javascript
+// Import statement (line 891)
+import {
+    loadExerciseLibraryShared,
+    loadExerciseRolesShared,
+    loadExerciseVocabularyShared,
+    loadExerciseRolesSchemaShared,
+    saveExerciseRolesShared  // ADDED
+} from './shared/firestore_shared_data.js';
+
+// After role add (line 2469)
+saveExerciseRolesShared(rolesData).catch(err => {
+    console.error('[Firestore] Failed to save roles:', err);
+    alert('Warning: Role added but failed to save to Firestore: ' + err.message);
+});
+
+// After role delete (line 2490)
+saveExerciseRolesShared(rolesData).catch(err => {
+    console.error('[Firestore] Failed to save roles:', err);
+    alert('Warning: Role deleted but failed to save to Firestore: ' + err.message);
+});
+```
+
+**Reference Implementation:** `pt_tracker.html` already had proper roles save pattern
+
+---
+
+## Lower Priority TODOs
+
+### TODO: PT Report Save Button UX Improvements (Medium Priority)
+**Added:** 2026-01-05
+
+**Current State:**
+- Only ONE save button exists in PT Report (line 650): "💾 Save Exercise (Alt+A)"
+- No visual indication of unsaved changes
+- No auto-save or "changes saved" indicator
+- No visual difference between saved/unsaved states
+
+**Issue:** Users unclear when changes are persisted vs pending
+
+**Recommendations:**
+1. Add visual indicator for unsaved changes (e.g., asterisk on modified field labels)
+2. Show "Saved ✓" confirmation with timestamp after successful save
+3. Consider auto-save with debouncing (similar to exercise_editor pattern)
+4. Add disabled state + spinner during Firestore sync
+5. Prevent navigation with unsaved changes (confirmation prompt)
+
+**Best Practice Reference:**
+- Google Docs pattern: Auto-save with "All changes saved" indicator
+- GitHub pattern: Visual cue + confirmation on navigation with unsaved changes
+- Single source of truth for save state across all UI elements
+
+---
+
+### TODO: Rehab Coverage Offline Caching (Low Priority)
+**Added:** 2026-01-05
+
+**Problem:** Page won't load offline despite being registered in service worker
+
+**Investigation Needed:**
+- Verify service worker cache strategy for `rehab_coverage.html`
+- Check all dependencies (CSS, JS, Firebase SDK) are properly cached
+- Review network panel for failed offline requests
+- Validate cache versioning in service worker
+
+**Current Service Worker Cache Name:** Check `sw-pt.js` for current version
+
+---
+
+### TODO: Form Field Order Improvements (Low Priority)
+**Added:** 2026-01-05
+
+**Problem:** Field ordering in exercise forms is confusing and doesn't match user workflow
+
+**Action Required:**
+1. User research: Observe PT workflow when creating/editing exercises
+2. Identify which forms need reordering (exercise_editor, pt_report, rehab_coverage)
+3. Propose logical groupings:
+   - Essential fields first (name, description)
+   - Classification/metadata (region, capacity, focus)
+   - Dosage/prescription fields
+   - Advanced/optional fields last
+4. Follow UX best practices for form layout
+
+**Reference:**
+- Nielsen Norman Group: Form Design Best Practices
+- Group related fields visually
+- Most important/required fields at top
+- Clear visual hierarchy
+
+---
+
+## Code Patterns & Standards (Updated 2026-01-05)
+
+### Required Field Validation Pattern
+All save operations must validate required fields BEFORE Firestore write:
+
+```javascript
+// Validate required fields
+const errors = [];
+if (!data.name || data.name.trim() === '') {
+    errors.push('Name is required');
+}
+if (!data.description || data.description.trim() === '') {
+    errors.push('Description is required');
+}
+
+if (errors.length > 0) {
+    alert('Cannot save:\n\n' + errors.join('\n'));
+    return;
+}
+```
+
+### iOS Multi-tap Guard Pattern
+All primary action buttons should use this pattern to prevent duplicate operations:
+
+```javascript
+let operationInProgress = false;
+
+function performAction() {
+    if (operationInProgress) return; // Guard against rapid clicks
+    operationInProgress = true;
+
+    const btn = document.querySelector('button selector');
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+    }
+
+    try {
+        // Perform action logic
+    } finally {
+        operationInProgress = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }
+    }
+}
+```
+
+### Firestore Save Pattern
+Always handle errors and provide user feedback:
+
+```javascript
+try {
+    await saveFunction(data);
+    alert('Data saved successfully!');
+} catch (error) {
+    console.error('[Firestore] Save failed:', error);
+    alert('Failed to save: ' + error.message);
+}
+
+// For fire-and-forget saves with error logging:
+saveFunction(data).catch(err => {
+    console.error('[Firestore] Save failed:', err);
+    alert('Warning: Failed to save to Firestore: ' + err.message);
+});
+```
+
+### Duplicate Detection Pattern
+Check for duplicates before creating new records:
+
+```javascript
+// Normalize for comparison
+const normalizedName = newItem.name.trim().toLowerCase();
+
+// Check existing items
+const duplicate = existingItems.find(item =>
+    item.id !== newItem.id &&
+    item.name && item.name.trim().toLowerCase() === normalizedName
+);
+
+if (duplicate) {
+    if (!confirm(`An item named "${duplicate.name}" already exists.\n\nCreate anyway?`)) {
+        return;
+    }
+}
+```
+
+---
+
+## Testing Checklist (2026-01-05 Bug Fixes)
+
+After implementing fixes, verify:
+
+**Exercise Editor:**
+- [ ] Cannot save exercise without name - shows error
+- [ ] Cannot save exercise without description - shows error
+- [ ] Rapid-click save button on iOS creates only ONE exercise
+- [ ] Creating exercise with duplicate name shows warning
+- [ ] Confirming duplicate warning allows save to proceed
+- [ ] Declining duplicate warning aborts save
+
+**PT Report:**
+- [ ] Editing exercise description persists after page reload
+- [ ] Save failure when not authenticated shows clear error message
+- [ ] No "success" message when save actually fails
+
+**Rehab Coverage:**
+- [ ] Assigned roles persist after page reload
+- [ ] Roles appear in coverage graphs after assignment
+- [ ] Role add/delete shows "saved to Firestore" message
+- [ ] Error message shown if Firestore save fails
+
+**Firestore Verification:**
+- [ ] Check Firestore console for saved exercise data
+- [ ] Check Firestore console for saved roles data (`pt_shared/exercise_roles`)
+- [ ] Verify role assignments appear in correct collection
