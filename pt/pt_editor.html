@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>PT Editor - Exercise Management</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <style>
+        /* iOS/Safari optimizations */
+        :root {
+            --ios-blue: #007AFF;
+            --ios-red: #FF3B30;
+            --ios-green: #34C759;
+            --ios-orange: #FF9500;
+            --ios-gray: #8E8E93;
+            --safe-area-top: env(safe-area-inset-top);
+            --safe-area-bottom: env(safe-area-inset-bottom);
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--background, #f2f2f7);
+            color: var(--text-primary, #000);
+            padding-bottom: calc(20px + var(--safe-area-bottom));
+        }
+
+        /* Header */
+        .app-header {
+            position: sticky;
+            top: 0;
+            background: var(--ios-blue);
+            color: white;
+            padding: calc(12px + var(--safe-area-top)) 16px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .app-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .changes-badge {
+            background: var(--ios-orange);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            color: var(--text-primary);
+        }
+
+        /* Search Bar */
+        .search-bar {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px; /* iOS: prevent auto-zoom */
+            border: 1px solid var(--border-color, #d1d1d6);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            background: var(--background, #f2f2f7);
+        }
+
+        .search-bar:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+        }
+
+        /* Exercise List */
+        .exercise-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .exercise-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color, #d1d1d6);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 44px; /* iOS touch target */
+        }
+
+        .exercise-item:last-child {
+            border-bottom: none;
+        }
+
+        .exercise-item:active {
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .exercise-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .exercise-meta {
+            font-size: 13px;
+            color: var(--ios-gray);
+            margin-top: 4px;
+        }
+
+        .exercise-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active {
+            opacity: 0.6;
+        }
+
+        .btn-primary {
+            background: var(--ios-blue);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--ios-gray);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--ios-green);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--ios-red);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            min-width: 60px;
+            min-height: 32px;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px; /* iOS: prevent auto-zoom */
+            border: 1px solid var(--border-color, #d1d1d6);
+            border-radius: 8px;
+            background: white;
+            color: var(--text-primary);
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .form-checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .form-checkbox-label {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid var(--border-color, #d1d1d6);
+            border-radius: 8px;
+            cursor: pointer;
+            min-height: 44px; /* iOS touch target */
+        }
+
+        .form-checkbox-label:has(input:checked) {
+            background: rgba(0, 122, 255, 0.1);
+            border-color: var(--ios-blue);
+        }
+
+        .form-checkbox {
+            margin-right: 8px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            display: block;
+            opacity: 1;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 14px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 9999;
+            padding: 24px;
+        }
+
+        .modal.show {
+            display: block;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        /* Hidden Section */
+        .hidden {
+            display: none;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top-color: var(--ios-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--ios-gray);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state-message {
+            font-size: 16px;
+        }
+
+        /* Desktop/Tablet Responsive */
+        @media (min-width: 768px) {
+            .container {
+                padding: 24px;
+            }
+
+            .section {
+                padding: 32px;
+            }
+
+            .modal {
+                max-width: 600px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .form-checkbox-group {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <button data-action="goBack" class="back-btn touch-target">← Back</button>
+        <h1>PT Editor</h1>
+        <button data-action="showChanges" class="changes-badge touch-target">
+            <span id="changes-count">0</span>
+        </button>
+    </header>
+
+    <div class="container">
+        <!-- Exercise Library Browser -->
+        <section class="section" id="library-section">
+            <h2 class="section-title">Exercise Library</h2>
+            <input
+                type="search"
+                id="exercise-search"
+                class="search-bar"
+                placeholder="Search exercises..."
+                autocomplete="off"
+            >
+            <div id="exercise-list" class="exercise-list"></div>
+            <button data-action="showAddExercise" class="btn btn-primary btn-block" style="margin-top: 16px;">
+                + Add New Exercise
+            </button>
+        </section>
+
+        <!-- Exercise Editor (hidden by default) -->
+        <section class="section hidden" id="editor-section">
+            <h2 class="section-title" id="editor-title">Add New Exercise</h2>
+
+            <form id="exercise-form">
+                <div class="form-group">
+                    <label class="form-label" for="exercise-name">Exercise Name*</label>
+                    <input
+                        type="text"
+                        id="exercise-name"
+                        class="form-input"
+                        required
+                        placeholder="e.g., Single Leg Bridge"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="exercise-type">Exercise Type*</label>
+                    <select id="exercise-type" class="form-select" required>
+                        <option value="">Select type...</option>
+                        <option value="reps">Reps</option>
+                        <option value="duration">Duration</option>
+                        <option value="hold">Hold</option>
+                        <option value="distance">Distance</option>
+                        <option value="amrap">AMRAP</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Form Parameters</label>
+                    <div class="form-checkbox-group">
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" class="form-checkbox" name="formParam" value="weight">
+                            Weight
+                        </label>
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" class="form-checkbox" name="formParam" value="band_resistance">
+                            Band Resistance
+                        </label>
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" class="form-checkbox" name="formParam" value="band_position">
+                            Band Position
+                        </label>
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" class="form-checkbox" name="formParam" value="eyes">
+                            Eyes (Open/Closed)
+                        </label>
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" class="form-checkbox" name="formParam" value="surface">
+                            Surface
+                        </label>
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" class="form-checkbox" name="formParam" value="slope">
+                            Slope
+                        </label>
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" class="form-checkbox" name="formParam" value="distance">
+                            Distance
+                        </label>
+                        <label class="form-checkbox-label">
+                            <input type="checkbox" class="form-checkbox" name="formParam" value="strap_position">
+                            Strap Position
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="exercise-description">Description</label>
+                    <textarea
+                        id="exercise-description"
+                        class="form-textarea"
+                        placeholder="Exercise instructions and notes..."
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="exercise-sets">Default Sets</label>
+                    <input
+                        type="number"
+                        id="exercise-sets"
+                        class="form-input"
+                        placeholder="e.g., 3"
+                        min="1"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="exercise-reps">Default Reps per Set</label>
+                    <input
+                        type="number"
+                        id="exercise-reps"
+                        class="form-input"
+                        placeholder="e.g., 10"
+                        min="1"
+                    >
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" data-action="cancelEdit" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" data-action="saveExercise" class="btn btn-success">Save Exercise</button>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <!-- Transaction Toast (iOS style) -->
+    <div id="transaction-toast" style="display: none;">
+        <span id="transaction-message">Saved:</span>
+        <span id="transaction-id"></span>
+        <button data-action="copyTransactionId" class="touch-target">Copy</button>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="modal-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="firebase.js"></script>
+    <script type="module">
+        import { db } from './firebase.js';
+        import { auth, onAuthStateChanged } from './firebase.js';
+        import {
+            createExercise,
+            updateExercise,
+            archiveExercise,
+            loadExerciseLibraryShared
+        } from './shared/pt_data_api.js';
+        import {
+            bindActionHandlers,
+            showTransactionToast,
+            copyTransactionId,
+            showConfirmDialog
+        } from './shared/pt_event_handlers.js';
+
+        // State
+        let currentUser = null;
+        let exerciseLibrary = [];
+        let editingExerciseId = null;
+        let changesCount = 0;
+
+        /**
+         * Initialize app
+         */
+        async function init() {
+            console.log('[PT Editor] Initializing...');
+
+            // Bind action handlers
+            bindActionHandlers(document.body, {
+                goBack: handleGoBack,
+                showChanges: handleShowChanges,
+                showAddExercise: handleShowAddExercise,
+                cancelEdit: handleCancelEdit,
+                saveExercise: handleSaveExercise,
+                editExercise: handleEditExercise,
+                deleteExercise: handleDeleteExercise,
+                copyTransactionId: copyTransactionId
+            });
+
+            // Auth state listener
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    console.log('[Auth] User signed in:', user.uid);
+                    await loadExerciseLibrary();
+                } else {
+                    console.log('[Auth] User not signed in, redirecting...');
+                    window.location.href = 'pt_tracker.html';
+                }
+            });
+
+            // Search input listener
+            document.getElementById('exercise-search').addEventListener('input', handleSearch);
+
+            // Form submit listener
+            document.getElementById('exercise-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                handleSaveExercise();
+            });
+        }
+
+        /**
+         * Load exercise library from Firestore
+         */
+        async function loadExerciseLibrary() {
+            showLoading(true);
+
+            try {
+                exerciseLibrary = await loadExerciseLibraryShared();
+                console.log('[Library] Loaded exercises:', exerciseLibrary.length);
+                renderExerciseList();
+            } catch (error) {
+                console.error('[Library] Failed to load exercises:', error);
+                alert('Failed to load exercise library. Please check your connection.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        /**
+         * Render exercise list
+         */
+        function renderExerciseList(filter = '') {
+            const listEl = document.getElementById('exercise-list');
+
+            let exercises = exerciseLibrary;
+
+            // Filter by search term
+            if (filter) {
+                const lowerFilter = filter.toLowerCase();
+                exercises = exercises.filter(ex =>
+                    ex.name?.toLowerCase().includes(lowerFilter) ||
+                    ex.canonical_name?.toLowerCase().includes(lowerFilter)
+                );
+            }
+
+            // Filter out archived exercises
+            exercises = exercises.filter(ex => !ex.archived);
+
+            if (exercises.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-message">
+                            ${filter ? 'No exercises found' : 'No exercises yet. Add your first exercise!'}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = exercises.map(ex => `
+                <div class="exercise-item">
+                    <div>
+                        <div class="exercise-name">${ex.name || ex.canonical_name}</div>
+                        <div class="exercise-meta">${getExerciseTypeLabel(ex)} ${ex.current ? `• ${ex.current.sets || 0}x${ex.current.repsPerSet || 0}` : ''}</div>
+                    </div>
+                    <div class="exercise-actions">
+                        <button
+                            data-action="editExercise"
+                            data-action-arg="${ex.id}"
+                            class="btn btn-small btn-primary touch-target"
+                        >Edit</button>
+                        <button
+                            data-action="deleteExercise"
+                            data-action-arg="${ex.id}"
+                            class="btn btn-small btn-danger touch-target"
+                        >Delete</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Re-bind action handlers for dynamically added elements
+            bindActionHandlers(listEl, {
+                editExercise: handleEditExercise,
+                deleteExercise: handleDeleteExercise
+            });
+        }
+
+        /**
+         * Get human-readable exercise type label
+         */
+        function getExerciseTypeLabel(exercise) {
+            // Try to derive from pattern_modifiers first
+            const modifiers = exercise.pattern_modifiers || [];
+            if (modifiers.includes('duration_seconds')) return 'Duration';
+            if (modifiers.includes('hold_seconds')) return 'Hold';
+            if (modifiers.includes('distance_feet')) return 'Distance';
+            if (modifiers.includes('AMRAP')) return 'AMRAP';
+
+            // Fallback to exercise type
+            const type = exercise.type || 'reps';
+            return type.charAt(0).toUpperCase() + type.slice(1);
+        }
+
+        /**
+         * Handle search input
+         */
+        function handleSearch(e) {
+            renderExerciseList(e.target.value);
+        }
+
+        /**
+         * Handle go back
+         */
+        function handleGoBack() {
+            window.location.href = 'pt_view.html';
+        }
+
+        /**
+         * Handle show changes summary
+         */
+        function handleShowChanges() {
+            alert(`You have ${changesCount} unsaved changes. (Changes summary UI coming soon)`);
+        }
+
+        /**
+         * Handle show add exercise form
+         */
+        function handleShowAddExercise() {
+            editingExerciseId = null;
+            document.getElementById('editor-title').textContent = 'Add New Exercise';
+            document.getElementById('exercise-form').reset();
+            showEditorSection(true);
+        }
+
+        /**
+         * Handle cancel edit
+         */
+        function handleCancelEdit() {
+            editingExerciseId = null;
+            document.getElementById('exercise-form').reset();
+            showEditorSection(false);
+        }
+
+        /**
+         * Handle save exercise
+         */
+        async function handleSaveExercise() {
+            const name = document.getElementById('exercise-name').value.trim();
+            const type = document.getElementById('exercise-type').value;
+            const description = document.getElementById('exercise-description').value.trim();
+            const sets = parseInt(document.getElementById('exercise-sets').value) || 3;
+            const reps = parseInt(document.getElementById('exercise-reps').value) || 10;
+
+            // Get selected form parameters
+            const formParams = Array.from(document.querySelectorAll('input[name="formParam"]:checked'))
+                .map(cb => cb.value);
+
+            if (!name || !type) {
+                alert('Please fill in required fields (Name and Type)');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                let txId;
+
+                if (editingExerciseId) {
+                    // Update existing exercise
+                    txId = await updateExercise(editingExerciseId, {
+                        name,
+                        type,
+                        description,
+                        dosage: { sets, repsPerSet: reps },
+                        pattern_modifiers: getPatternModifiers(type, formParams)
+                    });
+                    console.log('[Editor] Exercise updated:', txId);
+                } else {
+                    // Create new exercise
+                    txId = await createExercise({
+                        name,
+                        canonical_name: name,
+                        type,
+                        description,
+                        dosage: { sets, repsPerSet: reps },
+                        pattern_modifiers: getPatternModifiers(type, formParams)
+                    });
+                    console.log('[Editor] Exercise created:', txId);
+                }
+
+                // Show transaction toast
+                showTransactionToast(txId, {
+                    message: editingExerciseId ? 'Updated:' : 'Created:'
+                });
+
+                // Increment changes count
+                changesCount++;
+                document.getElementById('changes-count').textContent = changesCount;
+
+                // Reload library
+                await loadExerciseLibrary();
+
+                // Hide editor section
+                handleCancelEdit();
+
+            } catch (error) {
+                console.error('[Editor] Failed to save exercise:', error);
+                alert('Failed to save exercise: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        /**
+         * Handle edit exercise
+         */
+        function handleEditExercise(e) {
+            const exerciseId = e.target.dataset.actionArg;
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+
+            if (!exercise) {
+                alert('Exercise not found');
+                return;
+            }
+
+            editingExerciseId = exerciseId;
+            document.getElementById('editor-title').textContent = 'Edit Exercise';
+
+            // Populate form
+            document.getElementById('exercise-name').value = exercise.name || exercise.canonical_name || '';
+            document.getElementById('exercise-type').value = exercise.type || 'reps';
+            document.getElementById('exercise-description').value = exercise.description || '';
+            document.getElementById('exercise-sets').value = exercise.dosage?.sets || exercise.current?.sets || 3;
+            document.getElementById('exercise-reps').value = exercise.dosage?.repsPerSet || exercise.current?.repsPerSet || 10;
+
+            // Check form parameters
+            const formParams = exercise.pattern_modifiers || [];
+            document.querySelectorAll('input[name="formParam"]').forEach(cb => {
+                cb.checked = formParams.includes(cb.value);
+            });
+
+            showEditorSection(true);
+        }
+
+        /**
+         * Handle delete exercise
+         */
+        async function handleDeleteExercise(e) {
+            const exerciseId = e.target.dataset.actionArg;
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+
+            if (!exercise) {
+                alert('Exercise not found');
+                return;
+            }
+
+            const confirmed = await showConfirmDialog(
+                `Are you sure you want to delete "${exercise.name || exercise.canonical_name}"?`,
+                { confirmText: 'Delete', destructive: true }
+            );
+
+            if (!confirmed) return;
+
+            showLoading(true);
+
+            try {
+                await archiveExercise(exerciseId);
+                console.log('[Editor] Exercise deleted:', exerciseId);
+
+                // Reload library
+                await loadExerciseLibrary();
+
+                changesCount++;
+                document.getElementById('changes-count').textContent = changesCount;
+
+            } catch (error) {
+                console.error('[Editor] Failed to delete exercise:', error);
+                alert('Failed to delete exercise: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        /**
+         * Get pattern modifiers based on type and form parameters
+         */
+        function getPatternModifiers(type, formParams) {
+            const modifiers = [...formParams];
+
+            // Add type-specific modifiers
+            if (type === 'duration') modifiers.push('duration_seconds');
+            if (type === 'hold') modifiers.push('hold_seconds');
+            if (type === 'distance') modifiers.push('distance_feet');
+            if (type === 'amrap') modifiers.push('AMRAP');
+
+            return modifiers;
+        }
+
+        /**
+         * Show/hide editor section
+         */
+        function showEditorSection(show) {
+            const librarySection = document.getElementById('library-section');
+            const editorSection = document.getElementById('editor-section');
+
+            if (show) {
+                librarySection.classList.add('hidden');
+                editorSection.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                librarySection.classList.remove('hidden');
+                editorSection.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Show/hide loading overlay
+         */
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            if (show) {
+                overlay.classList.add('show');
+            } else {
+                overlay.classList.remove('show');
+            }
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

@@ -1699,6 +1699,25 @@
         </div>
     </div>
 
+    <!-- Offline indicator (fixed top, Phase 4) -->
+    <div id="offline-indicator" style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 12px;
+        padding-top: calc(12px + env(safe-area-inset-top));
+        background: var(--ios-red, #FF3B30);
+        color: white;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 9999;
+    ">
+        📴 Offline - Changes saved locally (Queue: <span id="queue-count">0</span>)
+    </div>
+
     <!-- Transaction toast (bottom of screen, iOS style) -->
     <div id="transaction-toast" style="
         position: fixed;
@@ -1760,6 +1779,10 @@
         // PT Data API - Unified data access layer (Phase 2)
         import { insertExerciseCompletion } from './shared/pt_data_api.js';
         import { completionToLegacySession } from './shared/legacy_adapter.js';
+
+        // Offline Queue (Phase 4)
+        import * as ptDataAPI from './shared/pt_data_api.js';
+        import { replayQueue } from './shared/offline_queue.js';
 
         import {
             loadExerciseLibraryShared,
@@ -9534,6 +9557,12 @@ ${payload}`;
         window.appBooted = true;
         const loadWarning = document.getElementById('app-load-warning');
         if (loadWarning) loadWarning.style.display = 'none';
+
+        // Offline Queue Auto-Replay (Phase 4)
+        window.addEventListener('offlinequeue:online', async () => {
+            console.log('[PT Tracker] Connection restored, replaying offline queue...');
+            await replayQueue(ptDataAPI);
+        });
 
         // Register Service Worker for offline support
         if ('serviceWorker' in navigator) {

@@ -28,6 +28,9 @@ import {
 
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
 
+// Phase 4: Offline queue support
+import { withOfflineQueue } from './offline_queue.js';
+
 // ============================================
 // UTILITIES
 // ============================================
@@ -133,9 +136,12 @@ export async function insertExerciseCompletion(event) {
     const db = getFirestore();
 
     // Build completion document
+    // Use client timestamp if provided (from offline queue), otherwise server timestamp
+    const timestamp = event._clientTimestamp || serverTimestamp();
+
     const completionData = {
         exerciseId: event.exerciseId,  // Store exerciseId for adapter lookup
-        timestamp: serverTimestamp(),
+        timestamp,
         notes: event.notes || '',
         formParams: event.formParams || null,  // Exercise-level form parameters
         sets: event.sets.map((set, idx) => ({
@@ -150,12 +156,12 @@ export async function insertExerciseCompletion(event) {
         version: 1  // Schema version for future migrations
     };
 
-    // Path: users/{userId}/activities/{exerciseULID}/completions/{completionULID}
+    // Path: users/{userId}/sessions/{completionULID}
+    // Uses existing canonical session root (not a new activities root)
     const completionRef = doc(
         db,
         'users', userId,
-        'activities', event.exerciseId,
-        'completions', completionULID
+        'sessions', completionULID
     );
 
     await withRetry(async () => {
@@ -181,15 +187,12 @@ export async function getExerciseCompletions(exerciseId, limitCount = 100) {
     }
 
     const db = getFirestore();
-    const completionsRef = collection(
-        db,
-        'users', userId,
-        'activities', exerciseId,
-        'completions'
-    );
+    // Query from canonical sessions root with exerciseId filter
+    const sessionsRef = collection(db, 'users', userId, 'sessions');
 
     const q = query(
-        completionsRef,
+        sessionsRef,
+        where('exerciseId', '==', exerciseId),
         orderBy('timestamp', 'desc'),
         limit(limitCount)
     );
@@ -666,28 +669,83 @@ export async function getVocabulary(category) {
 }
 
 // ============================================
+// OFFLINE QUEUE WRAPPERS (Phase 4)
+// ============================================
+
+/**
+ * Wrapped write operations with offline queue support
+ *
+ * Original implementations remain available as *Internal for replay
+ * Exported versions automatically queue when offline
+ */
+
+// Keep internal versions available for offline queue replay
+export {
+    insertExerciseCompletion as insertExerciseCompletionInternal,
+    createExercise as createExerciseInternal,
+    updateExercise as updateExerciseInternal,
+    archiveExercise as archiveExerciseInternal,
+    unarchiveExercise as unarchiveExerciseInternal,
+    createRole as createRoleInternal,
+    deleteRole as deleteRoleInternal,
+    updateVocabulary as updateVocabularyInternal
+};
+
+// Export wrapped versions (auto-queue when offline)
+const insertExerciseCompletionWrapped = withOfflineQueue(insertExerciseCompletion, 'insertExerciseCompletion');
+const createExerciseWrapped = withOfflineQueue(createExercise, 'createExercise');
+const updateExerciseWrapped = withOfflineQueue(updateExercise, 'updateExercise');
+const archiveExerciseWrapped = withOfflineQueue(archiveExercise, 'archiveExercise');
+const unarchiveExerciseWrapped = withOfflineQueue(unarchiveExercise, 'unarchiveExercise');
+const createRoleWrapped = withOfflineQueue(createRole, 'createRole');
+const deleteRoleWrapped = withOfflineQueue(deleteRole, 'deleteRole');
+const updateVocabularyWrapped = withOfflineQueue(updateVocabulary, 'updateVocabulary');
+
+// Re-export with original names
+export {
+    insertExerciseCompletionWrapped as insertExerciseCompletion,
+    createExerciseWrapped as createExercise,
+    updateExerciseWrapped as updateExercise,
+    archiveExerciseWrapped as archiveExercise,
+    unarchiveExerciseWrapped as unarchiveExercise,
+    createRoleWrapped as createRole,
+    deleteRoleWrapped as deleteRole,
+    updateVocabularyWrapped as updateVocabulary
+};
+
+// ============================================
 // EXPORT
 // ============================================
 
 export default {
     // Completions
-    insertExerciseCompletion,
+    insertExerciseCompletion: insertExerciseCompletionWrapped,
     getExerciseCompletions,
 
     // Exercise Definitions
-    createExercise,
-    updateExercise,
-    archiveExercise,
-    unarchiveExercise,
+    createExercise: createExerciseWrapped,
+    updateExercise: updateExerciseWrapped,
+    archiveExercise: archiveExerciseWrapped,
+    unarchiveExercise: unarchiveExerciseWrapped,
     getExercise,
     getAllExercises,
 
     // Roles
-    createRole,
-    deleteRole,
+    createRole: createRoleWrapped,
+    deleteRole: deleteRoleWrapped,
     getRoles,
 
     // Vocabulary
-    updateVocabulary,
-    getVocabulary
+    updateVocabulary: updateVocabularyWrapped,
+    getVocabulary,
+
+    // Internal versions (for offline queue replay)
+    insertExerciseCompletionInternal: insertExerciseCompletion,
+    createExerciseInternal: createExercise,
+    updateExerciseInternal: updateExercise,
+    archiveExerciseInternal: archiveExercise,
+    unarchiveExerciseInternal: unarchiveExercise,
+    createRoleInternal: createRole,
+    deleteRoleInternal: deleteRole,
+    updateVocabularyInternal: updateVocabulary
 };
