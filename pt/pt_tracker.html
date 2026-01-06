@@ -2166,6 +2166,7 @@
             }
         }
 
+        // BUG FIX: Add more detailed error logging when snapshot build fails
         function buildRuntimeSnapshot() {
             try {
                 const history = getSessionHistoryFromCache();
@@ -2188,7 +2189,8 @@
                     ptDataVersion: dataVersion
                 };
             } catch (error) {
-                console.error('Failed to build runtime snapshot:', error);
+                console.error('[Runtime] Failed to build runtime snapshot - sync will be skipped:', error);
+                // Return null causes syncRuntimeToFirestore to silently skip sync
                 return null;
             }
         }
@@ -2221,6 +2223,7 @@
             }, 500);
         }
 
+        // BUG FIX: Improve error logging for runtime sync failures
         async function syncRuntimeToFirestore() {
             if (!firestoreUserId) {
                 runtimeSyncPending = true;
@@ -2230,11 +2233,14 @@
             runtimeSyncInFlight = true;
             try {
                 const snapshot = buildRuntimeSnapshot();
-                if (!snapshot) return;
+                if (!snapshot) {
+                    console.error('[Runtime] Sync skipped - buildRuntimeSnapshot returned null (see error above)');
+                    return;
+                }
                 const docRef = doc(db, 'users', firestoreUserId, 'pt_runtime', 'state');
                 await setDoc(docRef, snapshot, { merge: true });
             } catch (error) {
-                console.error('Failed to sync runtime data to Firestore:', error);
+                console.error('[Runtime] Failed to sync runtime data to Firestore:', error);
             } finally {
                 runtimeSyncInFlight = false;
             }
@@ -2925,13 +2931,18 @@
             entry.lifecycle = lifecycle;
         }
 
+        // BUG FIX: Alert user when library sync fails instead of silent console.warn
         async function syncExerciseLibraryToFirestore(reason) {
             try {
                 const schemaFormattedLibrary = buildExerciseLibrarySchemaData(exerciseLibrary, { includeDosage: true });
                 await saveExerciseLibraryShared(schemaFormattedLibrary);
                 console.log(`[Library] Shared library synced after ${reason}.`);
             } catch (error) {
-                console.warn(`[Library] Shared library sync failed after ${reason}:`, error);
+                console.error(`[Library] Shared library sync failed after ${reason}:`, error);
+                // Only alert for user-initiated actions, not background syncs
+                if (reason === 'archive' || reason === 'unarchive' || reason === 'delete') {
+                    alert(`Warning: Exercise ${reason} saved locally but failed to sync to cloud: ${error.message}`);
+                }
             }
         }
 
@@ -4877,25 +4888,24 @@
             enqueueFirestoreSession(finalizedSession);
             void syncRuntimeToFirestore();
 
+            // BUG FIX: Wait for Firestore write to complete before showing success feedback
             // Write finalized session to Firestore (user-scoped)
+            let firestoreSuccess = false;
             try {
                 if (currentUser) {
                     // User is authenticated - attempt direct write
-                    addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(finalizedSession))
-                        .then(() => {
-                            console.log('[Firestore] Session synced immediately:', finalizedSession.sessionId);
-                            removeQueuedSession(finalizedSession);
-                        })
-                        .catch((error) => {
-                            console.error('[Firestore] Write failed, queueing session:', error);
-                        });
+                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(finalizedSession));
+                    console.log('[Firestore] Session synced immediately:', finalizedSession.sessionId);
+                    removeQueuedSession(finalizedSession);
+                    firestoreSuccess = true;
                 } else {
                     // Not authenticated - queue for later
                     console.log('[Firestore] Not authenticated, queueing session');
                 }
             } catch (error) {
-                console.error('[Firestore] Error preparing write:', error);
-                // Do not throw - allow localStorage flow to continue
+                console.error('[Firestore] Write failed:', error);
+                // Show error to user but allow localStorage flow to continue
+                alert('Warning: Session saved locally but failed to sync to cloud. Will retry when online.');
             }
 
             haptic('success');
@@ -6071,7 +6081,8 @@
             haptic('light');
         }
 
-        function deleteSession() {
+        // BUG FIX: Convert to async to wait for Firestore delete before showing success
+        async function deleteSession() {
             if (!confirm('Are you sure you want to delete this session?\n\nThis cannot be undone.')) return;
 
             const sessions = loadHistory();
@@ -6080,21 +6091,21 @@
             setSessionHistoryCache(sessions, { source: 'local-delete', syncLocalStorage: true });
             void syncRuntimeToFirestore();
 
+            // BUG FIX: Await Firestore delete before showing success feedback
             if (currentUser && sessionToDelete) {
-                resolveFirestoreDocId(sessionToDelete)
-                    .then((docId) => {
-                        if (!docId) {
-                            console.warn('[Firestore] Unable to delete session: missing doc ID');
-                            return;
-                        }
-                        return deleteDoc(doc(db, `users/${currentUser.uid}/sessions`, docId));
-                    })
-                    .then(() => {
+                try {
+                    const docId = await resolveFirestoreDocId(sessionToDelete);
+                    if (!docId) {
+                        console.warn('[Firestore] Unable to delete session: missing doc ID');
+                    } else {
+                        await deleteDoc(doc(db, `users/${currentUser.uid}/sessions`, docId));
                         console.log('[Firestore] Session deleted:', sessionToDelete.sessionId);
-                    })
-                    .catch((error) => {
-                        console.error('[Firestore] Failed to delete session:', error);
-                    });
+                    }
+                } catch (error) {
+                    console.error('[Firestore] Failed to delete session:', error);
+                    alert('Warning: Session deleted locally but failed to delete from cloud: ' + error.message);
+                    return; // Don't show success if cloud delete failed
+                }
             }
 
             closeEditSession();
@@ -6103,7 +6114,8 @@
             alert('Session deleted');
         }
 
-        function saveEditedSession() {
+        // BUG FIX: Convert to async to wait for Firestore update before showing success
+        async function saveEditedSession() {
             const sessions = loadHistory();
             const session = sessions[editingSessionIndex];
 
@@ -6119,21 +6131,21 @@
             setSessionHistoryCache(sessions, { source: 'local-edit', syncLocalStorage: true });
             void syncRuntimeToFirestore();
 
+            // BUG FIX: Await Firestore update and show error feedback if it fails
             if (currentUser) {
-                resolveFirestoreDocId(session)
-                    .then((docId) => {
-                        if (!docId) {
-                            console.warn('[Firestore] Unable to update session: missing doc ID');
-                            return;
-                        }
-                        return updateDoc(doc(db, `users/${currentUser.uid}/sessions`, docId), sanitizeSessionForFirestore(session));
-                    })
-                    .then(() => {
+                try {
+                    const docId = await resolveFirestoreDocId(session);
+                    if (!docId) {
+                        console.warn('[Firestore] Unable to update session: missing doc ID');
+                        alert('Warning: Session saved locally but could not sync to cloud (missing doc ID).');
+                    } else {
+                        await updateDoc(doc(db, `users/${currentUser.uid}/sessions`, docId), sanitizeSessionForFirestore(session));
                         console.log('[Firestore] Session updated:', session.sessionId);
-                    })
-                    .catch((error) => {
-                        console.error('[Firestore] Failed to update session:', error);
-                    });
+                    }
+                } catch (error) {
+                    console.error('[Firestore] Failed to update session:', error);
+                    alert('Warning: Session saved locally but failed to sync to cloud: ' + error.message);
+                }
             }
 
             closeEditSession();
@@ -8784,21 +8796,25 @@ ${payload}`;
             }
         }
 
+        // BUG FIX: Change console.warn to console.error for better visibility
         async function syncRolesToFirestore(rolesData) {
             if (!currentUser) return;
             try {
                 await saveExerciseRolesShared(rolesData);
             } catch (error) {
-                console.warn('[Roles] Failed to sync roles to Firestore:', error);
+                console.error('[Roles] Failed to sync roles to Firestore:', error);
+                // Note: Silent failure acceptable here as this is called from background sync
             }
         }
 
+        // BUG FIX: Change console.warn to console.error for better visibility
         async function syncVocabularyToFirestore(vocabulary) {
             if (!currentUser) return;
             try {
                 await saveExerciseVocabularyShared(vocabulary);
             } catch (error) {
-                console.warn('[Vocabulary] Failed to sync vocabulary to Firestore:', error);
+                console.error('[Vocabulary] Failed to sync vocabulary to Firestore:', error);
+                // Note: Silent failure acceptable here as this is called from background sync
             }
         }
 

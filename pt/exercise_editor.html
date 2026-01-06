@@ -955,8 +955,15 @@
             return drafts[currentExerciseId] || baselineExercises.find(ex => ex.id === currentExerciseId);
         }
 
+        // BUG FIX: Add error handling for localStorage operations
         function saveDrafts() {
-            localStorage.setItem('pt_exercise_drafts', JSON.stringify(drafts));
+            try {
+                localStorage.setItem('pt_exercise_drafts', JSON.stringify(drafts));
+            } catch (error) {
+                console.error('[Drafts] Failed to save to localStorage:', error);
+                alert('Warning: Failed to save exercise locally. Your browser storage may be full or disabled.');
+                return; // Don't schedule Firestore save if localStorage failed
+            }
             // Keep shared library in Firestore up to date; local JSON remains a backup.
             scheduleSharedLibrarySave('draft-save');
         }
@@ -988,10 +995,12 @@
             }, 500);
         }
 
+        // BUG FIX: Alert user when critical saves fail, improve error visibility
         async function syncExerciseLibraryToFirestore(reason) {
             if (sharedSaveInFlight) return;
             const sharedLoader = window.sharedDataLoader;
             if (!sharedLoader?.saveExerciseLibraryShared) {
+                console.error('[Firestore] Shared library save unavailable; ensure Firestore module loaded.');
                 debugLog('[Firestore] Shared library save unavailable; ensure Firestore module loaded.');
                 return;
             }
@@ -1001,7 +1010,12 @@
                 await sharedLoader.saveExerciseLibraryShared({ exercises });
                 debugLog(`[Firestore] Shared library synced after ${reason} (${exercises.length} exercises).`);
             } catch (error) {
+                console.error(`[Firestore] Shared library sync failed after ${reason}:`, error);
                 debugLog(`[Firestore] Shared library sync failed after ${reason}: ${error.message}`);
+                // Alert user for critical operations (delete)
+                if (reason === 'delete') {
+                    alert(`Warning: Exercise deleted locally but failed to sync to cloud: ${error.message}\n\nYour changes are saved locally but may not appear on other devices.`);
+                }
             } finally {
                 sharedSaveInFlight = false;
             }
@@ -1243,8 +1257,9 @@
                     }
                 }
 
+                // BUG FIX: Clarify that auto-save queued the sync (debounced 500ms)
                 // Already saved via auto-save in updateFieldByPath
-                alert('Exercise saved and queued for Firebase sync.');
+                alert('Exercise saved locally. Cloud sync will complete shortly.');
                 backToList();
             } finally {
                 saveInProgress = false;

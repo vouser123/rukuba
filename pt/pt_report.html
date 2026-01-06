@@ -1308,17 +1308,24 @@
                     }
                 });
 
+                // BUG FIX: Add user feedback when marking notes as read fails
                 // Mark patient notes as read by therapist
                 const unreadPatientNotes = noteDocuments.filter(doc =>
                     doc.data.createdBy === 'patient' && !doc.data.readByTherapist
                 );
+                let markAsReadErrors = 0;
                 for (const noteDoc of unreadPatientNotes) {
                     try {
                         const noteRef = firestoreDoc(db, `users/${window.ptReportUserId}/notes/${noteDoc.id}`);
                         await updateDoc(noteRef, { readByTherapist: true });
                     } catch (error) {
                         console.error('[Firestore] Failed to mark note as read:', error);
+                        markAsReadErrors++;
                     }
+                }
+                // Show warning if any notes failed to mark as read
+                if (markAsReadErrors > 0) {
+                    alert(`Warning: ${markAsReadErrors} note${markAsReadErrors > 1 ? 's' : ''} could not be marked as read. Patient may not see "Read by Therapist" status.`);
                 }
 
                 if (noteDocuments.length === 0) {
@@ -1364,6 +1371,8 @@
                 bindPointerHandlers(notesList);
             } catch (error) {
                 console.error('[Firestore] Failed to load notes:', error);
+                // BUG FIX: Show user feedback when notes fail to load
+                notesList.innerHTML = '<div style="color: var(--ios-red); text-align: center; padding: 20px;">Failed to load notes: ' + error.message + '<br><br>Please try refreshing the page.</div>';
             }
         };
 

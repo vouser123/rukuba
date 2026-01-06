@@ -888,7 +888,10 @@
             loadExerciseRolesShared,
             loadExerciseVocabularyShared,
             loadExerciseRolesSchemaShared,
-            saveExerciseRolesShared  // BUG FIX: Add save function for roles persistence
+            saveExerciseRolesShared,  // BUG FIX: Add save function for roles persistence
+            saveExerciseVocabularyShared,  // BUG FIX: Add save function for vocabulary persistence
+            saveExerciseRolesSchemaShared,  // BUG FIX: Add save function for schema persistence
+            saveExerciseLibraryShared  // BUG FIX: Add save function for library persistence
         } from './shared/firestore_shared_data.js';
         import {
             collection,
@@ -2229,14 +2232,31 @@
                         schema = imported.schema;
                         vocabulary = imported.vocabulary;
 
-                        // Re-derive enums
-                        deriveEnums();
+                        // BUG FIX: Save imported data to Firestore immediately
+                        Promise.all([
+                            saveExerciseRolesShared(rolesData),
+                            saveExerciseVocabularyShared(vocabulary),
+                            saveExerciseRolesSchemaShared(schema)
+                        ])
+                        .then(() => {
+                            // Re-derive enums
+                            deriveEnums();
 
-                        // Re-render
-                        renderCoverageView();
+                            // Re-render
+                            renderCoverageView();
 
-                        toggleMenu();
-                        alert('Data imported successfully! Reload to see changes.');
+                            toggleMenu();
+                            alert('Data imported and saved to Firestore successfully!');
+                        })
+                        .catch(err => {
+                            console.error('[Import] Failed to save to Firestore:', err);
+                            alert('Warning: Data imported locally but failed to save to Firestore: ' + err.message + '\n\nChanges may be lost on reload.');
+
+                            // Still update UI even if Firestore failed
+                            deriveEnums();
+                            renderCoverageView();
+                            toggleMenu();
+                        });
                     } catch (err) {
                         alert('Error importing file: ' + err.message);
                     }
@@ -2466,18 +2486,21 @@
             // Add the role
             rolesData.exercise_roles[currentEditExerciseId].roles.push(newRole);
 
-            // BUG FIX: Save roles to Firestore immediately
-            saveExerciseRolesShared(rolesData).catch(err => {
-                console.error('[Firestore] Failed to save roles:', err);
-                alert('Warning: Role added but failed to save to Firestore: ' + err.message);
-            });
-
-            // Refresh the view
-            selectExerciseToEdit(currentEditExerciseId);
-            alert('Role added and saved to Firestore!');
+            // BUG FIX: Await Firestore save before showing success
+            saveExerciseRolesShared(rolesData)
+                .then(() => {
+                    // Refresh the view
+                    selectExerciseToEdit(currentEditExerciseId);
+                    alert('Role added and saved to Firestore!');
+                })
+                .catch(err => {
+                    console.error('[Firestore] Failed to save roles:', err);
+                    alert('Warning: Role added but failed to save to Firestore: ' + err.message);
+                });
         }
 
-        function deleteRole(roleIndex) {
+        // BUG FIX: Convert to async to await Firestore save before showing success
+        async function deleteRole(roleIndex) {
             if (!confirm('Delete this role?')) return;
 
             rolesData.exercise_roles[currentEditExerciseId].roles.splice(roleIndex, 1);
@@ -2487,11 +2510,14 @@
                 delete rolesData.exercise_roles[currentEditExerciseId];
             }
 
-            // BUG FIX: Save roles to Firestore immediately
-            saveExerciseRolesShared(rolesData).catch(err => {
+            // BUG FIX: Await Firestore save before showing success
+            try {
+                await saveExerciseRolesShared(rolesData);
+            } catch (err) {
                 console.error('[Firestore] Failed to save roles:', err);
                 alert('Warning: Role deleted but failed to save to Firestore: ' + err.message);
-            });
+                return; // Don't show success if save failed
+            }
 
             // Refresh the view
             selectExerciseToEdit(currentEditExerciseId);
@@ -2710,20 +2736,49 @@
                 console.log(`[Merge] Updated ${updatedVocabCount} vocabulary definitions`);
             }
 
-            // Re-derive enums and re-render
-            deriveEnums();
-            renderCoverageView();
+            // BUG FIX: Save all modifications to Firestore before showing success
+            const savePromises = [];
 
-            let summary = '✅ Merged successfully!\n\n';
-            if (newExCount > 0) summary += `${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
-            if (editedExCount > 0) summary += `${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
-            if (archivedExCount > 0) summary += `${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
-            if (newRoleCount > 0) summary += `${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
-            if (editedRoleCount > 0) summary += `${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
-            if (updatedVocabCount > 0) summary += `${updatedVocabCount} vocab update${updatedVocabCount !== 1 ? 's' : ''}\n`;
-            summary += '\nRemember to export to GitHub when ready!';
+            // Save library if exercises were added, edited, or archived
+            if (newExCount > 0 || editedExCount > 0 || archivedExCount > 0) {
+                savePromises.push(saveExerciseLibraryShared({ exercises: exerciseLibrary }));
+            }
 
-            alert(summary);
+            // Save roles if roles were added or edited
+            if (newRoleCount > 0 || editedRoleCount > 0) {
+                savePromises.push(saveExerciseRolesShared(rolesData));
+            }
+
+            // Save vocabulary if updated
+            if (updatedVocabCount > 0) {
+                savePromises.push(saveExerciseVocabularyShared(vocabulary));
+            }
+
+            Promise.all(savePromises)
+                .then(() => {
+                    // Re-derive enums and re-render
+                    deriveEnums();
+                    renderCoverageView();
+
+                    let summary = '✅ Merged and saved to Firestore successfully!\n\n';
+                    if (newExCount > 0) summary += `${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
+                    if (editedExCount > 0) summary += `${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
+                    if (archivedExCount > 0) summary += `${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
+                    if (newRoleCount > 0) summary += `${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+                    if (editedRoleCount > 0) summary += `${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
+                    if (updatedVocabCount > 0) summary += `${updatedVocabCount} vocab update${updatedVocabCount !== 1 ? 's' : ''}\n`;
+
+                    alert(summary);
+                })
+                .catch(err => {
+                    console.error('[Merge] Failed to save to Firestore:', err);
+
+                    // Re-derive enums and re-render even if Firestore failed
+                    deriveEnums();
+                    renderCoverageView();
+
+                    alert(`Warning: Modifications merged locally but failed to save to Firestore: ${err.message}\n\nChanges may be lost on reload.`);
+                });
         }
 
         // Go back to PT Tracker
