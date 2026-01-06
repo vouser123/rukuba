@@ -701,17 +701,15 @@ const createRoleWrapped = withOfflineQueue(createRole, 'createRole');
 const deleteRoleWrapped = withOfflineQueue(deleteRole, 'deleteRole');
 const updateVocabularyWrapped = withOfflineQueue(updateVocabulary, 'updateVocabulary');
 
-// Re-export with original names
-export {
-    insertExerciseCompletionWrapped as insertExerciseCompletion,
-    createExerciseWrapped as createExercise,
-    updateExerciseWrapped as updateExercise,
-    archiveExerciseWrapped as archiveExercise,
-    unarchiveExerciseWrapped as unarchiveExercise,
-    createRoleWrapped as createRole,
-    deleteRoleWrapped as deleteRole,
-    updateVocabularyWrapped as updateVocabulary
-};
+// Export wrapped versions as named exports
+export const insertExerciseCompletion = insertExerciseCompletionWrapped;
+export const createExercise = createExerciseWrapped;
+export const updateExercise = updateExerciseWrapped;
+export const archiveExercise = archiveExerciseWrapped;
+export const unarchiveExercise = unarchiveExerciseWrapped;
+export const createRole = createRoleWrapped;
+export const deleteRole = deleteRoleWrapped;
+export const updateVocabulary = updateVocabularyWrapped;
 
 // ============================================
 // EXPORT
