@@ -2,17 +2,25 @@
 
 ## ✅ COMPLETED
 
-### pt_editor.html (v0.4.12)
-- Auth working (shared Firebase instance)
-- Loads 30 exercises from `pt_shared/exercise_library`
-- Event handlers: bindPointerHandlers pattern (iOS-safe)
-- Role region dropdown: loads from `pt_shared/exercise_roles_schema`
-- Equipment autocomplete: union from all exercises
-- Debug panel: shows auth, exercises, roles, localStorage
+### pt_editor.html (v0.4.15)
+- ✅ Auth working (shared Firebase instance)
+- ✅ Loads 30 exercises from `pt_shared/exercise_library`
+- ✅ Event handlers: bindPointerHandlers with action:arg parsing (iOS-safe)
+- ✅ Edit/delete buttons working
+- ✅ Debug panel closeable (X button)
+- ✅ Role region dropdown: loads from `pt_shared/exercise_roles_schema`
+- ✅ Role focus dropdown: loads from existing roles + custom option
+- ✅ Equipment autocomplete: union from all exercises
+- ✅ Fixed auth.currentUser refs (was window.auth.currentUser)
+- ✅ Fixed dosage Firestore paths (collection/doc segments)
+- ✅ Dosage loading and saving working
 
 ### pt_data_api.js
-- Fixed: getAllExercises() reads from `pt_shared/exercise_library` (old schema)
-- Fixed: Shared db/auth from firebase.js (version 12.7.0)
+- ✅ getAllExercises() reads from `pt_shared/exercise_library` (old schema)
+- ✅ createExercise() - adds to exercise_library array
+- ✅ updateExercise() - modifies exercise in array
+- ✅ archiveExercise() - sets archived flag
+- ✅ Shared db/auth from firebase.js (version 12.7.0)
 - Ready: After migration, switch to `exercise_definitions/{id}/versions/vX`
 
 ### Firestore Rules
