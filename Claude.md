@@ -4,6 +4,34 @@ This document outlines the required workflow when working on this codebase.
 
 ## Required Workflow for All Code Changes
 
+### 0. Pull Latest Changes from Main
+
+**ALWAYS** pull the latest changes from the main branch before starting any work.
+
+**Commands:**
+```bash
+# Fetch latest changes from remote
+git fetch origin
+
+# Pull main branch updates
+git pull origin main
+
+# If working on a feature branch, rebase on main to get latest changes
+git rebase origin/main
+```
+
+**Why:**
+- Ensures you're working with the most recent code
+- Prevents merge conflicts later
+- Avoids redoing work that was already completed
+- Stays synchronized with other contributors' changes
+
+**When to pull:**
+- At the start of every session
+- Before creating a new branch
+- Before making significant changes
+- When you've been away from the codebase for any length of time
+
 ### 1. Read DEVELOPMENT.md First
 
 **ALWAYS** read `pt/docs/DEVELOPMENT.md` before making changes to any PT-related files.
@@ -150,9 +178,13 @@ const db = initializeFirestore(app, {
 
 ## Summary Checklist
 
+Before starting any work:
+
+- [ ] Pull latest changes from main (`git pull origin main`)
+- [ ] Read `pt/docs/DEVELOPMENT.md` (especially for iOS/Firebase work)
+
 Before submitting any code change:
 
-- [ ] Read `pt/docs/DEVELOPMENT.md` (especially for iOS/Firebase work)
 - [ ] Add JSDoc comments to new functions
 - [ ] Comment non-obvious logic and platform-specific workarounds
 - [ ] Log development note in DEVELOPMENT.md with date, problem, and solution
