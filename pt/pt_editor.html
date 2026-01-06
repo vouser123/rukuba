@@ -343,8 +343,9 @@
 
     <!-- Header -->
     <div class="header">
-        <h1>PT Editor</h1>
         <button data-action="goBack" class="btn-secondary">← Back</button>
+        <h1>PT Editor</h1>
+        <button data-action="reloadApp" class="btn-secondary" title="Reload to get latest version">🔄</button>
     </div>
 
     <!-- Main Container -->
@@ -991,17 +992,30 @@
 
         // Extract all unique equipment from exercises
         function extractAllEquipment() {
-            const equipmentSet = new Set();
-            exercises.forEach(ex => {
-                if (ex.equipment?.required) {
-                    ex.equipment.required.forEach(item => equipmentSet.add(item));
-                }
-                if (ex.equipment?.optional) {
-                    ex.equipment.optional.forEach(item => equipmentSet.add(item));
-                }
-            });
-            allEquipmentOptions = Array.from(equipmentSet).sort();
-            console.log('[Equipment] Extracted unique equipment:', allEquipmentOptions.length, 'items');
+            try {
+                const equipmentSet = new Set();
+                exercises.forEach(ex => {
+                    if (ex.equipment?.required && Array.isArray(ex.equipment.required)) {
+                        ex.equipment.required.forEach(item => {
+                            if (item && typeof item === 'string') {
+                                equipmentSet.add(item);
+                            }
+                        });
+                    }
+                    if (ex.equipment?.optional && Array.isArray(ex.equipment.optional)) {
+                        ex.equipment.optional.forEach(item => {
+                            if (item && typeof item === 'string') {
+                                equipmentSet.add(item);
+                            }
+                        });
+                    }
+                });
+                allEquipmentOptions = Array.from(equipmentSet).sort();
+                console.log('[Equipment] Extracted unique equipment:', allEquipmentOptions.length, 'items');
+            } catch (error) {
+                console.error('[Equipment] Failed to extract equipment:', error);
+                allEquipmentOptions = [];
+            }
         }
 
         // Add dynamic field functions
@@ -1031,6 +1045,22 @@
         const actionHandlers = {
             goBack: () => {
                 window.location.href = 'pt_view.html';
+            },
+
+            reloadApp: async () => {
+                // Unregister service worker and force reload
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                }
+                // Clear cache and reload
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                }
+                window.location.reload(true);
             },
 
             addNewExercise: () => {
