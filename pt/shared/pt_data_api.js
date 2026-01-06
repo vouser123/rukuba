@@ -116,7 +116,7 @@ async function withRetry(operation, maxAttempts = 3) {
  * iOS/Safari Notes: Returns ULID for user-visible transaction confirmation
  * Offline Handling: Will be wrapped with offline queue in Phase 4
  */
-export async function insertExerciseCompletion(event) {
+async function insertExerciseCompletion(event) {
     const userId = getCurrentUserId();
     if (!userId) {
         throw new Error('User not authenticated');
@@ -218,7 +218,7 @@ export async function getExerciseCompletions(exerciseId, limitCount = 100) {
  * @param {array} def.tags - Exercise tags
  * @returns {Promise<{id: string, version: number}>}
  */
-export async function createExercise(def) {
+async function createExercise(def) {
     const userId = getCurrentUserId();
     if (!userId) {
         throw new Error('User not authenticated');
@@ -311,7 +311,7 @@ async function findDuplicateExercise(name) {
  * @param {object} changes - Fields to update
  * @returns {Promise<{id: string, version: number}>}
  */
-export async function updateExercise(id, changes) {
+async function updateExercise(id, changes) {
     const userId = getCurrentUserId();
     if (!userId) {
         throw new Error('User not authenticated');
@@ -368,7 +368,7 @@ export async function updateExercise(id, changes) {
  * @param {string} id - Exercise ULID
  * @returns {Promise<void>}
  */
-export async function archiveExercise(id) {
+async function archiveExercise(id) {
     const userId = getCurrentUserId();
     if (!userId) {
         throw new Error('User not authenticated');
@@ -390,7 +390,7 @@ export async function archiveExercise(id) {
  * @param {string} id - Exercise ULID
  * @returns {Promise<void>}
  */
-export async function unarchiveExercise(id) {
+async function unarchiveExercise(id) {
     const userId = getCurrentUserId();
     if (!userId) {
         throw new Error('User not authenticated');
@@ -483,7 +483,7 @@ export async function getAllExercises(includeArchived = false) {
  * @param {object} roleDef - Role definition {region, capacity, contribution, focus}
  * @returns {Promise<string>} Role ID
  */
-export async function createRole(exerciseId, roleDef) {
+async function createRole(exerciseId, roleDef) {
     const userId = getCurrentUserId();
     if (!userId) {
         throw new Error('User not authenticated');
@@ -537,7 +537,7 @@ export async function createRole(exerciseId, roleDef) {
  * @param {string} roleId - Role ID
  * @returns {Promise<void>}
  */
-export async function deleteRole(exerciseId, roleId) {
+async function deleteRole(exerciseId, roleId) {
     const userId = getCurrentUserId();
     if (!userId) {
         throw new Error('User not authenticated');
@@ -602,7 +602,7 @@ export async function getRoles(exerciseId, includeDeleted = false) {
  * @param {string} definition - Term definition
  * @returns {Promise<void>}
  */
-export async function updateVocabulary(category, term, definition) {
+async function updateVocabulary(category, term, definition) {
     const userId = getCurrentUserId();
     if (!userId) {
         throw new Error('User not authenticated');
