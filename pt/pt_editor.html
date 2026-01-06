@@ -344,7 +344,7 @@
     <!-- Header -->
     <div class="header">
         <button data-action="goBack" class="btn-secondary">← Back</button>
-        <h1>PT Editor <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">v0.4.3</span></h1>
+        <h1>PT Editor <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">v0.4.4</span></h1>
         <button data-action="reloadApp" class="btn-secondary" title="Reload to get latest version">🔄</button>
     </div>
 
@@ -755,11 +755,11 @@
             createRole,
             deleteRole,
             updateVocabulary
-        } from './shared/pt_data_api.js?v=0.4.3';
-        import { loadExerciseLibraryShared } from './shared/firestore_shared_data.js?v=0.4.3';
-        import { bindActionHandlers, showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js?v=0.4.3';
-        import * as ptDataAPI from './shared/pt_data_api.js?v=0.4.3';
-        import { replayQueue } from './shared/offline_queue.js?v=0.4.3';
+        } from './shared/pt_data_api.js?v=0.4.4';
+        import { loadExerciseLibraryShared } from './shared/firestore_shared_data.js?v=0.4.4';
+        import { bindActionHandlers, showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js?v=0.4.4';
+        import * as ptDataAPI from './shared/pt_data_api.js?v=0.4.4';
+        import { replayQueue } from './shared/offline_queue.js?v=0.4.4';
         import { ulid } from 'https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js';
 
         let exercises = [];
@@ -768,34 +768,42 @@
 
         // Initialize on load
         window.addEventListener('load', async () => {
-            // Wait for auth
-            window.auth.onAuthStateChanged(async (user) => {
-                if (!user) {
-                    window.location.href = 'pt_view.html';
-                    return;
-                }
+            console.log('[PT Editor] Initializing...');
 
-                console.log('[PT Editor] User authenticated:', user.uid);
-
-                // Load exercise library
-                const library = await loadExerciseLibraryShared();
-                exercises = library.exercises || [];
-                exerciseRoles = library.exerciseRoles || {};
-
-                console.log('[PT Editor] Loaded', exercises.length, 'exercises');
-
-                // Extract all unique equipment from exercises
-                extractAllEquipment();
-
-                // Populate library list
-                renderExerciseList();
-
-                // Populate exercise selector for roles
-                populateExerciseSelector();
-
-                // Populate exercise selector for dosage
-                populateDosageExerciseSelector();
+            // Wait for auth to be ready
+            const user = await new Promise((resolve) => {
+                const unsubscribe = window.auth.onAuthStateChanged((user) => {
+                    unsubscribe();
+                    resolve(user);
+                });
             });
+
+            if (!user) {
+                console.log('[Auth] No user signed in, redirecting to pt_view');
+                window.location.href = 'pt_view.html';
+                return;
+            }
+
+            console.log('[Auth] User signed in:', user.uid);
+
+            // Load exercise library
+            const library = await loadExerciseLibraryShared();
+            exercises = library.exercises || [];
+            exerciseRoles = library.exerciseRoles || {};
+
+            console.log('[PT Editor] Loaded', exercises.length, 'exercises');
+
+            // Extract all unique equipment from exercises
+            extractAllEquipment();
+
+            // Populate library list
+            renderExerciseList();
+
+            // Populate exercise selector for roles
+            populateExerciseSelector();
+
+            // Populate exercise selector for dosage
+            populateDosageExerciseSelector();
         });
 
         // Auto-replay offline queue when connection restored
