@@ -343,7 +343,7 @@
     <!-- Header -->
     <div class="header">
         <button data-action="goBack" class="btn-secondary">← Back</button>
-        <h1>PT Editor <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">v0.4.14</span></h1>
+        <h1>PT Editor <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">v0.4.15</span></h1>
         <button data-action="reloadApp" class="btn-secondary" title="Reload to get latest version">🔄</button>
     </div>
 
@@ -1037,7 +1037,7 @@
                 if (!user) return;
 
                 // Query for latest version (orderBy timestamp desc, limit 1)
-                const versionsRef = collection(db, `users/${user.uid}/dosages/${exerciseId}/versions`);
+                const versionsRef = collection(db, 'users', user.uid, 'dosages', exerciseId, 'versions');
                 const latestQuery = query(versionsRef, orderBy('timestamp', 'desc'), firestoreLimit(1));
                 const querySnapshot = await getDocs(latestQuery);
 
@@ -1486,7 +1486,7 @@
 
                     // Create new version (append-only, preserves history)
                     const versionULID = ulid();
-                    const dosageRef = doc(db, `users/${user.uid}/dosages/${exerciseId}/versions/${versionULID}`);
+                    const dosageRef = doc(db, 'users', user.uid, 'dosages', exerciseId, 'versions', versionULID);
 
                     await setDoc(dosageRef, dosageData);
 
