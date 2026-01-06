@@ -5,180 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>PT Editor - Exercise Management</title>
-    <link rel="stylesheet" href="shared-styles.css">
+    <title>PT Editor</title>
+
+    <!-- Firebase Configuration -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDdFofqGJ0vRGHP8yjJJ9V6KwvMB3MiPkc",
+            authDomain: "pwa-test-f3cc9.firebaseapp.com",
+            projectId: "pwa-test-f3cc9",
+            storageBucket: "pwa-test-f3cc9.firebasestorage.app",
+            messagingSenderId: "710678875017",
+            appId: "1:710678875017:web:f3cc9fc8bce3c85a7e4d97",
+            measurementId: "G-Z8SLKX6QD9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        window.firebaseApp = app;
+        window.auth = getAuth(app);
+        window.db = getFirestore(app);
+    </script>
+
     <style>
-        /* iOS/Safari optimizations */
         :root {
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F5F5F7;
+            --bg-tertiary: #E8E8ED;
+            --text-primary: #000000;
+            --text-secondary: #6E6E73;
+            --border-color: #D1D1D6;
             --ios-blue: #007AFF;
             --ios-red: #FF3B30;
             --ios-green: #34C759;
             --ios-orange: #FF9500;
-            --ios-gray: #8E8E93;
-            --safe-area-top: env(safe-area-inset-top);
-            --safe-area-bottom: env(safe-area-inset-bottom);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #000000;
+                --bg-secondary: #1C1C1E;
+                --bg-tertiary: #2C2C2E;
+                --text-primary: #FFFFFF;
+                --text-secondary: #98989D;
+                --border-color: #38383A;
+            }
         }
 
         * {
-            -webkit-tap-highlight-color: transparent;
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: var(--background, #f2f2f7);
-            color: var(--text-primary, #000);
-            padding-bottom: calc(20px + var(--safe-area-bottom));
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
 
-        /* Header */
-        .app-header {
+        .header {
             position: sticky;
             top: 0;
-            background: var(--ios-blue);
-            color: white;
-            padding: calc(12px + var(--safe-area-top)) 16px 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .back-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            min-width: 44px;
-            min-height: 44px;
-        }
-
-        .app-header h1 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .changes-badge {
-            background: var(--ios-orange);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 700;
-            min-width: 44px;
-            min-height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border: none;
-        }
-
-        /* Main Content */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 16px;
-        }
-
-        .section {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .section-title {
-            font-size: 22px;
-            font-weight: 700;
-            margin: 0 0 16px 0;
-            color: var(--text-primary);
-        }
-
-        /* Search Bar */
-        .search-bar {
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 16px; /* iOS: prevent auto-zoom */
-            border: 1px solid var(--border-color, #d1d1d6);
-            border-radius: 10px;
-            margin-bottom: 16px;
-            background: var(--background, #f2f2f7);
-        }
-
-        .search-bar:focus {
-            outline: none;
-            border-color: var(--ios-blue);
-        }
-
-        /* Exercise List */
-        .exercise-list {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        .exercise-item {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color, #d1d1d6);
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            min-height: 44px; /* iOS touch target */
-        }
-
-        .exercise-item:last-child {
-            border-bottom: none;
-        }
-
-        .exercise-item:active {
-            background: rgba(0, 122, 255, 0.1);
-        }
-
-        .exercise-name {
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--text-primary);
-        }
-
-        .exercise-meta {
-            font-size: 13px;
-            color: var(--ios-gray);
-            margin-top: 4px;
-        }
-
-        .exercise-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        /* Buttons */
-        .btn {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
             padding: 12px 20px;
-            border: none;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .btn-primary, .btn-secondary, .btn-danger {
+            min-height: 44px;
+            min-width: 44px;
+            padding: 10px 16px;
             border-radius: 10px;
+            border: none;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            min-width: 44px;
-            min-height: 44px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
             transition: opacity 0.2s;
-        }
-
-        .btn:active {
-            opacity: 0.6;
         }
 
         .btn-primary {
@@ -187,13 +104,8 @@
         }
 
         .btn-secondary {
-            background: var(--ios-gray);
-            color: white;
-        }
-
-        .btn-success {
-            background: var(--ios-green);
-            color: white;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
 
         .btn-danger {
@@ -201,720 +113,1300 @@
             color: white;
         }
 
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 14px;
-            min-width: 60px;
-            min-height: 32px;
+        .btn-primary:active, .btn-secondary:active, .btn-danger:active {
+            opacity: 0.7;
         }
 
-        .btn-block {
-            width: 100%;
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
         }
 
-        /* Form Elements */
-        .form-group {
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
             margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--ios-blue);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
         }
 
         .form-label {
             display: block;
             font-size: 14px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: var(--text-primary);
         }
 
-        .form-input,
-        .form-select,
-        .form-textarea {
+        .form-input, .form-select, .form-textarea {
             width: 100%;
-            padding: 12px 16px;
-            font-size: 16px; /* iOS: prevent auto-zoom */
-            border: 1px solid var(--border-color, #d1d1d6);
+            min-height: 44px;
+            padding: 10px 12px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            background: white;
+            background: var(--bg-primary);
             color: var(--text-primary);
-        }
-
-        .form-input:focus,
-        .form-select:focus,
-        .form-textarea:focus {
-            outline: none;
-            border-color: var(--ios-blue);
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
         }
 
         .form-textarea {
             resize: vertical;
-            min-height: 100px;
-            font-family: inherit;
+            min-height: 88px;
         }
 
-        .form-checkbox-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
         }
 
-        .form-checkbox-label {
+        .exercise-list-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 12px;
-            border: 1px solid var(--border-color, #d1d1d6);
+        }
+
+        .exercise-list-item-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .exercise-list-item-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .exercise-list-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            min-height: 44px;
+            min-width: 44px;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: none;
             border-radius: 8px;
             cursor: pointer;
-            min-height: 44px; /* iOS touch target */
+            font-size: 18px;
         }
 
-        .form-checkbox-label:has(input:checked) {
-            background: rgba(0, 122, 255, 0.1);
-            border-color: var(--ios-blue);
+        .dynamic-field {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: flex-start;
         }
 
-        .form-checkbox {
-            margin-right: 8px;
-            width: 20px;
-            height: 20px;
+        .dynamic-field input, .dynamic-field select {
+            flex: 1;
+        }
+
+        .dynamic-field .remove-btn {
+            min-height: 44px;
+            min-width: 44px;
+            padding: 10px;
+            background: var(--ios-red);
+            color: white;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 16px;
         }
 
-        /* Modal Overlay */
-        .modal-overlay {
+        details {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--ios-blue);
+            margin-bottom: 12px;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary::before {
+            content: '▶';
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        details[open] summary::before {
+            transform: rotate(90deg);
+        }
+
+        .search-box {
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 16px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        #offline-indicator {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9998;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            padding: 12px;
+            padding-top: calc(12px + env(safe-area-inset-top));
+            background: var(--ios-red);
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 9999;
         }
 
-        .modal-overlay.show {
-            display: block;
-            opacity: 1;
-        }
-
-        .modal {
+        #transaction-toast {
             display: none;
             position: fixed;
-            top: 50%;
+            bottom: calc(20px + env(safe-area-inset-bottom));
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 14px;
-            max-width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            z-index: 9999;
-            padding: 24px;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10000;
+            max-width: 80%;
+            text-align: center;
         }
 
-        .modal.show {
+        #transaction-toast.show {
             display: block;
         }
 
-        .modal-header {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 20px;
+        #transaction-toast button {
+            margin-left: 10px;
+            background: var(--ios-blue);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            min-height: 28px;
         }
 
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        /* Hidden Section */
-        .hidden {
-            display: none;
-        }
-
-        /* Loading Spinner */
-        .spinner {
-            border: 3px solid rgba(0, 0, 0, 0.1);
-            border-top-color: var(--ios-blue);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--ios-gray);
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .empty-state-message {
-            font-size: 16px;
-        }
-
-        /* Desktop/Tablet Responsive */
-        @media (min-width: 768px) {
-            .container {
-                padding: 24px;
-            }
-
-            .section {
-                padding: 32px;
-            }
-
-            .modal {
-                max-width: 600px;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .form-checkbox-group {
-                grid-template-columns: repeat(3, 1fr);
-            }
+        .help-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="app-header">
-        <button data-action="goBack" class="back-btn touch-target">← Back</button>
-        <h1>PT Editor</h1>
-        <button data-action="showChanges" class="changes-badge touch-target">
-            <span id="changes-count">0</span>
-        </button>
-    </header>
+    <!-- Offline Indicator -->
+    <div id="offline-indicator">
+        📴 Offline - Changes saved locally (Queue: <span id="queue-count">0</span>)
+    </div>
 
+    <!-- Header -->
+    <div class="header">
+        <h1>PT Editor</h1>
+        <button data-action="goBack" class="btn-secondary">← Back</button>
+    </div>
+
+    <!-- Main Container -->
     <div class="container">
         <!-- Exercise Library Browser -->
-        <section class="section" id="library-section">
+        <div id="library-section" class="section">
             <h2 class="section-title">Exercise Library</h2>
-            <input
-                type="search"
-                id="exercise-search"
-                class="search-bar"
-                placeholder="Search exercises..."
-                autocomplete="off"
-            >
-            <div id="exercise-list" class="exercise-list"></div>
-            <button data-action="showAddExercise" class="btn btn-primary btn-block" style="margin-top: 16px;">
-                + Add New Exercise
-            </button>
-        </section>
+            <input type="search" id="exercise-search" class="search-box" placeholder="Search exercises...">
+            <div id="exercise-list"></div>
+            <button data-action="addNewExercise" class="btn-primary" style="width: 100%; margin-top: 12px;">+ Add New Exercise</button>
+        </div>
 
         <!-- Exercise Editor (hidden by default) -->
-        <section class="section hidden" id="editor-section">
-            <h2 class="section-title" id="editor-title">Add New Exercise</h2>
+        <div id="editor-section" style="display: none;">
+            <div class="section">
+                <h2 class="section-title" id="editor-title">Add New Exercise</h2>
 
-            <form id="exercise-form">
-                <div class="form-group">
-                    <label class="form-label" for="exercise-name">Exercise Name*</label>
-                    <input
-                        type="text"
-                        id="exercise-name"
-                        class="form-input"
-                        required
-                        placeholder="e.g., Single Leg Bridge"
-                    >
+                <!-- Basic Information -->
+                <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📝 Basic Information</h4>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-name-select">Canonical Name *</label>
+                        <select id="ex-name-select" class="form-select">
+                            <option value="">-- Select or choose Other --</option>
+                        </select>
+                        <input type="text" id="ex-name-custom" class="form-input" placeholder="Enter custom exercise name" style="display: none; margin-top: 8px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-category">PT Category *</label>
+                        <select id="ex-category" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="back_sij">Back/SIJ</option>
+                            <option value="knee">Knee</option>
+                            <option value="ankle">Ankle</option>
+                            <option value="hip">Hip</option>
+                            <option value="vestibular">Vestibular</option>
+                            <option value="foot">Foot</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-desc">Description *</label>
+                        <textarea id="ex-desc" class="form-textarea" placeholder="Clear description of how to perform the exercise"></textarea>
+                    </div>
                 </div>
 
+                <!-- Muscles -->
+                <details>
+                    <summary>💪 Muscles</summary>
+
+                    <div class="form-group">
+                        <label class="form-label">Primary Muscles</label>
+                        <div id="primary-muscles-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addMuscle:primary" style="width: 100%; margin-top: 8px;">+ Add Primary Muscle</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Secondary Muscles</label>
+                        <div id="secondary-muscles-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addMuscle:secondary" style="width: 100%; margin-top: 8px;">+ Add Secondary Muscle</button>
+                    </div>
+                </details>
+
+                <!-- Movement Pattern -->
+                <details>
+                    <summary>🔄 Movement Pattern</summary>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-pattern">Pattern *</label>
+                        <select id="ex-pattern" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="side">Side (Unilateral)</option>
+                            <option value="both">Both (Bilateral)</option>
+                        </select>
+                        <p class="help-text">side = unilateral, both = bilateral</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Pattern Modifiers</label>
+                        <p class="help-text">Structural dosage changes (e.g., duration vs reps)</p>
+                        <div id="pattern-modifiers-list">
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="duration_seconds"> duration_seconds
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="hold_seconds"> hold_seconds
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="AMRAP"> AMRAP (As Many Reps As Possible)
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="distance_feet"> distance_feet
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="alternating"> alternating
+                            </label>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Equipment -->
+                <details>
+                    <summary>🏋️ Equipment</summary>
+
+                    <div class="form-group">
+                        <label class="form-label">Required Equipment</label>
+                        <p class="help-text">Equipment intrinsic to the exercise</p>
+                        <div id="equipment-required-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addEquipment:required" style="width: 100%; margin-top: 8px;">+ Add Required</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Optional Equipment</label>
+                        <p class="help-text">Equipment for comfort or modification</p>
+                        <div id="equipment-optional-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addEquipment:optional" style="width: 100%; margin-top: 8px;">+ Add Optional</button>
+                    </div>
+                </details>
+
+                <!-- Form Parameters -->
+                <details>
+                    <summary>📊 Form Parameters</summary>
+
+                    <div class="form-group">
+                        <label class="form-label">Form Parameters Required</label>
+                        <p class="help-text">Parameters that vary per session (e.g., band color, weight)</p>
+                        <div id="form-params-list">
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="eyes"> eyes
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="surface"> surface
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="band_resistance"> band_resistance
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="band_position"> band_position
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="slope"> slope
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="distance"> distance
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="weight"> weight
+                            </label>
+                            <label style="display: block; margin: 8px 0;">
+                                <input type="checkbox" value="strap_position"> strap_position
+                            </label>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Guidance & Cues -->
+                <details>
+                    <summary>🎯 Guidance & Cues</summary>
+
+                    <div class="form-group">
+                        <label class="form-label">External Cues</label>
+                        <p class="help-text">Visual checks, setup instructions</p>
+                        <div id="external-cues-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addCue:external" style="width: 100%; margin-top: 8px;">+ Add External Cue</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Motor Cues</label>
+                        <p class="help-text">Internal movement cues, what to feel</p>
+                        <div id="motor-cues-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addCue:motor" style="width: 100%; margin-top: 8px;">+ Add Motor Cue</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Compensation Warnings</label>
+                        <p class="help-text">Common form breakdowns to watch for</p>
+                        <div id="compensation-warnings-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addCue:compensation" style="width: 100%; margin-top: 8px;">+ Add Warning</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Safety Flags</label>
+                        <p class="help-text">When to stop immediately</p>
+                        <div id="safety-flags-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addCue:safety" style="width: 100%; margin-top: 8px;">+ Add Safety Flag</button>
+                    </div>
+                </details>
+
+                <!-- Tags -->
+                <details>
+                    <summary>🏷️ Tags</summary>
+
+                    <div class="form-group">
+                        <label class="form-label">Functional Tags</label>
+                        <p class="help-text">e.g., balance, hip_strength, SIJ_control</p>
+                        <div id="tags-functional-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addTag:functional" style="width: 100%; margin-top: 8px;">+ Add Functional Tag</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Format Tags</label>
+                        <p class="help-text">e.g., standing, supine, sidelying</p>
+                        <div id="tags-format-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addTag:format" style="width: 100%; margin-top: 8px;">+ Add Format Tag</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Heatmap Tags</label>
+                        <p class="help-text">Body-region tags for heat-map visualization</p>
+                        <div id="tags-heatmap-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addTag:heatmap" style="width: 100%; margin-top: 8px;">+ Add Heatmap Tag</button>
+                    </div>
+                </details>
+
+                <!-- Lifecycle & Status -->
+                <details>
+                    <summary>📅 Lifecycle & Status</summary>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-status">Status</label>
+                        <select id="ex-lifecycle-status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-start">Effective Start Date</label>
+                        <input type="date" id="ex-lifecycle-start" class="form-input">
+                        <p class="help-text">When this exercise became available</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-end">Effective End Date</label>
+                        <input type="date" id="ex-lifecycle-end" class="form-input">
+                        <p class="help-text">When discontinued (blank if still active)</p>
+                    </div>
+                </details>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn-secondary" data-action="cancelEdit" style="flex: 1;">Cancel</button>
+                    <button class="btn-primary" data-action="saveExercise" style="flex: 2;">💾 Save Exercise</button>
+                </div>
+            </div>
+
+            <!-- Role Management -->
+            <div class="section">
+                <h2 class="section-title">Assign Roles</h2>
+                <p class="help-text" style="margin-bottom: 16px;">Define how this exercise contributes to movement capacities in body regions.</p>
+
                 <div class="form-group">
-                    <label class="form-label" for="exercise-type">Exercise Type*</label>
-                    <select id="exercise-type" class="form-select" required>
-                        <option value="">Select type...</option>
-                        <option value="reps">Reps</option>
-                        <option value="duration">Duration</option>
-                        <option value="hold">Hold</option>
-                        <option value="distance">Distance</option>
-                        <option value="amrap">AMRAP</option>
+                    <label class="form-label" for="role-exercise-select">Select Exercise *</label>
+                    <select id="role-exercise-select" class="form-select">
+                        <option value="">-- Choose an exercise --</option>
+                    </select>
+                </div>
+
+                <div id="current-roles" style="margin: 15px 0;"></div>
+
+                <div id="add-role-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
+
+                    <div class="form-group">
+                        <label class="form-label" for="new-role-region">Region *</label>
+                        <select id="new-role-region" class="form-select">
+                            <option value="">-- Select region --</option>
+                            <option value="core">Core</option>
+                            <option value="back">Back</option>
+                            <option value="hip">Hip</option>
+                            <option value="knee">Knee</option>
+                            <option value="ankle">Ankle</option>
+                            <option value="foot">Foot</option>
+                            <option value="vestibular">Vestibular</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="new-role-capacity">Capacity *</label>
+                        <select id="new-role-capacity" class="form-select">
+                            <option value="">-- Select capacity --</option>
+                            <option value="strength">Strength</option>
+                            <option value="control">Control</option>
+                            <option value="stability">Stability</option>
+                            <option value="tolerance">Tolerance</option>
+                            <option value="mobility">Mobility</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="new-role-focus">Focus (optional)</label>
+                        <input type="text" id="new-role-focus" class="form-input" placeholder="e.g., extension, abduction">
+                        <p class="help-text">Specific focus within the capacity</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="new-role-contribution">Contribution *</label>
+                        <select id="new-role-contribution" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary" data-action="addRole" style="width: 100%;">➕ Add Role</button>
+                </div>
+            </div>
+
+            <!-- Vocabulary Editor -->
+            <div class="section">
+                <h2 class="section-title">Update Vocabulary Definitions</h2>
+
+                <div class="form-group">
+                    <label class="form-label" for="vocab-category">Category *</label>
+                    <select id="vocab-category" class="form-select">
+                        <option value="">-- Choose category --</option>
+                        <option value="pattern_modifiers">Pattern Modifiers</option>
+                        <option value="form_parameters">Form Parameters</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Form Parameters</label>
-                    <div class="form-checkbox-group">
-                        <label class="form-checkbox-label">
-                            <input type="checkbox" class="form-checkbox" name="formParam" value="weight">
-                            Weight
-                        </label>
-                        <label class="form-checkbox-label">
-                            <input type="checkbox" class="form-checkbox" name="formParam" value="band_resistance">
-                            Band Resistance
-                        </label>
-                        <label class="form-checkbox-label">
-                            <input type="checkbox" class="form-checkbox" name="formParam" value="band_position">
-                            Band Position
-                        </label>
-                        <label class="form-checkbox-label">
-                            <input type="checkbox" class="form-checkbox" name="formParam" value="eyes">
-                            Eyes (Open/Closed)
-                        </label>
-                        <label class="form-checkbox-label">
-                            <input type="checkbox" class="form-checkbox" name="formParam" value="surface">
-                            Surface
-                        </label>
-                        <label class="form-checkbox-label">
-                            <input type="checkbox" class="form-checkbox" name="formParam" value="slope">
-                            Slope
-                        </label>
-                        <label class="form-checkbox-label">
-                            <input type="checkbox" class="form-checkbox" name="formParam" value="distance">
-                            Distance
-                        </label>
-                        <label class="form-checkbox-label">
-                            <input type="checkbox" class="form-checkbox" name="formParam" value="strap_position">
-                            Strap Position
-                        </label>
+                    <label class="form-label" for="vocab-term">Term *</label>
+                    <select id="vocab-term" class="form-select">
+                        <option value="">-- Choose term --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="vocab-definition">Definition *</label>
+                    <textarea id="vocab-definition" class="form-textarea" placeholder="Enter the definition"></textarea>
+                </div>
+
+                <button class="btn-primary" data-action="updateVocabulary" style="width: 100%;">💾 Update Definition</button>
+            </div>
+
+            <!-- Dosage Management -->
+            <div class="section">
+                <h2 class="section-title">Manage Patient Dosages</h2>
+                <p class="help-text" style="margin-bottom: 16px;">Set prescribed sets, reps, and parameters for each exercise. Fields adapt to exercise pattern modifiers.</p>
+
+                <div class="form-group">
+                    <label class="form-label" for="dosage-exercise-select">Select Exercise *</label>
+                    <select id="dosage-exercise-select" class="form-select">
+                        <option value="">-- Choose an exercise --</option>
+                    </select>
+                </div>
+
+                <div id="current-dosage-display" style="margin: 15px 0; display: none;"></div>
+
+                <div id="edit-dosage-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 16px;">Update Dosage</h4>
+
+                    <div class="form-group">
+                        <label class="form-label" for="dosage-sets">Sets *</label>
+                        <input type="number" id="dosage-sets" class="form-input" placeholder="e.g., 3" min="1">
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="exercise-description">Description</label>
-                    <textarea
-                        id="exercise-description"
-                        class="form-textarea"
-                        placeholder="Exercise instructions and notes..."
-                    ></textarea>
-                </div>
+                    <div class="form-group" id="dosage-reps-group">
+                        <label class="form-label" for="dosage-reps">Reps (per set) *</label>
+                        <input type="number" id="dosage-reps" class="form-input" placeholder="e.g., 10" min="1">
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="exercise-sets">Default Sets</label>
-                    <input
-                        type="number"
-                        id="exercise-sets"
-                        class="form-input"
-                        placeholder="e.g., 3"
-                        min="1"
-                    >
-                </div>
+                    <div class="form-group" id="dosage-duration-group" style="display: none;">
+                        <label class="form-label" for="dosage-duration">Duration (seconds per set)</label>
+                        <input type="number" id="dosage-duration" class="form-input" placeholder="e.g., 30" min="1">
+                        <p class="help-text">For exercises with duration_seconds modifier</p>
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="exercise-reps">Default Reps per Set</label>
-                    <input
-                        type="number"
-                        id="exercise-reps"
-                        class="form-input"
-                        placeholder="e.g., 10"
-                        min="1"
-                    >
-                </div>
+                    <div class="form-group" id="dosage-hold-group" style="display: none;">
+                        <label class="form-label" for="dosage-hold">Hold (seconds per rep)</label>
+                        <input type="number" id="dosage-hold" class="form-input" placeholder="e.g., 5" min="1">
+                        <p class="help-text">For exercises with hold_seconds modifier</p>
+                    </div>
 
-                <div class="modal-buttons">
-                    <button type="button" data-action="cancelEdit" class="btn btn-secondary">Cancel</button>
-                    <button type="submit" data-action="saveExercise" class="btn btn-success">Save Exercise</button>
+                    <div class="form-group" id="dosage-distance-group" style="display: none;">
+                        <label class="form-label" for="dosage-distance">Distance (feet)</label>
+                        <input type="number" id="dosage-distance" class="form-input" placeholder="e.g., 100" min="1">
+                        <p class="help-text">For exercises with distance_feet modifier</p>
+                    </div>
+
+                    <button class="btn-primary" data-action="updateDosage" style="width: 100%;">💊 Update Dosage</button>
                 </div>
-            </form>
-        </section>
+            </div>
+        </div>
     </div>
 
-    <!-- Transaction Toast (iOS style) -->
-    <div id="transaction-toast" style="display: none;">
-        <span id="transaction-message">Saved:</span>
-        <span id="transaction-id"></span>
-        <button data-action="copyTransactionId" class="touch-target">Copy</button>
+    <!-- Transaction Toast -->
+    <div id="transaction-toast">
+        <span id="transaction-message">Saved:</span> <span id="transaction-id"></span>
+        <button data-action="copyTransactionId">Copy</button>
     </div>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="modal-overlay">
-        <div class="spinner"></div>
-    </div>
-
-    <!-- Scripts -->
-    <script type="module" src="firebase.js"></script>
+    <!-- Main Script -->
     <script type="module">
-        import { db } from './firebase.js';
-        import { auth, onAuthStateChanged } from './firebase.js';
+        import { doc, getDoc, setDoc, collection, query, where, orderBy, limit as firestoreLimit, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js';
         import {
             createExercise,
             updateExercise,
-            archiveExercise
+            archiveExercise,
+            createRole,
+            deleteRole,
+            updateVocabulary
         } from './shared/pt_data_api.js';
         import { loadExerciseLibraryShared } from './shared/firestore_shared_data.js';
-        import {
-            bindActionHandlers,
-            showTransactionToast,
-            copyTransactionId,
-            showConfirmDialog
-        } from './shared/pt_event_handlers.js';
+        import { bindActionHandlers, showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js';
+        import * as ptDataAPI from './shared/pt_data_api.js';
+        import { replayQueue } from './shared/offline_queue.js';
+        import { ulid } from 'https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js';
 
-        // State
-        let currentUser = null;
-        let exerciseLibrary = [];
-        let editingExerciseId = null;
-        let changesCount = 0;
+        let exercises = [];
+        let currentExercise = null;
+        let exerciseRoles = {};
 
-        /**
-         * Initialize app
-         */
-        async function init() {
-            console.log('[PT Editor] Initializing...');
-
-            // Bind action handlers
-            bindActionHandlers(document.body, {
-                goBack: handleGoBack,
-                showChanges: handleShowChanges,
-                showAddExercise: handleShowAddExercise,
-                cancelEdit: handleCancelEdit,
-                saveExercise: handleSaveExercise,
-                editExercise: handleEditExercise,
-                deleteExercise: handleDeleteExercise,
-                copyTransactionId: copyTransactionId
-            });
-
-            // Auth state listener
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUser = user;
-                    console.log('[Auth] User signed in:', user.uid);
-                    await loadExerciseLibrary();
-                } else {
-                    console.log('[Auth] User not signed in, redirecting...');
-                    window.location.href = 'pt_tracker.html';
+        // Initialize on load
+        window.addEventListener('load', async () => {
+            // Wait for auth
+            window.auth.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    window.location.href = 'pt_view.html';
+                    return;
                 }
-            });
 
-            // Search input listener
-            document.getElementById('exercise-search').addEventListener('input', handleSearch);
+                console.log('[PT Editor] User authenticated:', user.uid);
 
-            // Form submit listener
-            document.getElementById('exercise-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                handleSaveExercise();
-            });
-        }
+                // Load exercise library
+                const library = await loadExerciseLibraryShared();
+                exercises = library.exercises || [];
+                exerciseRoles = library.exerciseRoles || {};
 
-        /**
-         * Load exercise library from Firestore
-         */
-        async function loadExerciseLibrary() {
-            showLoading(true);
+                console.log('[PT Editor] Loaded', exercises.length, 'exercises');
 
-            try {
-                exerciseLibrary = await loadExerciseLibraryShared();
-                console.log('[Library] Loaded exercises:', exerciseLibrary.length);
+                // Populate library list
                 renderExerciseList();
-            } catch (error) {
-                console.error('[Library] Failed to load exercises:', error);
-                alert('Failed to load exercise library. Please check your connection.');
-            } finally {
-                showLoading(false);
-            }
-        }
 
-        /**
-         * Render exercise list
-         */
-        function renderExerciseList(filter = '') {
-            const listEl = document.getElementById('exercise-list');
+                // Populate exercise selector for roles
+                populateExerciseSelector();
 
-            let exercises = exerciseLibrary;
+                // Populate exercise selector for dosage
+                populateDosageExerciseSelector();
+            });
+        });
 
-            // Filter by search term
-            if (filter) {
-                const lowerFilter = filter.toLowerCase();
-                exercises = exercises.filter(ex =>
-                    ex.name?.toLowerCase().includes(lowerFilter) ||
-                    ex.canonical_name?.toLowerCase().includes(lowerFilter)
-                );
-            }
+        // Auto-replay offline queue when connection restored
+        window.addEventListener('offlinequeue:online', async () => {
+            await replayQueue(ptDataAPI);
+        });
 
-            // Filter out archived exercises
-            exercises = exercises.filter(ex => !ex.archived);
+        // Render exercise list
+        function renderExerciseList() {
+            const list = document.getElementById('exercise-list');
+            const search = document.getElementById('exercise-search').value.toLowerCase();
 
-            if (exercises.length === 0) {
-                listEl.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🔍</div>
-                        <div class="empty-state-message">
-                            ${filter ? 'No exercises found' : 'No exercises yet. Add your first exercise!'}
-                        </div>
+            const filtered = exercises.filter(ex =>
+                ex.canonical_name.toLowerCase().includes(search) ||
+                (ex.description && ex.description.toLowerCase().includes(search))
+            );
+
+            list.innerHTML = filtered.map(ex => `
+                <div class="exercise-list-item">
+                    <div class="exercise-list-item-info">
+                        <h3>${ex.canonical_name}</h3>
+                        <p>${ex.pt_category || ''} • ${ex.pattern || ''}</p>
                     </div>
-                `;
-                return;
-            }
-
-            listEl.innerHTML = exercises.map(ex => `
-                <div class="exercise-item">
-                    <div>
-                        <div class="exercise-name">${ex.name || ex.canonical_name}</div>
-                        <div class="exercise-meta">${getExerciseTypeLabel(ex)} ${ex.current ? `• ${ex.current.sets || 0}x${ex.current.repsPerSet || 0}` : ''}</div>
-                    </div>
-                    <div class="exercise-actions">
-                        <button
-                            data-action="editExercise"
-                            data-action-arg="${ex.id}"
-                            class="btn btn-small btn-primary touch-target"
-                        >Edit</button>
-                        <button
-                            data-action="deleteExercise"
-                            data-action-arg="${ex.id}"
-                            class="btn btn-small btn-danger touch-target"
-                        >Delete</button>
+                    <div class="exercise-list-item-actions">
+                        <button class="icon-btn" data-action="editExercise:${ex.id}">✏️</button>
+                        <button class="icon-btn" data-action="deleteExercise:${ex.id}">🗑️</button>
                     </div>
                 </div>
             `).join('');
 
-            // Re-bind action handlers for dynamically added elements
-            bindActionHandlers(listEl, {
-                editExercise: handleEditExercise,
-                deleteExercise: handleDeleteExercise
-            });
+            // Re-bind action handlers for new elements
+            bindActionHandlers(list, actionHandlers);
         }
 
-        /**
-         * Get human-readable exercise type label
-         */
-        function getExerciseTypeLabel(exercise) {
-            // Try to derive from pattern_modifiers first
-            const modifiers = exercise.pattern_modifiers || [];
-            if (modifiers.includes('duration_seconds')) return 'Duration';
-            if (modifiers.includes('hold_seconds')) return 'Hold';
-            if (modifiers.includes('distance_feet')) return 'Distance';
-            if (modifiers.includes('AMRAP')) return 'AMRAP';
+        // Search handler
+        document.getElementById('exercise-search').addEventListener('input', renderExerciseList);
 
-            // Fallback to exercise type
-            const type = exercise.type || 'reps';
-            return type.charAt(0).toUpperCase() + type.slice(1);
+        // Populate exercise selector for roles
+        function populateExerciseSelector() {
+            const select = document.getElementById('role-exercise-select');
+            select.innerHTML = '<option value="">-- Choose an exercise --</option>' +
+                exercises.map(ex => `<option value="${ex.id}">${ex.canonical_name}</option>`).join('');
+
+            select.addEventListener('change', loadExerciseRoles);
         }
 
-        /**
-         * Handle search input
-         */
-        function handleSearch(e) {
-            renderExerciseList(e.target.value);
-        }
+        // Load roles for selected exercise
+        async function loadExerciseRoles() {
+            const select = document.getElementById('role-exercise-select');
+            const exerciseId = select.value;
 
-        /**
-         * Handle go back
-         */
-        function handleGoBack() {
-            window.location.href = 'pt_view.html';
-        }
-
-        /**
-         * Handle show changes summary
-         */
-        function handleShowChanges() {
-            alert(`You have ${changesCount} unsaved changes. (Changes summary UI coming soon)`);
-        }
-
-        /**
-         * Handle show add exercise form
-         */
-        function handleShowAddExercise() {
-            editingExerciseId = null;
-            document.getElementById('editor-title').textContent = 'Add New Exercise';
-            document.getElementById('exercise-form').reset();
-            showEditorSection(true);
-        }
-
-        /**
-         * Handle cancel edit
-         */
-        function handleCancelEdit() {
-            editingExerciseId = null;
-            document.getElementById('exercise-form').reset();
-            showEditorSection(false);
-        }
-
-        /**
-         * Handle save exercise
-         */
-        async function handleSaveExercise() {
-            const name = document.getElementById('exercise-name').value.trim();
-            const type = document.getElementById('exercise-type').value;
-            const description = document.getElementById('exercise-description').value.trim();
-            const sets = parseInt(document.getElementById('exercise-sets').value) || 3;
-            const reps = parseInt(document.getElementById('exercise-reps').value) || 10;
-
-            // Get selected form parameters
-            const formParams = Array.from(document.querySelectorAll('input[name="formParam"]:checked'))
-                .map(cb => cb.value);
-
-            if (!name || !type) {
-                alert('Please fill in required fields (Name and Type)');
+            if (!exerciseId) {
+                document.getElementById('current-roles').innerHTML = '';
+                document.getElementById('add-role-form').style.display = 'none';
                 return;
             }
 
-            showLoading(true);
+            const roles = exerciseRoles[exerciseId] || [];
 
+            const rolesHtml = roles.length > 0
+                ? roles.map((role, idx) => `
+                    <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${role.region}</strong> • ${role.capacity}${role.focus ? ` (${role.focus})` : ''} • <em>${role.contribution}</em>
+                        </div>
+                        <button class="icon-btn" data-action="deleteRole:${exerciseId}:${idx}" style="background: var(--ios-red); color: white;">🗑️</button>
+                    </div>
+                `).join('')
+                : '<p style="color: var(--text-secondary); font-size: 14px;">No roles assigned yet.</p>';
+
+            document.getElementById('current-roles').innerHTML = rolesHtml;
+            document.getElementById('add-role-form').style.display = 'block';
+
+            // Re-bind action handlers
+            bindActionHandlers(document.getElementById('current-roles'), actionHandlers);
+        }
+
+        // Populate exercise selector for dosage
+        function populateDosageExerciseSelector() {
+            const select = document.getElementById('dosage-exercise-select');
+            select.innerHTML = '<option value="">-- Choose an exercise --</option>' +
+                exercises.map(ex => `<option value="${ex.id}">${ex.canonical_name}</option>`).join('');
+
+            select.addEventListener('change', loadExerciseDosage);
+        }
+
+        // Load dosage for selected exercise
+        async function loadExerciseDosage() {
+            const select = document.getElementById('dosage-exercise-select');
+            const exerciseId = select.value;
+
+            if (!exerciseId) {
+                document.getElementById('current-dosage-display').style.display = 'none';
+                document.getElementById('edit-dosage-form').style.display = 'none';
+                return;
+            }
+
+            // Find the exercise to get pattern_modifiers
+            const exercise = exercises.find(ex => ex.id === exerciseId);
+            if (!exercise) return;
+
+            // Show/hide dosage fields based on pattern_modifiers
+            const modifiers = exercise.pattern_modifiers || [];
+            const hasDuration = modifiers.includes('duration_seconds');
+            const hasHold = modifiers.includes('hold_seconds');
+            const hasDistance = modifiers.includes('distance_feet');
+            const hasAMRAP = modifiers.includes('AMRAP');
+
+            // Always show sets
+            // Show reps by default (hide if special modifiers take precedence)
+            document.getElementById('dosage-reps-group').style.display = (!hasDuration && !hasAMRAP) ? 'block' : 'none';
+            document.getElementById('dosage-duration-group').style.display = hasDuration ? 'block' : 'none';
+            document.getElementById('dosage-hold-group').style.display = hasHold ? 'block' : 'none';
+            document.getElementById('dosage-distance-group').style.display = hasDistance ? 'block' : 'none';
+
+            // Fetch dosage from Firestore (separate collection with versions for history)
             try {
-                let txId;
+                const db = window.db;
+                const user = window.auth.currentUser;
+                if (!user) return;
 
-                if (editingExerciseId) {
-                    // Update existing exercise
-                    txId = await updateExercise(editingExerciseId, {
-                        name,
-                        type,
-                        description,
-                        dosage: { sets, repsPerSet: reps },
-                        pattern_modifiers: getPatternModifiers(type, formParams)
-                    });
-                    console.log('[Editor] Exercise updated:', txId);
-                } else {
-                    // Create new exercise
-                    txId = await createExercise({
-                        name,
-                        canonical_name: name,
-                        type,
-                        description,
-                        dosage: { sets, repsPerSet: reps },
-                        pattern_modifiers: getPatternModifiers(type, formParams)
-                    });
-                    console.log('[Editor] Exercise created:', txId);
+                // Query for latest version (orderBy timestamp desc, limit 1)
+                const versionsRef = collection(db, `users/${user.uid}/dosages/${exerciseId}/versions`);
+                const latestQuery = query(versionsRef, orderBy('timestamp', 'desc'), firestoreLimit(1));
+                const querySnapshot = await getDocs(latestQuery);
+
+                let dosageData = null;
+                if (!querySnapshot.empty) {
+                    dosageData = querySnapshot.docs[0].data();
                 }
 
-                // Show transaction toast
-                showTransactionToast(txId, {
-                    message: editingExerciseId ? 'Updated:' : 'Created:'
-                });
+                // Populate form
+                if (dosageData) {
+                    document.getElementById('dosage-sets').value = dosageData.sets || '';
+                    document.getElementById('dosage-reps').value = dosageData.reps || '';
+                    document.getElementById('dosage-duration').value = dosageData.duration_seconds || '';
+                    document.getElementById('dosage-hold').value = dosageData.hold_seconds || '';
+                    document.getElementById('dosage-distance').value = dosageData.distance_feet || '';
 
-                // Increment changes count
-                changesCount++;
-                document.getElementById('changes-count').textContent = changesCount;
+                    document.getElementById('current-dosage-display').innerHTML = `
+                        <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px;">
+                            <strong>Current Dosage:</strong> ${dosageData.sets} sets
+                            ${dosageData.reps ? `, ${dosageData.reps} reps` : ''}
+                            ${dosageData.duration_seconds ? `, ${dosageData.duration_seconds}s duration` : ''}
+                            ${dosageData.hold_seconds ? `, ${dosageData.hold_seconds}s hold` : ''}
+                            ${dosageData.distance_feet ? `, ${dosageData.distance_feet}ft distance` : ''}
+                        </div>
+                    `;
+                    document.getElementById('current-dosage-display').style.display = 'block';
+                } else {
+                    document.getElementById('dosage-sets').value = '';
+                    document.getElementById('dosage-reps').value = '';
+                    document.getElementById('dosage-duration').value = '';
+                    document.getElementById('dosage-hold').value = '';
+                    document.getElementById('dosage-distance').value = '';
 
-                // Reload library
-                await loadExerciseLibrary();
+                    document.getElementById('current-dosage-display').innerHTML = `
+                        <p style="color: var(--text-secondary); font-size: 14px;">No dosage set yet.</p>
+                    `;
+                    document.getElementById('current-dosage-display').style.display = 'block';
+                }
 
-                // Hide editor section
-                handleCancelEdit();
+                document.getElementById('edit-dosage-form').style.display = 'block';
 
             } catch (error) {
-                console.error('[Editor] Failed to save exercise:', error);
-                alert('Failed to save exercise: ' + error.message);
-            } finally {
-                showLoading(false);
+                console.error('[Load Dosage] Error:', error);
+                alert('Failed to load dosage: ' + error.message);
             }
         }
 
-        /**
-         * Handle edit exercise
-         */
-        function handleEditExercise(e) {
-            const exerciseId = e.target.dataset.actionArg;
-            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+        // Populate exercise name dropdown with "Other" option
+        function populateExerciseNameDropdown() {
+            const select = document.getElementById('ex-name-select');
+            const uniqueNames = [...new Set(exercises.map(ex => ex.canonical_name))].sort();
 
-            if (!exercise) {
-                alert('Exercise not found');
-                return;
+            select.innerHTML = '<option value="">-- Select or choose Other --</option>' +
+                uniqueNames.map(name => `<option value="${name}">${name}</option>`).join('') +
+                '<option value="__other__">Other (custom name)</option>';
+
+            // Add change handler
+            select.addEventListener('change', () => {
+                const customInput = document.getElementById('ex-name-custom');
+                if (select.value === '__other__') {
+                    customInput.style.display = 'block';
+                    customInput.focus();
+                } else {
+                    customInput.style.display = 'none';
+                }
+            });
+        }
+
+        // Add dynamic field functions
+        function addDynamicField(listId, placeholder = '') {
+            const list = document.getElementById(listId);
+            const field = document.createElement('div');
+            field.className = 'dynamic-field';
+            field.innerHTML = `
+                <input type="text" class="form-input" placeholder="${placeholder}" style="flex: 1;">
+                <button class="remove-btn" data-action="removeDynamicField">✕</button>
+            `;
+            list.appendChild(field);
+            bindActionHandlers(field, actionHandlers);
+        }
+
+        // Action handlers
+        const actionHandlers = {
+            goBack: () => {
+                window.location.href = 'pt_view.html';
+            },
+
+            addNewExercise: () => {
+                currentExercise = null;
+                document.getElementById('library-section').style.display = 'none';
+                document.getElementById('editor-section').style.display = 'block';
+                document.getElementById('editor-title').textContent = 'Add New Exercise';
+
+                // Populate exercise name dropdown
+                populateExerciseNameDropdown();
+
+                clearExerciseForm();
+            },
+
+            editExercise: (e) => {
+                const id = e.target.dataset.action.split(':')[1];
+                currentExercise = exercises.find(ex => ex.id === id);
+                if (!currentExercise) return;
+
+                document.getElementById('library-section').style.display = 'none';
+                document.getElementById('editor-section').style.display = 'block';
+                document.getElementById('editor-title').textContent = 'Edit Exercise';
+                loadExerciseIntoForm(currentExercise);
+            },
+
+            cancelEdit: () => {
+                document.getElementById('library-section').style.display = 'block';
+                document.getElementById('editor-section').style.display = 'none';
+                currentExercise = null;
+            },
+
+            saveExercise: async () => {
+                const exerciseData = collectExerciseData();
+
+                try {
+                    let txId;
+                    if (currentExercise) {
+                        txId = await updateExercise(currentExercise.id, exerciseData);
+                    } else {
+                        txId = await createExercise(exerciseData);
+                    }
+
+                    showTransactionToast(txId, { message: currentExercise ? 'Updated:' : 'Created:' });
+
+                    // Reload library and return to list
+                    const library = await loadExerciseLibraryShared();
+                    exercises = library.exercises || [];
+                    renderExerciseList();
+                    populateExerciseSelector();
+
+                    document.getElementById('library-section').style.display = 'block';
+                    document.getElementById('editor-section').style.display = 'none';
+                    currentExercise = null;
+                } catch (error) {
+                    console.error('[Save Exercise] Error:', error);
+                    alert('Failed to save exercise: ' + error.message);
+                }
+            },
+
+            deleteExercise: async (e) => {
+                const id = e.target.dataset.action.split(':')[1];
+                const ex = exercises.find(ex => ex.id === id);
+                if (!ex) return;
+
+                if (!confirm(`Archive exercise "${ex.canonical_name}"?`)) return;
+
+                try {
+                    const txId = await archiveExercise(id);
+                    showTransactionToast(txId, { message: 'Archived:' });
+
+                    // Reload library
+                    const library = await loadExerciseLibraryShared();
+                    exercises = library.exercises || [];
+                    renderExerciseList();
+                } catch (error) {
+                    console.error('[Delete Exercise] Error:', error);
+                    alert('Failed to archive exercise: ' + error.message);
+                }
+            },
+
+            'addMuscle:primary': () => addDynamicField('primary-muscles-list', 'e.g., gluteus maximus'),
+            'addMuscle:secondary': () => addDynamicField('secondary-muscles-list', 'e.g., hamstrings'),
+            'addEquipment:required': () => addDynamicField('equipment-required-list', 'e.g., resistance band'),
+            'addEquipment:optional': () => addDynamicField('equipment-optional-list', 'e.g., yoga block'),
+            'addCue:external': () => addDynamicField('external-cues-list', 'e.g., Look straight ahead'),
+            'addCue:motor': () => addDynamicField('motor-cues-list', 'e.g., Squeeze glutes at top'),
+            'addCue:compensation': () => addDynamicField('compensation-warnings-list', 'e.g., Avoid arching lower back'),
+            'addCue:safety': () => addDynamicField('safety-flags-list', 'e.g., Stop if sharp pain occurs'),
+            'addTag:functional': () => addDynamicField('tags-functional-list', 'e.g., balance'),
+            'addTag:format': () => addDynamicField('tags-format-list', 'e.g., standing'),
+            'addTag:heatmap': () => addDynamicField('tags-heatmap-list', 'e.g., hip'),
+
+            removeDynamicField: (e) => {
+                e.target.closest('.dynamic-field').remove();
+            },
+
+            addRole: async () => {
+                const exerciseId = document.getElementById('role-exercise-select').value;
+                if (!exerciseId) {
+                    alert('Please select an exercise first');
+                    return;
+                }
+
+                const region = document.getElementById('new-role-region').value;
+                const capacity = document.getElementById('new-role-capacity').value;
+                const focus = document.getElementById('new-role-focus').value.trim();
+                const contribution = document.getElementById('new-role-contribution').value;
+
+                if (!region || !capacity || !contribution) {
+                    alert('Please fill in region, capacity, and contribution');
+                    return;
+                }
+
+                try {
+                    const txId = await createRole(exerciseId, {
+                        region,
+                        capacity,
+                        focus: focus || null,
+                        contribution
+                    });
+
+                    showTransactionToast(txId, { message: 'Role added:' });
+
+                    // Reload roles
+                    const library = await loadExerciseLibraryShared();
+                    exerciseRoles = library.exerciseRoles || {};
+                    loadExerciseRoles();
+
+                    // Clear form
+                    document.getElementById('new-role-region').value = '';
+                    document.getElementById('new-role-capacity').value = '';
+                    document.getElementById('new-role-focus').value = '';
+                    document.getElementById('new-role-contribution').value = '';
+                } catch (error) {
+                    console.error('[Add Role] Error:', error);
+                    alert('Failed to add role: ' + error.message);
+                }
+            },
+
+            deleteRole: async (e) => {
+                const parts = e.target.dataset.action.split(':');
+                const exerciseId = parts[1];
+                const roleIndex = parseInt(parts[2]);
+
+                if (!confirm('Delete this role?')) return;
+
+                try {
+                    const txId = await deleteRole(exerciseId, roleIndex);
+                    showTransactionToast(txId, { message: 'Role deleted:' });
+
+                    // Reload roles
+                    const library = await loadExerciseLibraryShared();
+                    exerciseRoles = library.exerciseRoles || {};
+                    loadExerciseRoles();
+                } catch (error) {
+                    console.error('[Delete Role] Error:', error);
+                    alert('Failed to delete role: ' + error.message);
+                }
+            },
+
+            updateVocabulary: async () => {
+                const category = document.getElementById('vocab-category').value;
+                const term = document.getElementById('vocab-term').value;
+                const definition = document.getElementById('vocab-definition').value.trim();
+
+                if (!category || !term || !definition) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+
+                try {
+                    const txId = await updateVocabulary(category, term, definition);
+                    showTransactionToast(txId, { message: 'Vocabulary updated:' });
+
+                    // Clear form
+                    document.getElementById('vocab-definition').value = '';
+                } catch (error) {
+                    console.error('[Update Vocabulary] Error:', error);
+                    alert('Failed to update vocabulary: ' + error.message);
+                }
+            },
+
+            updateDosage: async () => {
+                const exerciseId = document.getElementById('dosage-exercise-select').value;
+                if (!exerciseId) {
+                    alert('Please select an exercise first');
+                    return;
+                }
+
+                const exercise = exercises.find(ex => ex.id === exerciseId);
+                if (!exercise) return;
+
+                const sets = parseInt(document.getElementById('dosage-sets').value);
+                if (!sets || sets < 1) {
+                    alert('Please enter a valid number of sets');
+                    return;
+                }
+
+                // Collect dosage data based on visible fields (pattern modifiers)
+                const modifiers = exercise.pattern_modifiers || [];
+                const dosageData = {
+                    sets,
+                    timestamp: serverTimestamp(),
+                    version: 1
+                };
+
+                // Add conditional fields based on pattern modifiers
+                const reps = parseInt(document.getElementById('dosage-reps').value);
+                const duration = parseInt(document.getElementById('dosage-duration').value);
+                const hold = parseInt(document.getElementById('dosage-hold').value);
+                const distance = parseInt(document.getElementById('dosage-distance').value);
+
+                if (modifiers.includes('duration_seconds') && duration) {
+                    dosageData.duration_seconds = duration;
+                } else if (!modifiers.includes('AMRAP') && reps) {
+                    dosageData.reps = reps;
+                }
+
+                if (modifiers.includes('hold_seconds') && hold) {
+                    dosageData.hold_seconds = hold;
+                }
+
+                if (modifiers.includes('distance_feet') && distance) {
+                    dosageData.distance_feet = distance;
+                }
+
+                try {
+                    const db = window.db;
+                    const user = window.auth.currentUser;
+                    if (!user) {
+                        alert('User not authenticated');
+                        return;
+                    }
+
+                    // Create new version (append-only, preserves history)
+                    const versionULID = ulid();
+                    const dosageRef = doc(db, `users/${user.uid}/dosages/${exerciseId}/versions/${versionULID}`);
+
+                    await setDoc(dosageRef, dosageData);
+
+                    showTransactionToast(versionULID, { message: 'Dosage updated:' });
+
+                    // Reload dosage to show updated version
+                    await loadExerciseDosage();
+
+                } catch (error) {
+                    console.error('[Update Dosage] Error:', error);
+                    alert('Failed to update dosage: ' + error.message);
+                }
+            },
+
+            copyTransactionId: copyTransactionId
+        };
+
+        // Bind action handlers
+        bindActionHandlers(document.body, actionHandlers);
+
+        // Collect exercise data from form
+        function collectExerciseData() {
+            const getCheckedValues = (selector) => {
+                return Array.from(document.querySelectorAll(selector + ' input[type="checkbox"]:checked'))
+                    .map(cb => cb.value);
+            };
+
+            const getDynamicFieldValues = (listId) => {
+                return Array.from(document.querySelectorAll(`#${listId} input`))
+                    .map(input => input.value.trim())
+                    .filter(val => val !== '');
+            };
+
+            // Get canonical name from dropdown or custom input
+            const nameSelect = document.getElementById('ex-name-select');
+            const nameCustom = document.getElementById('ex-name-custom');
+            const canonical_name = nameSelect.value === '__other__'
+                ? nameCustom.value.trim()
+                : nameSelect.value;
+
+            return {
+                canonical_name,
+                pt_category: document.getElementById('ex-category').value,
+                description: document.getElementById('ex-desc').value.trim(),
+                primary_muscles: getDynamicFieldValues('primary-muscles-list'),
+                secondary_muscles: getDynamicFieldValues('secondary-muscles-list'),
+                pattern: document.getElementById('ex-pattern').value,
+                pattern_modifiers: getCheckedValues('#pattern-modifiers-list'),
+                equipment: {
+                    required: getDynamicFieldValues('equipment-required-list'),
+                    optional: getDynamicFieldValues('equipment-optional-list')
+                },
+                form_parameters_required: getCheckedValues('#form-params-list'),
+                tags: {
+                    functional: getDynamicFieldValues('tags-functional-list'),
+                    format: getDynamicFieldValues('tags-format-list'),
+                    heatmap: getDynamicFieldValues('tags-heatmap-list')
+                },
+                guidance: {
+                    external_cues: getDynamicFieldValues('external-cues-list'),
+                    motor_cues: getDynamicFieldValues('motor-cues-list'),
+                    compensation_warnings: getDynamicFieldValues('compensation-warnings-list'),
+                    safety_flags: getDynamicFieldValues('safety-flags-list')
+                },
+                lifecycle: {
+                    status: document.getElementById('ex-lifecycle-status').value,
+                    effective_start_date: document.getElementById('ex-lifecycle-start').value || null,
+                    effective_end_date: document.getElementById('ex-lifecycle-end').value || null
+                },
+                added_date: currentExercise ? currentExercise.added_date : new Date().toISOString().split('T')[0],
+                updated_date: new Date().toISOString().split('T')[0]
+            };
+        }
+
+        // Clear exercise form
+        function clearExerciseForm() {
+            document.getElementById('ex-name-select').value = '';
+            document.getElementById('ex-name-custom').value = '';
+            document.getElementById('ex-name-custom').style.display = 'none';
+            document.getElementById('ex-category').value = '';
+            document.getElementById('ex-desc').value = '';
+            document.getElementById('ex-pattern').value = '';
+            document.getElementById('ex-lifecycle-status').value = 'active';
+            document.getElementById('ex-lifecycle-start').value = '';
+            document.getElementById('ex-lifecycle-end').value = '';
+
+            // Clear checkboxes
+            document.querySelectorAll('#pattern-modifiers-list input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('#form-params-list input[type="checkbox"]').forEach(cb => cb.checked = false);
+
+            // Clear dynamic lists
+            document.getElementById('primary-muscles-list').innerHTML = '';
+            document.getElementById('secondary-muscles-list').innerHTML = '';
+            document.getElementById('equipment-required-list').innerHTML = '';
+            document.getElementById('equipment-optional-list').innerHTML = '';
+            document.getElementById('external-cues-list').innerHTML = '';
+            document.getElementById('motor-cues-list').innerHTML = '';
+            document.getElementById('compensation-warnings-list').innerHTML = '';
+            document.getElementById('safety-flags-list').innerHTML = '';
+            document.getElementById('tags-functional-list').innerHTML = '';
+            document.getElementById('tags-format-list').innerHTML = '';
+            document.getElementById('tags-heatmap-list').innerHTML = '';
+        }
+
+        // Load exercise into form
+        function loadExerciseIntoForm(exercise) {
+            // Populate exercise name dropdown if not already populated
+            if (!document.getElementById('ex-name-select').options.length || document.getElementById('ex-name-select').options.length <= 1) {
+                populateExerciseNameDropdown();
             }
 
-            editingExerciseId = exerciseId;
-            document.getElementById('editor-title').textContent = 'Edit Exercise';
+            // Set exercise name (select from dropdown or use "Other" + custom input)
+            const nameSelect = document.getElementById('ex-name-select');
+            const nameCustom = document.getElementById('ex-name-custom');
+            const nameOption = Array.from(nameSelect.options).find(opt => opt.value === exercise.canonical_name);
 
-            // Populate form
-            document.getElementById('exercise-name').value = exercise.name || exercise.canonical_name || '';
-            document.getElementById('exercise-type').value = exercise.type || 'reps';
-            document.getElementById('exercise-description').value = exercise.description || '';
-            document.getElementById('exercise-sets').value = exercise.dosage?.sets || exercise.current?.sets || 3;
-            document.getElementById('exercise-reps').value = exercise.dosage?.repsPerSet || exercise.current?.repsPerSet || 10;
+            if (nameOption) {
+                nameSelect.value = exercise.canonical_name;
+                nameCustom.style.display = 'none';
+            } else {
+                nameSelect.value = '__other__';
+                nameCustom.value = exercise.canonical_name || '';
+                nameCustom.style.display = 'block';
+            }
 
-            // Check form parameters
-            const formParams = exercise.pattern_modifiers || [];
-            document.querySelectorAll('input[name="formParam"]').forEach(cb => {
-                cb.checked = formParams.includes(cb.value);
+            document.getElementById('ex-category').value = exercise.pt_category || '';
+            document.getElementById('ex-desc').value = exercise.description || '';
+            document.getElementById('ex-pattern').value = exercise.pattern || '';
+            document.getElementById('ex-lifecycle-status').value = exercise.lifecycle?.status || 'active';
+            document.getElementById('ex-lifecycle-start').value = exercise.lifecycle?.effective_start_date || '';
+            document.getElementById('ex-lifecycle-end').value = exercise.lifecycle?.effective_end_date || '';
+
+            // Set pattern modifiers checkboxes
+            (exercise.pattern_modifiers || []).forEach(mod => {
+                const checkbox = document.querySelector(`#pattern-modifiers-list input[value="${mod}"]`);
+                if (checkbox) checkbox.checked = true;
             });
 
-            showEditorSection(true);
+            // Set form params checkboxes
+            (exercise.form_parameters_required || []).forEach(param => {
+                const checkbox = document.querySelector(`#form-params-list input[value="${param}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+
+            // Load dynamic lists
+            const loadDynamicList = (listId, values) => {
+                const list = document.getElementById(listId);
+                list.innerHTML = '';
+                (values || []).forEach(value => {
+                    const field = document.createElement('div');
+                    field.className = 'dynamic-field';
+                    field.innerHTML = `
+                        <input type="text" class="form-input" value="${value}" style="flex: 1;">
+                        <button class="remove-btn" data-action="removeDynamicField">✕</button>
+                    `;
+                    list.appendChild(field);
+                    bindActionHandlers(field, actionHandlers);
+                });
+            };
+
+            loadDynamicList('primary-muscles-list', exercise.primary_muscles);
+            loadDynamicList('secondary-muscles-list', exercise.secondary_muscles);
+            loadDynamicList('equipment-required-list', exercise.equipment?.required);
+            loadDynamicList('equipment-optional-list', exercise.equipment?.optional);
+            loadDynamicList('external-cues-list', exercise.guidance?.external_cues);
+            loadDynamicList('motor-cues-list', exercise.guidance?.motor_cues);
+            loadDynamicList('compensation-warnings-list', exercise.guidance?.compensation_warnings);
+            loadDynamicList('safety-flags-list', exercise.guidance?.safety_flags);
+            loadDynamicList('tags-functional-list', exercise.tags?.functional);
+            loadDynamicList('tags-format-list', exercise.tags?.format);
+            loadDynamicList('tags-heatmap-list', exercise.tags?.heatmap);
         }
-
-        /**
-         * Handle delete exercise
-         */
-        async function handleDeleteExercise(e) {
-            const exerciseId = e.target.dataset.actionArg;
-            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
-
-            if (!exercise) {
-                alert('Exercise not found');
-                return;
-            }
-
-            const confirmed = await showConfirmDialog(
-                `Are you sure you want to delete "${exercise.name || exercise.canonical_name}"?`,
-                { confirmText: 'Delete', destructive: true }
-            );
-
-            if (!confirmed) return;
-
-            showLoading(true);
-
-            try {
-                await archiveExercise(exerciseId);
-                console.log('[Editor] Exercise deleted:', exerciseId);
-
-                // Reload library
-                await loadExerciseLibrary();
-
-                changesCount++;
-                document.getElementById('changes-count').textContent = changesCount;
-
-            } catch (error) {
-                console.error('[Editor] Failed to delete exercise:', error);
-                alert('Failed to delete exercise: ' + error.message);
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        /**
-         * Get pattern modifiers based on type and form parameters
-         */
-        function getPatternModifiers(type, formParams) {
-            const modifiers = [...formParams];
-
-            // Add type-specific modifiers
-            if (type === 'duration') modifiers.push('duration_seconds');
-            if (type === 'hold') modifiers.push('hold_seconds');
-            if (type === 'distance') modifiers.push('distance_feet');
-            if (type === 'amrap') modifiers.push('AMRAP');
-
-            return modifiers;
-        }
-
-        /**
-         * Show/hide editor section
-         */
-        function showEditorSection(show) {
-            const librarySection = document.getElementById('library-section');
-            const editorSection = document.getElementById('editor-section');
-
-            if (show) {
-                librarySection.classList.add('hidden');
-                editorSection.classList.remove('hidden');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                librarySection.classList.remove('hidden');
-                editorSection.classList.add('hidden');
-            }
-        }
-
-        /**
-         * Show/hide loading overlay
-         */
-        function showLoading(show) {
-            const overlay = document.getElementById('loading-overlay');
-            if (show) {
-                overlay.classList.add('show');
-            } else {
-                overlay.classList.remove('show');
-            }
-        }
-
-        // Initialize on load
-        init();
     </script>
 </body>
 </html>
