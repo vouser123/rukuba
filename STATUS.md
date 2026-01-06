@@ -24,6 +24,11 @@
 - Complete: Auto-replay on connection restored
 - Complete: withOfflineQueue wrapper for API functions
 
+### rehab_coverage.html
+- Fixed: Save button for roles now working
+- Fixed: saveExerciseRolesShared made globally accessible
+- Working: addRole() and deleteRole() persist to Firestore
+
 ## ⚠️ TODO (CRITICAL)
 
 ### pt_editor.html
