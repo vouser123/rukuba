@@ -658,6 +658,7 @@
             </div>
 
             <!-- Vocabulary Editor -->
+            <!-- COMMENTED OUT - User will consider further
             <div class="section">
                 <h2 class="section-title">Update Vocabulary Definitions</h2>
 
@@ -684,6 +685,7 @@
 
                 <button class="btn-primary" data-action="updateVocabulary" style="width: 100%;">💾 Update Definition</button>
             </div>
+            -->
 
             <!-- Dosage Management -->
             <div class="section">
@@ -780,6 +782,9 @@
                 exerciseRoles = library.exerciseRoles || {};
 
                 console.log('[PT Editor] Loaded', exercises.length, 'exercises');
+
+                // Extract all unique equipment from exercises
+                extractAllEquipment();
 
                 // Populate library list
                 renderExerciseList();
@@ -981,13 +986,41 @@
             });
         }
 
+        // Global equipment options (union from all exercises)
+        let allEquipmentOptions = [];
+
+        // Extract all unique equipment from exercises
+        function extractAllEquipment() {
+            const equipmentSet = new Set();
+            exercises.forEach(ex => {
+                if (ex.equipment?.required) {
+                    ex.equipment.required.forEach(item => equipmentSet.add(item));
+                }
+                if (ex.equipment?.optional) {
+                    ex.equipment.optional.forEach(item => equipmentSet.add(item));
+                }
+            });
+            allEquipmentOptions = Array.from(equipmentSet).sort();
+            console.log('[Equipment] Extracted unique equipment:', allEquipmentOptions.length, 'items');
+        }
+
         // Add dynamic field functions
-        function addDynamicField(listId, placeholder = '') {
+        function addDynamicField(listId, placeholder = '', options = []) {
             const list = document.getElementById(listId);
             const field = document.createElement('div');
             field.className = 'dynamic-field';
+
+            // If options provided, create datalist for autocomplete
+            const datalistId = options.length > 0 ? `datalist-${Math.random().toString(36).substr(2, 9)}` : '';
+            const datalistHtml = options.length > 0 ? `
+                <datalist id="${datalistId}">
+                    ${options.map(opt => `<option value="${opt}">`).join('')}
+                </datalist>
+            ` : '';
+
             field.innerHTML = `
-                <input type="text" class="form-input" placeholder="${placeholder}" style="flex: 1;">
+                <input type="text" class="form-input" placeholder="${placeholder}" ${datalistId ? `list="${datalistId}"` : ''} style="flex: 1;">
+                ${datalistHtml}
                 <button class="remove-btn" data-action="removeDynamicField">✕</button>
             `;
             list.appendChild(field);
@@ -1080,8 +1113,8 @@
 
             'addMuscle:primary': () => addDynamicField('primary-muscles-list', 'e.g., gluteus maximus'),
             'addMuscle:secondary': () => addDynamicField('secondary-muscles-list', 'e.g., hamstrings'),
-            'addEquipment:required': () => addDynamicField('equipment-required-list', 'e.g., resistance band'),
-            'addEquipment:optional': () => addDynamicField('equipment-optional-list', 'e.g., yoga block'),
+            'addEquipment:required': () => addDynamicField('equipment-required-list', 'e.g., resistance band', allEquipmentOptions),
+            'addEquipment:optional': () => addDynamicField('equipment-optional-list', 'e.g., yoga block', allEquipmentOptions),
             'addCue:external': () => addDynamicField('external-cues-list', 'e.g., Look straight ahead'),
             'addCue:motor': () => addDynamicField('motor-cues-list', 'e.g., Squeeze glutes at top'),
             'addCue:compensation': () => addDynamicField('compensation-warnings-list', 'e.g., Avoid arching lower back'),

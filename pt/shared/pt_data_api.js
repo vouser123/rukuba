@@ -679,7 +679,17 @@ export async function getVocabulary(category) {
  * Exported versions automatically queue when offline
  */
 
-// Keep internal versions available for offline queue replay
+// Create wrapped versions (auto-queue when offline)
+const insertExerciseCompletionWrapped = withOfflineQueue(insertExerciseCompletion, 'insertExerciseCompletion');
+const createExerciseWrapped = withOfflineQueue(createExercise, 'createExercise');
+const updateExerciseWrapped = withOfflineQueue(updateExercise, 'updateExercise');
+const archiveExerciseWrapped = withOfflineQueue(archiveExercise, 'archiveExercise');
+const unarchiveExerciseWrapped = withOfflineQueue(unarchiveExercise, 'unarchiveExercise');
+const createRoleWrapped = withOfflineQueue(createRole, 'createRole');
+const deleteRoleWrapped = withOfflineQueue(deleteRole, 'deleteRole');
+const updateVocabularyWrapped = withOfflineQueue(updateVocabulary, 'updateVocabulary');
+
+// Export internal versions for offline queue replay
 export {
     insertExerciseCompletion as insertExerciseCompletionInternal,
     createExercise as createExerciseInternal,
@@ -691,25 +701,17 @@ export {
     updateVocabulary as updateVocabularyInternal
 };
 
-// Export wrapped versions (auto-queue when offline)
-const insertExerciseCompletionWrapped = withOfflineQueue(insertExerciseCompletion, 'insertExerciseCompletion');
-const createExerciseWrapped = withOfflineQueue(createExercise, 'createExercise');
-const updateExerciseWrapped = withOfflineQueue(updateExercise, 'updateExercise');
-const archiveExerciseWrapped = withOfflineQueue(archiveExercise, 'archiveExercise');
-const unarchiveExerciseWrapped = withOfflineQueue(unarchiveExercise, 'unarchiveExercise');
-const createRoleWrapped = withOfflineQueue(createRole, 'createRole');
-const deleteRoleWrapped = withOfflineQueue(deleteRole, 'deleteRole');
-const updateVocabularyWrapped = withOfflineQueue(updateVocabulary, 'updateVocabulary');
-
-// Export wrapped versions as named exports
-export const insertExerciseCompletion = insertExerciseCompletionWrapped;
-export const createExercise = createExerciseWrapped;
-export const updateExercise = updateExerciseWrapped;
-export const archiveExercise = archiveExerciseWrapped;
-export const unarchiveExercise = unarchiveExerciseWrapped;
-export const createRole = createRoleWrapped;
-export const deleteRole = deleteRoleWrapped;
-export const updateVocabulary = updateVocabularyWrapped;
+// Export wrapped versions for application use
+export {
+    insertExerciseCompletionWrapped as insertExerciseCompletion,
+    createExerciseWrapped as createExercise,
+    updateExerciseWrapped as updateExercise,
+    archiveExerciseWrapped as archiveExercise,
+    unarchiveExerciseWrapped as unarchiveExercise,
+    createRoleWrapped as createRole,
+    deleteRoleWrapped as deleteRole,
+    updateVocabularyWrapped as updateVocabulary
+};
 
 // ============================================
 // EXPORT
