@@ -614,6 +614,7 @@ When debugging issues:
 - **2025-01-05** — **Problem:** iOS taps on "Next Set" were unreliable; duration-based exercises still prompted for reps in manual logging. **What I did:** Added an iOS touchend fallback for the Next Set button and updated the log-set flow to capture duration seconds instead of reps (stored as `secondsAchieved`/`secondsTarget`).
 - **2026-01-08** — **Problem:** PT report/view navigation failed on iOS when using inline `onclick` handlers. **What I did:** Switched PT report/view navigation controls to direct `<a href>` links styled as buttons (`pt/pt_report.html`, `pt/pt_view.html`) to avoid reliance on `onclick` delivery.
 - **2026-01-05** — **Problem:** Sign-in buttons in PT Tracker missed taps on iOS Safari/PWA. **What I did:** Added pointerup + touchend fallbacks for auth-related buttons to ensure reliable activation without relying on `click` handlers.
+- **2026-01-06** — **Problem:** "Add Role" button in rehab_coverage.html did not respond to taps on iOS Safari/PWA. **What I did:** Converted the dynamically-generated "Add Role" button from inline `onclick` to `data-action` pattern with `bindPointerHandlers()` function. Added `pointerup` event listeners for iOS touch/desktop mouse compatibility and keyboard support (Enter/Space) for accessibility. Re-bind handlers after dynamic HTML updates to ensure reliability (`pt/rehab_coverage.html`).
 
 ## 2026-01-05 — Enforce pointer-based activation in PT Tracker
 
