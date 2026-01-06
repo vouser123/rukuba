@@ -424,6 +424,44 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 
 **Solution:** Launch from PT Tracker or ensure the same home screen entry is used.
 
+### 4. Cross-file consistency
+
+When modifying one PT page, check and update similar patterns in related files.
+
+**Related file groups:**
+- **Core PT pages:** `pt_tracker.html`, `pt_report.html`, `pt_view.html`, `rehab_coverage.html`
+- **Shared modules:** `shared/firestore_shared_data.js`, `shared/exercise_form_module.js`
+- **Static data:** `exercise_library.json`, `exercise_roles.json`, vocabularies, schemas
+
+**Examples requiring consistency:**
+
+❌ **BAD - inconsistent auth patterns:**
+```javascript
+// pt_tracker.html uses pointerup binding
+guardButton.addEventListener('pointerup', showAuthModal);
+
+// pt_report.html uses onclick (WRONG - will fail on iOS)
+<button onclick="showAuthModal()">Sign In</button>
+```
+
+✅ **GOOD - consistent auth patterns:**
+```javascript
+// All PT pages use the same pointerup binding pattern
+guardButton.addEventListener('pointerup', showAuthModal);
+```
+
+**When to check consistency:**
+- **Event handling:** If you add/fix a button in one file, check if similar buttons exist in other files
+- **Firebase patterns:** Auth checks, Firestore queries, offline handling should use the same approach
+- **Data loading:** Exercise library, roles, and vocabulary loading should be consistent
+- **Error handling:** Similar operations should handle errors the same way
+
+**Checklist after changing shared patterns:**
+1. Search for similar code patterns in related files: `grep -r "pattern" pt/*.html`
+2. Update all occurrences to use the same approach
+3. Test on iOS if UI interaction patterns changed
+4. Document the canonical pattern if it's new
+
 ---
 
 ## Common Issues & Solutions
@@ -614,6 +652,7 @@ When debugging issues:
 - **2025-01-05** — **Problem:** iOS taps on "Next Set" were unreliable; duration-based exercises still prompted for reps in manual logging. **What I did:** Added an iOS touchend fallback for the Next Set button and updated the log-set flow to capture duration seconds instead of reps (stored as `secondsAchieved`/`secondsTarget`).
 - **2026-01-08** — **Problem:** PT report/view navigation failed on iOS when using inline `onclick` handlers. **What I did:** Switched PT report/view navigation controls to direct `<a href>` links styled as buttons (`pt/pt_report.html`, `pt/pt_view.html`) to avoid reliance on `onclick` delivery.
 - **2026-01-05** — **Problem:** Sign-in buttons in PT Tracker missed taps on iOS Safari/PWA. **What I did:** Added pointerup + touchend fallbacks for auth-related buttons to ensure reliable activation without relying on `click` handlers.
+- **2026-01-06** — **Problem:** "Add Role" button in rehab_coverage.html did not respond to taps on iOS Safari/PWA. **What I did:** Converted the dynamically-generated "Add Role" button from inline `onclick` to `data-action` pattern with `bindPointerHandlers()` function. Added `pointerup` event listeners for iOS touch/desktop mouse compatibility and keyboard support (Enter/Space) for accessibility. Re-bind handlers after dynamic HTML updates to ensure reliability (`pt/rehab_coverage.html`).
 
 ## 2026-01-05 — Enforce pointer-based activation in PT Tracker
 

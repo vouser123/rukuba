@@ -1305,6 +1305,43 @@
             });
         }
 
+        /**
+         * Bind iOS-safe pointer event handlers to elements with data-action attributes.
+         *
+         * iOS Safari/PWA does not reliably trigger onclick handlers on dynamically created elements.
+         * This function binds pointerup events (which work consistently on iOS touch and desktop mouse)
+         * and keyboard events for accessibility.
+         *
+         * @param {HTMLElement} root - Root element to search for data-action elements (default: document)
+         */
+        function bindPointerHandlers(root = document) {
+            const elements = root.querySelectorAll('[data-action]');
+            elements.forEach(el => {
+                const action = el.getAttribute('data-action');
+
+                // Handler function executes the globally available function
+                const handler = (e) => {
+                    const fn = window[action];
+                    if (fn && typeof fn === 'function') {
+                        e.preventDefault();
+                        fn();
+                    } else {
+                        console.warn(`[bindPointerHandlers] Function "${action}" not found`);
+                    }
+                };
+
+                // Bind pointerup for iOS touch and desktop mouse compatibility
+                el.addEventListener('pointerup', handler);
+
+                // Bind keyboard events for accessibility (Enter and Space)
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        handler(e);
+                    }
+                });
+            });
+        }
+
         // Initialize
         async function init() {
             try {
@@ -2414,10 +2451,14 @@
             });
             html += '</select></div>';
 
-            html += '<button class="btn btn-primary" style="width: 100%;" onclick="addRole()">Add Role</button>';
+            // Add Role button with iOS-safe data-action pattern instead of onclick
+            html += '<button class="btn btn-primary" style="width: 100%;" data-action="addRole">Add Role</button>';
             html += '</div>';
 
             document.getElementById('roles-container').innerHTML = html;
+
+            // Rebind pointer handlers after dynamic HTML update (required for iOS tap reliability)
+            bindPointerHandlers(document.getElementById('roles-container'));
         }
 
         function toggleCustomInput(field) {
