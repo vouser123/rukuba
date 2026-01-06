@@ -466,6 +466,88 @@ export async function getAllExercises(includeArchived = false) {
     return exercises;
 }
 
+/**
+ * Create new exercise (OLD schema: pt_shared/exercise_library)
+ * @param {object} exerciseData - Exercise data
+ * @returns {Promise<string>} Exercise ID
+ */
+export async function createExercise(exerciseData) {
+    const libraryRef = doc(db, 'pt_shared', 'exercise_library');
+    const librarySnap = await getDoc(libraryRef);
+
+    if (!librarySnap.exists()) {
+        throw new Error('exercise_library document not found');
+    }
+
+    const libraryData = librarySnap.data();
+    const exercises = libraryData.exercises || [];
+
+    // Generate new exercise ID
+    const newId = exerciseData.id || `ex${String(exercises.length + 1).padStart(4, '0')}`;
+
+    // Add new exercise
+    const newExercise = {
+        id: newId,
+        ...exerciseData,
+        archived: false,
+        created_at: new Date().toISOString()
+    };
+
+    exercises.push(newExercise);
+
+    // Save back to Firestore
+    await setDoc(libraryRef, { exercises }, { merge: true });
+
+    console.log('[createExercise] Created:', newId);
+    return newId;
+}
+
+/**
+ * Update existing exercise (OLD schema: pt_shared/exercise_library)
+ * @param {string} id - Exercise ID
+ * @param {object} changes - Changes to apply
+ * @returns {Promise<string>} Exercise ID
+ */
+export async function updateExercise(id, changes) {
+    const libraryRef = doc(db, 'pt_shared', 'exercise_library');
+    const librarySnap = await getDoc(libraryRef);
+
+    if (!librarySnap.exists()) {
+        throw new Error('exercise_library document not found');
+    }
+
+    const libraryData = librarySnap.data();
+    const exercises = libraryData.exercises || [];
+
+    // Find exercise
+    const index = exercises.findIndex(ex => ex.id === id);
+    if (index === -1) {
+        throw new Error(`Exercise not found: ${id}`);
+    }
+
+    // Update exercise
+    exercises[index] = {
+        ...exercises[index],
+        ...changes,
+        updated_at: new Date().toISOString()
+    };
+
+    // Save back to Firestore
+    await setDoc(libraryRef, { exercises }, { merge: true });
+
+    console.log('[updateExercise] Updated:', id);
+    return id;
+}
+
+/**
+ * Archive exercise (OLD schema: pt_shared/exercise_library)
+ * @param {string} id - Exercise ID
+ * @returns {Promise<string>} Exercise ID
+ */
+export async function archiveExercise(id) {
+    return await updateExercise(id, { archived: true });
+}
+
 // ============================================
 // ROLES (Versioned, per exercise)
 // ============================================

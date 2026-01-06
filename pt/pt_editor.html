@@ -343,7 +343,7 @@
     <!-- Header -->
     <div class="header">
         <button data-action="goBack" class="btn-secondary">← Back</button>
-        <h1>PT Editor <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">v0.4.13</span></h1>
+        <h1>PT Editor <span style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">v0.4.14</span></h1>
         <button data-action="reloadApp" class="btn-secondary" title="Reload to get latest version">🔄</button>
     </div>
 
@@ -639,7 +639,11 @@
 
                     <div class="form-group">
                         <label class="form-label" for="new-role-focus">Focus (optional)</label>
-                        <input type="text" id="new-role-focus" class="form-input" placeholder="e.g., extension, abduction">
+                        <select id="new-role-focus" class="form-select">
+                            <option value="">-- No focus (general) --</option>
+                            <!-- Options populated dynamically from existing roles -->
+                        </select>
+                        <input type="text" id="new-role-focus-custom" class="form-input" placeholder="Enter custom focus" style="display: none; margin-top: 8px;">
                         <p class="help-text">Specific focus within the capacity</p>
                     </div>
 
@@ -982,6 +986,9 @@
             document.getElementById('current-roles').innerHTML = rolesHtml;
             document.getElementById('add-role-form').style.display = 'block';
 
+            // Populate focus dropdown with all existing focus values
+            populateRoleFocusDropdown();
+
             // Re-bind pointer handlers
             bindPointerHandlers(document.getElementById('current-roles'));
         }
@@ -1153,6 +1160,37 @@
                 regions.map(region => `<option value="${region}">${region}</option>`).join('');
         }
 
+        // Populate role focus dropdown from existing roles
+        function populateRoleFocusDropdown() {
+            const select = document.getElementById('new-role-focus');
+            if (!select) return;
+
+            // Collect all unique focus values from existing roles
+            const allFocuses = new Set();
+            Object.values(exerciseRoles).forEach(ex => {
+                if (ex.roles) {
+                    ex.roles.forEach(role => {
+                        if (role.focus) allFocuses.add(role.focus);
+                    });
+                }
+            });
+
+            select.innerHTML = '<option value="">-- No focus (general) --</option>' +
+                Array.from(allFocuses).sort().map(f => `<option value="${f}">${f}</option>`).join('') +
+                '<option value="__custom__">➕ Other (custom)...</option>';
+
+            // Add change handler to show/hide custom input
+            select.addEventListener('change', () => {
+                const customInput = document.getElementById('new-role-focus-custom');
+                if (select.value === '__custom__') {
+                    customInput.style.display = 'block';
+                    customInput.focus();
+                } else {
+                    customInput.style.display = 'none';
+                }
+            });
+        }
+
         // Add dynamic field functions
         function addDynamicField(listId, placeholder = '', options = []) {
             const list = document.getElementById(listId);
@@ -1310,7 +1348,15 @@
 
                 const region = document.getElementById('new-role-region').value;
                 const capacity = document.getElementById('new-role-capacity').value;
-                const focus = document.getElementById('new-role-focus').value.trim();
+
+                // Get focus value (from select or custom input)
+                let focus = document.getElementById('new-role-focus').value;
+                if (focus === '__custom__') {
+                    focus = document.getElementById('new-role-focus-custom').value.trim();
+                } else {
+                    focus = focus.trim();
+                }
+
                 const contribution = document.getElementById('new-role-contribution').value;
 
                 if (!region || !capacity || !contribution) {
