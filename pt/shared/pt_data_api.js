@@ -471,7 +471,7 @@ export async function getAllExercises(includeArchived = false) {
  * @param {object} exerciseData - Exercise data
  * @returns {Promise<string>} Exercise ID
  */
-export async function createExercise(exerciseData) {
+async function createExercise(exerciseData) {
     const libraryRef = doc(db, 'pt_shared', 'exercise_library');
     const librarySnap = await getDoc(libraryRef);
 
@@ -508,7 +508,7 @@ export async function createExercise(exerciseData) {
  * @param {object} changes - Changes to apply
  * @returns {Promise<string>} Exercise ID
  */
-export async function updateExercise(id, changes) {
+async function updateExercise(id, changes) {
     const libraryRef = doc(db, 'pt_shared', 'exercise_library');
     const librarySnap = await getDoc(libraryRef);
 
@@ -544,7 +544,7 @@ export async function updateExercise(id, changes) {
  * @param {string} id - Exercise ID
  * @returns {Promise<string>} Exercise ID
  */
-export async function archiveExercise(id) {
+async function archiveExercise(id) {
     return await updateExercise(id, { archived: true });
 }
 
@@ -553,7 +553,7 @@ export async function archiveExercise(id) {
  * @param {string} id - Exercise ID
  * @returns {Promise<string>} Exercise ID
  */
-export async function unarchiveExercise(id) {
+async function unarchiveExercise(id) {
     return await updateExercise(id, { archived: false });
 }
 
