@@ -1699,6 +1699,36 @@
         </div>
     </div>
 
+    <!-- Transaction toast (bottom of screen, iOS style) -->
+    <div id="transaction-toast" style="
+        position: fixed;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        display: none;
+        z-index: 10000;
+        max-width: 80%;
+        text-align: center;
+    ">
+        Saved: <span id="transaction-id"></span>
+        <button data-action="copyTransactionId" style="
+            margin-left: 10px;
+            background: var(--ios-blue);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+        ">Copy</button>
+    </div>
+
     <script src="pt_payload_utils.js"></script>
     <script>
         // Guard: show a warning if the module script fails to initialize.
@@ -1726,6 +1756,11 @@
         } from './firebase.js';
         // import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"; // TODO: Fix password reset
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
+
+        // PT Data API - Unified data access layer (Phase 2)
+        import { insertExerciseCompletion } from './shared/pt_data_api.js';
+        import { completionToLegacySession } from './shared/legacy_adapter.js';
+
         import {
             loadExerciseLibraryShared,
             loadExerciseRolesShared,
@@ -3273,6 +3308,55 @@
         }
 
         const isTimerType = (type) => TIMER_TYPES.includes(type);
+
+        /**
+         * Show transaction ID toast (iOS style, bottom of screen)
+         *
+         * Displays transaction ID with copy button for user confirmation
+         * Auto-hides after 5 seconds
+         *
+         * @param {string} txId - Transaction ID (ULID)
+         *
+         * iOS/Safari Notes: Uses fixed positioning with safe-area-inset for notch/home indicator
+         */
+        function showTransactionToast(txId) {
+            const toast = document.getElementById('transaction-toast');
+            if (!toast) {
+                console.warn('[Toast] Transaction toast element not found');
+                return;
+            }
+
+            const idSpan = document.getElementById('transaction-id');
+            if (idSpan) {
+                idSpan.textContent = txId;
+            }
+
+            toast.style.display = 'block';
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 5000);
+        }
+
+        /**
+         * Copy transaction ID to clipboard
+         *
+         * Triggered by clicking "Copy" button in transaction toast
+         *
+         * iOS/Safari Notes: Uses Clipboard API (supported on iOS 13.4+)
+         */
+        function copyTransactionId() {
+            const txId = document.getElementById('transaction-id').textContent;
+            if (!txId) return;
+
+            navigator.clipboard.writeText(txId).then(() => {
+                alert('Transaction ID copied to clipboard');
+            }).catch(err => {
+                console.error('[Clipboard] Failed to copy:', err);
+                alert('Failed to copy transaction ID');
+            });
+        }
 
         /**
          * POCKET MODE BEHAVIOR
@@ -4868,47 +4952,78 @@
             });
         }
 
+        /**
+         * Save exercise completion using PT Data API
+         *
+         * Converts sessionData to new completion format with sets array
+         * Uses legacy adapter for backward compatibility with cache/display
+         *
+         * @param {string} notes - Exercise completion notes
+         *
+         * iOS/Safari Notes: Shows transaction ID toast after successful save
+         * Offline Handling: API has retry logic, will be wrapped with offline queue in Phase 4
+         */
         async function saveSessionWithNotes(notes) {
-            const finalizedSession = {
-                sessionId: currentSessionId,
-                exerciseId: currentExercise.id,
-                exerciseName: currentExercise.name,
-                exerciseType: currentExercise.type,
-                date: new Date().toISOString(),
-                notes: notes.trim(),
-                exerciseSpec: {
-                    sets: currentExercise.sets,
-                    repsPerSet: currentExercise.repsPerSet,
-                    secondsPerRep: currentExercise.secondsPerRep,
-                    type: currentExercise.type
-                },
-                sets: currentExercise.sessionData
-            };
-            addSessionToCache(finalizedSession);
-            enqueueFirestoreSession(finalizedSession);
-            void syncRuntimeToFirestore();
+            // Convert currentExercise.sessionData to API format
+            // sessionData structure: [{set, reps, type, timestamp, side, weight, secondsAchieved, etc}]
+            const sets = currentExercise.sessionData.map((set, idx) => ({
+                index: idx,  // 0-based index
+                side: set.side || null,
+                reps: set.reps || null,
+                holdSeconds: set.holdSeconds || null,
+                timeSeconds: set.secondsAchieved || null,
+                distance: set.distanceFeet || null,
+                formParams: null  // TODO: Extract formParams from set data (weight, resistance, etc)
+            }));
 
-            // BUG FIX: Wait for Firestore write to complete before showing success feedback
-            // Write finalized session to Firestore (user-scoped)
-            let firestoreSuccess = false;
             try {
-                if (currentUser) {
-                    // User is authenticated - attempt direct write
-                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(finalizedSession));
-                    console.log('[Firestore] Session synced immediately:', finalizedSession.sessionId);
-                    removeQueuedSession(finalizedSession);
-                    firestoreSuccess = true;
-                } else {
-                    // Not authenticated - queue for later
-                    console.log('[Firestore] Not authenticated, queueing session');
-                }
+                // Call PT Data API to insert completion
+                const completionULID = await insertExerciseCompletion({
+                    exerciseId: currentExercise.id,
+                    notes: notes.trim(),
+                    formParams: null,  // Exercise-level params (if any)
+                    sets: sets
+                });
+
+                console.log('[API] Exercise completion saved:', completionULID, `(${sets.length} sets)`);
+
+                // Show transaction ID to user
+                showTransactionToast(completionULID);
+
+                // Convert to legacy shape for local cache (backward compatibility)
+                const legacySession = completionToLegacySession({
+                    id: completionULID,
+                    exerciseId: currentExercise.id,
+                    timestamp: new Date(),
+                    notes: notes.trim(),
+                    formParams: null,
+                    sets: sets,
+                    version: 1
+                }, {
+                    id: currentExercise.id,
+                    name: currentExercise.name,
+                    canonical_name: currentExercise.name,
+                    pattern_modifiers: currentExercise.patternModifiers || []
+                });
+
+                // Add to local cache for offline viewing
+                addSessionToCache(legacySession);
+
+                // Remove from legacy queue if present
+                removeQueuedSession(legacySession);
+
+                // Haptic feedback
+                haptic('success');
+
             } catch (error) {
-                console.error('[Firestore] Write failed:', error);
-                // Show error to user but allow localStorage flow to continue
-                alert('Warning: Session saved locally but failed to sync to cloud. Will retry when online.');
+                console.error('[API] Failed to save exercise completion:', error);
+                // Error already shown by API retry logic
+                // Fall back to showing generic error
+                alert('Failed to save exercise completion. Please check your connection and try again.');
+                return; // Don't close modal or reset state
             }
 
-            haptic('success');
+            // Close notes modal
             closeSessionNotesModal();
 
             // Mark exercise as completed in session plan
