@@ -753,11 +753,43 @@
             createRole,
             deleteRole,
             updateVocabulary
-        } from './shared/pt_data_api.js?v=0.4.10';
-        import { bindActionHandlers, showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js?v=0.4.10';
-        import * as ptDataAPI from './shared/pt_data_api.js?v=0.4.10';
-        import { replayQueue } from './shared/offline_queue.js?v=0.4.10';
+        } from './shared/pt_data_api.js?v=0.4.11';
+        import { showTransactionToast, copyTransactionId } from './shared/pt_event_handlers.js?v=0.4.11';
+        import * as ptDataAPI from './shared/pt_data_api.js?v=0.4.11';
+        import { replayQueue } from './shared/offline_queue.js?v=0.4.11';
         import { ulid } from 'https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js';
+
+        // iOS-safe pointer-based event binding
+        let actionHandlers = {}; // Will be populated later
+
+        function bindPointerHandlers(root = document) {
+            const elements = root.querySelectorAll('[data-action]');
+            elements.forEach((element) => {
+                if (element.dataset.pointerBound === 'true') return;
+                element.dataset.pointerBound = 'true';
+
+                const handleActivation = (event) => {
+                    if (element.dataset.stopPropagation === 'true') event.stopPropagation();
+
+                    if (element.dataset.action) {
+                        const action = actionHandlers[element.dataset.action];
+                        if (typeof action === 'function') {
+                            const args = [];
+                            if (element.dataset.actionArg !== undefined) args.push(element.dataset.actionArg);
+                            action(event, ...args);
+                        }
+                    }
+                };
+
+                element.addEventListener('pointerup', handleActivation);
+                element.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleActivation(e);
+                    }
+                });
+            });
+        }
 
         let exercises = [];
         let currentExercise = null;
@@ -892,8 +924,8 @@
                 </div>
             `).join('');
 
-            // Re-bind action handlers for new elements
-            bindActionHandlers(list, actionHandlers);
+            // Re-bind pointer handlers for new elements
+            bindPointerHandlers(list);
         }
 
         // Search handler
@@ -935,8 +967,8 @@
             document.getElementById('current-roles').innerHTML = rolesHtml;
             document.getElementById('add-role-form').style.display = 'block';
 
-            // Re-bind action handlers
-            bindActionHandlers(document.getElementById('current-roles'), actionHandlers);
+            // Re-bind pointer handlers
+            bindPointerHandlers(document.getElementById('current-roles'));
         }
 
         // Populate exercise selector for dosage
@@ -1104,11 +1136,11 @@
                 <button class="remove-btn" data-action="removeDynamicField">✕</button>
             `;
             list.appendChild(field);
-            bindActionHandlers(field, actionHandlers);
+            bindPointerHandlers(field);
         }
 
         // Action handlers
-        const actionHandlers = {
+        actionHandlers = {
             goBack: () => {
                 window.location.href = 'pt_view.html';
             },
@@ -1381,8 +1413,8 @@
             copyTransactionId: copyTransactionId
         };
 
-        // Bind action handlers
-        bindActionHandlers(document.body, actionHandlers);
+        // Bind pointer handlers
+        bindPointerHandlers(document.body);
 
         // Collect exercise data from form
         function collectExerciseData() {
@@ -1520,7 +1552,7 @@
                         <button class="remove-btn" data-action="removeDynamicField">✕</button>
                     `;
                     list.appendChild(field);
-                    bindActionHandlers(field, actionHandlers);
+                    bindPointerHandlers(field);
                 });
             };
 
