@@ -2524,6 +2524,8 @@
         }
 
         async function saveExercise() {
+            try {
+            console.log('[saveExercise] Called, currentEditingExerciseId:', currentEditingExerciseId);
             // Make exerciseLibrary available globally for Firestore save
             window.exerciseLibrary = exerciseLibrary;
             const existingExercise = currentEditingExerciseId
@@ -2625,6 +2627,11 @@
                 exerciseLibrary.push(exercise);
             }
 
+            console.log('[saveExercise] Modifications updated:', {
+                newCount: modifications.newExercises.length,
+                editedCount: Object.keys(modifications.editedExercises).length
+            });
+
             // Save to Firestore
             window.exerciseLibrary = exerciseLibrary;
             try {
@@ -2650,6 +2657,10 @@
 
             updateModificationSummary();
             initializeEditorMode();
+            } catch (error) {
+                alert(`ERROR in saveExercise: ${error.message}\n\nStack: ${error.stack}`);
+                console.error('[saveExercise] Error:', error);
+            }
         }
 
         function archiveExercise() {
@@ -2785,6 +2796,8 @@
         }
 
         function addRoleToExercise() {
+            try {
+            console.log('[addRoleToExercise] Called');
             const exerciseId = document.getElementById('role-exercise-select').value;
 
             // Get region value (from select or custom input)
@@ -2848,6 +2861,10 @@
             updateModificationSummary();
 
             alert('Role added! Remember to export modifications when done.');
+            } catch (error) {
+                alert(`ERROR in addRoleToExercise: ${error.message}\n\nStack: ${error.stack}`);
+                console.error('[addRoleToExercise] Error:', error);
+            }
         }
 
         function deleteRole(exerciseId, roleIndex, roleType) {
@@ -3013,6 +3030,8 @@
         }
 
         function updateDosage() {
+            try {
+            console.log('[updateDosage] Called');
             const exerciseId = document.getElementById('dosage-exercise-select').value;
             const sets = parseInt(document.getElementById('dosage-sets').value);
             let reps = parseInt(document.getElementById('dosage-reps').value);
@@ -3077,6 +3096,10 @@
             updateModificationSummary();
 
             alert('Dosage updated! Remember to export modifications when done.');
+            } catch (error) {
+                alert(`ERROR in updateDosage: ${error.message}\n\nStack: ${error.stack}`);
+                console.error('[updateDosage] Error:', error);
+            }
         }
 
         function updateModificationSummary() {
