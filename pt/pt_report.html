@@ -450,7 +450,6 @@
             <div id="mod-summary" style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none;">
                 <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--ios-blue);">Modifications Summary</h3>
                 <div id="mod-summary-content"></div>
-                <button class="btn-primary" style="margin-top: 15px; width: 100%; min-height: 52px; font-size: 17px;" onclick="showExportEmailModal()" accesskey="e">📧 Send to Patient (Alt+E)</button>
             </div>
 
             <!-- Add/Edit Exercise Section -->
@@ -792,41 +791,7 @@
     </div>
 
     <!-- TODO: Remove email export modal if direct Firestore workflow is working well
-<div id="export-email-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
-    <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%;">
-        <h2 style="margin: 0 0 16px 0; font-size: 20px;">📤 Send to Patient</h2>
-        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
-            Enter the patient's email address (optional). You can copy the payload only or open your email client with the modifications ready to send.
-        </p>
-        <input type="email" id="patient-email" placeholder="patient@example.com" style="
-            width: 100%;
-            padding: 12px;
-            font-size: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            margin-bottom: 12px;
-        ">
-        <textarea id="pt-message" placeholder="Optional: Add a message for your patient" style="
-            width: 100%;
-            min-height: 80px;
-            padding: 12px;
-            font-size: 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            resize: vertical;
-            margin-bottom: 16px;
-        "></textarea>
-        <div style="display: flex; gap: 12px; justify-content: flex-end;">
-            <button class="btn-secondary" onclick="closeExportEmailModal()">Cancel</button>
-            <button class="btn-primary" onclick="copyModificationsPayload()">📋 Copy Payload Only</button>
-            <button class="btn-primary" onclick="sendModificationsToPatient()">📧 Send Email</button>
-        </div>
-    </div>
-</div>
+<!-- Email export removed - saves directly to Firestore -->
 -->
 
     <!-- Notes Modal -->
@@ -1263,8 +1228,11 @@
             try {
                 const runtimeRef = doc(db, `users/${window.ptReportUserId}/pt_runtime/state`);
                 await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
-                    .then(({ setDoc }) => setDoc(runtimeRef, { exerciseLibrary: window.exerciseLibrary }, { merge: true }));
-                console.log('[Firestore] Exercise library saved');
+                    .then(({ setDoc }) => setDoc(runtimeRef, {
+                        exerciseLibrary: window.exerciseLibrary,
+                        pt_modifications: modifications
+                    }, { merge: true }));
+                console.log('[Firestore] Exercise library and modifications saved');
             } catch (error) {
                 console.error('[Firestore] Failed to save exercise library:', error);
                 throw error;
@@ -2856,11 +2824,18 @@
             document.getElementById('new-role-focus-custom').style.display = 'none';
             document.getElementById('new-role-focus-custom').value = '';
 
+            // Save to Firestore
+            try {
+                await window.saveExerciseLibraryToFirestore();
+            } catch (error) {
+                alert(`Role tracked but Firestore save failed: ${error.message}`);
+            }
+
             // Refresh display
             loadExerciseRoles();
             updateModificationSummary();
 
-            alert('Role added! Remember to export modifications when done.');
+            alert('Role added and saved to Firestore!');
             } catch (error) {
                 alert(`ERROR in addRoleToExercise: ${error.message}\n\nStack: ${error.stack}`);
                 console.error('[addRoleToExercise] Error:', error);
@@ -3091,11 +3066,18 @@
             // Add to modifications
             modifications.dosageChanges[exerciseId] = newSpec;
 
+            // Save to Firestore
+            try {
+                await window.saveExerciseLibraryToFirestore();
+            } catch (error) {
+                alert(`Dosage tracked but Firestore save failed: ${error.message}`);
+            }
+
             // Refresh display
             loadExerciseDosage();
             updateModificationSummary();
 
-            alert('Dosage updated! Remember to export modifications when done.');
+            alert('Dosage updated and saved to Firestore!');
             } catch (error) {
                 alert(`ERROR in updateDosage: ${error.message}\n\nStack: ${error.stack}`);
                 console.error('[updateDosage] Error:', error);
