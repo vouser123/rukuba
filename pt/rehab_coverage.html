@@ -870,54 +870,68 @@
     <button class="back-button" onclick="goBack()" id="back-button">← Back</button>
 
     <script src="pt_payload_utils.js"></script>
-    <script>
-        // Offline detection - prevent module loading if offline
-        if (!navigator.onLine) {
-            document.addEventListener('DOMContentLoaded', () => {
-                const main = document.querySelector('main') || document.body;
-                main.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-primary);">' +
-                    '<h2>Offline Mode</h2>' +
-                    '<p>Rehab Coverage requires an internet connection to load Firebase authentication.</p>' +
-                    '<p>Please reconnect and refresh the page.</p>' +
-                    '</div>';
-            });
-            throw new Error('Offline - skipping Firebase module');
-        }
-    </script>
     <script type="module">
-        // Firebase auth + auto-discover patient for therapist
-        import {
-            auth,
-            db,
-            onAuthStateChanged,
-            signOut,
-            signInWithEmailAndPassword,
-            setPersistence,
-            browserLocalPersistence,
-            browserSessionPersistence
-            // sendPasswordResetEmail // TODO: Fix password reset
-        } from './firebase.js';
-        import {
-            loadExerciseLibraryShared,
-            loadExerciseRolesShared,
-            loadExerciseVocabularyShared,
-            loadExerciseRolesSchemaShared,
-            saveExerciseRolesShared,  // BUG FIX: Add save function for roles persistence
-            saveExerciseVocabularyShared,  // BUG FIX: Add save function for vocabulary persistence
-            saveExerciseRolesSchemaShared,  // BUG FIX: Add save function for schema persistence
-            saveExerciseLibraryShared  // BUG FIX: Add save function for library persistence
-        } from './shared/firestore_shared_data.js';
+        // Dynamic imports for offline fallback
+        let auth, db, onAuthStateChanged, signOut, signInWithEmailAndPassword, setPersistence;
+        let browserLocalPersistence, browserSessionPersistence;
+        let loadExerciseLibraryShared, loadExerciseRolesShared, loadExerciseVocabularyShared;
+        let loadExerciseRolesSchemaShared, saveExerciseRolesShared, saveExerciseVocabularyShared;
+        let saveExerciseRolesSchemaShared, saveExerciseLibraryShared;
+        let collection, onSnapshot, query, where, getDocs;
+        let firebaseAvailable = false;
+
+        try {
+            const firebaseImports = await import('./firebase.js');
+            auth = firebaseImports.auth;
+            db = firebaseImports.db;
+            onAuthStateChanged = firebaseImports.onAuthStateChanged;
+            signOut = firebaseImports.signOut;
+            signInWithEmailAndPassword = firebaseImports.signInWithEmailAndPassword;
+            setPersistence = firebaseImports.setPersistence;
+            browserLocalPersistence = firebaseImports.browserLocalPersistence;
+            browserSessionPersistence = firebaseImports.browserSessionPersistence;
+
+            const sharedImports = await import('./shared/firestore_shared_data.js');
+            loadExerciseLibraryShared = sharedImports.loadExerciseLibraryShared;
+            loadExerciseRolesShared = sharedImports.loadExerciseRolesShared;
+            loadExerciseVocabularyShared = sharedImports.loadExerciseVocabularyShared;
+            loadExerciseRolesSchemaShared = sharedImports.loadExerciseRolesSchemaShared;
+            saveExerciseRolesShared = sharedImports.saveExerciseRolesShared;
+            saveExerciseVocabularyShared = sharedImports.saveExerciseVocabularyShared;
+            saveExerciseRolesSchemaShared = sharedImports.saveExerciseRolesSchemaShared;
+            saveExerciseLibraryShared = sharedImports.saveExerciseLibraryShared;
+
+            const firestoreImports = await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js");
+            collection = firestoreImports.collection;
+            onSnapshot = firestoreImports.onSnapshot;
+            query = firestoreImports.query;
+            where = firestoreImports.where;
+            getDocs = firestoreImports.getDocs;
+
+            firebaseAvailable = true;
+        } catch (e) {
+            console.log('[Offline] Firebase unavailable, loading from cache:', e.message);
+            // Provide fallback loaders for offline mode
+            loadExerciseLibraryShared = async () => {
+                const response = await fetch('exercise_library.json');
+                return response.json();
+            };
+            loadExerciseRolesShared = async () => {
+                const response = await fetch('exercise_roles.json');
+                return response.json();
+            };
+            loadExerciseVocabularyShared = async () => {
+                const response = await fetch('exercise_roles_vocabulary.json');
+                return response.json();
+            };
+            loadExerciseRolesSchemaShared = async () => {
+                const response = await fetch('schema/exercise_roles.schema.json');
+                return response.json();
+            };
+        }
 
         // Make imported functions globally accessible for event handlers
         window.saveExerciseRolesShared = saveExerciseRolesShared;
-
-        import {
-            collection,
-            onSnapshot,
-            query,
-            where,
-            getDocs
-        } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         let currentUser = null;
         let coverageUnsubscribe = null;
