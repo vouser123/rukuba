@@ -870,6 +870,20 @@
     <button class="back-button" onclick="goBack()" id="back-button">← Back</button>
 
     <script src="pt_payload_utils.js"></script>
+    <script>
+        // Offline detection - prevent module loading if offline
+        if (!navigator.onLine) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const main = document.querySelector('main') || document.body;
+                main.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-primary);">' +
+                    '<h2>Offline Mode</h2>' +
+                    '<p>Rehab Coverage requires an internet connection to load Firebase authentication.</p>' +
+                    '<p>Please reconnect and refresh the page.</p>' +
+                    '</div>';
+            });
+            throw new Error('Offline - skipping Firebase module');
+        }
+    </script>
     <script type="module">
         // Firebase auth + auto-discover patient for therapist
         import {
