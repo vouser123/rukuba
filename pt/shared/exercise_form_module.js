@@ -212,13 +212,24 @@
         selectElem.innerHTML = buildSelectOptionsHtml(options, config);
     }
 
+    /**
+     * Populate exercise select dropdown with alphabetically sorted exercises.
+     */
     function populateExerciseSelect({ selectId, exercises, placeholder }) {
         const select = typeof selectId === 'string' ? document.getElementById(selectId) : selectId;
         if (!select) return;
         const label = placeholder || '-- Choose an exercise --';
         select.innerHTML = `<option value="">${label}</option>`;
         if (!exercises || exercises.length === 0) return;
-        exercises.forEach(ex => {
+
+        // Sort exercises alphabetically by name
+        const sortedExercises = [...exercises].sort((a, b) => {
+            const nameA = (a.canonical_name || a.title || a.name || a.id).toLowerCase();
+            const nameB = (b.canonical_name || b.title || b.name || b.id).toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        sortedExercises.forEach(ex => {
             const option = document.createElement('option');
             option.value = ex.id;
             option.textContent = ex.canonical_name || ex.title || ex.name || ex.id;
@@ -261,19 +272,31 @@
         return exerciseSchema?.properties?.pattern_modifiers?.items?.enum || [];
     }
 
+    /**
+     * Get equipment options for dropdowns.
+     * Returns union of ALL equipment (both required and optional) from library,
+     * regardless of type parameter (for consistent dropdown options).
+     */
     function getEquipmentOptions({ schema, exerciseLibrary, type }) {
         const options = new Set();
         const exerciseSchema = getExerciseSchema(schema);
+
+        // Add schema enum values for the specified type
         const enumValues = exerciseSchema?.properties?.equipment?.properties?.[type]?.items?.enum
             || schema?.$defs?.equipment?.properties?.[type]?.items?.enum
             || schema?.definitions?.equipment?.properties?.[type]?.items?.enum
             || [];
         enumValues.forEach(item => options.add(item));
 
+        // Add ALL equipment from library (both required and optional)
         if (exerciseLibrary && exerciseLibrary.length > 0) {
             exerciseLibrary.forEach(ex => {
-                const items = ex.equipment?.[type] || [];
-                items.forEach(item => {
+                // Union of required and optional equipment
+                const requiredItems = ex.equipment?.required || [];
+                const optionalItems = ex.equipment?.optional || [];
+                const allItems = [...requiredItems, ...optionalItems];
+
+                allItems.forEach(item => {
                     if (item) options.add(item);
                 });
             });

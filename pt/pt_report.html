@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PT Progress Report</title>
     <link rel="stylesheet" href="shared-styles.css">
     <style>
@@ -459,6 +459,7 @@
                 <!-- Exercise Selector -->
                 <div class="form-group">
                     <label class="form-label" for="edit-ex-select">Select Existing Exercise to Edit (optional)</label>
+                    <input type="text" id="edit-ex-search" class="form-input" placeholder="🔍 Search exercises..." style="margin-bottom: 8px;" oninput="filterExerciseSelect('edit-ex-select', this.value)">
                     <select id="edit-ex-select" class="form-select" onchange="loadExerciseForEdit()">
                         <option value="">-- Add new exercise (leave blank) --</option>
                     </select>
@@ -660,6 +661,7 @@
                 </p>
                 <div class="form-group">
                     <label class="form-label" for="role-exercise-select">Select Exercise *</label>
+                    <input type="text" id="role-ex-search" class="form-input" placeholder="🔍 Search exercises..." style="margin-bottom: 8px;" oninput="filterExerciseSelect('role-exercise-select', this.value)">
                     <select id="role-exercise-select" class="form-select" onchange="loadExerciseRoles()">
                         <option value="">-- Choose an exercise --</option>
                     </select>
@@ -712,6 +714,7 @@
                 </p>
                 <div class="form-group">
                     <label class="form-label" for="dosage-exercise-select">Select Exercise *</label>
+                    <input type="text" id="dosage-ex-search" class="form-input" placeholder="🔍 Search exercises..." style="margin-bottom: 8px;" oninput="filterExerciseSelect('dosage-exercise-select', this.value)">
                     <select id="dosage-exercise-select" class="form-select" onchange="loadExerciseDosage()">
                         <option value="">-- Choose an exercise --</option>
                     </select>
@@ -1207,10 +1210,16 @@
                     exercises: runtime.exerciseLibrary?.length || 0
                 });
 
+                // Wait for init() to be defined in main script tag
                 if (document.readyState === 'loading') {
-                    window.addEventListener('DOMContentLoaded', init, { once: true });
+                    window.addEventListener('DOMContentLoaded', () => {
+                        if (window.init) window.init();
+                    }, { once: true });
                 } else {
-                    init();
+                    // Delay to ensure init() is defined
+                    setTimeout(() => {
+                        if (window.init) window.init();
+                    }, 0);
                 }
             } catch (error) {
                 console.error('[Firestore] Failed to load patient data:', error);
@@ -1621,7 +1630,11 @@
             });
         }
 
-        function init() {
+        /**
+         * Initialize the PT Report UI after data is loaded.
+         * Exposed on window for access from Firebase module script.
+         */
+        window.init = function init() {
             if (initHasRun) return;
             initHasRun = true;
 
@@ -1997,6 +2010,34 @@
                 editorMode.style.display = 'block';
                 initializeEditorMode();
             }
+        }
+
+        /**
+         * Filter exercise dropdown by search text.
+         * iOS-compatible - called via oninput on search boxes.
+         * Exposed on window for inline handler access.
+         */
+        window.filterExerciseSelect = function filterExerciseSelect(selectId, searchText) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const searchLower = searchText.toLowerCase().trim();
+            const options = select.querySelectorAll('option');
+
+            options.forEach(option => {
+                if (!option.value) {
+                    // Keep placeholder option visible
+                    option.style.display = '';
+                    return;
+                }
+
+                const text = option.textContent.toLowerCase();
+                if (!searchLower || text.includes(searchLower)) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
         }
 
         function initializeEditorMode() {
@@ -2763,7 +2804,7 @@
             }
         }
 
-        function addRoleToExercise() {
+        async function addRoleToExercise() {
             try {
             console.log('[addRoleToExercise] Called');
             const exerciseId = document.getElementById('role-exercise-select').value;
@@ -3004,7 +3045,7 @@
             editDosageForm.style.display = 'block';
         }
 
-        function updateDosage() {
+        async function updateDosage() {
             try {
             console.log('[updateDosage] Called');
             const exerciseId = document.getElementById('dosage-exercise-select').value;
@@ -3327,8 +3368,21 @@ ${payload}`;
         */
 
         // PT Mode - load base files without patient data
-        async function loadPTMode() {
+        /**
+         * Load PT Editor Mode - loads base exercise library without patient data.
+         * Saves changes to the PT's own Firestore account.
+         * Exposed on window for onclick handler access.
+         */
+        window.loadPTMode = async function loadPTMode() {
             try {
+                // Check if user is authenticated (ptReportUserId should be set by auth flow)
+                if (!window.ptReportUserId) {
+                    alert('You must be signed in to use PT Editor Mode.\n\nPlease sign in first, then click PT Editor Mode.');
+                    return;
+                }
+
+                console.log('[PT Mode] Using account for saves:', window.ptReportUserId);
+
                 const sharedLoader = window.sharedDataLoader;
                 if (!sharedLoader) {
                     throw new Error('Shared data loader unavailable. Try reloading the page.');

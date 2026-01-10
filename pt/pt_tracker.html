@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="PT Tracker">
@@ -1149,18 +1149,16 @@
                     <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 16px 0;">
                 </div>
 
-                <!-- User's Personal Notes -->
-                <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 8px;">Your Personal Notes:</div>
-                <textarea class="modal-input" id="exercise-description" placeholder="Description (what is this exercise?)" style="min-height: 60px; resize: vertical;"></textarea>
-                <textarea class="modal-input" id="exercise-tips" placeholder="Execution tips (form, alignment, cues)" style="min-height: 80px; resize: vertical;"></textarea>
-                <textarea class="modal-input" id="exercise-feel" placeholder="Where to feel (target muscles)" style="min-height: 50px; resize: vertical;"></textarea>
-                <textarea class="modal-input" id="exercise-not-feel" placeholder="Where NOT to feel (avoid strain)" style="min-height: 50px; resize: vertical;"></textarea>
-                <textarea class="modal-input" id="exercise-modifications" placeholder="Modifications (easier/harder variations)" style="min-height: 60px; resize: vertical;"></textarea>
-                <input type="number" class="modal-input" id="exercise-rest-seconds" placeholder="Rest between sets (seconds, optional)" min="0">
+                <!-- User's Personal Notes (hidden - kept for data persistence) -->
+                <textarea class="modal-input" id="exercise-description" style="display: none;"></textarea>
+                <textarea class="modal-input" id="exercise-tips" style="display: none;"></textarea>
+                <textarea class="modal-input" id="exercise-feel" style="display: none;"></textarea>
+                <textarea class="modal-input" id="exercise-not-feel" style="display: none;"></textarea>
+                <textarea class="modal-input" id="exercise-modifications" style="display: none;"></textarea>
+                <input type="number" class="modal-input" id="exercise-rest-seconds" style="display: none;">
             </div>
             <div class="modal-buttons">
-                <button class="modal-cancel" data-action="closeExerciseDetailsModal">Cancel</button>
-                <button class="modal-save" data-action="saveExerciseDetails">Save</button>
+                <button class="modal-cancel" data-action="closeExerciseDetailsModal" style="flex: 1;">Close</button>
             </div>
         </div>
     </div>
@@ -2740,7 +2738,7 @@
 
             return `
                 <label style="font-size: 13px; margin-bottom: 4px; display: block;">${label}</label>
-                <select class="modal-select" id="${elementId}" style="margin-bottom: 8px;" data-param="${param}" data-side="${side || ''}" onchange="handleParamSelectChange(this)">
+                <select class="modal-select param-select" id="${elementId}" style="margin-bottom: 8px;" data-param="${param}" data-side="${side || ''}">
                     ${lastUsed ? '' : placeholder}
                     ${optionHtml.join('')}
                     <option value="${CUSTOM_PARAM_VALUE}">Other...</option>
@@ -2749,6 +2747,10 @@
             `;
         }
 
+        /**
+         * Handle parameter select change events (shows/hides "Other" custom input).
+         * iOS Safari/PWA compatible - uses event delegation instead of inline onchange.
+         */
         function handleParamSelectChange(selectElement) {
             const customElem = document.getElementById(`${selectElement.id}-custom`);
             if (!customElem) return;
@@ -2761,6 +2763,16 @@
                 customElem.value = '';
             }
         }
+
+        /**
+         * iOS-safe event delegation for parameter select dropdowns.
+         * Listens for change events on all .param-select elements.
+         */
+        document.addEventListener('change', (event) => {
+            if (event.target.classList.contains('param-select')) {
+                handleParamSelectChange(event.target);
+            }
+        });
 
         function readParamSelectValue(selectElement) {
             if (!selectElement) return '';
@@ -7683,84 +7695,116 @@
             const entry = getLibraryEntryById(editingDetailsExerciseId);
             const details = entry.details || {};
 
-            document.getElementById('exercise-details-title').textContent = entry.name;
+            // Use exact same rendering as exercise library detail view
+            document.getElementById('exercise-details-title').textContent = entry.name || entry.canonical_name;
+
+            const guidanceSection = document.getElementById('professional-guidance-section');
+            const guidanceContent = document.getElementById('professional-guidance-content');
+
+            // Build detail content using same format as showExerciseDetail() - lines 9022-9107
+            const detailHtml = `
+                ${entry.description ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Description</div>
+                    <div style="font-size: 14px; color: var(--ios-gray);">${entry.description}</div>
+                </div>
+                ` : ''}
+
+                ${entry.pattern ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Pattern</div>
+                    <div style="font-size: 14px;">
+                        <span class="pill" style="background: ${getPatternColor(entry.pattern)}; color: white;">
+                            ${getPatternBadge(entry.pattern)} ${isSidedPattern(entry.pattern) ? 'Sided Exercise (work left and right separately)' : 'Bilateral Exercise (both sides together)'}
+                        </span>
+                        ${(entry.pattern_modifiers || []).includes('alternating') && isSidedPattern(entry.pattern) ? `
+                        <span class="pill" style="background: var(--ios-orange); color: white; margin-left: 6px;">
+                            ⚡ ALTERNATING (switch sides each rep within set)
+                        </span>
+                        ` : ''}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${entry.primary_muscles && entry.primary_muscles.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Primary Muscles</div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        ${entry.primary_muscles.map(m => `<span class="pill" style="background: rgba(0,122,255,0.1); color: var(--ios-blue); font-size: 13px;">${m}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${entry.secondary_muscles && entry.secondary_muscles.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Secondary Muscles</div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        ${entry.secondary_muscles.map(m => `<span class="pill" style="background: rgba(0,122,255,0.05); color: var(--ios-gray); font-size: 12px;">${m}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${entry.equipment && entry.equipment.required && entry.equipment.required.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Equipment Required</div>
+                    <div style="font-size: 14px; color: var(--ios-gray);">${entry.equipment.required.join(', ')}</div>
+                </div>
+                ` : ''}
+
+                ${entry.equipment && entry.equipment.optional && entry.equipment.optional.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Optional Equipment</div>
+                    <div style="font-size: 14px; color: var(--ios-gray);">${entry.equipment.optional.join(', ')}</div>
+                </div>
+                ` : ''}
+
+                ${entry.guidance && entry.guidance.external_cues && entry.guidance.external_cues.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">👀 External Cues</div>
+                    <ul style="font-size: 13px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                        ${entry.guidance.external_cues.map(cue => `<li style="margin-bottom: 6px;">${cue}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${entry.guidance && entry.guidance.motor_cues && entry.guidance.motor_cues.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">💪 Motor Cues</div>
+                    <ul style="font-size: 13px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                        ${entry.guidance.motor_cues.map(cue => `<li style="margin-bottom: 6px;">${cue}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${entry.guidance && entry.guidance.compensation_warnings && entry.guidance.compensation_warnings.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: var(--ios-orange);">⚠️ Compensation Warnings</div>
+                    <ul style="font-size: 13px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
+                        ${entry.guidance.compensation_warnings.map(warning => `<li style="margin-bottom: 6px;">${warning}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${entry.guidance && entry.guidance.safety_flags && entry.guidance.safety_flags.length > 0 ? `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: var(--ios-red);">🛑 Safety Flags</div>
+                    <ul style="font-size: 13px; color: var(--ios-red); margin: 0; padding-left: 20px;">
+                        ${entry.guidance.safety_flags.map(flag => `<li style="margin-bottom: 6px;">${flag}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+            `;
+
+            guidanceContent.innerHTML = detailHtml;
+            guidanceSection.style.display = detailHtml.trim() ? 'block' : 'none';
+
+            // Keep hidden fields for data persistence
             document.getElementById('exercise-description').value = details.description || '';
             document.getElementById('exercise-tips').value = details.executionTips || '';
             document.getElementById('exercise-feel').value = details.shouldFeel || '';
             document.getElementById('exercise-not-feel').value = details.shouldNotFeel || '';
             document.getElementById('exercise-modifications').value = details.modifications || '';
             document.getElementById('exercise-rest-seconds').value = details.restSeconds || '';
-
-            // Display professional guidance if available (from imported exercises)
-            const guidanceSection = document.getElementById('professional-guidance-section');
-            const guidanceContent = document.getElementById('professional-guidance-content');
-
-            if (entry.guidance && (entry.guidance.external_cues?.length > 0 || entry.guidance.motor_cues?.length > 0 || entry.guidance.compensation_warnings?.length > 0 || entry.guidance.safety_flags?.length > 0)) {
-                let html = '';
-
-                // Show description if available
-                if (entry.description) {
-                    html += `
-                        <div style="margin-bottom: 12px;">
-                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Description</div>
-                            <div style="font-size: 13px; color: var(--ios-gray);">${entry.description}</div>
-                        </div>
-                    `;
-                }
-
-                // External cues
-                if (entry.guidance.external_cues && entry.guidance.external_cues.length > 0) {
-                    html += `
-                        <div style="margin-bottom: 12px;">
-                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">👀 External Cues</div>
-                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
-                                ${entry.guidance.external_cues.map(cue => `<li style="margin-bottom: 4px;">${cue}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                }
-
-                // Motor cues
-                if (entry.guidance.motor_cues && entry.guidance.motor_cues.length > 0) {
-                    html += `
-                        <div style="margin-bottom: 12px;">
-                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">💪 Motor Cues</div>
-                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
-                                ${entry.guidance.motor_cues.map(cue => `<li style="margin-bottom: 4px;">${cue}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                }
-
-                // Compensation warnings
-                if (entry.guidance.compensation_warnings && entry.guidance.compensation_warnings.length > 0) {
-                    html += `
-                        <div style="margin-bottom: 12px;">
-                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--ios-orange);">⚠️ Compensation Warnings</div>
-                            <ul style="font-size: 12px; color: var(--ios-gray); margin: 0; padding-left: 20px;">
-                                ${entry.guidance.compensation_warnings.map(warning => `<li style="margin-bottom: 4px;">${warning}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                }
-
-                // Safety flags
-                if (entry.guidance.safety_flags && entry.guidance.safety_flags.length > 0) {
-                    html += `
-                        <div style="margin-bottom: 0;">
-                            <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px; color: var(--ios-red);">🛑 Safety Flags</div>
-                            <ul style="font-size: 12px; color: var(--ios-red); margin: 0; padding-left: 20px;">
-                                ${entry.guidance.safety_flags.map(flag => `<li style="margin-bottom: 4px;">${flag}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                }
-
-                guidanceContent.innerHTML = html;
-                guidanceSection.style.display = 'block';
-            } else {
-                guidanceSection.style.display = 'none';
-            }
 
             document.getElementById('exercise-details-modal').classList.add('active');
             haptic('medium');
