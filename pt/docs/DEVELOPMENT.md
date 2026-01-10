@@ -30,7 +30,7 @@ These items require validation or product decisions. After listing them, this do
 1. **Firestore shared data ownership:** Should `pt_shared` ever be edited outside the PT editor workflow, or is it strictly seeded from JSON via `seed_firestore.html`? This impacts how aggressively the app should write shared data back to Firestore. (See `shared/firestore_shared_data.js` and `seed_firestore.html`.)
 2. **Offline auth behavior:** The Firebase Auth session persists locally, but we have not validated the UX when the user launches in airplane mode after the auth token expires. Do we want a forced sign-in UX, or fallback to local-only behavior?
 3. **Runtime vs sessions authority:** `users/{uid}/pt_runtime/state` stores a snapshot of exercise library, preferences, and queue, while `users/{uid}/sessions` is authoritative for session history. Should runtime also become authoritative in the future, or remain as a cache only?
-4. **V2 payload long-term storage:** PT_report currently exports modifications as V2 payloads over email/copy. Should future Firebase workflows persist the same payload for auditing, or replace email entirely?
+
 
 ---
 
@@ -38,9 +38,9 @@ These items require validation or product decisions. After listing them, this do
 
 PT Tracker is a static, offline-capable PWA with optional Firebase connectivity. The codebase currently blends local-first persistence with cloud-backed synchronization:
 
-- **Local-first runtime**: `localStorage` holds exercise library, session history (legacy), preferences, and offline queues.
+- **Authoritative runtime (when authenticated)**: Firestore is the system of record and uses IndexedDB-backed offline persistence. Legacy runtime cache: localStorage remains in use for existing code paths only (UI state, recovery, and compatibility), and is not authoritative.
 - **Cloud sync (transitional)**: Firebase Auth + Firestore are used for user sessions (`users/{uid}/sessions`), runtime snapshots (`users/{uid}/pt_runtime/state`), and shared global PT data (`pt_shared/*`).
-- **PT ↔ patient exchange**: Data exchange uses V2 gzip+base64 payloads with strict markers and checksums for email/copy-paste resilience.
+
 
 The architecture is in transition: local storage is still used as a fallback and a cache, but Firestore is authoritative for authenticated session history.
 
@@ -54,12 +54,12 @@ Maintain this section whenever HTML/JS/JSON inputs change (including new pages, 
 
 | File | Role | Notes |
 |------|------|-------|
-| `pt_tracker.html` | Patient-facing tracker | Uses Firestore auth + sessions, and localStorage for offline cache + library edits. Exports PT_DATA. Imports PT_MODIFICATIONS. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts; modal includes a password reset button. |
-| `rehab_coverage.html` | Coverage analysis | Reads shared data + session history. Also supports PT_DATA export and PT_MODIFICATIONS import. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts; modal includes a password reset button. |
+| `pt_tracker.html` | Patient-facing tracker | Uses Firestore auth + sessions, and localStorage for offline cache + library edits. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts|
+| `rehab_coverage.html` | Coverage analysis | Reads shared data + session history. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts |
 | `pt_report.html` | PT-facing report/editor | Imports PT_DATA, edits library/roles/vocab/dosage, exports PT_MODIFICATIONS. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts; modal includes a password reset button. |
 | `exercise_editor.html` | Library editor (standalone) | Exports/imports library and PT data; overlaps with PT editor workflows. |
 | `seed_firestore.html` | Admin seeding | Writes JSON sources to `pt_shared` and migrates shared dosage into user runtime. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts. |
-| `pt_view.html` | Shared view link | Tokenized viewer for shared PT data summaries. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts; modal includes a password reset button. |
+| `pt_view.html` | Shared view link | Tokenized viewer for shared PT data summaries. Auth credential inputs mount only after Sign In to avoid iOS PWA autofill prompts |
 
 ### Shared Modules & Data
 
@@ -83,9 +83,9 @@ Maintain this section whenever HTML/JS/JSON inputs change (including new pages, 
 ### PT Offline Cache Notes
 
 - `pt_tracker.html` is explicitly cached by the service worker to allow offline boot/loading.
-- Other PT HTML pages should also be cached for offline fallback; network-first remains the default when online.
+- Other PT HTML pages should also be cached for offline fallback; network-first remains the default when online for ALL pages.
 - Shared JSON + schema fallbacks (`exercise_library.json`, `exercise_roles.json`, vocabularies, and `schema/*.json`) are pre-cached so Firestore outages still load roles and exercises.
-
+- Firestore offline persistence uses IndexedDB and is independent of both the service worker cache and localStorage.
 ---
 
 
@@ -93,7 +93,9 @@ Maintain this section whenever HTML/JS/JSON inputs change (including new pages, 
 
 ### Current State
 
-**Primary persistence:** localStorage, with Firestore overlays when authenticated.
+**Primary persistence:** Firestore (with IndexedDB-backed offline persistence). Legacy cache: localStorage (existing runtime code paths only). When offline, all new data should be written via Firestore APIs and rely on Firestore’s offline persistence; no new client-side queues should be introduced.
+
+**IndexedDB usage note**: Firestore manages IndexedDB internally for offline persistence. Application code must not read from or write to IndexedDB directly. IndexedDB is not a manual cache layer in this system.
 
 #### localStorage keys (current)
 
@@ -164,7 +166,7 @@ localStorage.getItem('pt_tracker_data');
 
 ### Future State (Firebase-dependent Offline PWA)
 
-**Target:** Firebase becomes the system of record for all user data and shared data, while the PWA remains offline-capable via Firestore persistence and service worker caching.
+**Target:** Firebase is the system of record for all user data and shared data; remaining work focuses on UX, conflict handling, and cleanup—not storage replacement.
 
 **Planned characteristics (future, not implemented yet):**
 
@@ -233,7 +235,7 @@ contributions = roleSchema.properties.contribution.enum || [];
 
 ---
 
-## Data Import and Export
+## Data Import and Export --DEPRECATED
 
 ### V2 Payload Format (gzip/base64)
 
@@ -294,9 +296,9 @@ This is the highest-friction flow and uses V2 payloads with gzip+base64 to survi
 - iOS copy/paste truncation leads to checksum mismatch. The importer reports the mismatch and suggests re-exporting.
 - Incorrect payload type: PT Tracker expects `PT_MODIFICATIONS`, not `PT_DATA`.
 
-#### Future (Firebase-first)
+#### CURRENT/IN PROCESS (Firebase-first)
 
-Planned behavior (not implemented):
+BEHAVIOR:
 - PT_report writes modifications directly to a shared Firestore location with versioning.
 - PT Tracker subscribes to shared changes, eliminating email exchange.
 - V2 payloads may remain as a manual export fallback but are not the primary workflow.
@@ -311,7 +313,7 @@ Planned behavior (not implemented):
 
 - PT Tracker supports JSON file export of full data, library-only, and history-only.
 - Import logic detects export type and either merges or replaces session history.
-- These JSON exports are **local-only** and not part of the V2 email exchange.
+
 
 **Example (full export)**
 ```json
@@ -408,6 +410,82 @@ document.querySelector('.delete-btn').addEventListener('click', (e) => {
 
 **Current state:** Several HTML pages still use inline handlers (technical debt).
 
+### 2. Avoid Fake or Editable Dropdowns
+
+### ❌ Don’t Do This:
+```javascript
+// Fake or editable dropdowns break text entry on iOS
+<div class="custom-dropdown">
+    <div contenteditable="true">Other…</div>
+</div>
+
+// Expecting users to type inside a <select> option does not work on iOS
+<select>
+    <option value="a">Option A</option>
+    <option value="other">Other (type here)</option>
+</select>
+
+// Mutating a <select> into an input is unreliable on iOS Safari / PWA
+select.addEventListener('change', () => {
+    if (select.value === 'other') {
+        select.contentEditable = true; // ❌ iOS blocks typing
+    }
+});
+````
+
+### ✅ Do This Instead:
+
+```javascript
+// Always use a native <select> for predefined options
+<select id="example-select">
+    <option value="">-- Select an option --</option>
+    <option value="a">Option A</option>
+    <option value="b">Option B</option>
+    <option value="__custom__">➕ Other (custom)…</option>
+</select>
+
+// Use a separate text input for custom values (hidden by default)
+<input
+    type="text"
+    id="example-custom-input"
+    placeholder="Enter custom value"
+    style="display: none;"
+>
+
+// iOS-safe handling for the "Other" option
+function bindSelectWithOther(selectId, inputId) {
+    const select = document.getElementById(selectId);
+    const input  = document.getElementById(inputId);
+
+    select.addEventListener('change', () => {
+        if (select.value === '__custom__') {
+            // Reveal a real text input — required for iOS
+            input.style.display = 'block';
+            input.focus(); // Critical for iOS keyboard activation
+        } else {
+            // Hide and clear custom input when not needed
+            input.style.display = 'none';
+            input.value = '';
+        }
+    });
+}
+
+// Resolve final value from either the select or the custom input
+function resolveSelectValue(selectId, inputId) {
+    const select = document.getElementById(selectId);
+    if (select.value === '__custom__') {
+        return document.getElementById(inputId).value.trim();
+    }
+    return select.value;
+}
+```
+
+**Rule:**
+All dropdowns must use **native `<select>` elements** and a **separate `<input>` for “Other”**.
+This is the **only reliable pattern on iOS Safari and iOS PWAs**.
+
+
+
 ### 2. Service worker caching strategy
 
 - HTML is **network-first** with a cached fallback for offline boot.
@@ -477,13 +555,6 @@ guardButton.addEventListener('pointerup', showAuthModal);
 - Coverage debug panel (🐛) shows session counts and ID matches.
 - Confirm `pt_tracker_data` exists in localStorage.
 
-### Issue: V2 import reports checksum mismatch
-
-**Cause:** payload truncation or altered text (iOS Mail copy/paste is the most common culprit).
-
-**Fix:**
-- Use **Copy payload only** (no extra text) and paste the entire block.
-- Avoid manual editing of headers or payload.
 
 ### Issue: Firestore queue never flushes
 
@@ -498,26 +569,31 @@ guardButton.addEventListener('pointerup', showAuthModal);
 - Coverage debug panel (🐛) shows session counts and ID matches.
 - Confirm `pt_tracker_data` exists in localStorage.
 
-### Issue: V2 import reports checksum mismatch
-
-**Cause:** payload truncation or altered text (iOS Mail copy/paste is the most common culprit).
-
-**Fix:**
-- Use **Copy payload only** (no extra text) and paste the entire block.
-- Avoid manual editing of headers or payload.
 
 ### Issue: Firestore queue never flushes
 
-**Cause:** user not authenticated or network offline.
 
-**Fix:**
-- Sign in via PT Tracker.
-- Confirm `navigator.onLine` is true.
-- Check `pt_firestore_queue` in localStorage to ensure queued items exist.
-**Fix:**
-- Sign in via PT Tracker.
-- Confirm `navigator.onLine` is true.
-- Check `pt_firestore_queue` in localStorage to ensure queued items exist.
+**Likely causes:**
+- User not authenticated
+- Network offline
+- Firestore IndexedDB persistence is stale or stuck
+- Auth state expired while offline
+
+
+**Fix (in order):**
+1. Sign in via PT Tracker
+2. Confirm `navigator.onLine === true`
+3. Check `pt_firestore_queue` in localStorage to confirm queued writes exist
+4. If queue exists but does not flush:
+- Sign out
+- Hard reload the page
+- Sign back in (forces Firestore re-initialization)
+
+
+**Notes:**
+- Firestore offline persistence uses IndexedDB and **cannot be manually flushed** by app code
+- Clearing localStorage alone will **not** reset Firestore state
+- Clearing browser site data / IndexedDB is a **debug-only last resort**
 
 ### Issue: Shared data appears stale
 
@@ -556,14 +632,6 @@ guardButton.addEventListener('pointerup', showAuthModal);
 ```javascript
 // sw-pt.js
 const CACHE_NAME = 'pt-tracker-v1.22.32'; // bump to refresh cached assets
-```
-
-### Export/Import
-
-```javascript
-// pt_payload_utils.js
-const ENCODING = 'gzip+base64';
-const FORMAT = 'V2';
 ```
 
 ### Versioning
