@@ -1232,7 +1232,8 @@
 
                 // BUG FIX: Validate required fields before save
                 const errors = [];
-                if (!current.name || current.name.trim() === '') {
+                const exerciseName = current.canonical_name || current.name || current.title || '';
+                if (!exerciseName.trim()) {
                     errors.push('Exercise name is required');
                 }
                 if (!current.description || current.description.trim() === '') {
@@ -1245,14 +1246,15 @@
                 }
 
                 // BUG FIX: Check for duplicate names (case-insensitive, trimmed)
-                const normalizedName = current.name.trim().toLowerCase();
+                const normalizedName = exerciseName.trim().toLowerCase();
                 const duplicate = baselineExercises.find(ex =>
                     ex.id !== current.id &&
-                    ex.name && ex.name.trim().toLowerCase() === normalizedName
+                    (ex.canonical_name || ex.name || ex.title || '').trim().toLowerCase() === normalizedName
                 );
 
                 if (duplicate) {
-                    if (!confirm(`An exercise named "${duplicate.name}" already exists.\n\nCreate anyway?`)) {
+                    const dupName = duplicate.canonical_name || duplicate.name || duplicate.title || 'Unnamed';
+                    if (!confirm(`An exercise named "${dupName}" already exists.\n\nCreate anyway?`)) {
                         return;
                     }
                 }
