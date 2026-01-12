@@ -2057,6 +2057,18 @@
                 debugHtml += `<strong>Sessions:</strong> ${sessionHistory.length}<br>`;
 
                 if (sessionHistory.length > 0) {
+                    const sessionDates = sessionHistory
+                        .map(session => session.date || session.timestamp)
+                        .filter(value => value)
+                        .map(value => new Date(value))
+                        .filter(date => !isNaN(date));
+                    if (sessionDates.length > 0) {
+                        sessionDates.sort((a, b) => a - b);
+                        const oldestSession = sessionDates[0];
+                        const newestSession = sessionDates[sessionDates.length - 1];
+                        debugHtml += `<strong>Oldest session:</strong> ${oldestSession.toLocaleString()}<br>`;
+                        debugHtml += `<strong>Newest session:</strong> ${newestSession.toLocaleString()}<br>`;
+                    }
                     const uniqueIds = [...new Set(sessionHistory.map(s => s.exerciseId))];
                     debugHtml += `<strong>Unique exercises:</strong> ${uniqueIds.length}<br>`;
                     debugHtml += `<strong>Sample IDs:</strong><br>`;
