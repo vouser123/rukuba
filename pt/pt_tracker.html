@@ -2701,11 +2701,12 @@
             return Array.from(values).sort();
         }
 
-        // Format date/time in the user's local timezone to match "today" checks across DST/timezones.
+        // Format date/time to human-readable EST/EDT
         function formatDateTime(isoDateString) {
             if (!isoDateString) return '';
             const date = new Date(isoDateString);
             return date.toLocaleString('en-US', {
+                timeZone: 'America/New_York',
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
@@ -2933,7 +2934,10 @@
 
         function getLocalDayDiff(today, otherDate) {
             const dayMs = 1000 * 60 * 60 * 24;
-            return Math.floor((startOfLocalDay(today) - startOfLocalDay(otherDate)) / dayMs);
+            // Compare by local calendar day using UTC midnight to avoid DST-length days.
+            const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+            const otherUtc = Date.UTC(otherDate.getFullYear(), otherDate.getMonth(), otherDate.getDate());
+            return Math.floor((todayUtc - otherUtc) / dayMs);
         }
 
         function updateExerciseLifecycle(entry, { archived }) {
