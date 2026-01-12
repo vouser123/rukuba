@@ -2057,6 +2057,18 @@
                 debugHtml += `<strong>Sessions:</strong> ${sessionHistory.length}<br>`;
 
                 if (sessionHistory.length > 0) {
+                    const sessionDates = sessionHistory
+                        .map(session => session.date || session.timestamp)
+                        .filter(value => value)
+                        .map(value => new Date(value))
+                        .filter(date => !isNaN(date));
+                    if (sessionDates.length > 0) {
+                        sessionDates.sort((a, b) => a - b);
+                        const oldestSession = sessionDates[0];
+                        const newestSession = sessionDates[sessionDates.length - 1];
+                        debugHtml += `<strong>Oldest session:</strong> ${oldestSession.toLocaleString()}<br>`;
+                        debugHtml += `<strong>Newest session:</strong> ${newestSession.toLocaleString()}<br>`;
+                    }
                     const uniqueIds = [...new Set(sessionHistory.map(s => s.exerciseId))];
                     debugHtml += `<strong>Unique exercises:</strong> ${uniqueIds.length}<br>`;
                     debugHtml += `<strong>Sample IDs:</strong><br>`;
@@ -2086,6 +2098,8 @@
                 if (sessionHistory.length > 0 && roleExerciseIds.length > 0) {
                     const sessionIds = new Set(sessionHistory.map(s => s.exerciseId));
                     const matches = roleExerciseIds.filter(id => sessionIds.has(id));
+                    const missingSessionIds = roleExerciseIds.filter(id => !sessionIds.has(id));
+                    const missingRoleIds = [...sessionIds].filter(id => !roleExerciseIds.includes(id));
                     debugHtml += `<div style="color: ${matches.length > 0 ? 'var(--ios-green)' : 'var(--ios-red)'};">`;
                     debugHtml += `<strong>Matching IDs:</strong> ${matches.length}<br>`;
                     if (matches.length > 0) {
@@ -2093,6 +2107,129 @@
                         matches.slice(0, 3).forEach(id => {
                             const sessions = sessionHistory.filter(s => s.exerciseId === id);
                             debugHtml += `&nbsp;&nbsp;${rolesData.exercise_roles[id].name} (${sessions.length} sessions)<br>`;
+                        });
+                    }
+                    debugHtml += `<strong>Role IDs missing sessions:</strong> ${missingSessionIds.length}<br>`;
+                    if (missingSessionIds.length > 0) {
+                        missingSessionIds.slice(0, 5).forEach(id => {
+                            const roleName = rolesData.exercise_roles[id]?.name || id;
+                            debugHtml += `&nbsp;&nbsp;${roleName} (${id})<br>`;
+                        });
+                    }
+                    debugHtml += `<strong>Session IDs missing roles:</strong> ${missingRoleIds.length}<br>`;
+                    if (missingRoleIds.length > 0) {
+                        missingRoleIds.slice(0, 5).forEach(id => {
+                            const sampleSession = sessionHistory.find(s => s.exerciseId === id);
+                            const sessionName = sampleSession?.exerciseName || 'Unnamed';
+                            debugHtml += `&nbsp;&nbsp;${sessionName} (${id})<br>`;
+                        });
+                    }
+                    debugHtml += `</div>`;
+                }
+
+                // Debug: detect name-only matches (session name matches role name, but IDs differ)
+                if (sessionHistory.length > 0 && roleExerciseIds.length > 0) {
+                    const roleNameById = {};
+                    const roleIdByName = {};
+                    roleExerciseIds.forEach(id => {
+                        const roleName = rolesData.exercise_roles[id]?.name || id;
+                        roleNameById[id] = roleName;
+                        const normalizedName = roleName.trim().toLowerCase();
+                        if (normalizedName && !roleIdByName[normalizedName]) {
+                            roleIdByName[normalizedName] = id;
+                        }
+                    });
+
+                    const nameOnlyMatches = [];
+                    const sessionsMissingRoleId = [];
+
+                    sessionHistory.forEach(session => {
+                        const sessionId = session.exerciseId;
+                        const sessionName = session.exerciseName || '';
+                        const normalizedName = sessionName.trim().toLowerCase();
+                        if (!sessionId || !normalizedName) return;
+
+                        if (roleIdByName[normalizedName] && sessionId !== roleIdByName[normalizedName]) {
+                            nameOnlyMatches.push({
+                                sessionId,
+                                roleId: roleIdByName[normalizedName],
+                                name: sessionName
+                            });
+                        }
+
+                        if (!roleNameById[sessionId]) {
+                            sessionsMissingRoleId.push({
+                                sessionId,
+                                name: sessionName
+                            });
+                        }
+                    });
+
+                    debugHtml += `<div style="margin-top: 8px;">`;
+                    debugHtml += `<strong>Name-only matches (IDs differ):</strong> ${nameOnlyMatches.length}<br>`;
+                    if (nameOnlyMatches.length > 0) {
+                        nameOnlyMatches.slice(0, 5).forEach(match => {
+                            debugHtml += `&nbsp;&nbsp;${match.name} (session ${match.sessionId} → role ${match.roleId})<br>`;
+                        });
+                    }
+                    debugHtml += `<strong>Sessions missing role ID:</strong> ${sessionsMissingRoleId.length}<br>`;
+                    if (sessionsMissingRoleId.length > 0) {
+                        sessionsMissingRoleId.slice(0, 5).forEach(entry => {
+                            debugHtml += `&nbsp;&nbsp;${entry.name || 'Unnamed'} (${entry.sessionId})<br>`;
+                        });
+                    }
+                    debugHtml += `</div>`;
+                }
+
+                // Debug: detect name-only matches (session name matches role name, but IDs differ)
+                if (sessionHistory.length > 0 && roleExerciseIds.length > 0) {
+                    const roleNameById = {};
+                    const roleIdByName = {};
+                    roleExerciseIds.forEach(id => {
+                        const roleName = rolesData.exercise_roles[id]?.name || id;
+                        roleNameById[id] = roleName;
+                        const normalizedName = roleName.trim().toLowerCase();
+                        if (normalizedName && !roleIdByName[normalizedName]) {
+                            roleIdByName[normalizedName] = id;
+                        }
+                    });
+
+                    const nameOnlyMatches = [];
+                    const sessionsMissingRoleId = [];
+
+                    sessionHistory.forEach(session => {
+                        const sessionId = session.exerciseId;
+                        const sessionName = session.exerciseName || '';
+                        const normalizedName = sessionName.trim().toLowerCase();
+                        if (!sessionId || !normalizedName) return;
+
+                        if (roleIdByName[normalizedName] && sessionId !== roleIdByName[normalizedName]) {
+                            nameOnlyMatches.push({
+                                sessionId,
+                                roleId: roleIdByName[normalizedName],
+                                name: sessionName
+                            });
+                        }
+
+                        if (!roleNameById[sessionId]) {
+                            sessionsMissingRoleId.push({
+                                sessionId,
+                                name: sessionName
+                            });
+                        }
+                    });
+
+                    debugHtml += `<div style="margin-top: 8px;">`;
+                    debugHtml += `<strong>Name-only matches (IDs differ):</strong> ${nameOnlyMatches.length}<br>`;
+                    if (nameOnlyMatches.length > 0) {
+                        nameOnlyMatches.slice(0, 5).forEach(match => {
+                            debugHtml += `&nbsp;&nbsp;${match.name} (session ${match.sessionId} → role ${match.roleId})<br>`;
+                        });
+                    }
+                    debugHtml += `<strong>Sessions missing role ID:</strong> ${sessionsMissingRoleId.length}<br>`;
+                    if (sessionsMissingRoleId.length > 0) {
+                        sessionsMissingRoleId.slice(0, 5).forEach(entry => {
+                            debugHtml += `&nbsp;&nbsp;${entry.name || 'Unnamed'} (${entry.sessionId})<br>`;
                         });
                     }
                     debugHtml += `</div>`;

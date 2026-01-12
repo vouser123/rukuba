@@ -2925,6 +2925,21 @@
             return new Date().toISOString().split('T')[0];
         }
 
+        function startOfLocalDay(date) {
+            const localDate = new Date(date);
+            // Use local midnight so "today" matches the user's calendar day across timezones/DST.
+            localDate.setHours(0, 0, 0, 0);
+            return localDate;
+        }
+
+        function getLocalDayDiff(today, otherDate) {
+            const dayMs = 1000 * 60 * 60 * 24;
+            // Compare by local calendar day using UTC midnight to avoid DST-length days.
+            const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+            const otherUtc = Date.UTC(otherDate.getFullYear(), otherDate.getMonth(), otherDate.getDate());
+            return Math.floor((todayUtc - otherUtc) / dayMs);
+        }
+
         function updateExerciseLifecycle(entry, { archived }) {
             const lifecycle = entry.lifecycle || {
                 status: 'active',
@@ -3937,6 +3952,17 @@
                         }
                     });
                 }
+            });
+        }
+
+        function bindExerciseSearchEvents() {
+            const searchInput = document.getElementById('exercise-search');
+            if (!searchInput || searchInput.dataset.searchBound === 'true') return;
+            searchInput.dataset.searchBound = 'true';
+
+            const applyFilter = () => filterExercises();
+            ['input', 'change', 'keyup', 'search'].forEach((eventName) => {
+                searchInput.addEventListener(eventName, applyFilter);
             });
         }
 
@@ -7582,7 +7608,7 @@
                 let adherenceIcon = '';
 
                 if (lastSession) {
-                    const daysSince = Math.floor((Date.now() - lastSession.getTime()) / (1000 * 60 * 60 * 24));
+                    const daysSince = getLocalDayDiff(new Date(), lastSession);
                     if (daysSince === 0) {
                         adherenceText = 'Done today ✓';
                         adherenceColor = '#34C759';
@@ -7661,7 +7687,7 @@
             const sessions = loadHistory();
             const lastSession = sessions.filter(s => s.exerciseId === exerciseId).pop();
             if (lastSession) {
-                const daysSince = Math.floor((Date.now() - new Date(lastSession.date).getTime()) / (1000 * 60 * 60 * 24));
+                const daysSince = getLocalDayDiff(new Date(), new Date(lastSession.date));
                 if (daysSince === 0) {
                     speak('Last session: today');
                 } else if (daysSince === 1) {
@@ -9386,6 +9412,7 @@ ${payload}`;
         // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
         // Problem: inline onclick can miss taps on iOS. Fix: bind pointerup/keydown handlers once on load.
         bindPointerHandlers();
+        bindExerciseSearchEvents();
 
         function bindAuthModalEvents() {
             const guardButton = document.getElementById('auth-guard-signin-btn');
