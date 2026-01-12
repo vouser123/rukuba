@@ -2701,12 +2701,11 @@
             return Array.from(values).sort();
         }
 
-        // Format date/time to human-readable EST/EDT
+        // Format date/time in the user's local timezone to match "today" checks across DST/timezones.
         function formatDateTime(isoDateString) {
             if (!isoDateString) return '';
             const date = new Date(isoDateString);
             return date.toLocaleString('en-US', {
-                timeZone: 'America/New_York',
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
