@@ -3955,6 +3955,17 @@
             });
         }
 
+        function bindExerciseSearchEvents() {
+            const searchInput = document.getElementById('exercise-search');
+            if (!searchInput || searchInput.dataset.searchBound === 'true') return;
+            searchInput.dataset.searchBound = 'true';
+
+            const applyFilter = () => filterExercises();
+            ['input', 'change', 'keyup', 'search'].forEach((eventName) => {
+                searchInput.addEventListener(eventName, applyFilter);
+            });
+        }
+
         function bindTouchActivation(elementId, handler) {
             const element = document.getElementById(elementId);
             if (!element) return;
@@ -9401,6 +9412,7 @@ ${payload}`;
         // iOS Safari/PWA does not reliably support onclick; unified pointer-based event handling enforced for iOS and desktop.
         // Problem: inline onclick can miss taps on iOS. Fix: bind pointerup/keydown handlers once on load.
         bindPointerHandlers();
+        bindExerciseSearchEvents();
 
         function bindAuthModalEvents() {
             const guardButton = document.getElementById('auth-guard-signin-btn');
