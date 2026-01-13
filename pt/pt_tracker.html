@@ -2182,9 +2182,10 @@
                     sessionRecovery: recovery ? JSON.parse(recovery) : null,
                     preferences: preferences ? JSON.parse(preferences) : null,
                     offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : [],
-                    // Firestore runtime snapshots back up the local working library (not the JSON source).
-                    exerciseLibrary: loadExerciseLibrary(),
                     ptDataVersion: dataVersion
+                    // NOTE: exerciseLibrary and pt_modifications are NOT included here.
+                    // pt_report.html is the authoritative editor for these fields.
+                    // pt_tracker only reads them from Firestore (never overwrites).
                 };
             } catch (error) {
                 console.error('[Runtime] Failed to build runtime snapshot - sync will be skipped:', error);
