@@ -1238,7 +1238,7 @@
                 const runtimeRef = doc(db, `users/${window.ptReportUserId}/pt_runtime/state`);
                 await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
                     .then(({ setDoc }) => setDoc(runtimeRef, {
-                        exerciseLibrary: window.exerciseLibrary,
+                        exerciseLibrary: exerciseLibrary,  // Use local variable, not window.exerciseLibrary
                         pt_modifications: modifications
                     }, { merge: true }));
                 console.log('[Firestore] Exercise library and modifications saved');
