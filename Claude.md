@@ -32,9 +32,9 @@ git rebase origin/main
 - Before making significant changes
 - When you've been away from the codebase for any length of time
 
-### 1. Read DEVELOPMENT.md First
+### 1. Read the PT Docs First
 
-**ALWAYS** read `pt/docs/DEVELOPMENT.md` before making changes to any PT-related files.
+**ALWAYS** read `pt/docs/DEVELOPMENT.md` and `pt/docs/DEV_PRACTICES.md` before making changes to any PT-related files.
 
 **Why:**
 - Documents known iOS Safari/PWA issues and proven solutions
@@ -84,7 +84,7 @@ function bindPointerHandlers(root = document) {
 
 ### 3. Log Development Notes
 
-**After completing a fix, add an entry to DEVELOPMENT.md.**
+**After completing a fix, add an entry to DEV_NOTES.md.**
 
 **Format:**
 ```markdown
@@ -171,6 +171,8 @@ const db = initializeFirestore(app, {
 ## Quick Reference
 
 - **Main docs**: `pt/docs/DEVELOPMENT.md`
+- **Practices**: `pt/docs/DEV_PRACTICES.md`
+- **Dev notes**: `pt/docs/DEV_NOTES.md`
 - **V2 payload format**: `pt/docs/export-import-v2.md`
 - **Vocabulary docs**: `pt/docs/vocabularies.md`
 - **Service worker**: `pt/sw-pt.js`
@@ -181,13 +183,13 @@ const db = initializeFirestore(app, {
 Before starting any work:
 
 - [ ] Pull latest changes from main (`git pull origin main`)
-- [ ] Read `pt/docs/DEVELOPMENT.md` (especially for iOS/Firebase work)
+- [ ] Read `pt/docs/DEVELOPMENT.md` and `pt/docs/DEV_PRACTICES.md` (especially for iOS/Firebase work)
 
 Before submitting any code change:
 
 - [ ] Add JSDoc comments to new functions
 - [ ] Comment non-obvious logic and platform-specific workarounds
-- [ ] Log development note in DEVELOPMENT.md with date, problem, and solution
+- [ ] Log development note in DEV_NOTES.md with date, problem, and solution
 - [ ] Test on iOS Safari/PWA if UI changes were made
 - [ ] Verify no `onclick` or `click` handlers were introduced
 - [ ] Check that dynamic HTML rebinds event handlers
