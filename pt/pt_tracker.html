@@ -1404,9 +1404,9 @@
                 </div>
 
                 <div style="border-top: 1px solid var(--ios-separator); padding-top: 16px; margin-top: 4px;">
-                    <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Advanced: Schema-driven exercise editor</div>
-                    <button class="control-btn btn-primary" data-open-url="./exercise_editor.html" data-open-target="_blank" style="width: 100%;">🛠️ Open Exercise Editor</button>
-                    <div style="font-size: 11px; color: var(--ios-gray); margin-top: 8px; text-align: center;">Create/edit exercises with full schema validation</div>
+                    <div style="font-size: 13px; color: var(--ios-gray); margin-bottom: 12px;">Advanced: Exercise editor</div>
+                    <button class="control-btn btn-primary" data-open-url="./pt_report.html?mode=editor" data-open-target="_blank" style="width: 100%;">🛠️ Open Exercise Editor</button>
+                    <div style="font-size: 11px; color: var(--ios-gray); margin-top: 8px; text-align: center;">Edit exercises, dosage, and roles with Firestore sync</div>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -1466,12 +1466,12 @@
                             </div>
                             <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Professional PT exercises</div>
                         </button>
-                        <button data-open-url="./exercise_editor.html" data-open-target="_blank" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
+                        <button data-open-url="./pt_report.html?mode=editor" data-open-target="_blank" style="width: 100%; padding: 10px 12px; border: none; background: transparent; text-align: left; cursor: pointer; font-size: 15px; color: var(--text-primary);">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <span>🛠️ Exercise Editor</span>
                                 <span style="color: var(--ios-gray); font-size: 14px;">↗</span>
                             </div>
-                            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Create custom exercises</div>
+                            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 2px;">Edit exercises with Firestore sync</div>
                         </button>
                     </div>
                 </div>
@@ -2182,10 +2182,10 @@
                     sessionRecovery: recovery ? JSON.parse(recovery) : null,
                     preferences: preferences ? JSON.parse(preferences) : null,
                     offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : [],
-                    exerciseLibrary: loadExerciseLibrary(),
+                    exerciseLibrary: exerciseLibrary,  // Use in-memory global, not localStorage
                     ptDataVersion: dataVersion
-                    // NOTE: Timestamp comparison (line 2427) handles conflicts - most recent wins.
-                    // Both pt_report and pt_tracker can write exerciseLibrary; timestamps prevent overwrites.
+                    // NOTE: Firestore (with IndexedDB offline persistence) is authoritative.
+                    // Timestamp comparison handles conflicts - most recent wins.
                 };
             } catch (error) {
                 console.error('[Runtime] Failed to build runtime snapshot - sync will be skipped:', error);
@@ -2403,12 +2403,16 @@
 
             // Save all updated data if any modifications were applied
             if (modified) {
-                localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+                // Modifications came from Firestore - update global and sync back
+                window.exerciseLibrary = exerciseLibrary;
                 saveRolesDataSync(rolesData);
                 saveVocabularySync(vocabulary);
 
+                // Sync updated library back to Firestore
+                scheduleRuntimeSync('apply-modifications');
+                scheduleSharedLibrarySync('apply-modifications');
+
                 // Refresh UI
-                window.exerciseLibrary = exerciseLibrary;
                 renderExerciseList();
                 renderLibraryExercises();
 
@@ -2448,14 +2452,18 @@
                     }
                     if (Array.isArray(data.exerciseLibrary) && data.exerciseLibrary.length > 0) {
                         const incomingLibraryJson = JSON.stringify(data.exerciseLibrary);
-                        const existingLibraryJson = localStorage.getItem(LIBRARY_KEY);
+                        const existingLibraryJson = JSON.stringify(exerciseLibrary);
                         if (incomingLibraryJson !== existingLibraryJson) {
-                            localStorage.setItem(LIBRARY_KEY, incomingLibraryJson);
+                            // Update global exerciseLibrary from Firestore (authoritative)
+                            exerciseLibrary = data.exerciseLibrary;
+                            window.exerciseLibrary = exerciseLibrary;
                             const version = data.ptDataVersion || PT_DATA_VERSION;
                             localStorage.setItem(PT_VERSION_KEY, version);
-                            exerciseLibrary = loadExerciseLibrary();
+                            // Update localStorage cache for offline boot fallback
+                            localStorage.setItem(LIBRARY_KEY, incomingLibraryJson);
                             renderExerciseList();
                             renderLibraryExercises();
+                            console.log('[Runtime] Updated exerciseLibrary from Firestore');
                         }
                     }
 
@@ -3102,7 +3110,8 @@
         }
 
         function persistExerciseLibrary() {
-            localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+            // Firestore (with IndexedDB offline persistence) is authoritative.
+            // Write directly to Firestore; no localStorage intermediary needed.
             scheduleRuntimeSync('exercise-library');
             scheduleSharedLibrarySync('exercise-library');
         }
@@ -4176,6 +4185,16 @@
 
         function confirmNextSet() {
             const logValue = getNextSetLogValue();
+            const entry = getLibraryEntryById(currentExercise.id);
+            const formParams = entry?.form_parameters_required || [];
+
+            // If exercise has form parameters, show modal to collect them
+            if (formParams.length > 0) {
+                closeNextSetModal();
+                editNextSet(); // Opens log set modal with form parameters
+                return;
+            }
+
             closeNextSetModal();
             logCurrentSetAndAdvance({ logValue });
         }
@@ -5941,7 +5960,6 @@
                 persistExerciseLibrary();
             }
 
-            exerciseLibrary = loadExerciseLibrary();
             currentExercise = toSessionExercise({ ...entry, name: exerciseName, id: exerciseId });
 
             // Remember this exercise for next session
@@ -7217,7 +7235,11 @@
 
             showActionSheet(message, () => {
                 if (data.pt_exercise_library) {
-                    localStorage.setItem(LIBRARY_KEY, JSON.stringify(data.pt_exercise_library));
+                    // Update global exerciseLibrary and sync to Firestore
+                    exerciseLibrary = data.pt_exercise_library;
+                    window.exerciseLibrary = exerciseLibrary;
+                    scheduleRuntimeSync('import-all');
+                    scheduleSharedLibrarySync('import-all');
                 }
                 if (data.pt_tracker_data) {
                     setSessionHistoryCache(data.pt_tracker_data, { source: 'import-all', syncLocalStorage: true });
@@ -7228,10 +7250,11 @@
                     localStorage.setItem(PT_VERSION_KEY, data.pt_data_version);
                 }
 
-                // Reload library and update display
-                exerciseLibrary = loadExerciseLibrary();
+                // Update display
+                renderExerciseList();
+                renderLibraryExercises();
                 closeDataBackup();
-                alert('Data imported successfully! Reload the page to see all changes.');
+                alert('Data imported successfully! Syncing to Firestore...');
                 haptic('success');
             });
         }
@@ -7240,10 +7263,15 @@
             const message = `Import exercise library?\n\nThis will REPLACE your current library with ${data.length} exercises.\n\nCurrent library will be overwritten. Continue?`;
 
             showActionSheet(message, () => {
-                localStorage.setItem(LIBRARY_KEY, JSON.stringify(data));
-                exerciseLibrary = loadExerciseLibrary();
+                // Update global exerciseLibrary and sync to Firestore
+                exerciseLibrary = data;
+                window.exerciseLibrary = exerciseLibrary;
+                scheduleRuntimeSync('import-library');
+                scheduleSharedLibrarySync('import-library');
+                renderExerciseList();
+                renderLibraryExercises();
                 closeDataBackup();
-                alert('Exercise library imported successfully!');
+                alert('Exercise library imported successfully! Syncing to Firestore...');
                 haptic('success');
             });
         }
@@ -7405,7 +7433,6 @@
             const entry = getLibraryEntryById(exerciseId);
             entry.favorite = !entry.favorite;
             persistExerciseLibrary();
-            exerciseLibrary = loadExerciseLibrary();
             renderExerciseList();
             haptic('medium');
         }
@@ -7416,7 +7443,6 @@
                 entry.archived = true;
                 updateExerciseLifecycle(entry, { archived: true });
                 persistExerciseLibrary();
-                exerciseLibrary = loadExerciseLibrary();
                 renderExerciseList();
                 haptic('success');
                 void syncExerciseLibraryToFirestore('archive');
@@ -7472,7 +7498,6 @@
             entry.archived = false;
             updateExerciseLifecycle(entry, { archived: false });
             persistExerciseLibrary();
-            exerciseLibrary = loadExerciseLibrary();
             haptic('success');
             speak('Exercise restored');
             showArchivedExercises(); // Refresh archived view
@@ -7741,8 +7766,8 @@
             const entry = getLibraryEntryById(exerciseId);
             showActionSheet(`PERMANENTLY delete "${entry.name}"? This cannot be undone!`, () => {
                 exerciseLibrary = exerciseLibrary.filter(ex => ex.id !== exerciseId);
+                window.exerciseLibrary = exerciseLibrary;
                 persistExerciseLibrary();
-                exerciseLibrary = loadExerciseLibrary();
                 haptic('success');
                 showArchivedExercises(); // Refresh archived view
                 void syncExerciseLibraryToFirestore('delete');
@@ -7888,8 +7913,8 @@
             const entry = getLibraryEntryById(exerciseId);
             showActionSheet(`Delete "${entry.name}"? This cannot be undone.`, () => {
                 exerciseLibrary = exerciseLibrary.filter(ex => ex.id !== exerciseId);
+                window.exerciseLibrary = exerciseLibrary;
                 persistExerciseLibrary();
-                exerciseLibrary = loadExerciseLibrary();
                 renderExerciseList();
                 haptic('success');
             });
@@ -8040,7 +8065,6 @@
 
             entry.details = details;
             persistExerciseLibrary();
-            exerciseLibrary = loadExerciseLibrary();
 
             closeExerciseDetailsModal();
             haptic('success');
@@ -8557,8 +8581,8 @@ ${payload}`;
                 });
             }
 
-            // Save all updated data
-            localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+            // Save all updated data - update global and sync to Firestore
+            window.exerciseLibrary = exerciseLibrary;
             saveRolesDataSync(rolesData);
             saveVocabularySync(vocabulary);
 

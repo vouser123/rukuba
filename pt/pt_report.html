@@ -433,8 +433,8 @@
         <!-- TODO: Patient data now loads from Firestore automatically -->
         <!-- <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)"> -->
         <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
-            <!-- <button class="btn-primary" onclick="showImportPasteModal()">📥 Import Patient Report</button> -->
-            <button class="btn-secondary" onclick="loadPTMode()">✏️ PT Editor Mode (Load Base Exercises)</button>
+            <!-- <button class="btn-primary" data-action="showImportPasteModal">📥 Import Patient Report</button> -->
+            <button class="btn-secondary" data-action="loadPTMode">✏️ PT Editor Mode (Load Base Exercises)</button>
         </div>
         <p style="color: var(--text-secondary); font-size: 13px; margin-top: 20px; max-width: 600px;">
             <strong>PT Editor Mode:</strong> Load base exercise library from the shared Firestore library to add new exercises, assign roles, or update definitions without patient data.
@@ -443,11 +443,12 @@
     </div>
 
     <div class="action-buttons" style="display: none;" id="action-buttons">
-        <button class="btn-secondary" onclick="window.location.href='pt_view.html'">👁️ View Dashboard</button>
-        <button class="btn-secondary" onclick="toggleEditorMode()">✏️ Edit Mode</button>
-        <button class="btn-secondary" onclick="window.print()">🖨️ Print</button>
-        <button class="btn-secondary" onclick="resetReport()">📥 Load New</button>
-        <button class="btn-secondary" onclick="window.location.href='rehab_coverage.html'">← Back</button>
+        <a class="btn-secondary" href="pt_tracker.html" id="back-to-tracker-btn" style="display: none; text-decoration: none;">← Back to Tracker</a>
+        <a class="btn-secondary" href="pt_view.html" style="text-decoration: none;">👁️ View Dashboard</a>
+        <button class="btn-secondary" data-action="toggleEditorMode">✏️ Edit Mode</button>
+        <button class="btn-secondary" data-action="printReport">🖨️ Print</button>
+        <button class="btn-secondary" data-action="resetReport">📥 Load New</button>
+        <a class="btn-secondary" href="rehab_coverage.html" style="text-decoration: none;">← Back to Coverage</a>
     </div>
 
     <!-- PT Editor Mode -->
@@ -928,6 +929,8 @@
                 }
                 hideAuthModal();
 
+                let isPatientRole = false;
+
                 try {
                     // Query users collection where therapistUid == current user.
                     const usersRef = collection(db, 'users');
@@ -936,22 +939,41 @@
 
                     if (!snapshot.empty) {
                         patientUserId = snapshot.docs[0].id;
+                        isPatientRole = false; // This is a PT viewing patient data
                         console.log('[Therapist] Found patient UID:', patientUserId);
                     } else {
                         patientUserId = user.uid;
-                        console.warn('[Therapist] No patient found for this therapist; loading therapist data.');
+                        isPatientRole = true; // This is a patient viewing their own data
+                        console.log('[Patient] Loading patient data for self:', patientUserId);
                     }
 
                     // Load patient data from Firestore.
                     await loadPatientDataFromFirestore(patientUserId);
+
+                    // Check for ?mode=editor parameter
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const mode = urlParams.get('mode');
+
+                    if (mode === 'editor' && isPatientRole) {
+                        // Patient accessing editor mode - load editor directly
+                        console.log('[Editor] Auto-loading editor mode for patient');
+                        await loadPTMode();
+                    }
                 } catch (error) {
                     // Signed-in users may still see data load warnings, but should not be re-prompted to sign in.
                     console.error('[Therapist] Failed to resolve patient account:', error);
                 }
 
-                // Make patientUserId available globally
+                // Make patientUserId and role available globally
                 window.ptReportUserId = patientUserId;
+                window.ptReportIsPatientRole = isPatientRole;
                 updatePatientDisplay(patientUserId || user.uid, user.email);
+
+                // Show back to tracker button for patient role
+                if (isPatientRole) {
+                    const backBtn = document.getElementById('back-to-tracker-btn');
+                    if (backBtn) backBtn.style.display = 'inline-flex';
+                }
             } else {
                 console.log('[Auth] No user signed in - blocking page access');
                 patientUserId = null;
@@ -1695,6 +1717,7 @@
             document.getElementById('action-buttons').style.display = 'none';
             document.getElementById('file-input').value = '';
         }
+        window.resetReport = resetReport;
 
         // iOS-safe button handlers
         function goToPtView() {
@@ -2100,6 +2123,12 @@
                 initializeEditorMode();
             }
         }
+        window.toggleEditorMode = toggleEditorMode;
+
+        function printReport() {
+            window.print();
+        }
+        window.printReport = printReport;
 
         /**
          * Filter exercise dropdown by search text.
