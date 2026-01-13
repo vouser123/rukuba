@@ -1288,7 +1288,7 @@
             }
         }
 
-        // Save exercise library to Firestore
+            // Save exercise library to Firestore
         window.saveExerciseLibraryToFirestore = async function() {
             // BUG FIX: Throw error instead of silent return when patient UID missing
             if (!window.ptReportUserId) {
@@ -1300,10 +1300,15 @@
                 const librarySnapshot = Array.isArray(window.exerciseLibrary)
                     ? window.exerciseLibrary
                     : exerciseLibrary;
+                const updatedAtClient = new Date().toISOString();
                 await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
-                    .then(({ setDoc }) => setDoc(runtimeRef, {
+                    .then(({ setDoc, serverTimestamp }) => setDoc(runtimeRef, {
                         exerciseLibrary: librarySnapshot || [],
-                        pt_modifications: modifications
+                        pt_modifications: modifications,
+                        updatedAt: updatedAtClient,
+                        updatedAtClient,
+                        updatedAtServer: serverTimestamp(),
+                        ptDataVersion: PT_DATA_VERSION
                     }, { merge: true }));
                 console.log('[Firestore] Exercise library and modifications saved');
             } catch (error) {
@@ -1496,6 +1501,7 @@
         let vocabulary = null;
         let patientEmailCache = '';
         let initHasRun = false;
+        const PT_DATA_VERSION = '1';
 
         // Track PT modifications
         let modifications = {
@@ -3197,8 +3203,24 @@
                 newSpec.distanceFeet = distance;
             }
 
+            const previousSpec = exercise.current || {};
+            let dosageSummary = `${sets} sets`;
+            if (!replacesReps) dosageSummary += ` × ${reps} reps`;
+            if (seconds > 0) dosageSummary += ` × ${seconds}s`;
+            if (distance > 0) dosageSummary += ` × ${distance}ft`;
+
             // Add to modifications
             modifications.dosageChanges[exerciseId] = newSpec;
+
+            exercise.current = newSpec;
+            if (!exercise.history) exercise.history = [];
+            exercise.history.push({
+                timestamp: new Date().toISOString(),
+                summary: `Dosage updated to ${dosageSummary}`,
+                previous: previousSpec,
+                next: newSpec,
+                supersedes: []
+            });
 
             // Save to Firestore
             try {
