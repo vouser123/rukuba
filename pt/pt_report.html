@@ -2777,11 +2777,18 @@
             showToast(`"${exerciseName}" archived`, 'success', 2000);
 
             // Clear form
-            document.getElementById('new-ex-name').value = '';
-            document.getElementById('new-ex-desc').value = '';
-            document.getElementById('new-ex-instructions').value = '';
-            document.getElementById('new-ex-video').value = '';
-            document.getElementById('edit-ex-select').value = '';
+            [
+                'new-ex-name',
+                'new-ex-desc',
+                'new-ex-instructions',
+                'new-ex-video',
+                'edit-ex-select'
+            ].forEach((fieldId) => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.value = '';
+                }
+            });
             archiveBtn.style.display = 'none';
             archiveBtn.textContent = '🗑️ Archive';
             archiveBtn.style.background = '';
