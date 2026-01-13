@@ -9209,8 +9209,6 @@ ${payload}`;
                         const isChecked = selectedExercisesForImport.has(ex.id);
                         const checkboxDisabled = alreadyImported && !showOnlyNewExercises;
                         const primaryMuscles = ex.primary_muscles || [];
-                        const isArchived = ex.lifecycle?.status === 'archived' || ex.archived === true;
-                        const archivedIndicator = isArchived ? ' (archived)' : '';
 
                         return `
                             <div class="history-item" style="display: flex; gap: 12px; align-items: start; ${alreadyImported && !showOnlyNewExercises ? 'opacity: 0.5;' : ''}">
@@ -9224,7 +9222,7 @@ ${payload}`;
                                        style="width: 20px; height: 20px; margin-top: 2px; cursor: ${checkboxDisabled ? 'not-allowed' : 'pointer'};">
                                 <div style="flex: 1; cursor: pointer;" data-action="showExerciseDetail" data-action-arg="${ex.id}" role="button" tabindex="0">
                                     <div style="font-weight: 600; margin-bottom: 4px;">
-                                        ${ex.canonical_name}${archivedIndicator}
+                                        ${ex.canonical_name}
                                         ${alreadyImported && !showOnlyNewExercises ? '<span style="font-size: 11px; color: var(--ios-green); margin-left: 6px;">✓ Imported</span>' : ''}
                                     </div>
                                     <div style="font-size: 12px; color: var(--ios-gray); margin-bottom: 4px;">${(ex.description || '').substring(0, 100)}${(ex.description || '').length > 100 ? '...' : ''}</div>
