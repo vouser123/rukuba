@@ -13,6 +13,38 @@
             line-height: 1.6;
         }
 
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ios-blue);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--ios-green);
+        }
+
+        .toast.error {
+            background: var(--ios-red);
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 15px;
@@ -1156,6 +1188,35 @@
                     hideAuthModal();
                 }
             });
+        }
+
+        /**
+         * Show a toast notification message.
+         * @param {string} message - The message to display
+         * @param {string} type - Type of toast: 'success', 'error', or 'info' (default)
+         * @param {number} duration - How long to show the toast in milliseconds (default 3000)
+         */
+        function showToast(message, type = 'info', duration = 3000) {
+            // Remove any existing toasts
+            const existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(toast => toast.remove());
+
+            // Create new toast
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Show toast with animation
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Hide and remove after duration
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
 
             // Bind logout button
             const logoutBtn = document.getElementById('logout-btn');
@@ -1238,8 +1299,8 @@
                 const runtimeRef = doc(db, `users/${window.ptReportUserId}/pt_runtime/state`);
                 await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
                     .then(({ setDoc }) => setDoc(runtimeRef, {
-                        exerciseLibrary: exerciseLibrary,  // Use local variable, not window.exerciseLibrary
-                        pt_modifications: modifications
+                        exerciseLibrary: window.exerciseLibrary,  // Use window property to get current updated value
+                        pt_modifications: window.modifications
                     }, { merge: true }));
                 console.log('[Firestore] Exercise library and modifications saved');
             } catch (error) {
@@ -2611,16 +2672,7 @@
             const exerciseId = exercise.id;
             const newExerciseIndex = modifications.newExercises.findIndex(ex => ex.id === exerciseId);
 
-            const reviewSummary = existingExercise
-                ? `Review changes for "${name}":\n\n` +
-                  `${changedFields.length ? changedFields.map(field => `• ${formatFieldLabel(field)}`).join('\n') : '• (no field changes detected)'}\n\n` +
-                  `Press OK to save, or Cancel to review again.`
-                : `Save new exercise "${name}"?\n\nPress OK to save, or Cancel to review again.`;
-
-            if (!confirm(reviewSummary)) {
-                return;
-            }
-
+            // Save without confirmation dialog
             if (currentEditingExerciseId) {
                 if (newExerciseIndex !== -1) {
                     modifications.newExercises[newExerciseIndex] = exercise;
@@ -2636,18 +2688,15 @@
                 exerciseLibrary.push(exercise);
             }
 
-            console.log('[saveExercise] Modifications updated:', {
-                newCount: modifications.newExercises.length,
-                editedCount: Object.keys(modifications.editedExercises).length
-            });
-
-            // Save to Firestore
+            // Save to Firestore - expose both on window for Firestore save function
             window.exerciseLibrary = exerciseLibrary;
+            window.modifications = modifications;
             try {
                 await window.saveExerciseLibraryToFirestore();
-                alert(`Exercise "${name}" saved to Firestore!`);
+                showToast(`"${name}" saved`, 'success', 2000);
             } catch (error) {
-                alert(`Failed to save to Firestore: ${error.message}`);
+                showToast(`Failed to save: ${error.message}`, 'error', 4000);
+                throw error;
             }
 
             await runExportRegressionCheck(exerciseId, exercise);
@@ -2672,18 +2721,42 @@
             }
         }
 
-        function archiveExercise() {
+        /**
+         * Archive the currently selected exercise by marking its lifecycle status as archived.
+         * Called by the Archive button in the exercise editor form.
+         * First click: Shows confirmation state on button
+         * Second click: Performs the archive action
+         */
+        let archiveConfirmPending = false;
+        window.archiveExercise = function archiveExercise() {
             if (!currentEditingExerciseId) {
-                alert('No exercise selected for archiving');
+                showToast('No exercise selected', 'error', 2000);
                 return;
             }
 
+            const archiveBtn = document.getElementById('archive-btn');
             const exercise = exerciseLibrary.find(ex => ex.id === currentEditingExerciseId);
             const exerciseName = exercise ? (exercise.title || exercise.name) : 'this exercise';
 
-            if (!confirm(`Archive "${exerciseName}"?\n\nThis will mark the exercise as archived when you export modifications.`)) {
+            // First click: Show confirmation
+            if (!archiveConfirmPending) {
+                archiveConfirmPending = true;
+                archiveBtn.textContent = '✓ Confirm Archive?';
+                archiveBtn.style.background = 'var(--ios-red)';
+
+                // Reset after 3 seconds if not confirmed
+                setTimeout(() => {
+                    if (archiveConfirmPending) {
+                        archiveConfirmPending = false;
+                        archiveBtn.textContent = '🗑️ Archive';
+                        archiveBtn.style.background = '';
+                    }
+                }, 3000);
                 return;
             }
+
+            // Second click: Perform archive
+            archiveConfirmPending = false;
 
             // Add to archived list
             if (!modifications.archivedExercises.includes(currentEditingExerciseId)) {
@@ -2698,21 +2771,23 @@
                 modifications.editedExercises[currentEditingExerciseId] = exercise;
             }
 
+            showToast(`"${exerciseName}" archived`, 'success', 2000);
+
             // Clear form
             document.getElementById('new-ex-name').value = '';
             document.getElementById('new-ex-desc').value = '';
             document.getElementById('new-ex-instructions').value = '';
             document.getElementById('new-ex-video').value = '';
             document.getElementById('edit-ex-select').value = '';
-            document.getElementById('archive-btn').style.display = 'none';
+            archiveBtn.style.display = 'none';
+            archiveBtn.textContent = '🗑️ Archive';
+            archiveBtn.style.background = '';
             currentEditingExerciseId = null;
 
             // Refresh dropdowns
             updateModificationSummary();
             initializeEditorMode();
-
-            alert(`Exercise "${exerciseName}" archived! Remember to export modifications when done.`);
-        }
+        };
 
         function loadExerciseRoles() {
             const exerciseId = document.getElementById('role-exercise-select').value;
