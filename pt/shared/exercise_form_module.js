@@ -214,6 +214,7 @@
 
     /**
      * Populate exercise select dropdown with alphabetically sorted exercises.
+     * Shows archived exercises with "(archived)" suffix.
      */
     function populateExerciseSelect({ selectId, exercises, placeholder }) {
         const select = typeof selectId === 'string' ? document.getElementById(selectId) : selectId;
@@ -232,7 +233,9 @@
         sortedExercises.forEach(ex => {
             const option = document.createElement('option');
             option.value = ex.id;
-            option.textContent = ex.canonical_name || ex.title || ex.name || ex.id;
+            const name = ex.canonical_name || ex.title || ex.name || ex.id;
+            const isArchived = ex.lifecycle?.status === 'archived' || ex.archived === true;
+            option.textContent = isArchived ? `${name} (archived)` : name;
             select.appendChild(option);
         });
     }
