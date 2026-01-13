@@ -2146,11 +2146,10 @@
 
         // Wrapper functions for data-action buttons (iOS-safe PWA pattern)
         function removeFieldContainer(event) {
-            const button = event.target.closest('[data-action="removeFieldContainer"]');
-            if (button) {
-                const container = button.closest('.form-group');
-                if (container) container.remove();
-            }
+            // event.currentTarget is the button with data-action (more reliable than event.target)
+            const button = event.currentTarget;
+            const container = button.closest('.form-group');
+            if (container) container.remove();
         }
         window.removeFieldContainer = removeFieldContainer;
 
