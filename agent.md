@@ -7,7 +7,8 @@ This repo contains two unrelated browser apps:
 
 You are a coding assistant. Follow these rules:
 
-- `pt/docs/DEVELOPMENT.md` is the authoritative source for documentation and architecture.
+- `pt/docs/DEVELOPMENT.md` is the authoritative source for PT app documentation and architecture.
+- `docs/DEVELOPMENT.md` is the authoritative source for repo-level development guidance; always consult it when working outside the PT scope.
 - Keep `agent.md` limited to brief operational guidance and avoid duplicating content already covered in the development guide to prevent drift.
 - Firebase is used for authenticated PT session history and runtime backups.
 - Firebase shared data (exercise library, roles, vocabulary, schemas) lives in Firestore and is used as the canonical sync target when available.
@@ -18,6 +19,8 @@ You are a coding assistant. Follow these rules:
 - All code changes should be well-commented, especially when adding new logic or side effects.
 - Bump the PT service worker version when app behavior or assets change, without needing a reminder.
 - Keep `pt/docs/DEVELOPMENT.md` (File Reference + offline cache notes) up to date whenever PT HTML/JS/JSON usage or caching behavior changes.
+- When in doubt, reference the relevant DEVELOPMENT.md (repo-level or PT) before making or describing changes.
+- Before reporting a PR/branch as created, verify repository state with `git status -sb` and confirm remotes with `git remote -v`; never claim a PR exists unless the `make_pr` tool has been run in the current session.
 
 ## Layout
 
@@ -25,8 +28,12 @@ You are a coding assistant. Follow these rules:
   - Contains the existing packing-list PWA.
   - `packing/index.html` is the entry point for the packing app UI.
 
+- `/docs`
+  - `docs/DEVELOPMENT.md` is the repo-level development guide.
+
 - `/pt`
-  - `pt/index.html` (or the main HTML file) should be treated as the entry point for the PT PWA.
+  - Primary PT UIs live in `pt/pt_report.html`, `pt/pt_tracker.html`, `pt/rehab_coverage.html`, `pt/pt_view.html`, and `pt/exercise_editor.html`.
+  - `pt/manifest-pt.json` and `pt/sw-pt.js` define the PT PWA shell.
   - `pt/exercise_library.json` contains the exercise definitions.
   - `pt/exercise_library.json` is the shared exercise library JSON used as a fallback/seed for Firestore.
   - `pt/exercise_roles.json` contains exercise-to-role mappings for coverage and reporting.
