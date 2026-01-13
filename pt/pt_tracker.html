@@ -2182,10 +2182,10 @@
                     sessionRecovery: recovery ? JSON.parse(recovery) : null,
                     preferences: preferences ? JSON.parse(preferences) : null,
                     offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : [],
+                    exerciseLibrary: loadExerciseLibrary(),
                     ptDataVersion: dataVersion
-                    // NOTE: exerciseLibrary and pt_modifications are NOT included here.
-                    // pt_report.html is the authoritative editor for these fields.
-                    // pt_tracker only reads them from Firestore (never overwrites).
+                    // NOTE: Timestamp comparison (line 2427) handles conflicts - most recent wins.
+                    // Both pt_report and pt_tracker can write exerciseLibrary; timestamps prevent overwrites.
                 };
             } catch (error) {
                 console.error('[Runtime] Failed to build runtime snapshot - sync will be skipped:', error);
