@@ -2182,9 +2182,10 @@
                     sessionRecovery: recovery ? JSON.parse(recovery) : null,
                     preferences: preferences ? JSON.parse(preferences) : null,
                     offlineQueue: offlineQueue ? JSON.parse(offlineQueue) : [],
-                    // Firestore runtime snapshots back up the local working library (not the JSON source).
                     exerciseLibrary: loadExerciseLibrary(),
                     ptDataVersion: dataVersion
+                    // NOTE: Timestamp comparison (line 2427) handles conflicts - most recent wins.
+                    // Both pt_report and pt_tracker can write exerciseLibrary; timestamps prevent overwrites.
                 };
             } catch (error) {
                 console.error('[Runtime] Failed to build runtime snapshot - sync will be skipped:', error);
@@ -2244,6 +2245,177 @@
             }
         }
 
+        /**
+         * Apply PT modifications from Firestore runtime automatically (no user prompt).
+         * This handles dosage changes, archived exercises, edited exercises, and role updates
+         * that were saved by pt_report.html.
+         *
+         * @param {Object} mods - The pt_modifications object from Firestore runtime
+         */
+        async function applyModificationsAutomatically(mods) {
+            if (!mods || typeof mods !== 'object') return;
+
+            console.log('[Runtime] Applying pt_modifications from Firestore');
+
+            // Load current exercise library
+            let exerciseLibrary = loadExerciseLibrary();
+            let rolesData = loadRolesDataSync();
+            let vocabulary = loadVocabularySync();
+            let modified = false;
+
+            // 1. Add new exercises to library
+            if (Array.isArray(mods.newExercises) && mods.newExercises.length > 0) {
+                mods.newExercises.forEach(ex => {
+                    const exists = exerciseLibrary.find(e => e.id === ex.id);
+                    if (!exists) {
+                        exerciseLibrary.push(ex);
+                        modified = true;
+                        console.log(`[Runtime] Added new exercise: ${ex.id}`);
+                    }
+                });
+            }
+
+            // 2. Update edited exercises in library
+            if (mods.editedExercises && Object.keys(mods.editedExercises).length > 0) {
+                Object.keys(mods.editedExercises).forEach(exerciseId => {
+                    const updatedExercise = mods.editedExercises[exerciseId];
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    if (index !== -1) {
+                        exerciseLibrary[index] = updatedExercise;
+                        modified = true;
+                        console.log(`[Runtime] Updated exercise: ${exerciseId}`);
+                    } else {
+                        console.warn(`[Runtime] Edited exercise not found: ${exerciseId}`);
+                    }
+                });
+            }
+
+            // 3. Archive exercises (remove from library)
+            if (Array.isArray(mods.archivedExercises) && mods.archivedExercises.length > 0) {
+                mods.archivedExercises.forEach(exerciseId => {
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    if (index !== -1) {
+                        exerciseLibrary.splice(index, 1);
+                        modified = true;
+                        console.log(`[Runtime] Archived exercise: ${exerciseId}`);
+                    }
+                    // Also remove role data
+                    if (rolesData?.exercise_roles?.[exerciseId]) {
+                        delete rolesData.exercise_roles[exerciseId];
+                    }
+                });
+            }
+
+            // 4. Add new roles
+            if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
+                Object.keys(mods.newRoles).forEach(exerciseId => {
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                    const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+
+                    if (!rolesData.exercise_roles[exerciseId]) {
+                        rolesData.exercise_roles[exerciseId] = { name: exerciseName, roles: [] };
+                    }
+                    const newRoles = mods.newRoles[exerciseId];
+                    newRoles.forEach(role => {
+                        rolesData.exercise_roles[exerciseId].roles.push(role);
+                        modified = true;
+                    });
+                    console.log(`[Runtime] Added ${newRoles.length} new roles for: ${exerciseId}`);
+                });
+            }
+
+            // 5. Delete roles
+            if (mods.deletedRoles && Object.keys(mods.deletedRoles).length > 0) {
+                Object.keys(mods.deletedRoles).forEach(exerciseId => {
+                    if (rolesData?.exercise_roles?.[exerciseId]) {
+                        const rolesToDelete = mods.deletedRoles[exerciseId];
+                        rolesToDelete.forEach(roleToDelete => {
+                            const index = rolesData.exercise_roles[exerciseId].roles.findIndex(r =>
+                                r.region === roleToDelete.region &&
+                                r.capacity === roleToDelete.capacity &&
+                                (r.focus || '') === (roleToDelete.focus || '')
+                            );
+                            if (index !== -1) {
+                                rolesData.exercise_roles[exerciseId].roles.splice(index, 1);
+                                modified = true;
+                            }
+                        });
+                        console.log(`[Runtime] Deleted ${rolesToDelete.length} roles from: ${exerciseId}`);
+                    }
+                });
+            }
+
+            // 6. Update edited roles (replace entire role set for exercise)
+            if (mods.editedRoles && Object.keys(mods.editedRoles).length > 0) {
+                Object.keys(mods.editedRoles).forEach(exerciseId => {
+                    if (rolesData?.exercise_roles?.[exerciseId]) {
+                        rolesData.exercise_roles[exerciseId].roles = mods.editedRoles[exerciseId];
+                        modified = true;
+                    } else {
+                        const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                        const exerciseName = exercise ? (exercise.name || exercise.canonical_name || exercise.title || exerciseId) : exerciseId;
+                        rolesData.exercise_roles[exerciseId] = {
+                            name: exerciseName,
+                            roles: mods.editedRoles[exerciseId]
+                        };
+                        modified = true;
+                    }
+                    console.log(`[Runtime] Updated roles for: ${exerciseId}`);
+                });
+            }
+
+            // 7. Update dosages
+            if (mods.dosageChanges && Object.keys(mods.dosageChanges).length > 0) {
+                Object.keys(mods.dosageChanges).forEach(exerciseId => {
+                    const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                    if (exercise) {
+                        const previousSpec = exercise.current || {};
+                        exercise.current = mods.dosageChanges[exerciseId];
+
+                        // Add to history
+                        if (!exercise.history) exercise.history = [];
+                        exercise.history.push({
+                            timestamp: new Date().toISOString(),
+                            summary: `Dosage updated by PT`,
+                            previous: previousSpec,
+                            next: mods.dosageChanges[exerciseId],
+                            supersedes: []
+                        });
+                        modified = true;
+                        console.log(`[Runtime] Updated dosage for: ${exerciseId}`);
+                    } else {
+                        console.warn(`[Runtime] Dosage change for unknown exercise: ${exerciseId}`);
+                    }
+                });
+            }
+
+            // 8. Update vocabulary
+            if (mods.updatedVocab && Object.keys(mods.updatedVocab).length > 0) {
+                Object.keys(mods.updatedVocab).forEach(category => {
+                    if (!vocabulary[category]) {
+                        vocabulary[category] = {};
+                    }
+                    Object.assign(vocabulary[category], mods.updatedVocab[category]);
+                    modified = true;
+                });
+                console.log(`[Runtime] Updated vocabulary`);
+            }
+
+            // Save all updated data if any modifications were applied
+            if (modified) {
+                localStorage.setItem(LIBRARY_KEY, JSON.stringify(exerciseLibrary));
+                saveRolesDataSync(rolesData);
+                saveVocabularySync(vocabulary);
+
+                // Refresh UI
+                window.exerciseLibrary = exerciseLibrary;
+                renderExerciseList();
+                renderLibraryExercises();
+
+                console.log('[Runtime] pt_modifications applied and saved successfully');
+            }
+        }
+
         async function loadRuntimeFromFirestore() {
             if (!firestoreUserId) {
                 runtimeSyncPending = true;
@@ -2286,6 +2458,20 @@
                             renderLibraryExercises();
                         }
                     }
+
+                    // Apply pt_modifications if present (dosage, archiving, edits)
+                    if (data.pt_modifications) {
+                        await applyModificationsAutomatically(data.pt_modifications);
+                        // Clear modifications from Firestore after applying them
+                        try {
+                            await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
+                                .then(({ updateDoc }) => updateDoc(docRef, { pt_modifications: {} }));
+                            console.log('[Runtime] Cleared pt_modifications from Firestore after applying');
+                        } catch (error) {
+                            console.warn('[Runtime] Failed to clear pt_modifications:', error);
+                        }
+                    }
+
                     localStorage.setItem(RUNTIME_UPDATED_KEY, remoteUpdatedAt);
                 }
             } catch (error) {
