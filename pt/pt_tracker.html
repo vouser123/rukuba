@@ -4185,6 +4185,16 @@
 
         function confirmNextSet() {
             const logValue = getNextSetLogValue();
+            const entry = getLibraryEntryById(currentExercise.id);
+            const formParams = entry?.form_parameters_required || [];
+
+            // If exercise has form parameters, show modal to collect them
+            if (formParams.length > 0) {
+                closeNextSetModal();
+                editNextSet(); // Opens log set modal with form parameters
+                return;
+            }
+
             closeNextSetModal();
             logCurrentSetAndAdvance({ logValue });
         }
