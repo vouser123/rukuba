@@ -103,48 +103,6 @@ function bindPointerHandlers(root = document) {
 - **2026-01-06** — **Problem:** "Add Role" button in rehab_coverage.html did not respond to taps on iOS Safari/PWA. **What I did:** Converted the dynamically-generated "Add Role" button from inline `onclick` to `data-action` pattern with `bindPointerHandlers()` function. Added `pointerup` event listeners for iOS touch/desktop mouse compatibility and keyboard support (Enter/Space) for accessibility. Re-bind handlers after dynamic HTML updates to ensure reliability (`pt/rehab_coverage.html`).
 ```
 
-## iOS Safari/PWA Best Practices
-
-### ❌ Don't Do This:
-```javascript
-// Inline onclick handlers don't work reliably on iOS
-<button onclick="doSomething()">Click Me</button>
-
-// Click events may not fire on iOS Safari/PWA
-element.addEventListener('click', handler);
-```
-
-### ✅ Do This Instead:
-```javascript
-// Use data-action pattern for dynamically created elements
-<button data-action="doSomething">Click Me</button>
-
-// Bind with pointerup for iOS touch + desktop mouse compatibility
-function bindPointerHandlers(root = document) {
-    const elements = root.querySelectorAll('[data-action]');
-    elements.forEach(el => {
-        const action = el.getAttribute('data-action');
-        const handler = (e) => {
-            const fn = window[action];
-            if (fn) {
-                e.preventDefault();
-                fn();
-            }
-        };
-
-        // pointerup works on iOS touch and desktop mouse
-        el.addEventListener('pointerup', handler);
-
-        // Keyboard support for accessibility
-        el.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                handler(e);
-            }
-        });
-    });
-}
-```
-
 ## Firebase/Firestore Patterns
 
 ### Always Use Offline Persistence
@@ -159,14 +117,6 @@ const db = initializeFirestore(app, {
 - Firestore `users/{uid}/sessions` is **authoritative** when authenticated
 - localStorage `pt_tracker_data` is a fallback/cache
 - Runtime snapshots (`users/{uid}/pt_runtime/state`) cache preferences and library
-
-## Common Gotchas
-
-1. **Service Worker Cache**: Bump `CACHE_NAME` in `sw-pt.js` after JSON updates
-2. **localStorage Keys**: Use `pt_tracker_data` not `session_history` (legacy key)
-3. **iOS PWA Storage**: Each home screen icon has separate localStorage
-4. **Dynamic HTML**: Always rebind event handlers after `innerHTML` updates
-5. **Exercise IDs**: Must match between library and roles for coverage to work
 
 ## Quick Reference
 
