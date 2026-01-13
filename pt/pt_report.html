@@ -461,7 +461,6 @@
                     <button class="btn-secondary" data-action="showPatientNotes">💬 Notes</button>
                     <button class="btn-secondary" data-action="showChangeHistory">📋 Changes</button>
                     <button class="btn-secondary" data-action="clearAllChanges">↩️ Undo All</button>
-                    <button class="btn-primary" data-action="commitAllChangesToFirestore">💾 Save All</button>
                     <button class="btn-danger" data-action="toggleEditorMode" accesskey="x">Close (Alt+X)</button>
                 </div>
             </div>
@@ -478,12 +477,6 @@
                     <!-- Populated from vocabulary dynamically -->
                 </div>
             </details>
-
-            <!-- Modification Summary -->
-            <div id="mod-summary" style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none;">
-                <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--ios-blue);">Modifications Summary</h3>
-                <div id="mod-summary-content"></div>
-            </div>
 
             <!-- Add/Edit Exercise Section -->
             <div class="section">
@@ -2355,7 +2348,6 @@
                 vocabGuide.innerHTML = guideHTML;
             }
 
-            updateModificationSummary();
         }
 
         const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -2847,7 +2839,6 @@
             document.getElementById('archive-btn').style.display = 'none';
             currentEditingExerciseId = null;
 
-            updateModificationSummary();
             initializeEditorMode();
             } catch (error) {
                 alert(`ERROR in saveExercise: ${error.message}\n\nStack: ${error.stack}`);
@@ -2934,7 +2925,6 @@
             currentEditingExerciseId = null;
 
             // Refresh dropdowns
-            updateModificationSummary();
             initializeEditorMode();
         };
 
@@ -3099,7 +3089,6 @@
 
             // Refresh display
             loadExerciseRoles();
-            updateModificationSummary();
 
             alert('Role added and saved to Firestore!');
             } catch (error) {
@@ -3134,7 +3123,6 @@
 
             // Refresh display
             loadExerciseRoles();
-            updateModificationSummary();
         }
 
         function loadVocabTerms() {
@@ -3161,7 +3149,7 @@
             document.getElementById('vocab-definition').value = currentDef;
         }
 
-        function updateVocabulary() {
+        async function updateVocabulary() {
             const category = document.getElementById('vocab-category').value;
             const term = document.getElementById('vocab-term').value;
             const definition = document.getElementById('vocab-definition').value.trim();
@@ -3177,8 +3165,13 @@
             }
             modifications.updatedVocab[category][term] = definition;
 
-            updateModificationSummary();
-            alert(`Definition for "${term}" updated! Remember to export modifications when done.`);
+            // Save to Firestore
+            try {
+                await window.saveExerciseLibraryToFirestore();
+                showToast(`Definition for "${term}" saved`, 'success', 2000);
+            } catch (error) {
+                showToast(`Failed to save: ${error.message}`, 'error', 4000);
+            }
         }
 
         function loadExerciseDosage() {
@@ -3357,7 +3350,6 @@
 
             // Refresh display
             loadExerciseDosage();
-            updateModificationSummary();
 
             alert('Dosage updated and saved to Firestore!');
             } catch (error) {
