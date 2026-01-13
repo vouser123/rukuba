@@ -1196,7 +1196,7 @@
          * @param {string} type - Type of toast: 'success', 'error', or 'info' (default)
          * @param {number} duration - How long to show the toast in milliseconds (default 3000)
          */
-        function showToast(message, type = 'info', duration = 3000) {
+        window.showToast = function(message, type = 'info', duration = 3000) {
             // Remove any existing toasts
             const existingToasts = document.querySelectorAll('.toast');
             existingToasts.forEach(toast => toast.remove());
@@ -1231,7 +1231,7 @@
                     }
                 });
             }
-        }
+        };
 
         // Bind auth modal interactions once the module loads.
         bindAuthModalEvents();
