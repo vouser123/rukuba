@@ -7,8 +7,9 @@ This repo contains two unrelated browser apps:
 
 You are a coding assistant. Follow these rules:
 
-- `pt/docs/DEVELOPMENT.md` is the authoritative source for PT app documentation and architecture.
-- `docs/DEVELOPMENT.md` is the authoritative source for repo-level development guidance; always consult it when working outside the PT scope.
+- `pt/docs/DEVELOPMENT.md` is the authoritative source for documentation and architecture.
+- `pt/docs/DEV_PRACTICES.md` contains day-to-day workflows, best practices, and troubleshooting guidance.
+- `pt/docs/DEV_NOTES.md` contains dated fixes, audits, and TODOs; add a new note there after completing a fix.
 - Keep `agent.md` limited to brief operational guidance and avoid duplicating content already covered in the development guide to prevent drift.
 - Firebase is used for authenticated PT session history and runtime backups.
 - Firebase shared data (exercise library, roles, vocabulary, schemas) lives in Firestore and is used as the canonical sync target when available.
