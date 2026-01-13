@@ -9,7 +9,9 @@ Progressive Web App (PWA) for tracking physical therapy exercises and monitoring
 
 ## Documentation
 
-- **[Development Guide](docs/DEVELOPMENT.md)** - Architecture, best practices, troubleshooting
+- **[Development Guide](docs/DEVELOPMENT.md)** - Architecture, data model, and roadmap
+- **[Development Practices](docs/DEV_PRACTICES.md)** - Workflow, best practices, troubleshooting
+- **[Development Notes](docs/DEV_NOTES.md)** - Dated fixes, audits, TODOs (add a note after fixes)
 - **[Vocabularies](docs/vocabularies.md)** - Legacy vocabulary reference (pre-roles system)
 
 ## Key Files
