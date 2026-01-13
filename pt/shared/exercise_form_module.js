@@ -274,8 +274,10 @@
 
     /**
      * Get equipment options for dropdowns.
-     * Returns union of ALL equipment (both required and optional) from library,
-     * regardless of type parameter (for consistent dropdown options).
+     * Returns union of ALL equipment (both required and optional) from ALL exercises
+     * (active and archived) in the library, regardless of type parameter.
+     * This ensures consistent dropdown options and prevents duplicate equipment entries
+     * with subtle variations (e.g., "Resistance Band" vs "resistance band").
      */
     function getEquipmentOptions({ schema, exerciseLibrary, type }) {
         const options = new Set();
@@ -288,9 +290,11 @@
             || [];
         enumValues.forEach(item => options.add(item));
 
-        // Add ALL equipment from library (both required and optional)
+        // Add ALL equipment from ALL exercises (active and archived, required and optional)
+        // This includes equipment currently in use and previously used equipment
         if (exerciseLibrary && exerciseLibrary.length > 0) {
             exerciseLibrary.forEach(ex => {
+                // Include equipment from all exercises regardless of lifecycle status
                 // Union of required and optional equipment
                 const requiredItems = ex.equipment?.required || [];
                 const optionalItems = ex.equipment?.optional || [];
