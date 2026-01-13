@@ -2767,11 +2767,19 @@
             }
 
             if (exercise) {
+                const today = new Date().toISOString().split('T')[0];
+                const lifecycle = exercise.lifecycle || {};
                 exercise.lifecycle = {
-                    ...(exercise.lifecycle || {}),
-                    status: 'archived'
+                    ...lifecycle,
+                    status: 'archived',
+                    effective_end_date: lifecycle.effective_end_date || today
                 };
                 modifications.editedExercises[currentEditingExerciseId] = exercise;
+            }
+
+            const lifecycleEndInput = document.getElementById('ex-lifecycle-end');
+            if (lifecycleEndInput && !lifecycleEndInput.value) {
+                lifecycleEndInput.value = new Date().toISOString().split('T')[0];
             }
 
             showToast(`"${exerciseName}" archived`, 'success', 2000);
