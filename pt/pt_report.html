@@ -1236,6 +1236,24 @@
         // Bind auth modal interactions once the module loads.
         bindAuthModalEvents();
 
+        function normalizeExerciseLifecycle(exercises) {
+            if (!Array.isArray(exercises)) return [];
+            return exercises.map(exercise => {
+                const lifecycle = exercise?.lifecycle || {};
+                const status = lifecycle.status || (exercise?.archived ? 'archived' : 'active');
+                return {
+                    ...exercise,
+                    lifecycle: {
+                        status,
+                        effective_start_date: lifecycle.effective_start_date ?? null,
+                        effective_end_date: lifecycle.effective_end_date ?? null
+                    }
+                };
+            });
+        }
+
+        window.normalizeExerciseLifecycle = normalizeExerciseLifecycle;
+
         async function loadPatientDataFromFirestore(uid) {
             try {
                 // Load sessions
@@ -1256,11 +1274,12 @@
 
                 const runtimeLibrary = Array.isArray(runtime.exerciseLibrary) ? runtime.exerciseLibrary : [];
                 const exerciseLibrary = runtimeLibrary.length > 0 ? runtimeLibrary : sharedLibrary || [];
+                const normalizedLibrary = normalizeExerciseLifecycle(exerciseLibrary);
 
                 // Populate global variables (accessed by main script below)
                 window.ptReportData = {
                     sessionHistory: sessions,
-                    exerciseLibrary,
+                    exerciseLibrary: normalizedLibrary,
                     rolesData: sharedData,
                     schema: schema,
                     vocabulary: vocabulary
@@ -1633,7 +1652,7 @@
 
                 // Load the data
                 sessionHistory = data.sessionHistory;
-                exerciseLibrary = data.exerciseLibrary || [];
+                exerciseLibrary = window.normalizeExerciseLifecycle(data.exerciseLibrary || []);
                 rolesData = data.rolesData;
                 schema = data.schema;
                 vocabulary = data.vocabulary || null;
@@ -3323,7 +3342,7 @@
 
                 // Load the data
                 sessionHistory = reportData.sessionHistory || [];
-                exerciseLibrary = reportData.exerciseLibrary || [];
+                exerciseLibrary = window.normalizeExerciseLifecycle(reportData.exerciseLibrary || []);
                 rolesData = reportData.rolesData || {};
                 schema = reportData.schema || {};
                 vocabulary = reportData.vocabulary || {};
