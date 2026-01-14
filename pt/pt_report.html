@@ -2195,15 +2195,15 @@
         window.saveExercise = saveExercise;
         // archiveExercise is defined later and exposed on window at line 2867
         window.addRoleToExercise = addRoleToExercise;
-        window.deleteRole = deleteRole;
+        // deleteRole is defined later at line 3113 and needs to be exposed there
         window.loadExerciseRoles = loadExerciseRoles;
         window.toggleCustomInput = toggleCustomInput;
         window.updateDosage = updateDosage;
         window.updateVocabulary = updateVocabulary;
         window.closeImportPasteModal = closeImportPasteModal;
         window.processPatientPaste = processPatientPaste;
-        window.closeNotesModal = closeNotesModal;
-        window.addNote = addNote;
+        // closeNotesModal is defined earlier and exposed on window at line 1373
+        // addNote is defined earlier and exposed on window at line 1505
 
         /**
          * Filter exercise dropdown by search text.
@@ -3110,7 +3110,7 @@
             }
         }
 
-        function deleteRole(exerciseId, roleIndex, roleType) {
+        window.deleteRole = function deleteRole(exerciseId, roleIndex, roleType) {
             if (!confirm('Delete this role?\n\nThis will be exported as a role removal.')) {
                 return;
             }
