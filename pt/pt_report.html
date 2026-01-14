@@ -425,16 +425,16 @@
         <h2 style="margin-bottom: 20px;">PT Progress Report Viewer</h2>
         <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">Patient: <span id="import-patient-id">--</span></div>
         <p style="color: var(--text-secondary); margin-bottom: 30px; max-width: 500px;">
-            View patient data from Firestore, or load base files to add/edit exercises.
+            View patient data, or add/edit exercises, roles, dosage, and other information.
         </p>
         <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
-            <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 Open PT View</a>
+            <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 View Patient Data</a>
         </div>
-        <!-- TODO: Patient data now loads from Firestore automatically -->
+        <!-- DONE: Patient data now loads from Firestore automatically -->
         <!-- <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)"> -->
         <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
             <!-- <button class="btn-primary" data-action="showImportPasteModal">📥 Import Patient Report</button> -->
-            <button class="btn-secondary" data-action="loadPTMode">✏️ PT Editor Mode (Load Base Exercises)</button>
+            <button class="btn-secondary" data-action="loadPTMode">✏️ PT Editor Mode</button>
         </div>
         <p style="color: var(--text-secondary); font-size: 13px; margin-top: 20px; max-width: 600px;">
             <strong>PT Editor Mode:</strong> Load base exercise library from the shared Firestore library to add new exercises, assign roles, or update definitions without patient data.
@@ -444,10 +444,11 @@
 
     <div class="action-buttons" style="display: none;" id="action-buttons">
         <a class="btn-secondary" href="pt_tracker.html" id="back-to-tracker-btn" style="display: none; text-decoration: none;">← Back to Tracker</a>
-        <a class="btn-secondary" href="pt_view.html" style="text-decoration: none;">👁️ View Dashboard</a>
+        <a class="btn-secondary" href="pt_view.html" style="text-decoration: none;">🖥️ View Dashboard</a>
         <button class="btn-secondary" data-action="toggleEditorMode">✏️ Edit Mode</button>
         <button class="btn-secondary" data-action="printReport">🖨️ Print</button>
-        <button class="btn-secondary" data-action="resetReport">📥 Load New</button>
+        <!-- removed - data loads directly from Firestone -->
+		<!-- <button class="btn-secondary" data-action="resetReport">📥 Load New</button> -->
         <a class="btn-secondary" href="rehab_coverage.html" style="text-decoration: none;">← Back to Coverage</a>
     </div>
 
@@ -457,7 +458,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
                 <h2 style="font-size: 24px; font-weight: 600;">PT Editor Mode</h2>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn-secondary" data-action="goToPtView">👁️ View</button>
+                    <button class="btn-secondary" data-action="goToPtView">🔎 View</button>
                     <button class="btn-secondary" data-action="showPatientNotes">💬 Notes</button>
                     <button class="btn-secondary" data-action="showChangeHistory">📋 Changes</button>
                     <button class="btn-secondary" data-action="clearAllChanges">↩️ Undo All</button>
@@ -827,8 +828,8 @@
     </div>
 
     <!-- TODO: Remove email export modal if direct Firestore workflow is working well
-<!-- Email export removed - saves directly to Firestore -->
--->
+	<!-- Email export removed - saves directly to Firestore -->
+
 
     <!-- Notes Modal -->
     <div id="notes-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 20000; padding: 20px;">

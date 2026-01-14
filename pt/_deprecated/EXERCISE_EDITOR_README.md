@@ -2,6 +2,8 @@
 
 ## Overview
 
+***THIS FILE HAS BEEN DEPRECATED. /pt/pt_report.html is currently used as the sole editor. All information here is historical***
+
 A schema-driven exercise editor for creating and managing PT exercises that comply with `exercise_file.schema.json`. This editor provides a mobile-first UI with zero JSON typing required.
 
 ## Features

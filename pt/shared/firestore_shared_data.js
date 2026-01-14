@@ -226,7 +226,7 @@ export async function loadExerciseLibraryShared({
   }
 
   if (source.includes('fallback')) {
-    console.warn(`[SharedData] Exercise library using ${source} source; Firestore is preferred.`);
+    console.warn(`[SharedData] Exercise library using ${source} source; Firestore is preferred but was not used.`);
   }
 
   try {
