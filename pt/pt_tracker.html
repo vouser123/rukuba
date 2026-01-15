@@ -2628,7 +2628,10 @@
                     ...localSessions,
                     ...queued
                 ]);
-                setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: true });
+                // Only sync to localStorage on initial load; subsequent updates skip localStorage
+                // to reduce write operations and prevent Firebase rate-limiting
+                const syncToLS = !sessionHistoryLoadedFromFirestore;
+                setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: syncToLS });
                 sessionHistoryLoadedFromFirestore = true;
                 if (!firestoreHydrated) {
                     firestoreHydrated = true;
