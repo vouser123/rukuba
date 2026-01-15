@@ -8,6 +8,7 @@ Going forward, entries should follow this structure as applicable:
 - Notes
 
 ## Table of Contents
+- [2026-01-14](#2026-01-14)
 - [2026-01-13](#2026-01-13)
 - [2026-01-12](#2026-01-12)
 - [2026-01-11](#2026-01-11)
@@ -22,6 +23,12 @@ Going forward, entries should follow this structure as applicable:
   - [2026-01-05 — Deep Dive Audit: Firestore Save Operations](#2026-01-05--deep-dive-audit-firestore-save-operations)
   - [Known Remaining Issues](#known-remaining-issues)
 - [2025-01-05](#2025-01-05)
+
+---
+
+## 2026-01-14
+
+- **2026-01-14** — **Problem:** Multiple JavaScript errors in pt_report.html: premature window object references (archiveExercise, closeNotesModal, addNote, deleteRole not defined), missing Contributions vocabulary in Reference Guide, Reference Guide positioned at top instead of before Assign Roles section, and pattern modifiers help text missing from Movement Pattern section. **Root cause:** (1) Functions were being exposed on window object before they were defined, causing undefined references. (2) Contributions vocabulary normalization was missing (regions/capacities worked but not contributions). (3) Reference Guide placement didn't match user workflow. (4) Pattern modifiers vocabulary from exercise_library_vocabulary.json wasn't being loaded in pt_report.html (only exercise_roles_vocabulary.json was loaded). **What I did:** (1) Removed premature window object assignments at lines 2196, 2198, 2205, 2206 and ensured functions expose themselves where defined (archiveExercise at 2867, deleteRole at 3113 updated to window.deleteRole, closeNotesModal at 1373, addNote at 1505). (2) Added contributions normalization at line 3683: `contributions: vocabData.contributions || vocabData.contribution`. (3) Moved Reference Guide HTML from line 475 to line 681 (just before Assign Roles section) and updated title from "Vocabulary & Pattern Modifiers" to "Vocabulary". (4) Added `loadExerciseLibraryVocabularyShared()` function to firestore_shared_data.js (lines 272-285) with new doc ID `exerciseLibraryVocabulary: 'exercise_library_vocabulary'`. (5) Updated pt_report.html imports (lines 862, 870) to include loadExerciseLibraryVocabularyShared and added it to Promise.all at line 3663 to load exercise library vocabulary from Firebase. (6) Merged pattern_modifiers from libraryVocabData into vocabulary object at line 3686. (7) Updated pattern modifiers help text generation (lines 2298-2313) to use Firebase-loaded vocabulary with nested structure handling (extracts .definition property). (8) Added race condition fix at lines 1294-1297 to wait for window.sharedDataLoader before using it. **Fix applied:** Pattern modifiers now display contextual help in Movement Pattern section loaded from Firebase exercise_library_vocabulary.json, Reference Guide shows all vocabulary (Regions, Capacities, Contributions) positioned before roles section, and all JavaScript reference errors eliminated (`pt/pt_report.html`, `pt/shared/firestore_shared_data.js`).
 
 ---
 

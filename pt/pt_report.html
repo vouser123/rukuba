@@ -472,14 +472,6 @@
                 <strong>Keyboard Shortcuts:</strong> Alt+A (Add Exercise), Alt+R (Add Role), Alt+V (Update Vocab), Alt+E (Export), Alt+X (Close)
             </div>
 
-            <!-- Reference Guide -->
-            <details style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border-color);">
-                <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 0;">📖 Reference Guide - Vocabulary & Pattern Modifiers</summary>
-                <div id="vocabulary-reference-guide" style="margin-top: 15px; font-size: 14px; line-height: 1.6;">
-                    <!-- Populated from vocabulary dynamically -->
-                </div>
-            </details>
-
             <!-- Modification Summary -->
             <div id="mod-summary" style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none;">
                 <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--ios-blue);">Modifications Summary</h3>
@@ -686,6 +678,14 @@
                 </div>
             </div>
 
+            <!-- Reference Guide -->
+            <details style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 0;">📖 Reference Guide - Vocabulary</summary>
+                <div id="vocabulary-reference-guide" style="margin-top: 15px; font-size: 14px; line-height: 1.6;">
+                    <!-- Populated from vocabulary dynamically -->
+                </div>
+            </details>
+
             <!-- Assign Roles Section -->
             <div class="section">
                 <h3 class="section-title">Assign Roles to Exercises</h3>
@@ -859,6 +859,7 @@
             loadExerciseLibraryShared,
             loadExerciseRolesShared,
             loadExerciseVocabularyShared,
+            loadExerciseLibraryVocabularyShared,
             loadExerciseFileSchemaShared
         } from './shared/firestore_shared_data.js';
 
@@ -866,6 +867,7 @@
             loadExerciseLibraryShared,
             loadExerciseRolesShared,
             loadExerciseVocabularyShared,
+            loadExerciseLibraryVocabularyShared,
             loadExerciseFileSchemaShared
         };
     </script>
@@ -1288,6 +1290,11 @@
                 const runtimeRef = doc(db, `users/${uid}/pt_runtime/state`);
                 const runtimeSnap = await getDoc(runtimeRef);
                 const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
+
+                // Wait for shared data loader to be ready
+                while (!window.sharedDataLoader) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
 
                 // Load shared data (roles, schema, vocabulary, library)
                 const sharedData = await window.sharedDataLoader.loadExerciseRolesShared();
@@ -2295,28 +2302,27 @@
                 vocabulary
             });
 
+            // Populate pattern modifiers contextual help
+            const patternModifiersHelp = document.getElementById('pattern-modifiers-help');
+            if (patternModifiersHelp && vocabulary && vocabulary.pattern_modifiers) {
+                let helpText = 'Available: ';
+                const modifiers = Object.keys(vocabulary.pattern_modifiers)
+                    .filter(key => !key.startsWith('_')) // Skip _meta keys
+                    .map(key => {
+                        const modifier = vocabulary.pattern_modifiers[key];
+                        // Handle nested structure (has .definition) or simple string
+                        const description = typeof modifier === 'object' && modifier.definition
+                            ? modifier.definition
+                            : modifier;
+                        return `<strong>${key}</strong> (${description})`;
+                    });
+                patternModifiersHelp.innerHTML = helpText + modifiers.join('; ');
+            }
+
             // Populate vocabulary reference guide
             const vocabGuide = document.getElementById('vocabulary-reference-guide');
             if (vocabGuide && vocabulary) {
                 let guideHTML = '';
-
-                // Pattern Modifiers
-                if (vocabulary.pattern_modifiers) {
-                    guideHTML += `
-                        <div style="margin-bottom: 20px;">
-                            <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Pattern Modifiers</h4>
-                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
-                                <ul style="margin: 8px 0 0 20px; color: var(--text-primary);">
-                    `;
-                    Object.keys(vocabulary.pattern_modifiers).forEach(key => {
-                        guideHTML += `<li><strong>${key}:</strong> ${vocabulary.pattern_modifiers[key]}</li>`;
-                    });
-                    guideHTML += `
-                                </ul>
-                            </div>
-                        </div>
-                    `;
-                }
 
                 // Regions
                 if (vocabulary.regions) {
@@ -2346,6 +2352,24 @@
                     `;
                     Object.keys(vocabulary.capacities).forEach(key => {
                         guideHTML += `• <strong>${key}:</strong> ${vocabulary.capacities[key]}<br>`;
+                    });
+                    guideHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Contributions
+                if (vocabulary.contributions) {
+                    guideHTML += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Contributions</h4>
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 13px; color: var(--text-primary); padding-left: 10px;">
+                    `;
+                    Object.keys(vocabulary.contributions).forEach(key => {
+                        guideHTML += `• <strong>${key}:</strong> ${vocabulary.contributions[key]}<br>`;
                     });
                     guideHTML += `
                                 </div>
@@ -3635,12 +3659,14 @@ ${payload}`;
                     libraryExercises,
                     rolesDataRaw,
                     schemaData,
-                    vocabData
+                    vocabData,
+                    libraryVocabData
                 ] = await Promise.all([
                     sharedLoader.loadExerciseLibraryShared(),
                     sharedLoader.loadExerciseRolesShared(),
                     sharedLoader.loadExerciseFileSchemaShared(),
-                    sharedLoader.loadExerciseVocabularyShared()
+                    sharedLoader.loadExerciseVocabularyShared(),
+                    sharedLoader.loadExerciseLibraryVocabularyShared()
                 ]);
 
                 // Set global data
@@ -3661,7 +3687,9 @@ ${payload}`;
                 vocabulary = {
                     ...vocabData,
                     regions: vocabData.regions || vocabData.region,
-                    capacities: vocabData.capacities || vocabData.capacity
+                    capacities: vocabData.capacities || vocabData.capacity,
+                    contributions: vocabData.contributions || vocabData.contribution,
+                    pattern_modifiers: libraryVocabData?.pattern_modifiers || {}
                 };
 
                 console.log('[PT Mode] Loaded', exerciseLibrary.length, 'exercises from library');
