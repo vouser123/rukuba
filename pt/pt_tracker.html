@@ -2127,7 +2127,8 @@
             if (syncLocalStorage) {
                 syncCacheToLocalStorage();
             }
-            console.log(`[History] Cache updated (${deduped.length} sessions) from ${source}`);
+            const timestamp = new Date().toISOString();
+            console.log(`[${timestamp}] [History] Cache updated (${deduped.length} sessions) from ${source}`);
         }
 
         function getSessionHistoryFromCache() {
@@ -2580,8 +2581,38 @@
             const sessionsRef = collection(db, `users/${user.uid}/sessions`);
             const sessionsQuery = query(sessionsRef);
             let initialLoad = true;
+            let lastProcessedSnapshot = null;
 
+            /**
+             * Track and skip redundant snapshot events.
+             *
+             * Firestore can fire onSnapshot multiple times for a single document write due to:
+             * - Document creation, index updates, timestamp resolution, composite indexes
+             * This causes "Cache updated (134)", "Cache updated (135)", "Cache updated (136)"
+             * even when only one exercise was logged, exhausting write stream quota.
+             *
+             * We check snapshot.docChanges() to see if anything actually changed.
+             */
             sessionHistoryUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+                const timestamp = new Date().toISOString();
+
+                // Initial load: process immediately
+                if (initialLoad) {
+                    console.log(`[${timestamp}] [Firestore] Session history loaded`);
+                    initialLoad = false;
+                    lastProcessedSnapshot = snapshot;
+                } else {
+                    // Check if this snapshot has any actual changes
+                    const changes = snapshot.docChanges();
+                    if (changes.length === 0) {
+                        console.log(`[${timestamp}] [Firestore] Skipping redundant snapshot event (no changes)`);
+                        return;
+                    }
+                    console.log(`[${timestamp}] [Firestore] Processing snapshot with ${changes.length} change(s)`);
+                    lastProcessedSnapshot = snapshot;
+                }
+
+                // Process the snapshot
                 const sessions = snapshot.docs.map(docSnap => ({
                     _firestoreId: docSnap.id,
                     ...docSnap.data()
@@ -2601,11 +2632,6 @@
                 sessionHistoryLoadedFromFirestore = true;
                 if (!firestoreHydrated) {
                     firestoreHydrated = true;
-                }
-
-                if (initialLoad) {
-                    console.log('[Firestore] Session history loaded');
-                    initialLoad = false;
                 }
 
                 renderHistory();
