@@ -2054,6 +2054,12 @@
 
                 // Session history info
                 debugHtml += `<div style="margin-bottom: 8px;">`;
+                debugHtml += `<strong>Auth:</strong><br>`;
+                debugHtml += `&nbsp;&nbsp;Current user: ${currentUser ? currentUser.email || currentUser.uid : 'Signed out'}<br>`;
+                debugHtml += `&nbsp;&nbsp;Patient user ID: ${patientUserId || '—'}<br>`;
+                debugHtml += `</div>`;
+
+                debugHtml += `<div style="margin-bottom: 8px;">`;
                 debugHtml += `<strong>Sessions:</strong> ${sessionHistory.length}<br>`;
 
                 if (sessionHistory.length > 0) {
@@ -2088,6 +2094,9 @@
                 const roleExerciseIds = Object.keys(rolesData.exercise_roles || {});
                 debugHtml += `<div style="margin-bottom: 8px;">`;
                 debugHtml += `<strong>Exercises with roles:</strong> ${roleExerciseIds.length}<br>`;
+                if (roleExerciseIds.length === 0) {
+                    debugHtml += `<span style="color: var(--ios-red);">No roles loaded. Firestore pt_shared/exercise_roles may be empty or missing.</span><br>`;
+                }
                 debugHtml += `<strong>Sample IDs:</strong><br>`;
                 roleExerciseIds.slice(0, 5).forEach(id => {
                     debugHtml += `&nbsp;&nbsp;${id}<br>`;
