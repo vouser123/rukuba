@@ -1,5 +1,5 @@
 // PT Tracker Service Worker
-const CACHE_NAME = 'pt-tracker-v1.23.9';
+const CACHE_NAME = 'pt-tracker-v1.23.10';
 const sharedStylesUrl = new URL('shared-styles.css', self.location).pathname;
 const exerciseFormModuleUrl = new URL('shared/exercise_form_module.js', self.location).pathname;
 const scopeUrl = new URL('./', self.location).pathname;
