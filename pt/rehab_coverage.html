@@ -1504,13 +1504,19 @@
                     }
 
                     // Find most recent session for this exercise
+                    // Match by ID first, fallback to normalized name if IDs don't match
+                    const exerciseName = (exerciseData.name || '').trim().toLowerCase();
                     const sessions = sessionHistory.filter(s => {
-                        const match = s.exerciseId === exerciseId;
-                        if (DEBUG_MATCH_LOGS && !match && exerciseId.startsWith('01K')) {
-                            // Debug ULID exercises only
-                            console.log(`[Match] Checking ${exerciseId.substring(0, 10)}... vs session ${s.exerciseId?.substring(0, 10)}... = ${match}`);
+                        // Exact ID match
+                        if (s.exerciseId === exerciseId) return true;
+
+                        // Fallback: normalized name match (handles ID mismatches)
+                        const sessionName = (s.exerciseName || '').trim().toLowerCase();
+                        if (exerciseName && sessionName && exerciseName === sessionName) {
+                            return true;
                         }
-                        return match;
+
+                        return false;
                     });
                     sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
                     const lastSession = sessions[0];
