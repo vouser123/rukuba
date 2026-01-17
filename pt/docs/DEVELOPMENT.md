@@ -341,7 +341,7 @@ BEHAVIOR:
 
 ```javascript
 // sw-pt.js
-const CACHE_NAME = 'pt-tracker-v1.22.32'; // bump to refresh cached assets
+const CACHE_NAME = 'pt-tracker-v1.23.10'; // bump to refresh cached assets
 ```
 
 ### Versioning

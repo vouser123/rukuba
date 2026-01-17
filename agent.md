@@ -23,6 +23,10 @@ You are a coding assistant. Follow these rules:
 - When in doubt, reference the relevant DEVELOPMENT.md (repo-level or PT) before making or describing changes.
 - Before reporting a PR/branch as created, verify repository state with `git status -sb` and confirm remotes with `git remote -v`; never claim a PR exists unless the `make_pr` tool has been run in the current session.
 
+## Post-change checklist (PT app)
+
+- After any PT fix or behavior change, append a dated entry to `pt/docs/DEV_NOTES.md` following the documented structure before committing.
+
 ## Layout
 
 - `/packing`

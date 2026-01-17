@@ -8,6 +8,7 @@ Going forward, entries should follow this structure as applicable:
 - Notes
 
 ## Table of Contents
+- [2026-01-16](#2026-01-16)
 - [2026-01-14](#2026-01-14)
 - [2026-01-13](#2026-01-13)
 - [2026-01-12](#2026-01-12)
@@ -23,6 +24,12 @@ Going forward, entries should follow this structure as applicable:
   - [2026-01-05 — Deep Dive Audit: Firestore Save Operations](#2026-01-05--deep-dive-audit-firestore-save-operations)
   - [Known Remaining Issues](#known-remaining-issues)
 - [2025-01-05](#2025-01-05)
+
+---
+
+## 2026-01-16
+
+- **2026-01-16** — **Problem:** Rehab Coverage debug panel would not open on iOS after adding auth diagnostics. **Root cause:** The debug panel is built in a non-module script, but the newly referenced auth variables (`currentUser`, `patientUserId`) were module-scoped inside the `<script type="module">`, so opening the panel triggered a `ReferenceError` on iOS Safari. **What I did:** (1) Exposed `currentUser` and `patientUserId` on `window` immediately and kept them in sync when auth state changes and when therapist/patient context is resolved. (2) Updated the debug panel to read auth values from `window` instead of module scope. (3) Retained the roles-empty warning to help diagnose missing `pt_shared/exercise_roles` data. (4) Bumped the PT service worker cache name to refresh cached assets. **Fix applied:** Debug panel opens reliably on iOS and shows auth context without module scope errors (`pt/rehab_coverage.html`, `pt/sw-pt.js`). 
 
 ---
 
