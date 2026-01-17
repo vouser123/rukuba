@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="PT Tracker">
     <link rel="manifest" href="manifest-pt.json">
@@ -1746,7 +1746,8 @@
             query,
             setDoc,
             updateDoc,
-            where
+            where,
+            writeBatch
         } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         const STORAGE_KEY = 'pt_tracker_data';
@@ -2008,7 +2009,8 @@
 
                 // Flush queue when authenticated
                 if (navigator.onLine) {
-                    flushFirestoreQueue();
+                    console.log('[Auth] Triggering queue flush after authentication');
+                    void flushFirestoreQueue();
                 }
 
                 // Sync runtime if pending
@@ -2125,7 +2127,8 @@
             if (syncLocalStorage) {
                 syncCacheToLocalStorage();
             }
-            console.log(`[History] Cache updated (${deduped.length} sessions) from ${source}`);
+            const timestamp = new Date().toISOString();
+            console.log(`[${timestamp}] [History] Cache updated (${deduped.length} sessions) from ${source}`);
         }
 
         function getSessionHistoryFromCache() {
@@ -2578,8 +2581,38 @@
             const sessionsRef = collection(db, `users/${user.uid}/sessions`);
             const sessionsQuery = query(sessionsRef);
             let initialLoad = true;
+            let lastProcessedSnapshot = null;
 
+            /**
+             * Track and skip redundant snapshot events.
+             *
+             * Firestore can fire onSnapshot multiple times for a single document write due to:
+             * - Document creation, index updates, timestamp resolution, composite indexes
+             * This causes "Cache updated (134)", "Cache updated (135)", "Cache updated (136)"
+             * even when only one exercise was logged, exhausting write stream quota.
+             *
+             * We check snapshot.docChanges() to see if anything actually changed.
+             */
             sessionHistoryUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+                const timestamp = new Date().toISOString();
+
+                // Initial load: process immediately
+                if (initialLoad) {
+                    console.log(`[${timestamp}] [Firestore] Session history loaded`);
+                    initialLoad = false;
+                    lastProcessedSnapshot = snapshot;
+                } else {
+                    // Check if this snapshot has any actual changes
+                    const changes = snapshot.docChanges();
+                    if (changes.length === 0) {
+                        console.log(`[${timestamp}] [Firestore] Skipping redundant snapshot event (no changes)`);
+                        return;
+                    }
+                    console.log(`[${timestamp}] [Firestore] Processing snapshot with ${changes.length} change(s)`);
+                    lastProcessedSnapshot = snapshot;
+                }
+
+                // Process the snapshot
                 const sessions = snapshot.docs.map(docSnap => ({
                     _firestoreId: docSnap.id,
                     ...docSnap.data()
@@ -2595,15 +2628,13 @@
                     ...localSessions,
                     ...queued
                 ]);
-                setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: true });
+                // Only sync to localStorage on initial load; subsequent updates skip localStorage
+                // to reduce write operations and prevent Firebase rate-limiting
+                const syncToLS = !sessionHistoryLoadedFromFirestore;
+                setSessionHistoryCache(merged, { source: 'firestore', syncLocalStorage: syncToLS });
                 sessionHistoryLoadedFromFirestore = true;
                 if (!firestoreHydrated) {
                     firestoreHydrated = true;
-                }
-
-                if (initialLoad) {
-                    console.log('[Firestore] Session history loaded');
-                    initialLoad = false;
                 }
 
                 renderHistory();
@@ -2661,27 +2692,52 @@
             console.log('[Firestore] Session queued for sync:', session.sessionId || session.date);
         }
 
+        /**
+         * Flush queued Firestore sessions using batched writes.
+         *
+         * Firestore has write rate limits. This function batches up to 500 writes per batch
+         * to avoid exhausting the write stream quota. This prevents the error:
+         * "Write stream exhausted maximum allowed queued writes"
+         */
         async function flushFirestoreQueue() {
+            const queue = loadFirestoreQueue();
+
             // Only flush if authenticated
             if (!currentUser) {
-                console.log('[Firestore] Skipping queue flush - not authenticated');
+                if (queue.length > 0) {
+                    console.log(`[Firestore] Skipping queue flush - not authenticated (${queue.length} sessions queued)`);
+                }
                 return;
             }
 
-            const queue = loadFirestoreQueue();
-            if (queue.length === 0) return;
+            if (queue.length === 0) {
+                console.log('[Firestore] Queue flush called but queue is empty');
+                return;
+            }
 
             console.log(`[Firestore] Flushing ${queue.length} queued sessions for user ${currentUser.uid}`);
 
+            const BATCH_SIZE = 500; // Firestore max batch size
             const remaining = [];
-            for (const session of queue) {
+
+            // Process queue in batches
+            for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+                const batchSessions = queue.slice(i, i + BATCH_SIZE);
+                const batch = writeBatch(db);
+
+                // Add each session to the batch
+                batchSessions.forEach(session => {
+                    const docRef = doc(collection(db, `users/${currentUser.uid}/sessions`));
+                    batch.set(docRef, sanitizeSessionForFirestore(session));
+                });
+
                 try {
-                    // Write to user-scoped collection
-                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(session));
-                    console.log('[Firestore] Queued session synced:', session.sessionId);
+                    await batch.commit();
+                    console.log(`[Firestore] Batch ${Math.floor(i / BATCH_SIZE) + 1} committed: ${batchSessions.length} sessions`);
                 } catch (error) {
-                    console.error("Firestore queued write failed:", error);
-                    remaining.push(session);
+                    console.error(`[Firestore] Batch write failed:`, error);
+                    // If batch fails, add those sessions back to remaining queue
+                    remaining.push(...batchSessions);
                 }
             }
 

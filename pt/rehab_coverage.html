@@ -911,6 +911,9 @@
         let patientUserId = null; // For therapist access
         let authModalActive = false;
         let authModalLastFocus = null;
+        // Expose auth context for non-module debug panel access.
+        window.currentUser = currentUser;
+        window.patientUserId = patientUserId;
 
         function showAuthMessage(message, tone = 'error') {
             const errorEl = document.getElementById('auth-error');
@@ -1157,6 +1160,7 @@
 
         function handleAuthState(user) {
             currentUser = user;
+            window.currentUser = currentUser;
             updateMenuAuthDisplay();
 
             const authGuardOverlay = document.getElementById('auth-guard-overlay');
@@ -1199,12 +1203,14 @@
                 let isTherapist = false;
                 if (!snapshot.empty) {
                     patientUserId = snapshot.docs[0].id;
+                    window.patientUserId = patientUserId;
                     isTherapist = true;
                     console.log('[Therapist] Viewing patient coverage:', patientUserId);
                     document.getElementById('back-button').textContent = '← Back to Report';
                     document.getElementById('back-button').onclick = () => window.location.href = 'pt_report.html';
                 } else {
                     patientUserId = user.uid; // View own data
+                    window.patientUserId = patientUserId;
                     document.getElementById('back-button').textContent = '← Back to Tracker';
                     document.getElementById('back-button').onclick = () => window.location.href = 'pt_tracker.html';
                 }
@@ -2060,6 +2066,14 @@
 
                 // Session history info
                 debugHtml += `<div style="margin-bottom: 8px;">`;
+                const debugUser = window.currentUser;
+                const debugPatientId = window.patientUserId;
+                debugHtml += `<strong>Auth:</strong><br>`;
+                debugHtml += `&nbsp;&nbsp;Current user: ${debugUser ? debugUser.email || debugUser.uid : 'Signed out'}<br>`;
+                debugHtml += `&nbsp;&nbsp;Patient user ID: ${debugPatientId || '—'}<br>`;
+                debugHtml += `</div>`;
+
+                debugHtml += `<div style="margin-bottom: 8px;">`;
                 debugHtml += `<strong>Sessions:</strong> ${sessionHistory.length}<br>`;
 
                 if (sessionHistory.length > 0) {
@@ -2094,6 +2108,9 @@
                 const roleExerciseIds = Object.keys(rolesData.exercise_roles || {});
                 debugHtml += `<div style="margin-bottom: 8px;">`;
                 debugHtml += `<strong>Exercises with roles:</strong> ${roleExerciseIds.length}<br>`;
+                if (roleExerciseIds.length === 0) {
+                    debugHtml += `<span style="color: var(--ios-red);">No roles loaded. Firestore pt_shared/exercise_roles may be empty or missing.</span><br>`;
+                }
                 debugHtml += `<strong>Sample IDs:</strong><br>`;
                 roleExerciseIds.slice(0, 5).forEach(id => {
                     debugHtml += `&nbsp;&nbsp;${id}<br>`;

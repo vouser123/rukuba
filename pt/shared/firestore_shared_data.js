@@ -11,6 +11,7 @@ const SHARED_DOC_IDS = {
   exerciseLibrary: 'exercise_library',
   exerciseRoles: 'exercise_roles',
   exerciseVocabulary: 'exercise_roles_vocabulary',
+  exerciseLibraryVocabulary: 'exercise_library_vocabulary',
   exerciseFileSchema: 'exercise_file_schema',
   exerciseRolesSchema: 'exercise_roles_schema'
 };
@@ -226,7 +227,7 @@ export async function loadExerciseLibraryShared({
   }
 
   if (source.includes('fallback')) {
-    console.warn(`[SharedData] Exercise library using ${source} source; Firestore is preferred.`);
+    console.warn(`[SharedData] Exercise library using ${source} source; Firestore is preferred but was not used.`);
   }
 
   try {
@@ -261,6 +262,21 @@ export async function loadExerciseVocabularyShared({
 } = {}) {
   const data = await loadSharedDocument({
     docId: SHARED_DOC_IDS.exerciseVocabulary,
+    fallbackUrl,
+    fallbackData,
+    seedIfMissing
+  });
+  return data || {};
+}
+
+export async function loadExerciseLibraryVocabularyShared({
+  // Default to bundled JSON vocab for exercise library
+  fallbackUrl = 'exercise_library_vocabulary.json',
+  fallbackData = null,
+  seedIfMissing = false
+} = {}) {
+  const data = await loadSharedDocument({
+    docId: SHARED_DOC_IDS.exerciseLibraryVocabulary,
     fallbackUrl,
     fallbackData,
     seedIfMissing

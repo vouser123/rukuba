@@ -8,6 +8,13 @@ This document outlines the required workflow when working on this codebase.
 
 **ALWAYS** pull the latest changes from the main branch before starting any work.
 
+**If `origin` is missing (common in Codex containers), add it yourself before running the commands below.**
+If you're on iOS and don't have the repo URL handy, ask a maintainer for the correct HTTPS URL before proceeding.
+```bash
+# Add the remote if it doesn't exist
+git remote add origin <repo-url>
+```
+
 **Commands:**
 ```bash
 # Fetch latest changes from remote
