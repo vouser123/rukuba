@@ -4245,6 +4245,7 @@
             const formParams = entry?.form_parameters_required || [];
 
             // If exercise has form parameters, show modal to collect them
+            // Note: Side selection from Next Set modal is not preserved (user must reselect in log modal)
             if (formParams.length > 0) {
                 closeNextSetModal();
                 editNextSet(); // Opens log set modal with form parameters
@@ -7903,9 +7904,13 @@
                 const hasAlternating = (ex.pattern_modifiers || []).includes('alternating');
                 const alternatingIndicator = hasAlternating && isSidedPattern(ex.pattern) ? ' ⚡' : '';
 
+                // Show archived indicator
+                const isArchived = ex.lifecycle?.status === 'archived' || ex.archived === true;
+                const archivedIndicator = isArchived ? ' (archived)' : '';
+
                 return `
                     <div class="history-item" style="cursor: pointer; border-left: 4px solid ${adherenceColor};">
-                        <div data-action="selectExerciseFromList" data-action-arg="${ex.id}" role="button" tabindex="0">${ex.name}${detailsIndicator}${alternatingIndicator}</div>
+                        <div data-action="selectExerciseFromList" data-action-arg="${ex.id}" role="button" tabindex="0">${ex.name}${archivedIndicator}${detailsIndicator}${alternatingIndicator}</div>
                         ${tagHtml ? `<div style="margin-top: 4px;">${tagHtml}</div>` : ''}
                         <div class="history-meta">${describeSpec(spec)}</div>
                         ${statsHtml}

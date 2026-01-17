@@ -462,7 +462,6 @@
                     <button class="btn-secondary" data-action="showPatientNotes">💬 Notes</button>
                     <button class="btn-secondary" data-action="showChangeHistory">📋 Changes</button>
                     <button class="btn-secondary" data-action="clearAllChanges">↩️ Undo All</button>
-                    <button class="btn-primary" data-action="commitAllChangesToFirestore">💾 Save All</button>
                     <button class="btn-danger" data-action="toggleEditorMode" accesskey="x">Close (Alt+X)</button>
                 </div>
             </div>
@@ -472,11 +471,13 @@
                 <strong>Keyboard Shortcuts:</strong> Alt+A (Add Exercise), Alt+R (Add Role), Alt+V (Update Vocab), Alt+E (Export), Alt+X (Close)
             </div>
 
-            <!-- Modification Summary -->
-            <div id="mod-summary" style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none;">
-                <h3 style="font-size: 18px; margin-bottom: 10px; color: var(--ios-blue);">Modifications Summary</h3>
-                <div id="mod-summary-content"></div>
-            </div>
+            <!-- Reference Guide -->
+            <details style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 0;">📖 Reference Guide - Vocabulary & Pattern Modifiers</summary>
+                <div id="vocabulary-reference-guide" style="margin-top: 15px; font-size: 14px; line-height: 1.6;">
+                    <!-- Populated from vocabulary dynamically -->
+                </div>
+            </details>
 
             <!-- Add/Edit Exercise Section -->
             <div class="section">
@@ -2059,10 +2060,12 @@
                     const exercise = exerciseLibrary.find(ex => ex.id === id);
                     const metricName = getSummaryMetricName(exercise);
                     const showReps = metricName === 'reps' && data.totalReps > 0;
+                    const isArchived = exercise?.lifecycle?.status === 'archived' || exercise?.archived === true;
+                    const exerciseDisplayName = isArchived ? `${data.name} (archived)` : data.name;
 
                     html += `
                         <div class="exercise-item">
-                            <div class="exercise-name">${data.name}</div>
+                            <div class="exercise-name">${exerciseDisplayName}</div>
                             <div class="exercise-stats">
                                 ${data.sessions.length} sessions • ${data.totalSets} sets${showReps ? ` • ${data.totalReps} reps` : ''}
                                 <br>Last performed: ${daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`}
@@ -2154,11 +2157,10 @@
 
         // Wrapper functions for data-action buttons (iOS-safe PWA pattern)
         function removeFieldContainer(event) {
-            const button = event.target.closest('[data-action="removeFieldContainer"]');
-            if (button) {
-                const container = button.closest('.form-group');
-                if (container) container.remove();
-            }
+            // event.currentTarget is the button with data-action (more reliable than event.target)
+            const button = event.currentTarget;
+            const container = button.closest('.form-group');
+            if (container) container.remove();
         }
         window.removeFieldContainer = removeFieldContainer;
 
@@ -2381,7 +2383,6 @@
                 vocabGuide.innerHTML = guideHTML;
             }
 
-            updateModificationSummary();
         }
 
         const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -2873,7 +2874,6 @@
             document.getElementById('archive-btn').style.display = 'none';
             currentEditingExerciseId = null;
 
-            updateModificationSummary();
             initializeEditorMode();
             } catch (error) {
                 alert(`ERROR in saveExercise: ${error.message}\n\nStack: ${error.stack}`);
@@ -2960,7 +2960,6 @@
             currentEditingExerciseId = null;
 
             // Refresh dropdowns
-            updateModificationSummary();
             initializeEditorMode();
         };
 
@@ -3125,7 +3124,6 @@
 
             // Refresh display
             loadExerciseRoles();
-            updateModificationSummary();
 
             alert('Role added and saved to Firestore!');
             } catch (error) {
@@ -3160,7 +3158,6 @@
 
             // Refresh display
             loadExerciseRoles();
-            updateModificationSummary();
         }
 
         function loadVocabTerms() {
@@ -3187,7 +3184,7 @@
             document.getElementById('vocab-definition').value = currentDef;
         }
 
-        function updateVocabulary() {
+        async function updateVocabulary() {
             const category = document.getElementById('vocab-category').value;
             const term = document.getElementById('vocab-term').value;
             const definition = document.getElementById('vocab-definition').value.trim();
@@ -3203,8 +3200,13 @@
             }
             modifications.updatedVocab[category][term] = definition;
 
-            updateModificationSummary();
-            alert(`Definition for "${term}" updated! Remember to export modifications when done.`);
+            // Save to Firestore
+            try {
+                await window.saveExerciseLibraryToFirestore();
+                showToast(`Definition for "${term}" saved`, 'success', 2000);
+            } catch (error) {
+                showToast(`Failed to save: ${error.message}`, 'error', 4000);
+            }
         }
 
         function loadExerciseDosage() {
@@ -3383,7 +3385,6 @@
 
             // Refresh display
             loadExerciseDosage();
-            updateModificationSummary();
 
             alert('Dosage updated and saved to Firestore!');
             } catch (error) {
