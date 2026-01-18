@@ -8,6 +8,7 @@ Going forward, entries should follow this structure as applicable:
 - Notes
 
 ## Table of Contents
+- [2026-01-17](#2026-01-17)
 - [2026-01-16](#2026-01-16)
 - [2026-01-14](#2026-01-14)
 - [2026-01-13](#2026-01-13)
@@ -24,6 +25,16 @@ Going forward, entries should follow this structure as applicable:
   - [2026-01-05 — Deep Dive Audit: Firestore Save Operations](#2026-01-05--deep-dive-audit-firestore-save-operations)
   - [Known Remaining Issues](#known-remaining-issues)
 - [2025-01-05](#2025-01-05)
+
+---
+
+## 2026-01-17
+
+- **2026-01-17** — **Problem:** Rehab Coverage debug button and other menu items (Export, Import, etc.) did not work - clicking them had no effect. **Root cause:** `rehab_coverage.html` uses `<script type="module">` which creates module scope isolation. All functions (toggleDebug, toggleMenu, goBack, exportForPT, etc.) were defined in module scope but the HTML uses inline `onclick` handlers which require functions to be on the global `window` object. **What I did:** Added `Object.assign(window, {...})` at line 2972 to expose all onclick handler functions to the global scope: toggleMenu, toggleDebug, goBack, exportForPT, closeExportPTModal, copyPtPayloadOnly, sendToPT, importPTModifications, closeImportPTModal, processPastedImport, exportAllData, importData, openVocabulary, closeVocabulary, closeTermDefinition, openRolesEditor, closeRolesEditor, toggleRegion, toggleCapacity. **Fix applied:** Debug button now works, menu items are clickable, and all modal interactions function correctly on iOS and desktop (`pt/rehab_coverage.html`).
+
+- **2026-01-17** — **Problem:** Rehab Coverage showed 0% coverage with "0 of 0 exercises done" despite having 156 sessions and 29 unique exercises in session history. Debug panel showed "Exercises with roles: 0" and error "No roles loaded. Firestore pt_shared/exercise_roles may be empty or missing." **Root cause:** Exercise IDs in session history (ex0003, ex0004, ex0002, ex0006, ex0009) did not match exercise IDs in the roles data. The `getExercisesForBucket()` function matched sessions only by exact `exerciseId` comparison (`s.exerciseId === exerciseId`). When exercises were logged with different IDs than what's stored in `pt_shared/exercise_roles` (due to migrations, renames, or ID changes), sessions would not match their roles and coverage showed 0%. **What I did:** Modified session matching logic in `getExercisesForBucket()` (lines 1507-1520) to use a two-step matching strategy: (1) First attempts exact ID match: `s.exerciseId === exerciseId`. (2) Falls back to normalized name comparison if ID doesn't match: compares `exerciseName.trim().toLowerCase()` with `sessionName.trim().toLowerCase()`. This handles scenarios where exercises were re-imported with new IDs or renamed. **Fix applied:** Coverage now displays correctly by matching sessions to roles via either ID or normalized name, preventing false 0% coverage when ID mismatches exist (`pt/rehab_coverage.html`).
+
+- **2026-01-17** — **Problem:** User had added roles for 29 exercises via pt_report.html "Add Role" button but those roles were not appearing in rehab_coverage (showed "Exercises with roles: 0") or in pt_report's role dropdown. Debug panel confirmed session history existed but no roles were found in Firestore. **Root cause:** The `addRoleToExercise()` function in pt_report.html saved roles to the wrong Firestore location. It called `window.saveExerciseLibraryToFirestore()` which writes to `users/{userId}/pt_runtime/state.pt_modifications.newRoles` instead of the shared roles location `pt_shared/exercise_roles`. Both pt_report and rehab_coverage load roles from `pt_shared/exercise_roles` via `loadExerciseRolesShared()`, so roles saved to pt_modifications were invisible to both apps. This architectural mismatch meant all role assignments were saved but never read. **What I did:** Created `migrate_roles.html` one-time migration tool that: (1) Reads roles from `users/{userId}/pt_runtime/state.pt_modifications.newRoles` and `editedRoles`. (2) Merges them into the correct `pt_shared/exercise_roles` document structure with exercise names. (3) Saves merged roles to `pt_shared/exercise_roles` in Firestore. (4) Logs progress showing which exercises had roles migrated. This recovers all previously "lost" role data without requiring manual re-entry. **Fix applied:** Migration tool allows one-click recovery of role assignments. Future fix needed: modify `addRoleToExercise()` in pt_report to save directly to `pt_shared/exercise_roles` instead of pt_modifications (`pt/migrate_roles.html` created, architectural bug in `pt/pt_report.html` documented).
 
 ---
 
