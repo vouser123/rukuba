@@ -59,22 +59,14 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
-        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
-        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDUGa0MfDFsNFuYuGCdl4o-b8s3AE3keFQ",
-            authDomain: "pt-tracker-9929e.firebaseapp.com",
-            projectId: "pt-tracker-9929e",
-            storageBucket: "pt-tracker-9929e.firebasestorage.app",
-            messagingSenderId: "439056085464",
-            appId: "1:439056085464:web:4815a32de88c88e881b1b1"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        import {
+            auth,
+            db,
+            onAuthStateChanged,
+            setPersistence,
+            browserLocalPersistence
+        } from './firebase.js';
+        import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 
         let currentUserId = null;
 
@@ -90,9 +82,19 @@
 
         // Debug: log auth initialization
         log('Firebase initialized, waiting for auth state...', 'info');
-        console.log('[Debug] Firebase app:', app);
         console.log('[Debug] Auth instance:', auth);
         console.log('[Debug] Current user (immediate):', auth.currentUser);
+
+        async function initAuthPersistence() {
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                log('Auth persistence set to local storage.', 'info');
+                console.log('[Debug] Auth persistence set to browserLocalPersistence');
+            } catch (error) {
+                log(`Auth persistence setup failed: ${error.message}`, 'error');
+                console.error('[Debug] Auth persistence error:', error);
+            }
+        }
 
         async function handleAuthUser(user) {
             const statusEl = document.getElementById('status');
@@ -139,10 +141,15 @@
             }
         }
 
-        onAuthStateChanged(auth, async (user) => {
-            console.log('[Debug] onAuthStateChanged fired with user:', user);
-            await handleAuthUser(user);
-        });
+        async function watchAuthState() {
+            await initAuthPersistence();
+            onAuthStateChanged(auth, async (user) => {
+                console.log('[Debug] onAuthStateChanged fired with user:', user);
+                await handleAuthUser(user);
+            });
+        }
+
+        watchAuthState();
 
         window.checkAuthManually = async function() {
             log('Manually checking auth state...', 'info');
