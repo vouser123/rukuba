@@ -28,8 +28,10 @@ async function fetchJsonFallback(url) {
 async function readSharedDocument(docId) {
   const docRef = doc(db, SHARED_COLLECTION, docId);
   const snapshot = await getDoc(docRef);
-  if (!snapshot.exists()) return null;
-  return snapshot.data();
+  if (!snapshot.exists()) {
+    return { data: null, hasFirestoreReadSucceeded: true };
+  }
+  return { data: snapshot.data(), hasFirestoreReadSucceeded: true };
 }
 
 async function seedSharedDocument(docId, data) {
@@ -45,9 +47,17 @@ async function loadSharedDocument({
   fallbackData,
   seedIfMissing = false
 }) {
+  let hasFirestoreReadSucceeded = false;
   try {
-    const data = await readSharedDocument(docId);
-    if (data) return data;
+    const result = await readSharedDocument(docId);
+    hasFirestoreReadSucceeded = result?.hasFirestoreReadSucceeded === true;
+    if (result?.data) {
+      return {
+        data: result.data,
+        source: 'firestore',
+        hasFirestoreReadSucceeded
+      };
+    }
   } catch (error) {
     console.warn(`[SharedData] Firestore read failed for ${docId}:`, error);
   }
@@ -62,14 +72,16 @@ async function loadSharedDocument({
   }
 
   if (fallback && seedIfMissing) {
-    try {
-      await seedSharedDocument(docId, fallback);
-    } catch (error) {
-      console.warn(`[SharedData] Firestore seed failed for ${docId}:`, error);
-    }
+    console.warn(
+      `[SharedData] Seed suppressed for ${docId}: fallback data must never be written upstream.`
+    );
   }
 
-  return fallback;
+  return {
+    data: fallback,
+    source: fallback ? 'fallback' : 'firestore',
+    hasFirestoreReadSucceeded
+  };
 }
 
 function normalizeExerciseLibrary(data) {
@@ -158,10 +170,11 @@ export async function loadExerciseLibraryShared({
 } = {}) {
   // Load Firestore first so we can detect missing IDs before falling back.
   let sharedData = null;
-  let firestoreLoaded = false;
+  let hasFirestoreReadSucceeded = false;
   try {
-    sharedData = await readSharedDocument(SHARED_DOC_IDS.exerciseLibrary);
-    firestoreLoaded = sharedData != null;
+    const result = await readSharedDocument(SHARED_DOC_IDS.exerciseLibrary);
+    hasFirestoreReadSucceeded = result?.hasFirestoreReadSucceeded === true;
+    sharedData = result?.data ?? null;
   } catch (error) {
     console.warn('[SharedData] Firestore read failed for exercise library:', error);
   }
@@ -195,7 +208,7 @@ export async function loadExerciseLibraryShared({
   });
 
   let mergedData = sharedData;
-  let source = firestoreLoaded ? 'firestore' : 'unknown';
+  let source = sharedData ? 'firestore' : 'firestore';
   if (sharedExercises.length === 0 && fallbackExercises.length > 0) {
     mergedData = fallbackData;
     source = 'fallback';
@@ -211,23 +224,17 @@ export async function loadExerciseLibraryShared({
     } else {
       mergedData = { exercises: mergedExercises };
     }
-    source = 'firestore+fallback';
+    source = 'fallback';
   }
 
-  // Seed Firestore if missing entirely, or if we detected missing exercises.
-  if (seedIfMissing && (sharedData == null || missingExercises.length > 0)) {
-    const payload = mergedData ?? fallbackData;
-    if (payload) {
-      try {
-        await seedSharedDocument(SHARED_DOC_IDS.exerciseLibrary, payload);
-      } catch (error) {
-        console.warn('[SharedData] Firestore seed failed for exercise library:', error);
-      }
-    }
+  if (seedIfMissing) {
+    console.warn(
+      '[SharedData] Seed suppressed for exercise library: fallback data must never be written upstream.'
+    );
   }
 
-  if (source.includes('fallback')) {
-    console.warn(`[SharedData] Exercise library using ${source} source; Firestore is preferred but was not used.`);
+  if (source === 'fallback') {
+    console.warn('[SharedData] Exercise library using fallback source; Firestore is preferred but was not used.');
   }
 
   try {
@@ -236,7 +243,11 @@ export async function loadExerciseLibraryShared({
     console.warn('[SharedData] Failed to persist library source hint:', error);
   }
 
-  return normalizeExerciseLibrary(mergedData ?? fallbackData).exercises;
+  return {
+    data: normalizeExerciseLibrary(mergedData ?? fallbackData).exercises,
+    source,
+    hasFirestoreReadSucceeded
+  };
 }
 
 export async function loadExerciseRolesShared({
@@ -245,13 +256,17 @@ export async function loadExerciseRolesShared({
   fallbackData = null,
   seedIfMissing = false
 } = {}) {
-  const data = await loadSharedDocument({
+  const result = await loadSharedDocument({
     docId: SHARED_DOC_IDS.exerciseRoles,
     fallbackUrl,
     fallbackData,
     seedIfMissing
   });
-  return data || { exercise_roles: {} };
+  return {
+    data: result?.data || { exercise_roles: {} },
+    source: result?.source || 'firestore',
+    hasFirestoreReadSucceeded: result?.hasFirestoreReadSucceeded === true
+  };
 }
 
 export async function loadExerciseVocabularyShared({
@@ -260,13 +275,17 @@ export async function loadExerciseVocabularyShared({
   fallbackData = null,
   seedIfMissing = false
 } = {}) {
-  const data = await loadSharedDocument({
+  const result = await loadSharedDocument({
     docId: SHARED_DOC_IDS.exerciseVocabulary,
     fallbackUrl,
     fallbackData,
     seedIfMissing
   });
-  return data || {};
+  return {
+    data: result?.data || {},
+    source: result?.source || 'firestore',
+    hasFirestoreReadSucceeded: result?.hasFirestoreReadSucceeded === true
+  };
 }
 
 export async function loadExerciseLibraryVocabularyShared({
@@ -275,13 +294,17 @@ export async function loadExerciseLibraryVocabularyShared({
   fallbackData = null,
   seedIfMissing = false
 } = {}) {
-  const data = await loadSharedDocument({
+  const result = await loadSharedDocument({
     docId: SHARED_DOC_IDS.exerciseLibraryVocabulary,
     fallbackUrl,
     fallbackData,
     seedIfMissing
   });
-  return data || {};
+  return {
+    data: result?.data || {},
+    source: result?.source || 'firestore',
+    hasFirestoreReadSucceeded: result?.hasFirestoreReadSucceeded === true
+  };
 }
 
 export async function loadExerciseFileSchemaShared({
@@ -289,24 +312,92 @@ export async function loadExerciseFileSchemaShared({
   fallbackUrl = 'schema/exercise_file.schema.json',
   seedIfMissing = false
 } = {}) {
-  const data = await loadSharedDocument({
+  const result = await loadSharedDocument({
     docId: SHARED_DOC_IDS.exerciseFileSchema,
     fallbackUrl,
     seedIfMissing
   });
-  return data || {};
+  return {
+    data: result?.data || {},
+    source: result?.source || 'firestore',
+    hasFirestoreReadSucceeded: result?.hasFirestoreReadSucceeded === true
+  };
+}
+
+function filterValidExerciseEntries(exercises) {
+  if (!Array.isArray(exercises)) return [];
+  return exercises.filter((exercise) => {
+    const id = exercise?.id || exercise?.exercise_id;
+    return typeof id === 'string' && id.trim().length > 0;
+  });
+}
+
+function sanitizeExerciseLibraryPayload(libraryData) {
+  if (!libraryData) return { exercises: [] };
+  if (Array.isArray(libraryData)) {
+    return { exercises: filterValidExerciseEntries(libraryData) };
+  }
+  if (Array.isArray(libraryData.exercises)) {
+    return {
+      ...libraryData,
+      exercises: filterValidExerciseEntries(libraryData.exercises)
+    };
+  }
+  return { exercises: [] };
+}
+
+function sanitizeRolesPayload(rolesData) {
+  const exerciseRoles = rolesData?.exercise_roles;
+  if (!exerciseRoles || typeof exerciseRoles !== 'object') {
+    return { exercise_roles: {} };
+  }
+
+  const sanitized = {};
+  Object.entries(exerciseRoles).forEach(([exerciseId, entry]) => {
+    if (!exerciseId || typeof exerciseId !== 'string') return;
+    if (!entry || typeof entry !== 'object') return;
+    const roles = Array.isArray(entry.roles) ? entry.roles : [];
+    sanitized[exerciseId] = {
+      name: entry.name || exerciseId,
+      roles: roles.filter((role) => role && typeof role === 'object')
+    };
+  });
+
+  return { ...rolesData, exercise_roles: sanitized };
+}
+
+function sanitizeVocabularyPayload(vocabulary) {
+  if (!vocabulary || typeof vocabulary !== 'object') return {};
+  const sanitized = {};
+  Object.entries(vocabulary).forEach(([category, terms]) => {
+    if (!category) return;
+    if (!terms || typeof terms !== 'object') return;
+    const nextTerms = {};
+    Object.entries(terms).forEach(([term, definition]) => {
+      if (!term || term.trim().length === 0) return;
+      if (definition == null || definition === '') return;
+      nextTerms[term] = definition;
+    });
+    if (Object.keys(nextTerms).length > 0) {
+      sanitized[category] = nextTerms;
+    }
+  });
+  return sanitized;
 }
 
 export async function saveExerciseRolesShared(rolesData) {
-  return seedSharedDocument(SHARED_DOC_IDS.exerciseRoles, rolesData);
+  const sanitized = sanitizeRolesPayload(rolesData);
+  return seedSharedDocument(SHARED_DOC_IDS.exerciseRoles, sanitized);
 }
 
 export async function saveExerciseVocabularyShared(vocabulary) {
-  return seedSharedDocument(SHARED_DOC_IDS.exerciseVocabulary, vocabulary);
+  const sanitized = sanitizeVocabularyPayload(vocabulary);
+  return seedSharedDocument(SHARED_DOC_IDS.exerciseVocabulary, sanitized);
 }
 
 export async function saveExerciseLibraryShared(libraryData) {
-  return seedSharedDocument(SHARED_DOC_IDS.exerciseLibrary, libraryData);
+  const sanitized = sanitizeExerciseLibraryPayload(libraryData);
+  return seedSharedDocument(SHARED_DOC_IDS.exerciseLibrary, sanitized);
 }
 
 export async function migrateSharedDosageToRuntime({
@@ -391,12 +482,16 @@ export async function loadExerciseRolesSchemaShared({
   fallbackUrl = 'schema/exercise_roles.schema.json',
   seedIfMissing = false
 } = {}) {
-  const data = await loadSharedDocument({
+  const result = await loadSharedDocument({
     docId: SHARED_DOC_IDS.exerciseRolesSchema,
     fallbackUrl,
     seedIfMissing
   });
-  return data || {};
+  return {
+    data: result?.data || {},
+    source: result?.source || 'firestore',
+    hasFirestoreReadSucceeded: result?.hasFirestoreReadSucceeded === true
+  };
 }
 
 export async function saveExerciseFileSchemaShared(schemaData) {

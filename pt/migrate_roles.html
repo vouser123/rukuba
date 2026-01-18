@@ -227,6 +227,32 @@
             await handleAuthUser(user);
         };
 
+        function sanitizeRolePayload(rolesData) {
+            const exerciseRoles = rolesData?.exercise_roles;
+            if (!exerciseRoles || typeof exerciseRoles !== 'object') {
+                return { exercise_roles: {} };
+            }
+
+            const sanitized = {};
+            Object.entries(exerciseRoles).forEach(([exerciseId, entry]) => {
+                if (!exerciseId || typeof exerciseId !== 'string') return;
+                if (!entry || typeof entry !== 'object') return;
+                const roles = Array.isArray(entry.roles) ? entry.roles : [];
+                sanitized[exerciseId] = {
+                    id: entry.id || exerciseId,
+                    name: entry.name || exerciseId,
+                    roles: roles.filter(role => role && typeof role === 'object')
+                };
+            });
+
+            return { ...rolesData, exercise_roles: sanitized };
+        }
+
+        function sanitizeRoleList(roles) {
+            if (!Array.isArray(roles)) return [];
+            return roles.filter(role => role && typeof role === 'object');
+        }
+
         window.migrateRoles = async function() {
             if (!currentUserId) {
                 log('ERROR: Not logged in', 'error');
@@ -277,6 +303,9 @@
 
                 // Process newRoles
                 for (const [exerciseId, roles] of Object.entries(newRoles)) {
+                    if (!exerciseId || typeof exerciseId !== 'string') {
+                        continue;
+                    }
                     const exerciseName = runtimeData.exerciseLibrary?.find(ex => ex.id === exerciseId)?.canonical_name || exerciseId;
 
                     if (!rolesData.exercise_roles[exerciseId]) {
@@ -288,30 +317,34 @@
                     }
 
                     // Add new roles
-                    rolesData.exercise_roles[exerciseId].roles.push(...roles);
+                    rolesData.exercise_roles[exerciseId].roles.push(...sanitizeRoleList(roles));
                     migratedCount++;
                     log(`✓ Migrated ${roles.length} role(s) for ${exerciseName}`, 'success');
                 }
 
                 // Process editedRoles (these replace all roles for an exercise)
                 for (const [exerciseId, roles] of Object.entries(editedRoles)) {
+                    if (!exerciseId || typeof exerciseId !== 'string') {
+                        continue;
+                    }
                     const exerciseName = runtimeData.exerciseLibrary?.find(ex => ex.id === exerciseId)?.canonical_name || exerciseId;
 
                     rolesData.exercise_roles[exerciseId] = {
                         id: exerciseId,
                         name: exerciseName,
-                        roles: roles
+                        roles: sanitizeRoleList(roles)
                     };
                     migratedCount++;
                     log(`✓ Replaced all roles for ${exerciseName}`, 'success');
                 }
 
                 // 4. Save to pt_shared/exercise_roles
-                await setDoc(rolesRef, rolesData, { merge: true });
+                const sanitizedRolesData = sanitizeRolePayload(rolesData);
+                await setDoc(rolesRef, sanitizedRolesData, { merge: true });
                 log(`SUCCESS: Migrated roles for ${migratedCount} exercises to pt_shared/exercise_roles`, 'success');
-                log(`Total exercises with roles: ${Object.keys(rolesData.exercise_roles).length}`, 'info');
+                log(`Total exercises with roles: ${Object.keys(sanitizedRolesData.exercise_roles).length}`, 'info');
                 updateDebug({
-                    sharedRolesCount: Object.keys(rolesData.exercise_roles).length,
+                    sharedRolesCount: Object.keys(sanitizedRolesData.exercise_roles).length,
                     lastMigrationSummary: `migrated ${migratedCount} exercise(s)`
                 });
 
