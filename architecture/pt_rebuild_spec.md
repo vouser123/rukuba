@@ -261,6 +261,156 @@ Core tracker and PWA experience.
 - **`sw-pt.js`**: service worker caches key HTML, JSON, and shared modules; network-first HTML/JSON with offline fallbacks and cache-first for assets.【F:pt/sw-pt.js†L1-L108】
 - **`manifest-pt.json`**: PWA manifest with standalone display, start URL, theme colors, and maskable icons.【F:pt/manifest-pt.json†L1-L21】
 
+### 2.6 Page-Level UX & Required Functionality (Rebuild Scope)
+> The following details capture the user-facing UX and the data that must be captured/displayed per page. This is the authoritative list for rebuilding the UI.
+
+#### 2.6.1 Patient Tracker (`pt_tracker.html`)
+- **Auth gating + header/navigation**
+  - Output: auth guard overlay (sign-in required) plus dedicated sign-in modal with remember-me and password reset affordance.【F:pt/pt_tracker.html†L783-L1055】
+  - Output: header with streak display, quick exercise switcher trigger, notes indicator badge, and shortcut icons to weekly stats, exercise details, and hamburger menu.【F:pt/pt_tracker.html†L789-L806】
+  - Output/Input: hamburger menu for auth status (sign in/out), notes, settings, export/import, library diagnostics, and reload actions.【F:pt/pt_tracker.html†L811-L869】
+- **Exercise selection & plan view**
+  - Input: select an exercise + exercise type (reps/timed/hold/duration/AMRAP/distance) plus initial sets/reps/target fields via exercise picker modal.【F:pt/pt_tracker.html†L960-L978】
+  - Output/Input: “My Exercises” modal includes search, tag filters, recent exercises, and actions for planning sessions, browsing the library, viewing archived items, notes, and data backup.【F:pt/pt_tracker.html†L986-L1014】
+  - Input: plan-session modal to pick today’s exercise list and start the planned session; session plan container displays the plan and allows ending the session early.【F:pt/pt_tracker.html†L887-L894】【F:pt/pt_tracker.html†L1616-L1629】
+  - Input: per-exercise dosage fields (sets, reps per set, seconds per rep for timer exercises, distance for distance exercises). These map to `exerciseSpec` in session payloads.【F:pt/pt_tracker.html†L5171-L5186】
+  - Input: dosage prompt/edit modals capture per-exercise dosage updates for sets/reps/seconds/distance and persist to program state.【F:pt/pt_tracker.html†L1543-L1613】
+- **Session logging**
+  - Output: counter mode and timer mode views with progress bars and target labels; main controls for previous/log/next set actions.【F:pt/pt_tracker.html†L907-L951】
+  - Input: log set modal captures reps, distance, seconds, side selector, and dynamic form parameters; form parameters modal captures additional metadata after a session.【F:pt/pt_tracker.html†L1018-L1115】
+  - Input: session notes modal collects free-text notes at end of session (stored with session).【F:pt/pt_tracker.html†L1058-L1068】
+  - Input/Output: next-set confirmation modal summarizes logging with options to edit or confirm next set (ensures explicit confirmation).【F:pt/pt_tracker.html†L1118-L1131】
+  - Input: edit session modal allows changing session date/time, editing sets, updating notes, and deleting a session.【F:pt/pt_tracker.html†L1220-L1259】
+- **Timers & timers-based logging**
+  - Output: timer display for duration or timed reps (rep counter, target seconds, countdown, progress bar, warnings at low time).【F:pt/pt_tracker.html†L928-L941】【F:pt/pt_tracker.html†L4171-L4194】
+  - Input: timer start/pause/reset, and “log this time” controls that record `secondsAchieved`/`secondsTarget` when stopping early.【F:pt/pt_tracker.html†L936-L943】【F:pt/pt_tracker.html†L4304-L4314】
+  - Output: rest timer modal countdown between sets, with skip/continue actions and progress bar.【F:pt/pt_tracker.html†L1166-L1181】
+- **History, stats, and progress**
+  - Output: history modal shows exercise revisions + recent sessions and provides quick export buttons (7-day summary, full report) plus reload action.【F:pt/pt_tracker.html†L1197-L1215】
+  - Output: weekly stats modal with overview, volume chart, exercise breakdown, adherence view, and “view all sessions” navigation; all-sessions modal groups exercises by session ID.【F:pt/pt_tracker.html†L1297-L1329】
+  - Output: exercise progress modal with summary, chart, and session list for a specific exercise.【F:pt/pt_tracker.html†L1332-L1345】
+  - Output: session history grouped by `sessionId`, weekly stats, charts, adherence summaries, and streaks (fed by session history and runtime state).【F:pt/pt_tracker.html†L2567-L2642】【F:pt/pt_tracker.html†L5171-L5186】
+- **Exercise details & library**
+  - Output: exercise details modal surfaces professional guidance, plus hidden personal notes/rest fields to preserve data schema (even if not visible).【F:pt/pt_tracker.html†L1135-L1159】
+  - Output/Input: exercise library browser modal with “show only new” toggle, search, selectable exercises, and bulk import; detail modal shows full exercise info and allows import to “My Exercises.”【F:pt/pt_tracker.html†L1348-L1385】
+  - Output: library debug modal surfaces local/shared library snapshot for diagnostics.【F:pt/pt_tracker.html†L872-L883】
+- **Export/import & data management**
+  - Output/Input: export for PT modal collects optional email + note and can copy payload or open email client.【F:pt/pt_tracker.html†L1642-L1658】
+  - Input: import PT modifications modal accepts pasted email payload and processes it into runtime state.【F:pt/pt_tracker.html†L1662-L1687】
+  - Output/Input: data/backup modal and settings UI provide export (all data, library only, history only) and import (file restore) plus a link to the exercise editor.【F:pt/pt_tracker.html†L1388-L1414】【F:pt/pt_tracker.html†L1425-L1475】
+- **Preferences & app management**
+  - Input: settings toggles for haptics and voice announcements, with app version and reload controls; “about” section clarifies local-only storage message shown today.【F:pt/pt_tracker.html†L1479-L1533】
+  - Output: Firestore write guard modal warns before saving if cloud data not loaded (preventing accidental overwrites).【F:pt/pt_tracker.html†L1691-L1703】
+  - Output: app load warning overlay prompts reload if scripts fail to initialize.【F:pt/pt_tracker.html†L896-L904】
+- **Offline behavior**
+  - Output: sync indicators and offline mode status (driven by runtime snapshots).
+  - Input: offline queue persists locally and syncs on reconnect; runtime state is serialized for recovery across devices.【F:pt/pt_tracker.html†L2171-L2190】
+
+#### 2.6.2 Therapist Report & Editor (`pt_report.html`)
+- **Auth + patient selection**
+  - Output/Input: auth guard overlay and sign-in modal with remember-me and password reset affordances, tailored for therapist access.【F:pt/pt_report.html†L355-L380】
+  - Output: report header shows patient ID, logged-in email, and navigation to PT View/Report plus logout control.【F:pt/pt_report.html†L385-L394】
+  - Input: therapist selects patient by `therapistUid == currentUser.uid`; loads patient session history, runtime state, and notes for the selected patient.【F:pt/pt_report.html†L918-L955】
+- **Report view (read-only patient summary)**
+  - Output: overall progress metrics, coverage summary, recent activity (last 7 days), and exercise history list with per-exercise details.【F:pt/pt_report.html†L403-L421】
+  - Output: patient note section shows the most recent patient-entered note when available.【F:pt/pt_report.html†L398-L401】
+  - Output/Input: action buttons for toggling editor mode, printing, and navigation back to tracker/coverage/dashboard views.【F:pt/pt_report.html†L445-L453】
+- **PT Editor Mode (full-screen)**
+  - Output: dedicated editor overlay with shortcut buttons for view, notes, change history, undo-all, and close; keyboard shortcut hints for power users.【F:pt/pt_report.html†L455-L472】
+  - Output/Input: reference guide for vocabulary + pattern modifiers used in exercise metadata (populated dynamically from vocab).【F:pt/pt_report.html†L474-L479】
+  - Input: exercise editor includes search + select existing exercise, plus add-new flow with canonical name, category (including custom entry), and description fields; subsequent sections cover muscles, equipment, tags, guidance, and lifecycle metadata (see editor form structure).【F:pt/pt_report.html†L482-L516】
+  - Output: updated library data is saved to the patient runtime state and logged in `pt_modifications`.【F:pt/pt_report.html†L1341-L1363】【F:pt/pt_report.html†L1556-L1566】
+- **Program dosage & roles**
+  - Input: assign or adjust per-patient dosage (sets/reps/time/distance), add/archived exercises, and update exercise roles/vocab.
+  - Output: modifications accumulated in `pt_modifications` for tracker consumption (new exercises, edits, archived items, dosage changes, vocab updates).【F:pt/pt_report.html†L1556-L1566】
+- **Therapist notes**
+  - Input: send new notes to the patient; mark notes read, archived, or deleted.
+  - Output: read state tracked for therapist and patient; notes flow shared with patient view.【F:pt/pt_view.html†L522-L683】
+- **Import/export**
+  - Output/Input: import screen offers entry to PT Editor Mode (without patient data) and links to patient view; PT Editor Mode can export PT modifications for sharing.【F:pt/pt_report.html†L423-L442】
+  - Input: import PT_DATA / PT_MODIFICATIONS payloads (V2 gzip/base64).
+  - Output: export payloads for sharing via email or copy/paste workflows.【F:pt/pt_payload_utils.js†L1-L141】
+
+#### 2.6.3 Patient Dashboard (`pt_view.html`)
+- **Auth gating + header**
+  - Output/Input: dedicated auth screen with sign-in button; modal sign-in flow when using the dashboard (email/password, reset, cancel).【F:pt/pt_view.html†L226-L369】
+  - Output: header shows read-only badge, logged-in email, notes badge, and navigation back to PT report plus logout control.【F:pt/pt_view.html†L233-L256】
+- **Overview stats**
+  - Output: total sessions, active exercises, week activity, total sets, recent activity, and top exercises computed from session history.【F:pt/pt_view.html†L264-L298】
+  - Input: refresh data button and coverage analysis CTA to open the coverage page.【F:pt/pt_view.html†L300-L312】
+- **Notes inbox**
+  - Output: modal with notes list, unread badge, and filter toggle for showing all vs unread notes.
+  - Input: patient can send notes from the modal (textarea + send button).【F:pt/pt_view.html†L315-L331】
+- **Exercise history drill-down**
+  - Output: exercise history modal shows session list for a selected exercise with a search field that filters by date or notes.【F:pt/pt_view.html†L335-L350】
+
+#### 2.6.4 Coverage Analysis (`rehab_coverage.html`)
+- **Auth + navigation**
+  - Output/Input: auth guard overlay and sign-in modal with remember-me + reset; header with menu button and slide-out menu for navigation/actions.【F:pt/rehab_coverage.html†L655-L751】
+- **Coverage matrix**
+  - Output: accordion-style region/capacity/focus coverage summary derived from exercise roles and session history.
+  - Input: date range or patient selection (therapist vs patient routing).【F:pt/rehab_coverage.html†L1183-L1234】
+- **Menu actions & utilities**
+  - Output/Input: slide-out menu includes debug panel, vocabulary browser, roles editor, export for PT, PT editor navigation, import PT modifications, export/import data, and back-to-tracker navigation.【F:pt/rehab_coverage.html†L689-L755】
+  - Output: debug panel (toggle) surfaces coverage computations and matching diagnostics for sessions/roles.【F:pt/rehab_coverage.html†L771-L777】
+- **Roles & vocabulary modals**
+  - Output/Input: roles editor modal for editing roles per exercise (region/capacity/focus/contribution); vocabulary modal with term list and term definition modal for detailed descriptions.【F:pt/rehab_coverage.html†L758-L798】
+- **Import/export**
+  - Output/Input: export for PT modal (optional email + note) and import PT modifications modal (paste payload, verify, import).【F:pt/rehab_coverage.html†L800-L860】
+
+#### 2.6.5 Admin & Utility Pages
+- **`seed_firestore.html`**
+  - Input: seed shared exercise library, roles, and vocab data into `pt_shared/*`; migrate runtime dosage fields.
+  - Output: logs seed status and counts for verification.【F:pt/seed_firestore.html†L1-L112】
+- **`migrate_roles.html`**
+  - Input: migrate/merge role updates from `pt_modifications` into shared role definitions.
+  - Output: admin/debug status display for migration results.【F:pt/migrate_roles.html†L1-L120】
+
+### 2.7 JSON Storage Artifacts (Structure Must Persist)
+> These JSON files are shipping artifacts today. Even if the rebuild does not use them directly, their structure must be preserved to support backward compatibility, exports, and tooling.
+
+#### 2.7.1 `pt/exercise_library.json` (Shared Exercise Library)
+- **Top-level**
+  - `exercises`: array of exercise definitions.【F:pt/exercise_library.json†L1-L33】
+- **Exercise record fields (per entry)**
+  - Identity + taxonomy: `id`, `canonical_name`, `pt_category`, `description`.【F:pt/exercise_library.json†L1-L33】【F:pt/exercise_library.json†L1280-L1284】
+  - Muscles: `primary_muscles[]`, `secondary_muscles[]`.【F:pt/exercise_library.json†L7-L19】
+  - Pattern + modifiers: `pattern` (`side` or `both`) and `pattern_modifiers[]` which may include values like `hold_seconds` or `duration_seconds` (must preserve both fields even if not used).【F:pt/exercise_library.json†L20-L22】【F:pt/exercise_library.json†L84-L87】【F:pt/exercise_library.json†L337-L340】
+  - Equipment: `equipment.required[]`, `equipment.optional[]`.【F:pt/exercise_library.json†L22-L27】
+  - Form parameters: `form_parameters_required[]` (schema-driven required inputs).【F:pt/exercise_library.json†L28-L29】【F:pt/exercise_library.json†L94-L96】
+  - Tags: `tags.functional[]`, `tags.format[]`, `tags.heatmap[]`.【F:pt/exercise_library.json†L29-L33】【F:pt/exercise_library.json†L342-L349】
+  - Guidance: `guidance.external_cues[]`, `guidance.motor_cues[]`, `guidance.compensation_warnings[]`, `guidance.safety_flags[]`.【F:pt/exercise_library.json†L34-L39】【F:pt/exercise_library.json†L351-L359】
+  - Lifecycle + lineage: `lifecycle.status`, `lifecycle.effective_start_date`, `lifecycle.effective_end_date`, `added_date`, `updated_date`, `supersedes[]`, `superseded_by`, `superseded_date`.【F:pt/exercise_library.json†L1273-L1282】
+
+#### 2.7.2 `pt/exercise_roles.json` (Roles Mapping)
+- **Top-level**
+  - `schema_version`: version string for the roles schema.【F:pt/exercise_roles.json†L1-L3】
+  - `exercise_roles`: map of exercise ID → role assignments (each entry has `name` + `roles[]`).【F:pt/exercise_roles.json†L3-L33】
+- **Role entry (per exercise)**
+  - Each role includes `region`, `capacity`, optional `focus`, and `contribution`. These are used in coverage reporting and editor tooling.【F:pt/exercise_roles.json†L7-L28】
+
+#### 2.7.3 `pt/exercise_roles_vocabulary.json` (Roles Vocabulary)
+- **Top-level**
+  - `vocabulary_version`, `schema_ref` (points at `exercise_roles.schema.json`).【F:pt/exercise_roles_vocabulary.json†L1-L6】
+- **Vocab dictionaries**
+  - `region`, `capacity`, `contribution`, `focus` dictionaries map vocab keys to human-readable definitions used in UI and reports.【F:pt/exercise_roles_vocabulary.json†L7-L38】
+
+#### 2.7.4 `pt/exercise_library_vocabulary.json` (Library Vocabulary + Semantics)
+- **Top-level**
+  - `vocabulary_version`, `vocabulary_mode`, `authority`, and `schema_ref` metadata for schema alignment notes.【F:pt/exercise_library_vocabulary.json†L1-L7】
+- **Lifecycle vocab**
+  - `lifecycle` definitions describe allowed statuses and date semantics; used to interpret lifecycle fields in the library data.【F:pt/exercise_library_vocabulary.json†L9-L25】
+- **Tags vocab**
+  - `tags.functional`, `tags.format`, `tags.heatmap` provide guidance (including deprecated sections) for tag values even though tags are schema-free strings.【F:pt/exercise_library_vocabulary.json†L27-L69】
+- **Category and pattern semantics**
+  - `pt_category` provides definitions for category enums; `pattern` explains dosage semantics for `side` vs `both` patterns.【F:pt/exercise_library_vocabulary.json†L72-L105】
+- **Pattern modifiers (must preserve keys even if unused)**
+  - `pattern_modifiers` defines dosage semantics for modifiers such as `duration_seconds`, `hold_seconds`, `AMRAP`, `distance_feet`, etc. The rebuild must retain these keys/meaning to keep the data schema intact, especially for differences like `hold_seconds` vs `duration_seconds`.【F:pt/exercise_library_vocabulary.json†L108-L138】
+
+#### 2.7.5 `pt/manifest-pt.json` (PWA Manifest)
+- **Top-level**
+  - `name`, `short_name`, `description`, `start_url`, `display`, `background_color`, `theme_color`, `orientation`, and `icons[]` (maskable SVG).【F:pt/manifest-pt.json†L1-L24】
+
 ---
 
 ## 3. API Requirements
@@ -416,4 +566,3 @@ GET    /api/export/pt-modifications
 - [ ] Rebuild PT Report editor with authenticated patient/therapist role handling.
 - [ ] Rebuild coverage view using role definitions + session history.
 - [ ] Build migration scripts (Firestore → SQL).
-
