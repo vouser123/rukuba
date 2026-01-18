@@ -56,6 +56,10 @@
         <button id="retry-btn" onclick="checkAuthManually()" style="margin-right: 10px;">🔄 Retry Login Check</button>
         <button id="migrate-btn" onclick="migrateRoles()" disabled style="opacity: 0.5;">Migrate Roles</button>
         <div id="log" class="log"></div>
+        <div id="debug-panel" style="margin-top: 20px; background: #fff7e6; padding: 12px; border-radius: 6px; border: 1px solid #ffcc80; font-size: 12px; font-family: monospace;">
+            <div style="font-weight: 600; margin-bottom: 8px; color: #FF9500;">Debug Info</div>
+            <div id="debug-content">Waiting for auth state...</div>
+        </div>
     </div>
 
     <script type="module">
@@ -69,6 +73,50 @@
         import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 
         let currentUserId = null;
+        const debugState = {
+            authUser: null,
+            resolvedUserId: null,
+            resolvedUserType: null,
+            therapistMatchCount: null,
+            runtimeExists: null,
+            runtimeNewRolesCount: 0,
+            runtimeEditedRolesCount: 0,
+            sharedRolesCount: null,
+            lastMigrationSummary: null,
+            lastError: null
+        };
+
+        function updateDebug(partial) {
+            Object.assign(debugState, partial);
+            const debugEl = document.getElementById('debug-content');
+            if (!debugEl) return;
+
+            const authLabel = debugState.authUser
+                ? `${debugState.authUser.email || debugState.authUser.uid}`
+                : 'none';
+            const resolvedId = debugState.resolvedUserId || 'unknown';
+            const resolvedType = debugState.resolvedUserType || 'unknown';
+            const therapistCount = debugState.therapistMatchCount ?? 'unknown';
+            const runtimeStatus = debugState.runtimeExists === null
+                ? 'unknown'
+                : (debugState.runtimeExists ? 'found' : 'missing');
+            const sharedCount = debugState.sharedRolesCount ?? 'unknown';
+            const lastMigration = debugState.lastMigrationSummary || 'none';
+            const lastError = debugState.lastError || 'none';
+
+            debugEl.innerHTML = `
+                <div><strong>Auth user:</strong> ${authLabel}</div>
+                <div><strong>User type:</strong> ${resolvedType}</div>
+                <div><strong>Resolved user ID:</strong> ${resolvedId}</div>
+                <div><strong>Therapist match count:</strong> ${therapistCount}</div>
+                <div><strong>Runtime doc:</strong> ${runtimeStatus}</div>
+                <div><strong>Runtime newRoles count:</strong> ${debugState.runtimeNewRolesCount}</div>
+                <div><strong>Runtime editedRoles count:</strong> ${debugState.runtimeEditedRolesCount}</div>
+                <div><strong>Shared roles count:</strong> ${sharedCount}</div>
+                <div><strong>Last migration:</strong> ${lastMigration}</div>
+                <div><strong>Last error:</strong> ${lastError}</div>
+            `;
+        }
 
         function log(message, type = 'info') {
             const logEl = document.getElementById('log');
@@ -84,6 +132,7 @@
         log('Firebase initialized, waiting for auth state...', 'info');
         console.log('[Debug] Auth instance:', auth);
         console.log('[Debug] Current user (immediate):', auth.currentUser);
+        updateDebug({ authUser: auth.currentUser });
 
         // Ensure auth state persists across pages (pt_tracker -> migrate_roles).
         async function initAuthPersistence() {
@@ -94,6 +143,7 @@
             } catch (error) {
                 log(`Auth persistence setup failed: ${error.message}`, 'error');
                 console.error('[Debug] Auth persistence error:', error);
+                updateDebug({ lastError: `Auth persistence failed: ${error.message}` });
             }
         }
 
@@ -102,6 +152,8 @@
             const btnEl = document.getElementById('migrate-btn');
 
             console.log('[Debug] handleAuthUser called with user:', user);
+
+            updateDebug({ authUser: user });
 
             if (user) {
                 statusEl.textContent = 'Checking user type...';
@@ -119,11 +171,21 @@
                         statusEl.textContent = `✓ Logged in as therapist (patient: ${currentUserId})`;
                         statusEl.style.background = '#C8E6C9';
                         log(`Logged in as therapist, patient ID: ${currentUserId}`, 'success');
+                        updateDebug({
+                            resolvedUserId: currentUserId,
+                            resolvedUserType: 'therapist',
+                            therapistMatchCount: snapshot.size
+                        });
                     } else {
                         currentUserId = user.uid;
                         statusEl.textContent = `✓ Logged in as patient (${user.email || currentUserId})`;
                         statusEl.style.background = '#C8E6C9';
                         log(`Logged in as patient: ${currentUserId}`, 'success');
+                        updateDebug({
+                            resolvedUserId: currentUserId,
+                            resolvedUserType: 'patient',
+                            therapistMatchCount: snapshot.size
+                        });
                     }
 
                     // Enable button
@@ -132,6 +194,7 @@
                 } catch (error) {
                     log(`Error checking user type: ${error.message}`, 'error');
                     console.error(error);
+                    updateDebug({ lastError: `Auth user resolution failed: ${error.message}` });
                 }
             } else {
                 statusEl.innerHTML = '⚠️ Not logged in - <a href="pt_tracker.html">Open PT Tracker to sign in first</a>';
@@ -139,6 +202,11 @@
                 log('Not logged in - please sign in first', 'error');
                 btnEl.disabled = true;
                 btnEl.style.opacity = '0.5';
+                updateDebug({
+                    resolvedUserId: null,
+                    resolvedUserType: null,
+                    therapistMatchCount: null
+                });
             }
         }
 
@@ -167,6 +235,7 @@
 
             try {
                 log('Starting migration...', 'info');
+                updateDebug({ lastMigrationSummary: 'in progress', lastError: null });
 
                 // 1. Load roles from pt_runtime modifications
                 const runtimeRef = doc(db, `users/${currentUserId}/pt_runtime/state`);
@@ -174,6 +243,7 @@
 
                 if (!runtimeSnap.exists()) {
                     log('ERROR: No runtime data found', 'error');
+                    updateDebug({ runtimeExists: false, lastError: 'No runtime data found.' });
                     return;
                 }
 
@@ -184,6 +254,11 @@
 
                 log(`Found ${Object.keys(newRoles).length} exercises with new roles`, 'info');
                 log(`Found ${Object.keys(editedRoles).length} exercises with edited roles`, 'info');
+                updateDebug({
+                    runtimeExists: true,
+                    runtimeNewRolesCount: Object.keys(newRoles).length,
+                    runtimeEditedRolesCount: Object.keys(editedRoles).length
+                });
 
                 // 2. Load existing pt_shared/exercise_roles
                 const rolesRef = doc(db, 'pt_shared/exercise_roles');
@@ -195,6 +270,7 @@
                 }
 
                 log(`Current pt_shared has ${Object.keys(rolesData.exercise_roles).length} exercises`, 'info');
+                updateDebug({ sharedRolesCount: Object.keys(rolesData.exercise_roles).length });
 
                 // 3. Merge roles
                 let migratedCount = 0;
@@ -234,6 +310,10 @@
                 await setDoc(rolesRef, rolesData, { merge: true });
                 log(`SUCCESS: Migrated roles for ${migratedCount} exercises to pt_shared/exercise_roles`, 'success');
                 log(`Total exercises with roles: ${Object.keys(rolesData.exercise_roles).length}`, 'info');
+                updateDebug({
+                    sharedRolesCount: Object.keys(rolesData.exercise_roles).length,
+                    lastMigrationSummary: `migrated ${migratedCount} exercise(s)`
+                });
 
                 // 5. Clear modifications from runtime (optional - keeps them as backup)
                 // log('Clearing modifications from pt_runtime...', 'info');
@@ -250,6 +330,7 @@
             } catch (error) {
                 log(`ERROR: ${error.message}`, 'error');
                 console.error(error);
+                updateDebug({ lastError: error.message, lastMigrationSummary: 'failed' });
             }
         };
     </script>
