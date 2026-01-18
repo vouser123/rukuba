@@ -53,6 +53,7 @@
         <div id="status" style="padding: 10px; margin: 10px 0; border-radius: 4px; background: #f0f0f0;">
             Checking login status...
         </div>
+        <button id="retry-btn" onclick="checkAuthManually()" style="margin-right: 10px;">🔄 Retry Login Check</button>
         <button id="migrate-btn" onclick="migrateRoles()" disabled style="opacity: 0.5;">Migrate Roles</button>
         <div id="log" class="log"></div>
     </div>
@@ -87,34 +88,48 @@
             console.log(message);
         }
 
-        onAuthStateChanged(auth, async (user) => {
+        // Debug: log auth initialization
+        log('Firebase initialized, waiting for auth state...', 'info');
+        console.log('[Debug] Firebase app:', app);
+        console.log('[Debug] Auth instance:', auth);
+        console.log('[Debug] Current user (immediate):', auth.currentUser);
+
+        async function handleAuthUser(user) {
             const statusEl = document.getElementById('status');
             const btnEl = document.getElementById('migrate-btn');
+
+            console.log('[Debug] handleAuthUser called with user:', user);
 
             if (user) {
                 statusEl.textContent = 'Checking user type...';
                 statusEl.style.background = '#FFF9C4';
+                log(`User detected: ${user.email || user.uid}`, 'info');
 
-                // Check if therapist or patient
-                const usersRef = collection(db, 'users');
-                const q = query(usersRef, where('therapistUid', '==', user.uid));
-                const snapshot = await getDocs(q);
+                try {
+                    // Check if therapist or patient
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where('therapistUid', '==', user.uid));
+                    const snapshot = await getDocs(q);
 
-                if (!snapshot.empty) {
-                    currentUserId = snapshot.docs[0].id;
-                    statusEl.textContent = `✓ Logged in as therapist (patient: ${currentUserId})`;
-                    statusEl.style.background = '#C8E6C9';
-                    log(`Logged in as therapist, patient ID: ${currentUserId}`, 'success');
-                } else {
-                    currentUserId = user.uid;
-                    statusEl.textContent = `✓ Logged in as patient (${user.email || currentUserId})`;
-                    statusEl.style.background = '#C8E6C9';
-                    log(`Logged in as patient: ${currentUserId}`, 'success');
+                    if (!snapshot.empty) {
+                        currentUserId = snapshot.docs[0].id;
+                        statusEl.textContent = `✓ Logged in as therapist (patient: ${currentUserId})`;
+                        statusEl.style.background = '#C8E6C9';
+                        log(`Logged in as therapist, patient ID: ${currentUserId}`, 'success');
+                    } else {
+                        currentUserId = user.uid;
+                        statusEl.textContent = `✓ Logged in as patient (${user.email || currentUserId})`;
+                        statusEl.style.background = '#C8E6C9';
+                        log(`Logged in as patient: ${currentUserId}`, 'success');
+                    }
+
+                    // Enable button
+                    btnEl.disabled = false;
+                    btnEl.style.opacity = '1';
+                } catch (error) {
+                    log(`Error checking user type: ${error.message}`, 'error');
+                    console.error(error);
                 }
-
-                // Enable button
-                btnEl.disabled = false;
-                btnEl.style.opacity = '1';
             } else {
                 statusEl.innerHTML = '⚠️ Not logged in - <a href="pt_tracker.html">Open PT Tracker to sign in first</a>';
                 statusEl.style.background = '#FFCDD2';
@@ -122,7 +137,19 @@
                 btnEl.disabled = true;
                 btnEl.style.opacity = '0.5';
             }
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            console.log('[Debug] onAuthStateChanged fired with user:', user);
+            await handleAuthUser(user);
         });
+
+        window.checkAuthManually = async function() {
+            log('Manually checking auth state...', 'info');
+            const user = auth.currentUser;
+            console.log('[Debug] Manual check - current user:', user);
+            await handleAuthUser(user);
+        };
 
         window.migrateRoles = async function() {
             if (!currentUserId) {
