@@ -1,0 +1,503 @@
+/**
+ * PT Tracker - Minimal CSS
+ * iOS-safe, clean design
+ */
+
+/* Reset and Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #333;
+  background: #f5f5f5;
+  padding-bottom: 80px; /* Space for bottom nav */
+}
+
+/* Header with Hamburger Menu */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #2c3e50;
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+}
+
+header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  flex: 1;
+}
+
+#menu-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  padding: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  border-bottom: 1px solid #ddd;
+}
+
+#menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  background: white;
+  border: none;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#menu-dropdown button:active {
+  background: #f0f0f0;
+}
+
+/* Sync Status Bar */
+#sync-bar {
+  position: fixed;
+  top: 52px; /* Below header */
+  left: 0;
+  right: 0;
+  background: white;
+  border-bottom: 1px solid #ddd;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 999;
+}
+
+#online-status {
+  font-size: 12px;
+}
+
+#queue-count {
+  font-size: 14px;
+  flex: 1;
+}
+
+#sync-btn {
+  padding: 8px 16px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#sync-btn:active {
+  background: #2980b9;
+}
+
+#sync-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* Login Screen */
+#login-screen {
+  margin-top: 100px; /* Below header + sync bar */
+  padding: 24px;
+  text-align: center;
+}
+
+#login-screen h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: #2c3e50;
+}
+
+#login-screen p {
+  color: #7f8c8d;
+  margin-bottom: 24px;
+}
+
+#show-login-btn {
+  padding: 14px 32px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#show-login-btn:active {
+  background: #2980b9;
+}
+
+#login-form {
+  margin-top: 24px;
+}
+
+#login-form input {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 12px;
+  padding: 14px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+#login-form input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+#login-btn {
+  padding: 14px 32px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#login-btn:active {
+  background: #229954;
+}
+
+#login-error {
+  color: #e74c3c;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+/* Main Tracker Screen */
+#tracker-screen {
+  margin-top: 100px; /* Below header + sync bar */
+  padding: 0 0 80px; /* Bottom padding for nav */
+}
+
+/* Exercise Picker */
+#exercise-picker {
+  padding: 16px;
+}
+
+#exercise-picker h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+
+#exercise-search {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+#exercise-search:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+#exercise-list {
+  list-style: none;
+}
+
+#exercise-list li {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#exercise-list li:active {
+  background: #ecf0f1;
+}
+
+#exercise-list li strong {
+  display: block;
+  font-size: 16px;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+#exercise-list li span {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+/* Session Logger */
+#session-logger {
+  padding: 16px;
+}
+
+#session-logger h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+  color: #2c3e50;
+}
+
+#exercise-dosage {
+  color: #7f8c8d;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+#set-counter {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+#set-counter p {
+  font-size: 16px;
+  margin-bottom: 16px;
+  color: #7f8c8d;
+}
+
+#counter-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+#counter-controls button {
+  width: 60px;
+  height: 60px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 28px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#counter-controls button:active {
+  background: #2980b9;
+}
+
+#rep-count {
+  font-size: 48px;
+  font-weight: 700;
+  color: #2c3e50;
+  min-width: 80px;
+  text-align: center;
+}
+
+#finish-set-btn {
+  width: 100%;
+  padding: 14px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#finish-set-btn:active {
+  background: #229954;
+}
+
+#sets-completed {
+  background: #ecf0f1;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+#sets-completed h3 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+
+#completed-sets-list {
+  list-style: none;
+}
+
+#completed-sets-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
+  color: #555;
+}
+
+#completed-sets-list li:last-child {
+  border-bottom: none;
+}
+
+#finish-exercise-btn {
+  width: 100%;
+  padding: 14px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#finish-exercise-btn:active {
+  background: #c0392b;
+}
+
+#cancel-exercise-btn {
+  width: 100%;
+  padding: 14px;
+  background: #95a5a6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#cancel-exercise-btn:active {
+  background: #7f8c8d;
+}
+
+/* History View */
+#history-view {
+  padding: 16px;
+}
+
+#history-view h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+
+#history-list {
+  list-style: none;
+  margin-bottom: 16px;
+}
+
+#history-list li {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+#history-list li strong {
+  display: block;
+  font-size: 16px;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+#history-list li span {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+#history-view button {
+  width: 100%;
+  padding: 14px;
+  background: #95a5a6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#history-view button:active {
+  background: #7f8c8d;
+}
+
+/* Bottom Navigation */
+#bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid #ddd;
+  display: flex;
+  z-index: 999;
+}
+
+#bottom-nav button {
+  flex: 1;
+  padding: 16px;
+  background: white;
+  border: none;
+  border-right: 1px solid #ddd;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#bottom-nav button:last-child {
+  border-right: none;
+}
+
+#bottom-nav button:active {
+  background: #ecf0f1;
+}
+
+/* iOS Safe Area Insets */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+
+  #bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
