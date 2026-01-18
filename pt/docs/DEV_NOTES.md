@@ -8,6 +8,7 @@ Going forward, entries should follow this structure as applicable:
 - Notes
 
 ## Table of Contents
+- [2026-01-18](#2026-01-18)
 - [2026-01-17](#2026-01-17)
 - [2026-01-16](#2026-01-16)
 - [2026-01-14](#2026-01-14)
@@ -27,6 +28,10 @@ Going forward, entries should follow this structure as applicable:
 - [2025-01-05](#2025-01-05)
 
 ---
+
+## 2026-01-18
+
+- **2026-01-18** — **Problem:** `migrate_roles.html` did not detect existing Firebase auth from PT Tracker, so it always showed "Not logged in" even after signing in elsewhere. **Root cause:** The page was initializing Firebase with a different project configuration and had no explicit persistence setup, so auth state from the PT app project could not carry over. **What I did:** Swapped `migrate_roles.html` to import the shared `firebase.js` module (so it uses the same app config as PT Tracker) and added explicit `setPersistence(auth, browserLocalPersistence)` before subscribing to `onAuthStateChanged`, with logs for success/failure. **Fix applied:** Auth now persists across PT Tracker and migrate_roles, so the migration tool recognizes existing sign-ins and enables the migrate button without forcing a re-login (`pt/migrate_roles.html`).
 
 ## 2026-01-17
 
