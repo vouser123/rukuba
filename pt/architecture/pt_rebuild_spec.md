@@ -48,7 +48,7 @@ This rebuild is **clinical-adjacent**. Data loss, silent corruption, ambiguous a
 - **Silent failure is forbidden**. Any failure to persist medical session data must be explicitly surfaced.
 
 ### 2.5 Auditability & Traceability
-- Every mutation to sessions, dosage assignments, roles, or notes must be recorded with:
+- Every mutation must be recorded with:
   - who initiated it,
   - which device/app instance,
   - timestamps (client and server),
@@ -86,7 +86,7 @@ Any unresolved ambiguity must be added to the **Open Questions** section below.
 ## 4. Open Questions (Must Be Answered Before Build)
 1. Therapist-to-patient relationship cardinality: one-to-many vs one-to-one must be finalized.
 2. Required retention period for audit logs and server backups.
-3. Whether partial session entries (drafts) are visible to therapists or only finalized sessions.
+3. Whether partial exercise log entries (drafts) are visible to therapists or only finalized entries.
 
 ---
 
