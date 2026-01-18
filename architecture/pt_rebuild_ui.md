@@ -1,6 +1,6 @@
 # PT Tracker Rebuild — UI / UX Specification
 
-This document defines **required UI surfaces** and **user-visible invariants** for the rebuild. The rebuilt UI must match current workflows while clarifying medical correctness and offline state. Any UI not listed here is out of scope. The rebuild is **not** based on legacy HTML; it is a ground-up UI with explicitly defined behavior.
+This document defines **required UI surfaces** and **user-visible invariants** for the rebuild. The rebuilt UI must match current workflows while clarifying medical correctness and offline state. Any UI not listed here is out of scope.
 
 ---
 
@@ -8,14 +8,12 @@ This document defines **required UI surfaces** and **user-visible invariants** f
 - **Auth gating**: all patient/therapist pages must present a blocking auth overlay until authentication succeeds.
 - **Offline indicator**: every page must visibly indicate when there are unsynced changes.
 - **Error disclosure**: any failure to save medical data must be shown as an explicit, actionable error.
-- **Reload action**: every page must include a visible reload button to force rehydrate after iOS eviction or reinstall.
-- **Consistent hamburger menu**: every page must use the same slide-out menu structure, labels, and interactions (tracker/coverage/report/view) to avoid navigation drift.
 - **Read-only states**: therapist dashboard and report views must clearly indicate read-only vs edit modes.
 - **Accessibility**: modals must be keyboard navigable and screen-reader labeled.
 
 ---
 
-## 2. Patient Tracker
+## 2. Patient Tracker (`pt_tracker.html` equivalent)
 ### 2.1 Authentication & Header
 - Sign-in modal with email/password, remember-me, password reset.
 - Header must show:
@@ -72,7 +70,7 @@ This document defines **required UI surfaces** and **user-visible invariants** f
 
 ---
 
-## 3. Therapist Report & Editor
+## 3. Therapist Report & Editor (`pt_report.html` equivalent)
 ### 3.1 Authentication & Patient Selection
 - Auth modal identical to tracker but scoped to therapist role.
 - Patient selection list based on therapist mapping; must show patient identifiers and last activity.
@@ -112,7 +110,7 @@ This document defines **required UI surfaces** and **user-visible invariants** f
 
 ---
 
-## 4. Patient Dashboard
+## 4. Patient Dashboard (`pt_view.html` equivalent)
 ### 4.1 Overview
 - Read-only dashboard with summary metrics and notes badge.
 - “Refresh data” action and coverage analysis CTA.
@@ -130,7 +128,7 @@ This document defines **required UI surfaces** and **user-visible invariants** f
 
 ---
 
-## 5. Coverage Analysis
+## 5. Coverage Analysis (`rehab_coverage.html` equivalent)
 ### 5.1 Coverage Matrix
 - Region/capacity/focus accordion computed from roles and session history.
 - Date range selection for coverage calculation.

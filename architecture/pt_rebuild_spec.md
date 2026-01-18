@@ -1,7 +1,7 @@
 # PT Tracker Rebuild Specification (Firestore → SQL)
 
 ## 0. Executive Summary
-The PT Tracker rebuild is a **ground-up** replacement of the current Firebase/Firestore PWA. The new system is an offline-first iOS PWA with **best-effort** background sync, a REST API, and a **server-authoritative SQL database** (Supabase Postgres) deployed on Vercel. The rebuild must preserve existing clinical workflows (tracker, report/editor, coverage, view, notes) while removing reliance on Firebase, bundled JSONs, or seeding behaviors as runtime inputs. Reference-only sources remain documented for migration and audit comparison only.
+The PT Tracker rebuild is a **ground-up** replacement of the current Firebase/Firestore PWA. The new system is an offline-first iOS PWA with background sync, a REST API, and a **server-authoritative SQL database** (Supabase Postgres) deployed on Vercel. The rebuild must preserve existing clinical workflows (tracker, report/editor, coverage, view, notes) while removing reliance on Firebase, bundled JSONs, or seeding behaviors as runtime inputs. Reference-only sources remain documented for migration and audit comparison only.
 
 **This file is the safety-critical spec index.** Detailed requirements are split into logical companion files:
 - **Data model & schema**: `architecture/pt_rebuild_data_model.md`
@@ -9,13 +9,12 @@ The PT Tracker rebuild is a **ground-up** replacement of the current Firebase/Fi
 - **Sync & safety requirements**: `architecture/pt_rebuild_sync_safety.md`
 - **Migration & verification**: `architecture/pt_rebuild_migration.md`
 - **Reference-only artifacts**: `architecture/pt_rebuild_reference_only.md`
-- **iOS/PWA code patterns**: `architecture/pt_rebuild_ios_pwa_code_patterns.md`
 
 ---
 
 ## 1. Scope, Assumptions, and Non-Negotiables
 1. **Full rebuild**: No legacy systems are modified. This spec defines the entire new system.
-2. **Offline-first iOS PWA** with best-effort background sync and explicit offline state.
+2. **Offline-first iOS PWA** with background sync and explicit offline state.
 3. **REST API** with **server-authoritative** SQL database (Supabase Postgres).
 4. **Deployment**: Vercel + Supabase is the expected hosting configuration.
 5. **Existing UI surfaces remain**: tracker, report/editor, coverage, view, notes.
@@ -58,8 +57,7 @@ This rebuild is **clinical-adjacent**. Data loss, silent corruption, ambiguous a
 
 ### 2.6 Backup & Recovery Guarantees
 - Server-side backups must be retained for a defined period and validated for restore.
-- Client-side recovery must preserve unsynced queues and last known state after crashes, app restarts, and device reboots **as long as OS storage is intact**.
-- **Uninstall or iOS storage eviction will erase local data**; the product must warn users when unsynced data exists and provide explicit sync/backup actions before any sign-out or reset flows.
+- Client-side recovery must preserve unsynced queues and last known state after crash or app reinstall.
 
 ### 2.7 Schema-Level Invariants
 - Schema must prevent invalid medical states (e.g., negative reps, missing exercise IDs for logged sets, ambiguous timezones). Required constraints are defined in `pt_rebuild_data_model.md`.
