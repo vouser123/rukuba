@@ -337,6 +337,12 @@ function sanitizeExerciseLibraryPayload(libraryData) {
   if (Array.isArray(libraryData)) {
     return { exercises: filterValidExerciseEntries(libraryData) };
   }
+  if (Array.isArray(libraryData.exerciseLibrary)) {
+    console.warn(
+      '[SharedData] Detected runtime exerciseLibrary payload; normalizing to shared schema format.'
+    );
+    return { exercises: filterValidExerciseEntries(libraryData.exerciseLibrary) };
+  }
   if (Array.isArray(libraryData.exercises)) {
     return {
       ...libraryData,
@@ -397,6 +403,12 @@ export async function saveExerciseVocabularyShared(vocabulary) {
 
 export async function saveExerciseLibraryShared(libraryData) {
   const sanitized = sanitizeExerciseLibraryPayload(libraryData);
+  if (!sanitized.exercises || sanitized.exercises.length === 0) {
+    console.warn(
+      '[SharedData] Refusing to overwrite shared exercise library with empty payload.'
+    );
+    return false;
+  }
   return seedSharedDocument(SHARED_DOC_IDS.exerciseLibrary, sanitized);
 }
 
