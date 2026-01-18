@@ -849,6 +849,22 @@
         </div>
     </div>
 
+    <!-- Firestore write guard modal (in-app, iOS PWA compatible) -->
+    <div id="firestore-write-guard-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 20050; padding: 20px;">
+        <div style="background: var(--bg-primary); max-width: 520px; margin: 40px auto; border-radius: 12px; padding: 20px;">
+            <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 12px;">Cloud data not loaded</h3>
+            <p id="firestore-write-guard-message" style="white-space: pre-line; color: var(--text-secondary); margin-bottom: 16px;">
+                Cloud data has not been loaded.
+                Saving now may overwrite existing data.
+                Continue anyway?
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="firestore-write-guard-cancel" class="btn-secondary">Cancel</button>
+                <button id="firestore-write-guard-confirm" class="btn-primary">Save Anyway</button>
+            </div>
+        </div>
+    </div>
+
     <script src="pt_payload_utils.js"></script>
     <script src="shared/exercise_form_module.js"></script>
     <script type="module">
@@ -889,6 +905,161 @@
         let patientUserId = null;
         let authModalActive = false;
         let authModalLastFocus = null;
+        let runtimeHydrated = false;
+        let sharedLibraryHydrated = false;
+        let sharedRolesHydrated = false;
+        let sharedVocabHydrated = false;
+
+        const firestoreReadState = {
+            runtime: false,
+            sharedLibrary: false,
+            sharedRoles: false,
+            sharedVocab: false
+        };
+
+        const userConfirmedOverwriteState = {
+            runtime: false,
+            sharedLibrary: false,
+            sharedRoles: false,
+            sharedVocab: false
+        };
+
+        const sharedDocSource = {
+            sharedLibrary: 'unknown',
+            sharedRoles: 'unknown',
+            sharedVocab: 'unknown'
+        };
+
+        let pendingRuntimeWrite = false;
+
+        function setFirestoreReadSucceeded(docKey) {
+            if (firestoreReadState[docKey] !== undefined) {
+                firestoreReadState[docKey] = true;
+            }
+        }
+
+        function markDocHydrated(docKey) {
+            switch (docKey) {
+                case 'runtime':
+                    runtimeHydrated = true;
+                    if (pendingRuntimeWrite) {
+                        pendingRuntimeWrite = false;
+                        void window.saveExerciseLibraryToFirestore();
+                    }
+                    break;
+                case 'sharedLibrary':
+                    sharedLibraryHydrated = true;
+                    break;
+                case 'sharedRoles':
+                    sharedRolesHydrated = true;
+                    break;
+                case 'sharedVocab':
+                    sharedVocabHydrated = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function isDocHydrated(docKey) {
+            switch (docKey) {
+                case 'runtime':
+                    return runtimeHydrated;
+                case 'sharedLibrary':
+                    return sharedLibraryHydrated;
+                case 'sharedRoles':
+                    return sharedRolesHydrated;
+                case 'sharedVocab':
+                    return sharedVocabHydrated;
+                default:
+                    return false;
+            }
+        }
+
+        function closeWriteGuardModal(result) {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            const resolver = modal?.dataset?.resolveId;
+            if (resolver && window[resolver]) {
+                window[resolver](result);
+                delete window[resolver];
+            }
+        }
+
+        function showWriteGuardModal({ message, allowOverride = true, confirmLabel = 'Save Anyway' } = {}) {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            const messageEl = document.getElementById('firestore-write-guard-message');
+            const confirmBtn = document.getElementById('firestore-write-guard-confirm');
+            const cancelBtn = document.getElementById('firestore-write-guard-cancel');
+            if (!modal || !messageEl || !confirmBtn || !cancelBtn) {
+                alert(message || 'Cloud data has not been loaded.');
+                return Promise.resolve(false);
+            }
+
+            messageEl.textContent = message || '';
+            confirmBtn.textContent = confirmLabel;
+            confirmBtn.style.display = allowOverride ? 'inline-flex' : 'none';
+            cancelBtn.textContent = allowOverride ? 'Cancel' : 'Close';
+
+            modal.style.display = 'block';
+
+            return new Promise((resolve) => {
+                const resolverId = `__writeGuardResolve_${Date.now()}`;
+                modal.dataset.resolveId = resolverId;
+                window[resolverId] = resolve;
+            });
+        }
+
+        function bindWriteGuardModalEvents() {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            const confirmBtn = document.getElementById('firestore-write-guard-confirm');
+            const cancelBtn = document.getElementById('firestore-write-guard-cancel');
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('pointerup', () => closeWriteGuardModal(true));
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('pointerup', () => closeWriteGuardModal(false));
+            }
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        closeWriteGuardModal(false);
+                    }
+                });
+            }
+        }
+
+        bindWriteGuardModalEvents();
+
+        async function confirmCanonicalWrite({ docKey, source = 'firestore' }) {
+            if (source === 'fallback' || source === 'cache') {
+                await showWriteGuardModal({
+                    message: 'Cloud data loaded from offline cache or fallback.\n\nSaving to cloud is blocked until live data loads.',
+                    allowOverride: false,
+                    confirmLabel: 'Close'
+                });
+                return false;
+            }
+
+            if (isDocHydrated(docKey) || userConfirmedOverwriteState[docKey]) {
+                return true;
+            }
+
+            const confirmed = await showWriteGuardModal({
+                message: 'Cloud data has not been loaded.\nSaving now may overwrite existing data.\nContinue anyway?',
+                allowOverride: true,
+                confirmLabel: 'Save Anyway'
+            });
+
+            if (confirmed) {
+                userConfirmedOverwriteState[docKey] = true;
+            }
+
+            return confirmed;
+        }
 
         function updatePatientDisplay(patientId, userEmail) {
             const reportPatientId = document.getElementById('report-patient-id');
@@ -1290,6 +1461,8 @@
                 // Load runtime (exercise library)
                 const runtimeRef = doc(db, `users/${uid}/pt_runtime/state`);
                 const runtimeSnap = await getDoc(runtimeRef);
+                setFirestoreReadSucceeded('runtime');
+                markDocHydrated('runtime');
                 const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
 
                 // Wait for shared data loader to be ready
@@ -1298,10 +1471,32 @@
                 }
 
                 // Load shared data (roles, schema, vocabulary, library)
-                const sharedData = await window.sharedDataLoader.loadExerciseRolesShared();
-                const schema = await window.sharedDataLoader.loadExerciseFileSchemaShared();
-                const vocabulary = await window.sharedDataLoader.loadExerciseVocabularyShared();
-                const sharedLibrary = await window.sharedDataLoader.loadExerciseLibraryShared();
+                const sharedRolesResult = await window.sharedDataLoader.loadExerciseRolesShared();
+                const schemaResult = await window.sharedDataLoader.loadExerciseFileSchemaShared();
+                const vocabResult = await window.sharedDataLoader.loadExerciseVocabularyShared();
+                const sharedLibraryResult = await window.sharedDataLoader.loadExerciseLibraryShared();
+
+                const sharedData = sharedRolesResult?.data || { exercise_roles: {} };
+                const schema = schemaResult?.data || {};
+                const vocabulary = vocabResult?.data || {};
+                const sharedLibrary = sharedLibraryResult?.data || [];
+
+                sharedDocSource.sharedRoles = sharedRolesResult?.source || sharedDocSource.sharedRoles;
+                sharedDocSource.sharedVocab = vocabResult?.source || sharedDocSource.sharedVocab;
+                sharedDocSource.sharedLibrary = sharedLibraryResult?.source || sharedDocSource.sharedLibrary;
+
+                if (sharedRolesResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedRoles');
+                    markDocHydrated('sharedRoles');
+                }
+                if (vocabResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedVocab');
+                    markDocHydrated('sharedVocab');
+                }
+                if (sharedLibraryResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedLibrary');
+                    markDocHydrated('sharedLibrary');
+                }
 
                 const runtimeLibrary = Array.isArray(runtime.exerciseLibrary) ? runtime.exerciseLibrary : [];
                 const exerciseLibrary = runtimeLibrary.length > 0 ? runtimeLibrary : sharedLibrary || [];
@@ -1338,7 +1533,87 @@
             }
         }
 
-            // Save exercise library to Firestore
+        function sanitizeExerciseLibraryForRuntime(library) {
+            if (!Array.isArray(library)) return [];
+            return library.filter(entry => {
+                const exerciseId = entry?.id || entry?.exercise_id;
+                return typeof exerciseId === 'string' && exerciseId.trim().length > 0;
+            });
+        }
+
+        function sanitizeModifications(mods) {
+            const safe = {
+                newExercises: [],
+                editedExercises: {},
+                archivedExercises: [],
+                newRoles: {},
+                deletedRoles: {},
+                editedRoles: {},
+                dosageChanges: {},
+                updatedVocab: {}
+            };
+
+            if (!mods || typeof mods !== 'object') return safe;
+
+            const isValidId = (value) => typeof value === 'string' && value.trim().length > 0;
+
+            if (Array.isArray(mods.newExercises)) {
+                safe.newExercises = mods.newExercises.filter(ex => isValidId(ex?.id || ex?.exercise_id));
+            }
+
+            if (mods.editedExercises && typeof mods.editedExercises === 'object') {
+                Object.entries(mods.editedExercises).forEach(([exerciseId, exercise]) => {
+                    if (!isValidId(exerciseId) || !exercise || typeof exercise !== 'object') return;
+                    safe.editedExercises[exerciseId] = exercise;
+                });
+            }
+
+            if (Array.isArray(mods.archivedExercises)) {
+                safe.archivedExercises = mods.archivedExercises.filter(isValidId);
+            }
+
+            const sanitizeRoleMap = (map) => {
+                const sanitized = {};
+                if (!map || typeof map !== 'object') return sanitized;
+                Object.entries(map).forEach(([exerciseId, roles]) => {
+                    if (!isValidId(exerciseId)) return;
+                    if (!Array.isArray(roles)) return;
+                    sanitized[exerciseId] = roles.filter(role => role && typeof role === 'object');
+                });
+                return sanitized;
+            };
+
+            safe.newRoles = sanitizeRoleMap(mods.newRoles);
+            safe.deletedRoles = sanitizeRoleMap(mods.deletedRoles);
+            safe.editedRoles = sanitizeRoleMap(mods.editedRoles);
+
+            if (mods.dosageChanges && typeof mods.dosageChanges === 'object') {
+                Object.entries(mods.dosageChanges).forEach(([exerciseId, dosage]) => {
+                    if (!isValidId(exerciseId)) return;
+                    if (!dosage || typeof dosage !== 'object') return;
+                    safe.dosageChanges[exerciseId] = dosage;
+                });
+            }
+
+            if (mods.updatedVocab && typeof mods.updatedVocab === 'object') {
+                Object.entries(mods.updatedVocab).forEach(([category, terms]) => {
+                    if (!category || !terms || typeof terms !== 'object') return;
+                    const sanitizedTerms = {};
+                    Object.entries(terms).forEach(([term, definition]) => {
+                        if (!term || term.trim().length === 0) return;
+                        if (definition == null || definition === '') return;
+                        sanitizedTerms[term] = definition;
+                    });
+                    if (Object.keys(sanitizedTerms).length > 0) {
+                        safe.updatedVocab[category] = sanitizedTerms;
+                    }
+                });
+            }
+
+            return safe;
+        }
+
+        // Save exercise library to Firestore
         window.saveExerciseLibraryToFirestore = async function() {
             // BUG FIX: Throw error instead of silent return when patient UID missing
             if (!window.ptReportUserId) {
@@ -1346,21 +1621,30 @@
             }
 
             try {
+                const canWrite = await confirmCanonicalWrite({ docKey: 'runtime', source: 'firestore' });
+                if (!canWrite) {
+                    pendingRuntimeWrite = true;
+                    return false;
+                }
+
                 const runtimeRef = doc(db, `users/${window.ptReportUserId}/pt_runtime/state`);
                 const librarySnapshot = Array.isArray(window.exerciseLibrary)
                     ? window.exerciseLibrary
                     : exerciseLibrary;
+                const sanitizedLibrary = sanitizeExerciseLibraryForRuntime(librarySnapshot || []);
+                const sanitizedModifications = sanitizeModifications(window.modifications);
                 const updatedAtClient = new Date().toISOString();
                 await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
                     .then(({ setDoc, serverTimestamp }) => setDoc(runtimeRef, {
-                        exerciseLibrary: librarySnapshot || [],
-                        pt_modifications: modifications,
+                        exerciseLibrary: sanitizedLibrary,
+                        pt_modifications: sanitizedModifications,
                         updatedAt: updatedAtClient,
                         updatedAtClient,
                         updatedAtServer: serverTimestamp(),
                         ptDataVersion: PT_DATA_VERSION
                     }, { merge: true }));
                 console.log('[Firestore] Exercise library and modifications saved');
+                return true;
             } catch (error) {
                 console.error('[Firestore] Failed to save exercise library:', error);
                 throw error;
@@ -1564,6 +1848,7 @@
             dosageChanges: {},  // exerciseId: new dosage spec
             updatedVocab: {}  // category: { term: definition }
         };
+        window.modifications = modifications;
 
         const exerciseFormBindings = {
             restrictToFields: [
@@ -2853,8 +3138,12 @@
             window.exerciseLibrary = exerciseLibrary;
             window.modifications = modifications;
             try {
-                await window.saveExerciseLibraryToFirestore();
-                showToast(`"${name}" saved`, 'success', 2000);
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    showToast('Saved locally, but cloud data was not loaded. Save blocked until cloud data loads.', 'error', 4000);
+                } else {
+                    showToast(`"${name}" saved`, 'success', 2000);
+                }
             } catch (error) {
                 showToast(`Failed to save: ${error.message}`, 'error', 4000);
                 throw error;
@@ -3117,7 +3406,11 @@
 
             // Save to Firestore
             try {
-                await window.saveExerciseLibraryToFirestore();
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    alert('Role tracked locally, but cloud data was not loaded. Save blocked until cloud data loads.');
+                    return;
+                }
             } catch (error) {
                 alert(`Role tracked but Firestore save failed: ${error.message}`);
             }
@@ -3202,7 +3495,11 @@
 
             // Save to Firestore
             try {
-                await window.saveExerciseLibraryToFirestore();
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    showToast('Definition saved locally, but cloud data was not loaded. Save blocked until cloud data loads.', 'error', 4000);
+                    return;
+                }
                 showToast(`Definition for "${term}" saved`, 'success', 2000);
             } catch (error) {
                 showToast(`Failed to save: ${error.message}`, 'error', 4000);
@@ -3378,7 +3675,11 @@
 
             // Save to Firestore
             try {
-                await window.saveExerciseLibraryToFirestore();
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    alert('Dosage tracked locally, but cloud data was not loaded. Save blocked until cloud data loads.');
+                    return;
+                }
             } catch (error) {
                 alert(`Dosage tracked but Firestore save failed: ${error.message}`);
             }
@@ -3657,11 +3958,11 @@ ${payload}`;
                 }
 
                 const [
-                    libraryExercises,
-                    rolesDataRaw,
-                    schemaData,
-                    vocabData,
-                    libraryVocabData
+                    libraryResult,
+                    rolesResult,
+                    schemaResult,
+                    vocabResult,
+                    libraryVocabResult
                 ] = await Promise.all([
                     sharedLoader.loadExerciseLibraryShared(),
                     sharedLoader.loadExerciseRolesShared(),
@@ -3669,6 +3970,29 @@ ${payload}`;
                     sharedLoader.loadExerciseVocabularyShared(),
                     sharedLoader.loadExerciseLibraryVocabularyShared()
                 ]);
+
+                const libraryExercises = libraryResult?.data || [];
+                const rolesDataRaw = rolesResult?.data || { exercise_roles: {} };
+                const schemaData = schemaResult?.data || {};
+                const vocabData = vocabResult?.data || {};
+                const libraryVocabData = libraryVocabResult?.data || {};
+
+                sharedDocSource.sharedLibrary = libraryResult?.source || sharedDocSource.sharedLibrary;
+                sharedDocSource.sharedRoles = rolesResult?.source || sharedDocSource.sharedRoles;
+                sharedDocSource.sharedVocab = vocabResult?.source || sharedDocSource.sharedVocab;
+
+                if (libraryResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedLibrary');
+                    markDocHydrated('sharedLibrary');
+                }
+                if (rolesResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedRoles');
+                    markDocHydrated('sharedRoles');
+                }
+                if (vocabResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedVocab');
+                    markDocHydrated('sharedVocab');
+                }
 
                 // Set global data
                 sessionHistory = []; // Empty - no patient data
@@ -3794,7 +4118,11 @@ ${payload}`;
 
             try {
                 window.exerciseLibrary = exerciseLibrary;
-                await window.saveExerciseLibraryToFirestore();
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    alert('Changes saved locally, but cloud data was not loaded. Save blocked until cloud data loads.');
+                    return;
+                }
                 alert('All changes saved to Firestore!');
             } catch (error) {
                 alert('Failed to save to Firestore: ' + error.message);

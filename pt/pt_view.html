@@ -447,8 +447,10 @@
                 const runtimeSnap = await getDoc(runtimeRef);
                 const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
 
-                const sharedLibrary = await loadExerciseLibraryShared();
-                const rolesData = await loadExerciseRolesShared();
+                const sharedLibraryResult = await loadExerciseLibraryShared();
+                const rolesDataResult = await loadExerciseRolesShared();
+                const sharedLibrary = sharedLibraryResult?.data || [];
+                const rolesData = rolesDataResult?.data || { exercise_roles: {} };
                 const runtimeLibrary = Array.isArray(runtime.exerciseLibrary) ? runtime.exerciseLibrary : [];
                 const exerciseLibrary = runtimeLibrary.length > 0 ? runtimeLibrary : sharedLibrary || [];
 

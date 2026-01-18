@@ -8,6 +8,7 @@ Going forward, entries should follow this structure as applicable:
 - Notes
 
 ## Table of Contents
+- [2026-01-19](#2026-01-19)
 - [2026-01-18](#2026-01-18)
 - [2026-01-17](#2026-01-17)
 - [2026-01-16](#2026-01-16)
@@ -28,6 +29,10 @@ Going forward, entries should follow this structure as applicable:
 - [2025-01-05](#2025-01-05)
 
 ---
+
+## 2026-01-19
+
+- **2026-01-19** — **Problem:** Safety-critical Firestore writes could occur before hydration, fallback/cached JSON could be written upstream, and invalid nested payloads could be saved without visible UI warnings, risking silent overwrites in patient-facing workflows. **Root cause:** Shared loaders returned raw data without provenance; runtime/shared write paths lacked per-document hydration flags, user-gated overwrite prompts, and pre-write validation; local timestamps were set before Firestore reads, allowing pre-hydration timestamps to block restores. **What I did:** (1) Added per-document hydration flags, Firestore-read tracking, and user-confirmed overwrite flags for runtime and shared docs with in-app blocking modals to satisfy iOS PWA requirements. (2) Implemented provenance-aware loaders returning `{ data, source, hasFirestoreReadSucceeded }`, blocked fallback/cache sources from canonical writes, and removed load→immediate save behavior for shared data. (3) Added validation/sanitization for exercise library entries, roles, vocabulary, and runtime snapshot payloads before any write. (4) Deferred local runtime timestamp updates until after Firestore hydration to prevent pre-hydration timestamp conflicts. (5) Propagated provenance/hydration gating through PT Tracker, PT Report, Rehab Coverage, and deprecated Exercise Editor write paths. **Fix applied:** Cloud writes are now explicitly gated per document, fallback/cached JSON never writes upstream, invalid entries are dropped before write, and users see a blocking in-app modal whenever a write is paused or requires confirmation (`pt/pt_tracker.html`, `pt/pt_report.html`, `pt/shared/firestore_shared_data.js`, `pt/rehab_coverage.html`, `pt/_deprecated/exercise_editor.html`). **Notes:** If Firestore read fails, writes are queued locally and retried after hydration; all blocked writes surface a visible modal instead of console-only warnings.
 
 ## 2026-01-18
 

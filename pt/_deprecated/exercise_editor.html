@@ -352,6 +352,22 @@
         </div>
     </div>
 
+    <!-- Firestore write guard modal (in-app, iOS PWA compatible) -->
+    <div id="firestore-write-guard-modal" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: none;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-primary); border-radius: 12px; max-width: 520px; width: 90%; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <h3 style="margin-bottom: 12px;">Cloud data not loaded</h3>
+            <p id="firestore-write-guard-message" style="white-space: pre-line; color: var(--text-secondary); margin-bottom: 16px;">
+                Cloud data has not been loaded.
+                Saving now may overwrite existing data.
+                Continue anyway?
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="firestore-write-guard-cancel" class="button button-secondary">Cancel</button>
+                <button id="firestore-write-guard-confirm" class="button">Save Anyway</button>
+            </div>
+        </div>
+    </div>
+
     <script src="pt_payload_utils.js"></script>
     <script src="shared/exercise_form_module.js"></script>
     <script type="module">
@@ -428,6 +444,110 @@
         let sharedSaveInFlight = false;
         let exportData = null;
         let saveInProgress = false; // BUG FIX: iOS multi-tap guard
+        let sharedLibraryHydrated = false;
+        let sharedLibrarySource = 'unknown';
+        let sharedLibraryReadSucceeded = false;
+        let sharedLibraryOverwriteConfirmed = false;
+        let pendingSharedLibraryWrite = false;
+
+        function setSharedLibraryReadSucceeded() {
+            sharedLibraryReadSucceeded = true;
+        }
+
+        function markSharedLibraryHydrated() {
+            sharedLibraryHydrated = true;
+            if (pendingSharedLibraryWrite) {
+                pendingSharedLibraryWrite = false;
+                scheduleSharedLibrarySave('hydration');
+            }
+        }
+
+        function closeWriteGuardModal(result) {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.add('hidden');
+            }
+            const resolver = modal?.dataset?.resolveId;
+            if (resolver && window[resolver]) {
+                window[resolver](result);
+                delete window[resolver];
+            }
+        }
+
+        function showWriteGuardModal({ message, allowOverride = true, confirmLabel = 'Save Anyway' } = {}) {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            const messageEl = document.getElementById('firestore-write-guard-message');
+            const confirmBtn = document.getElementById('firestore-write-guard-confirm');
+            const cancelBtn = document.getElementById('firestore-write-guard-cancel');
+            if (!modal || !messageEl || !confirmBtn || !cancelBtn) {
+                alert(message || 'Cloud data has not been loaded.');
+                return Promise.resolve(false);
+            }
+
+            messageEl.textContent = message || '';
+            confirmBtn.textContent = confirmLabel;
+            confirmBtn.style.display = allowOverride ? 'inline-flex' : 'none';
+            cancelBtn.textContent = allowOverride ? 'Cancel' : 'Close';
+
+            modal.style.display = 'block';
+            modal.classList.remove('hidden');
+
+            return new Promise((resolve) => {
+                const resolverId = `__writeGuardResolve_${Date.now()}`;
+                modal.dataset.resolveId = resolverId;
+                window[resolverId] = resolve;
+            });
+        }
+
+        function bindWriteGuardModalEvents() {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            const confirmBtn = document.getElementById('firestore-write-guard-confirm');
+            const cancelBtn = document.getElementById('firestore-write-guard-cancel');
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('pointerup', () => closeWriteGuardModal(true));
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('pointerup', () => closeWriteGuardModal(false));
+            }
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        closeWriteGuardModal(false);
+                    }
+                });
+            }
+        }
+
+        bindWriteGuardModalEvents();
+
+        async function confirmSharedLibraryWrite() {
+            if (sharedLibrarySource === 'fallback' || sharedLibrarySource === 'cache') {
+                await showWriteGuardModal({
+                    message: 'Cloud data loaded from offline cache or fallback.\n\nSaving to cloud is blocked until live data loads.',
+                    allowOverride: false,
+                    confirmLabel: 'Close'
+                });
+                return false;
+            }
+
+            if (sharedLibraryHydrated || sharedLibraryOverwriteConfirmed) {
+                return true;
+            }
+
+            const confirmed = await showWriteGuardModal({
+                message: 'Cloud data has not been loaded.\nSaving now may overwrite existing data.\nContinue anyway?',
+                allowOverride: true,
+                confirmLabel: 'Save Anyway'
+            });
+
+            if (confirmed) {
+                sharedLibraryOverwriteConfirmed = true;
+            }
+
+            return confirmed;
+        }
 
         // Resolve $refs in schema
         function resolveRef(ref, rootSchema) {
@@ -1006,6 +1126,13 @@
             }
             sharedSaveInFlight = true;
             try {
+                const canWrite = await confirmSharedLibraryWrite();
+                if (!canWrite) {
+                    if (sharedLibrarySource !== 'fallback' && sharedLibrarySource !== 'cache') {
+                        pendingSharedLibraryWrite = true;
+                    }
+                    return;
+                }
                 const exercises = buildMergedExerciseLibrary();
                 await sharedLoader.saveExerciseLibraryShared({ exercises });
                 debugLog(`[Firestore] Shared library synced after ${reason} (${exercises.length} exercises).`);
@@ -1043,12 +1170,18 @@
                     debugLog(`[SW] No service worker active`);
                 }
 
-                const [schemaData, libraryExercises] = await Promise.all([
+                const [schemaResult, libraryResult] = await Promise.all([
                     sharedLoader.loadExerciseFileSchemaShared(),
                     sharedLoader.loadExerciseLibraryShared()
                 ]);
 
-                schema = schemaData;
+                schema = schemaResult?.data || {};
+                const libraryExercises = libraryResult?.data || [];
+                sharedLibrarySource = libraryResult?.source || sharedLibrarySource;
+                if (libraryResult?.hasFirestoreReadSucceeded) {
+                    setSharedLibraryReadSucceeded();
+                    markSharedLibraryHydrated();
+                }
 
                 // Resolve exercise schema with all $refs
                 const exerciseSchemaNode = schema.$defs.exercise;
@@ -1348,7 +1481,13 @@
                 localStorage.removeItem('pt_exercise_drafts');
 
                 // Reload from shared library
-                baselineExercises = await sharedLoader.loadExerciseLibraryShared();
+                const libraryResult = await sharedLoader.loadExerciseLibraryShared();
+                baselineExercises = libraryResult?.data || [];
+                sharedLibrarySource = libraryResult?.source || sharedLibrarySource;
+                if (libraryResult?.hasFirestoreReadSucceeded) {
+                    setSharedLibraryReadSucceeded();
+                    markSharedLibraryHydrated();
+                }
                 debugLog(`[Reload] Reloaded ${baselineExercises.length} exercises from shared library`);
                 if (baselineExercises.length > 0) {
                     const first3 = baselineExercises.slice(0, 3).map(ex => `  • ${ex.canonical_name || ex.name} (${ex.id})`).join('\n');
