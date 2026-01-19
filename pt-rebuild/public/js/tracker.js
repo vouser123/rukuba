@@ -217,11 +217,20 @@ async function loadExercises() {
   const exercises = await offlineManager.getCachedExercises();
   const programs = await offlineManager.getCachedPrograms(currentUser.id);
 
+  console.log('loadExercises called:', {
+    exercisesCount: exercises?.length,
+    programsCount: programs?.length,
+    programsType: typeof programs,
+    programsIsArray: Array.isArray(programs),
+    firstProgram: programs?.[0]
+  });
+
   const list = document.getElementById('exercise-list');
   list.innerHTML = '';
 
   // Check if programs is valid array before iterating
   if (!Array.isArray(programs) || programs.length === 0) {
+    console.error('Programs invalid or empty:', programs);
     list.innerHTML = '<li style="padding: 20px; text-align: center; color: #666;">No exercises assigned. Contact your therapist.</li>';
     return;
   }

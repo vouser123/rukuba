@@ -10,7 +10,7 @@
  * All data goes through IndexedDB cache managed by offline.js.
  */
 
-const CACHE_NAME = 'pt-tracker-v1';
+const CACHE_NAME = 'pt-tracker-v2'; // Bumped to force clean cache
 const STATIC_ASSETS = [
   '/tracker.html',
   '/report.html',
