@@ -115,7 +115,7 @@ async function getActivityLogs(req, res) {
  * Deduplicates by client_mutation_id (returns 409 if duplicate).
  */
 async function createActivityLog(req, res) {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAdmin(); // Use admin to bypass RLS (auth already verified by middleware)
   const {
     exercise_id,
     exercise_name,
