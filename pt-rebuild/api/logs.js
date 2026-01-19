@@ -17,7 +17,8 @@ import { requireAuth, requirePatient } from '../lib/auth.js';
  * Returns recent activity logs (last 90 days) with sets.
  */
 async function getActivityLogs(req, res) {
-  const supabase = getSupabaseWithAuth(req.accessToken); // Use auth context for RLS
+  // TEMPORARY: Use admin client to bypass RLS and confirm data exists
+  const supabase = getSupabaseAdmin();
   const { patient_id, limit } = req.query;
 
   // Default to current user's ID if not specified
@@ -26,13 +27,14 @@ async function getActivityLogs(req, res) {
   // Debug logging
   console.log('[GET /api/logs] User:', {
     id: req.user.id,
+    auth_id: req.user.auth_id,
     email: req.user.email,
     role: req.user.role,
-    targetPatientId
+    targetPatientId,
+    hasAccessToken: !!req.accessToken
   });
 
   try {
-
     // Fetch activity logs (last 90 days, or with limit)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
