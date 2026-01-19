@@ -148,5 +148,172 @@ function groupGuidance(guidanceArray) {
   return result;
 }
 
+/**
+ * POST /api/exercises - Create new exercise
+ */
+async function createExercise(req, res) {
+  const supabase = getSupabaseAdmin();
+
+  const {
+    id,
+    canonical_name,
+    description,
+    pt_category,
+    pattern,
+    archived = false
+  } = req.body;
+
+  // Validation
+  if (!id || !canonical_name || !description || !pt_category || !pattern) {
+    return res.status(400).json({
+      error: 'Missing required fields: id, canonical_name, description, pt_category, pattern'
+    });
+  }
+
+  try {
+    const { data: exercise, error } = await supabase
+      .from('exercises')
+      .insert({
+        id,
+        canonical_name,
+        description,
+        pt_category,
+        pattern,
+        archived,
+        added_date: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(409).json({
+          error: 'Exercise with this ID already exists'
+        });
+      }
+      throw error;
+    }
+
+    return res.status(201).json({ exercise });
+
+  } catch (error) {
+    console.error('Error creating exercise:', error);
+    return res.status(500).json({
+      error: 'Failed to create exercise',
+      details: error.message
+    });
+  }
+}
+
+/**
+ * PUT /api/exercises/:id - Update exercise
+ */
+async function updateExercise(req, res, exerciseId) {
+  const supabase = getSupabaseAdmin();
+
+  const updates = {};
+  const allowedFields = ['canonical_name', 'description', 'pt_category', 'pattern', 'archived'];
+
+  // Only include fields that are present in request body
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      updates[field] = req.body[field];
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({
+      error: 'No valid fields to update'
+    });
+  }
+
+  updates.updated_date = new Date().toISOString();
+
+  try {
+    const { data: exercise, error } = await supabase
+      .from('exercises')
+      .update(updates)
+      .eq('id', exerciseId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!exercise) {
+      return res.status(404).json({
+        error: 'Exercise not found'
+      });
+    }
+
+    return res.status(200).json({ exercise });
+
+  } catch (error) {
+    console.error('Error updating exercise:', error);
+    return res.status(500).json({
+      error: 'Failed to update exercise',
+      details: error.message
+    });
+  }
+}
+
+/**
+ * DELETE /api/exercises/:id - Archive exercise (soft delete)
+ */
+async function deleteExercise(req, res, exerciseId) {
+  const supabase = getSupabaseAdmin();
+
+  try {
+    const { data: exercise, error } = await supabase
+      .from('exercises')
+      .update({
+        archived: true,
+        updated_date: new Date().toISOString()
+      })
+      .eq('id', exerciseId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!exercise) {
+      return res.status(404).json({
+        error: 'Exercise not found'
+      });
+    }
+
+    return res.status(200).json({ exercise });
+
+  } catch (error) {
+    console.error('Error deleting exercise:', error);
+    return res.status(500).json({
+      error: 'Failed to delete exercise',
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Request router
+ */
+async function handler(req, res) {
+  // Parse exercise ID from URL for PUT/DELETE
+  const urlParts = req.url.split('?')[0].split('/');
+  const exerciseId = urlParts[urlParts.length - 1];
+
+  if (req.method === 'GET') {
+    return getExercises(req, res);
+  } else if (req.method === 'POST') {
+    return createExercise(req, res);
+  } else if (req.method === 'PUT' && exerciseId) {
+    return updateExercise(req, res, exerciseId);
+  } else if (req.method === 'DELETE' && exerciseId) {
+    return deleteExercise(req, res, exerciseId);
+  } else {
+    return res.status(405).json({
+      error: 'Method not allowed'
+    });
+  }
+}
+
 // Export wrapped with auth middleware
-export default requireAuth(getExercises);
+export default requireAuth(handler);

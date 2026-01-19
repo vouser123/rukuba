@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PT Editor - Exercise Library Manager</title>
+    <link rel="stylesheet" href="main.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .auth-modal.hidden {
+            display: none;
+        }
+
+        .auth-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-content h2 {
+            margin: 0 0 1.5rem 0;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .auth-form button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .auth-form button:active {
+            background: #0056b3;
+        }
+
+        .auth-error {
+            color: #d32f2f;
+            margin-top: 1rem;
+            font-size: 14px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 1rem;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        /* Search Bar */
+        .search-container {
+            padding: 1rem;
+            background: white;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        /* Exercise List */
+        .exercise-list {
+            padding: 1rem;
+        }
+
+        .exercise-card {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        .exercise-card:active {
+            background: #f0f0f0;
+        }
+
+        .exercise-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .exercise-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .exercise-actions {
+            margin-top: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.75rem;
+            font-size: 12px;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .form-actions button {
+            flex: 1;
+        }
+
+        /* Loading indicator */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #666;
+        }
+
+        .vocab-panel {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+
+        .vocab-section {
+            margin-bottom: 1rem;
+        }
+
+        .vocab-section h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .vocab-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .vocab-tag {
+            background: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.85rem;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal (blocking until signed in) -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-content">
+            <h2>PT Editor Sign In</h2>
+            <form id="authForm" class="auth-form">
+                <input
+                    type="email"
+                    id="emailInput"
+                    placeholder="Email"
+                    required
+                    autocomplete="email"
+                >
+                <input
+                    type="password"
+                    id="passwordInput"
+                    placeholder="Password"
+                    required
+                    autocomplete="current-password"
+                >
+                <button type="submit">Sign In</button>
+                <div id="authError" class="auth-error"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>PT Editor</h1>
+        <div class="header-actions">
+            <button class="btn" data-action="new-exercise">+ New Exercise</button>
+            <button class="btn btn-secondary" data-action="sign-out">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-container">
+        <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Search exercises..."
+        >
+    </div>
+
+    <!-- Exercise List -->
+    <div id="exerciseList" class="exercise-list">
+        <div class="loading">Loading exercises...</div>
+    </div>
+
+    <!-- Edit Exercise Modal -->
+    <div id="editModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Edit Exercise</h2>
+                <button class="close-btn" data-action="close-modal">&times;</button>
+            </div>
+            <form id="exerciseForm">
+                <div class="form-group">
+                    <label for="exerciseName">Exercise Name *</label>
+                    <input type="text" id="exerciseName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="exerciseDescription">Description *</label>
+                    <textarea id="exerciseDescription" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="exerciseCategory">PT Category *</label>
+                    <select id="exerciseCategory" required>
+                        <option value="">Select category...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="exercisePattern">Pattern *</label>
+                    <select id="exercisePattern" required>
+                        <option value="">Select pattern...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="exerciseArchived">
+                        Archived
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
+                    <button type="submit" class="btn">Save Exercise</button>
+                </div>
+            </form>
+
+            <div class="vocab-panel">
+                <h3>Reference: Vocabulary</h3>
+                <div id="vocabReference"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Supabase initialization
+        const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // State
+        let currentUser = null;
+        let authToken = null;
+        let allExercises = [];
+        let vocabularies = {};
+        let editingExerciseId = null;
+
+        // Initialize app
+        async function init() {
+            // Check auth state
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                currentUser = session.user;
+                authToken = session.access_token;
+                hideAuthModal();
+                await loadData();
+            } else {
+                showAuthModal();
+            }
+
+            // Auth state listener
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN') {
+                    currentUser = session.user;
+                    authToken = session.access_token;
+                    hideAuthModal();
+                    loadData();
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    authToken = null;
+                    showAuthModal();
+                }
+            });
+
+            // Bind event handlers
+            bindEventHandlers();
+        }
+
+        // Auth functions
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        async function signIn(email, password) {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            return data;
+        }
+
+        async function signOut() {
+            await supabase.auth.signOut();
+        }
+
+        // Data loading functions
+        async function loadData() {
+            try {
+                document.getElementById('exerciseList').innerHTML = '<div class="loading">Loading exercises...</div>';
+
+                // Load exercises and vocabularies in parallel
+                const [exercisesResult, vocabResult] = await Promise.all([
+                    fetchWithAuth('/api/exercises'),
+                    fetchWithAuth('/api/vocab')
+                ]);
+
+                allExercises = exercisesResult.exercises || [];
+                vocabularies = vocabResult.vocabularies || {};
+
+                renderExerciseList(allExercises);
+                populateVocabularySelects();
+                renderVocabularyReference();
+
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.getElementById('exerciseList').innerHTML =
+                    '<div class="empty-state">Failed to load exercises. Please try again.</div>';
+            }
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // Render functions
+        function renderExerciseList(exercises) {
+            const listEl = document.getElementById('exerciseList');
+
+            if (exercises.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">No exercises found. Create your first exercise!</div>';
+                return;
+            }
+
+            const html = exercises.map(ex => `
+                <div class="exercise-card" data-id="${ex.id}">
+                    <div class="exercise-name">${escapeHtml(ex.canonical_name)}</div>
+                    <div class="exercise-meta">
+                        ${escapeHtml(ex.pt_category)} • ${escapeHtml(ex.pattern)}
+                        ${ex.archived ? ' • <strong>ARCHIVED</strong>' : ''}
+                    </div>
+                    <div class="exercise-actions">
+                        <button class="btn btn-small" data-action="edit-exercise" data-id="${ex.id}">Edit</button>
+                        <button class="btn btn-small btn-secondary" data-action="toggle-archive" data-id="${ex.id}">
+                            ${ex.archived ? 'Unarchive' : 'Archive'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            listEl.innerHTML = html;
+        }
+
+        function populateVocabularySelects() {
+            const categorySelect = document.getElementById('exerciseCategory');
+            const patternSelect = document.getElementById('exercisePattern');
+
+            // Populate PT Categories
+            if (vocabularies.pt_category) {
+                categorySelect.innerHTML = '<option value="">Select category...</option>' +
+                    vocabularies.pt_category.map(item =>
+                        `<option value="${escapeHtml(item.term)}">${escapeHtml(item.term)}</option>`
+                    ).join('');
+            }
+
+            // Populate Patterns
+            if (vocabularies.pattern) {
+                patternSelect.innerHTML = '<option value="">Select pattern...</option>' +
+                    vocabularies.pattern.map(item =>
+                        `<option value="${escapeHtml(item.term)}">${escapeHtml(item.term)}</option>`
+                    ).join('');
+            }
+        }
+
+        function renderVocabularyReference() {
+            const container = document.getElementById('vocabReference');
+
+            const sections = [
+                { key: 'region', label: 'Regions' },
+                { key: 'capacity', label: 'Capacities' },
+                { key: 'focus', label: 'Focus Areas' },
+                { key: 'contribution', label: 'Contributions' }
+            ];
+
+            const html = sections.map(section => {
+                const items = vocabularies[section.key] || [];
+                return `
+                    <div class="vocab-section">
+                        <h4>${section.label}</h4>
+                        <div class="vocab-items">
+                            ${items.map(item =>
+                                `<span class="vocab-tag" title="${escapeHtml(item.definition || '')}">${escapeHtml(item.term)}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Exercise editing functions
+        function openNewExerciseModal() {
+            editingExerciseId = null;
+            document.getElementById('modalTitle').textContent = 'New Exercise';
+            document.getElementById('exerciseForm').reset();
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function openEditExerciseModal(exerciseId) {
+            editingExerciseId = exerciseId;
+            const exercise = allExercises.find(ex => ex.id === exerciseId);
+
+            if (!exercise) {
+                alert('Exercise not found');
+                return;
+            }
+
+            document.getElementById('modalTitle').textContent = 'Edit Exercise';
+            document.getElementById('exerciseName').value = exercise.canonical_name;
+            document.getElementById('exerciseDescription').value = exercise.description;
+            document.getElementById('exerciseCategory').value = exercise.pt_category;
+            document.getElementById('exercisePattern').value = exercise.pattern;
+            document.getElementById('exerciseArchived').checked = exercise.archived || false;
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            editingExerciseId = null;
+        }
+
+        async function saveExercise(formData) {
+            try {
+                const payload = {
+                    canonical_name: formData.get('name'),
+                    description: formData.get('description'),
+                    pt_category: formData.get('category'),
+                    pattern: formData.get('pattern'),
+                    archived: formData.get('archived') === 'on'
+                };
+
+                let result;
+                if (editingExerciseId) {
+                    // Update existing exercise
+                    result = await fetchWithAuth(`/api/exercises/${editingExerciseId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    // Create new exercise
+                    payload.id = generateExerciseId(payload.canonical_name);
+                    result = await fetchWithAuth('/api/exercises', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                // Reload data
+                await loadData();
+                closeModal();
+
+            } catch (error) {
+                console.error('Failed to save exercise:', error);
+                alert('Failed to save exercise. Please try again.');
+            }
+        }
+
+        async function toggleArchive(exerciseId) {
+            const exercise = allExercises.find(ex => ex.id === exerciseId);
+            if (!exercise) return;
+
+            try {
+                await fetchWithAuth(`/api/exercises/${exerciseId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        archived: !exercise.archived
+                    })
+                });
+
+                // Reload data
+                await loadData();
+
+            } catch (error) {
+                console.error('Failed to toggle archive:', error);
+                alert('Failed to update exercise. Please try again.');
+            }
+        }
+
+        // Search function
+        function handleSearch(query) {
+            if (!query.trim()) {
+                renderExerciseList(allExercises);
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const filtered = allExercises.filter(ex =>
+                ex.canonical_name.toLowerCase().includes(lowerQuery) ||
+                ex.description.toLowerCase().includes(lowerQuery) ||
+                ex.pt_category.toLowerCase().includes(lowerQuery)
+            );
+
+            renderExerciseList(filtered);
+        }
+
+        // Event handlers
+        function bindEventHandlers() {
+            // Auth form
+            document.getElementById('authForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('emailInput').value;
+                const password = document.getElementById('passwordInput').value;
+                const errorEl = document.getElementById('authError');
+
+                try {
+                    await signIn(email, password);
+                    errorEl.textContent = '';
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                }
+            });
+
+            // Search input
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                handleSearch(e.target.value);
+            });
+
+            // Exercise form
+            document.getElementById('exerciseForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                formData.set('name', document.getElementById('exerciseName').value);
+                formData.set('description', document.getElementById('exerciseDescription').value);
+                formData.set('category', document.getElementById('exerciseCategory').value);
+                formData.set('pattern', document.getElementById('exercisePattern').value);
+                formData.set('archived', document.getElementById('exerciseArchived').checked ? 'on' : 'off');
+                saveExercise(formData);
+            });
+
+            // Pointer events (iOS-safe)
+            document.body.addEventListener('pointerup', (e) => {
+                const action = e.target.dataset.action;
+                if (!action) return;
+
+                switch (action) {
+                    case 'new-exercise':
+                        openNewExerciseModal();
+                        break;
+                    case 'sign-out':
+                        signOut();
+                        break;
+                    case 'edit-exercise':
+                        openEditExerciseModal(e.target.dataset.id);
+                        break;
+                    case 'toggle-archive':
+                        toggleArchive(e.target.dataset.id);
+                        break;
+                    case 'close-modal':
+                        closeModal();
+                        break;
+                }
+            });
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function generateExerciseId(name) {
+            return name.toLowerCase()
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '');
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
