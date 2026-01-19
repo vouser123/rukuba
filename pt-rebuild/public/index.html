@@ -571,7 +571,7 @@
         // Supabase initialization
         const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // State
         let currentUser = null;
@@ -584,7 +584,7 @@
         // Initialize app
         async function init() {
             // Check auth state
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
 
             if (session) {
                 currentUser = session.user;
@@ -596,7 +596,7 @@
             }
 
             // Auth state listener
-            supabase.auth.onAuthStateChange((event, session) => {
+            supabaseClient.auth.onAuthStateChange((event, session) => {
                 if (event === 'SIGNED_IN') {
                     currentUser = session.user;
                     authToken = session.access_token;
@@ -627,7 +627,7 @@
         }
 
         async function signIn(email, password) {
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
                 email,
                 password
             });
