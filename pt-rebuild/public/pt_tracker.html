@@ -1988,6 +1988,9 @@
             }
         }
 
+        // Declare variables before auth callback uses them
+        let firestoreUserId = null;
+
         // Auth state listener
         supabase.auth.onAuthStateChange((event, session) => {
             const user = session?.user;
@@ -2062,7 +2065,6 @@
         let sessionPlanCompleted = new Set(); // IDs of completed exercises
 
         // Runtime sync state
-        let firestoreUserId = null;
         let runtimeSyncPending = false;
         let runtimeSyncInFlight = false;
         let runtimeSyncTimer = null;
