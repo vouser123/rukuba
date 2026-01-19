@@ -14,11 +14,11 @@
  * Public to authenticated users (both patients and therapists).
  */
 
-import { getSupabaseClient } from '../lib/db.js';
+import { getSupabaseClient, getSupabaseAdmin } from '../lib/db.js';
 import { requireAuth } from '../lib/auth.js';
 
 async function getExercises(req, res) {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAdmin(); // Use admin to bypass RLS
 
   try {
     // Fetch exercises

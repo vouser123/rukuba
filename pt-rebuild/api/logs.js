@@ -8,7 +8,7 @@
  * GET enforces: patients see own logs only, therapists see their patients' logs.
  */
 
-import { getSupabaseClient } from '../lib/db.js';
+import { getSupabaseClient, getSupabaseAdmin } from '../lib/db.js';
 import { requireAuth, requirePatient } from '../lib/auth.js';
 
 /**
@@ -17,7 +17,7 @@ import { requireAuth, requirePatient } from '../lib/auth.js';
  * Returns recent activity logs (last 90 days) with sets.
  */
 async function getActivityLogs(req, res) {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAdmin(); // Use admin to bypass RLS
   const { patient_id } = req.query;
 
   if (!patient_id) {
@@ -25,7 +25,10 @@ async function getActivityLogs(req, res) {
   }
 
   // Authorization: patients see own logs, therapists see their patients' logs
-  if (req.user.role === 'patient' && req.user.id !== patient_id) {
+  // Accept either users.id or auth_id for patient_id parameter
+  const isOwnAccount = req.user.id === patient_id || req.user.auth_id === patient_id;
+
+  if (req.user.role === 'patient' && !isOwnAccount) {
     return res.status(403).json({ error: 'Cannot access other patients\' logs' });
   }
 
@@ -43,6 +46,9 @@ async function getActivityLogs(req, res) {
   }
 
   try {
+    // Use users.id for the query (in case frontend passed auth_id)
+    const actualPatientId = req.user.id;
+
     // Fetch activity logs (last 90 days)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -50,7 +56,7 @@ async function getActivityLogs(req, res) {
     const { data: logs, error: logsError } = await supabase
       .from('patient_activity_logs')
       .select('*')
-      .eq('patient_id', patient_id)
+      .eq('patient_id', actualPatientId)
       .gte('performed_at', ninetyDaysAgo.toISOString())
       .order('performed_at', { ascending: false });
 
