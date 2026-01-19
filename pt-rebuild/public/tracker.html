@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>PT Tracker</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <!-- Header with Hamburger Menu -->
+  <header>
+    <button id="menu-btn" data-action="toggle-menu" aria-label="Menu">☰</button>
+    <h1>PT Tracker</h1>
+    <div id="menu-dropdown" style="display: none;">
+      <button data-action="reload-app">⟳ Reload App</button>
+      <button data-action="close-menu">Close</button>
+    </div>
+  </header>
+
+  <!-- Sync Status Bar (always visible) -->
+  <div id="sync-bar">
+    <span id="online-status">●</span>
+    <span id="queue-count">0 pending</span>
+    <button id="sync-btn" data-action="sync">Sync Now</button>
+  </div>
+
+  <!-- Login Screen (shown when not authenticated) -->
+  <div id="login-screen">
+    <h1>PT Tracker</h1>
+    <p>Sign in to continue</p>
+    <!-- Auth inputs mounted here AFTER user clicks Sign In (prevents iOS autofill) -->
+    <button id="show-login-btn" data-action="show-login">Sign In</button>
+    <div id="login-form" style="display: none;">
+      <input type="email" id="email" placeholder="Email" autocomplete="email">
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+      <button id="login-btn" data-action="login">Login</button>
+      <p id="login-error"></p>
+    </div>
+  </div>
+
+  <!-- Main Tracker (shown when authenticated) -->
+  <div id="tracker-screen" style="display: none;">
+
+    <!-- Exercise Picker -->
+    <div id="exercise-picker">
+      <h2>Select Exercise</h2>
+      <input type="search" id="exercise-search" placeholder="Search exercises...">
+      <ul id="exercise-list"></ul>
+    </div>
+
+    <!-- Active Session Logger -->
+    <div id="session-logger" style="display: none;">
+      <h2 id="exercise-name"></h2>
+      <p id="exercise-dosage"></p>
+
+      <div id="set-counter">
+        <p>Set <span id="current-set">1</span></p>
+        <div id="counter-controls">
+          <button data-action="increment">+</button>
+          <span id="rep-count">0</span>
+          <button data-action="decrement">-</button>
+        </div>
+        <button id="finish-set-btn" data-action="finish-set">Finish Set</button>
+      </div>
+
+      <div id="sets-completed">
+        <h3>Completed Sets</h3>
+        <ul id="completed-sets-list"></ul>
+      </div>
+
+      <button id="finish-exercise-btn" data-action="finish-exercise">Finish Exercise</button>
+      <button id="cancel-exercise-btn" data-action="cancel">Cancel</button>
+    </div>
+
+    <!-- Session History -->
+    <div id="history-view" style="display: none;">
+      <h2>Recent Activity</h2>
+      <ul id="history-list"></ul>
+      <button data-action="close-history">Close</button>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav id="bottom-nav">
+      <button data-action="show-picker">Exercises</button>
+      <button data-action="show-history">History</button>
+      <button data-action="logout">Logout</button>
+    </nav>
+  </div>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.error('Service worker registration failed:', err);
+      });
+    }
+  </script>
+
+  <!-- Supabase Client (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- App Logic -->
+  <script type="module" src="/js/tracker.js"></script>
+</body>
+</html>
