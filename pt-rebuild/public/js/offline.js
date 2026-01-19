@@ -274,9 +274,14 @@ class OfflineManager {
    * Get exercises from cache
    */
   async getCachedExercises() {
-    const tx = this.db.transaction(['exercises'], 'readonly');
-    const store = tx.objectStore('exercises');
-    return await store.getAll();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['exercises'], 'readonly');
+      const store = tx.objectStore('exercises');
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
   }
 
   /**
@@ -284,13 +289,18 @@ class OfflineManager {
    * Note: Since we're single-patient, just return all programs
    */
   async getCachedPrograms(patientId) {
-    const tx = this.db.transaction(['programs'], 'readonly');
-    const store = tx.objectStore('programs');
-    // Get all programs (patient_id index lookup fails when passed auth_id instead of users.id)
-    const result = await store.getAll();
-    console.log('getCachedPrograms raw result:', result, 'isArray:', Array.isArray(result));
-    // Ensure we return an array
-    return Array.isArray(result) ? result : [];
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['programs'], 'readonly');
+      const store = tx.objectStore('programs');
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        console.log('getCachedPrograms result:', request.result);
+        resolve(request.result || []);
+      };
+
+      request.onerror = () => reject(request.error);
+    });
   }
 
   /**
@@ -298,10 +308,14 @@ class OfflineManager {
    * Note: Since we're single-patient, just return all logs
    */
   async getCachedLogs(patientId) {
-    const tx = this.db.transaction(['activity_logs'], 'readonly');
-    const store = tx.objectStore('activity_logs');
-    // Get all logs (patient_id index lookup fails when passed auth_id instead of users.id)
-    return await store.getAll();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['activity_logs'], 'readonly');
+      const store = tx.objectStore('activity_logs');
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
   }
 
   /**
