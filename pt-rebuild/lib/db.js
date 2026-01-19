@@ -36,12 +36,14 @@ export function getSupabaseClient() {
  * @returns {import('@supabase/supabase-js').SupabaseClient}
  */
 export function getSupabaseWithAuth(accessToken) {
-  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // Set auth context so RLS policies work correctly
-  client.auth.setSession({
-    access_token: accessToken,
-    refresh_token: '' // Not needed for server-side auth context
+  // Create client with anon key and set global headers to pass JWT
+  // This allows RLS policies to see auth.uid() correctly
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
   });
 
   return client;
