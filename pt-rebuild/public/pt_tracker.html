@@ -6976,7 +6976,9 @@
             let sharedExercises = [];
             let sharedError = null;
             try {
-                const result = await fetch('/api/exercises', { headers: await getAuthToken() ? { 'Authorization':  } : {} }).then(r => r.json());
+                const token = await getAuthToken();
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const result = await fetch('/api/exercises', { headers }).then(r => r.json());
                 sharedExercises = result || [];
                 sharedDocSource.sharedLibrary = 'api';
                 setFirestoreReadSucceeded('sharedLibrary');
@@ -8823,7 +8825,9 @@ ${payload}`;
             let sharedVocabularyCount = 0;
 
             try {
-                const result = await fetch('/api/exercises', { headers: await getAuthToken() ? { 'Authorization':  } : {} }).then(r => r.json());
+                const token = await getAuthToken();
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const result = await fetch('/api/exercises', { headers }).then(r => r.json());
                 sharedExerciseLibrary = result || [];
                 sharedDocSource.sharedLibrary = 'api';
                 setFirestoreReadSucceeded('sharedLibrary');
@@ -8836,7 +8840,9 @@ ${payload}`;
             const exerciseLibrary = mergeExerciseLibraries(sharedExerciseLibrary, localExerciseLibrary);
 
             try {
-                const result = await fetch('/api/roles', { headers: await getAuthToken() ? { 'Authorization':  } : {} }).then(r => r.json());
+                const token = await getAuthToken();
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const result = await fetch('/api/roles', { headers }).then(r => r.json());
                 rolesData = buildRolesDataFromApi(result);
                 sharedDocSource.sharedRoles = 'api';
                 setFirestoreReadSucceeded('sharedRoles');
@@ -8849,7 +8855,9 @@ ${payload}`;
             }
 
             try {
-                const result = await fetch('/api/vocab', { headers: await getAuthToken() ? { 'Authorization':  } : {} }).then(r => r.json());
+                const token = await getAuthToken();
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const result = await fetch('/api/vocab', { headers }).then(r => r.json());
                 vocabulary = buildVocabularyFromApi(result);
                 sharedDocSource.sharedVocab = 'api';
                 setFirestoreReadSucceeded('sharedVocab');
