@@ -19,7 +19,15 @@ async function getPrograms(req, res) {
   }
 
   // Authorization: patients see own programs, therapists see their patients' programs
-  if (req.user.role === 'patient' && req.user.id !== patient_id) {
+  // Accept either users.id or auth_id for patient_id parameter
+  const isOwnAccount = req.user.id === patient_id || req.user.auth_id === patient_id;
+
+  if (req.user.role === 'patient' && !isOwnAccount) {
+    console.error('Access denied:', {
+      requested_patient_id: patient_id,
+      user_id: req.user.id,
+      auth_id: req.user.auth_id
+    });
     return res.status(403).json({ error: 'Cannot access other patients\' programs' });
   }
 
@@ -37,6 +45,9 @@ async function getPrograms(req, res) {
   }
 
   try {
+    // Use users.id for the query (in case frontend passed auth_id)
+    const actualPatientId = req.user.id;
+
     // Fetch patient programs with exercise details
     const { data: programs, error } = await supabase
       .from('patient_programs')
@@ -51,7 +62,7 @@ async function getPrograms(req, res) {
           archived
         )
       `)
-      .eq('patient_id', patient_id)
+      .eq('patient_id', actualPatientId)
       .eq('archived', false)
       .order('created_at', { ascending: false });
 
