@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Restore Firebase from Backup</title>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js';
+        import { getFirestore, doc, setDoc, collection } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA95Q7b9fRRU3wFXcVrycpixgsok7Rmw10",
+            authDomain: "pt-tracker-cloud.firebaseapp.com",
+            projectId: "pt-tracker-cloud",
+            storageBucket: "pt-tracker-cloud.firebasestorage.app",
+            messagingSenderId: "32341171774",
+            appId: "1:32341171774:web:454436291cb4c4e49dfb6f"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+
+        // Wait for auth state
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-status').textContent = `Logged in as: ${user.email}`;
+                document.getElementById('user-status').style.color = 'green';
+            } else {
+                document.getElementById('user-status').textContent = 'Not logged in. Please log in to pt_tracker.html first.';
+                document.getElementById('user-status').style.color = 'red';
+            }
+        });
+
+        window.restoreFromBackup = async function() {
+            if (!currentUser) {
+                alert('Please log in to pt_tracker.html first, then come back here.');
+                return;
+            }
+
+            const fileInput = document.getElementById('backupFile');
+            if (!fileInput.files[0]) {
+                alert('Please select a backup file');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const text = await file.text();
+            const backup = JSON.parse(text);
+
+            const userId = currentUser.uid;
+            document.getElementById('status').textContent = 'Restoring...';
+            let count = 0;
+
+            try {
+                // STEP 1: Restore exercise library
+                if (backup.pt_exercise_library && Array.isArray(backup.pt_exercise_library)) {
+                    document.getElementById('status').textContent = `Restoring ${backup.pt_exercise_library.length} exercises...`;
+
+                    for (const exercise of backup.pt_exercise_library) {
+                        const id = exercise.id;
+                        if (!id) {
+                            console.warn('Skipping exercise without ID:', exercise);
+                            continue;
+                        }
+
+                        await setDoc(doc(db, 'exerciseLibrary', id), exercise);
+                        count++;
+
+                        if (count % 5 === 0) {
+                            document.getElementById('status').textContent = `Restored ${count} exercises...`;
+                        }
+                    }
+                }
+
+                // STEP 2: Restore dosage assignments (from "current" field in exercises)
+                if (backup.pt_exercise_library && Array.isArray(backup.pt_exercise_library)) {
+                    document.getElementById('status').textContent = `Restoring dosage assignments...`;
+
+                    let dosageCount = 0;
+                    for (const exercise of backup.pt_exercise_library) {
+                        if (exercise.current && exercise.id) {
+                            await setDoc(doc(db, `users/${userId}/current`, exercise.id), exercise.current);
+                            count++;
+                            dosageCount++;
+                        }
+                    }
+                    console.log(`Restored ${dosageCount} dosage assignments`);
+                }
+
+                // STEP 3: Restore session history from pt_exercise_history backup
+                const historyBackup = backup.pt_exercise_history || backup.sessions || [];
+
+                if (Array.isArray(historyBackup) && historyBackup.length > 0) {
+                    document.getElementById('status').textContent = `Restoring ${historyBackup.length} sessions...`;
+
+                    for (const session of historyBackup) {
+                        const sessionId = session.sessionId;
+                        if (!sessionId) continue;
+
+                        await setDoc(doc(db, `users/${userId}/sessions`, sessionId), session);
+                        count++;
+
+                        if (count % 10 === 0) {
+                            document.getElementById('status').textContent = `Restored ${count} items...`;
+                        }
+                    }
+                }
+
+                document.getElementById('status').textContent = `✅ Restored ${count} documents successfully!`;
+                document.getElementById('status').style.color = 'green';
+
+                setTimeout(() => {
+                    alert(`Restore complete! ${count} documents restored.\n\nYou can now use pt_tracker.html`);
+                }, 500);
+
+            } catch (error) {
+                document.getElementById('status').textContent = `❌ Error: ${error.message}`;
+                document.getElementById('status').style.color = 'red';
+                console.error('Restore error:', error);
+                console.error('Full error:', error.stack);
+            }
+        };
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 30px;
+            border-radius: 8px;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+            padding: 10px;
+            display: block;
+        }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .instructions {
+            background: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007AFF;
+        }
+    </style>
+</head>
+<body>
+    <h1>Restore Firebase from Backup</h1>
+
+    <div class="instructions">
+        <p><strong>Instructions:</strong></p>
+        <ol>
+            <li><strong>First:</strong> Log in to <code>pt_tracker.html</code> in another tab</li>
+            <li><strong>Then:</strong> Select your backup file: <code>pt_all_data-20260118.json</code></li>
+            <li>Click "Restore Firebase"</li>
+            <li>Wait for completion message</li>
+            <li>Open <code>pt_tracker.html</code> and your data will be back</li>
+        </ol>
+        <p id="user-status" style="font-weight: bold; margin-top: 12px;">Checking login status...</p>
+    </div>
+
+    <div class="container">
+        <input type="file" id="backupFile" accept=".json">
+        <button onclick="restoreFromBackup()">Restore Firebase</button>
+        <div id="status"></div>
+    </div>
+</body>
+</html>
