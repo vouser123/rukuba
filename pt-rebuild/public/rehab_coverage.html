@@ -1,0 +1,3284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Rehab Coverage</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <style>
+        /* Coverage-specific overrides */
+        html, body {
+            overflow-x: hidden;
+            max-width: 100vw;
+            width: 100%;
+        }
+
+        body {
+            padding: 4px;
+            padding-bottom: 60px;
+            line-height: 1.3;
+        }
+
+        #coverage-content {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-btn {
+            background: var(--bg-secondary);
+            color: var(--ios-blue);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .header-btn:active {
+            opacity: 0.7;
+        }
+
+        /* Region Accordion */
+        .region-section {
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .region-header {
+            background: var(--bg-secondary);
+            padding: 8px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .region-header:active {
+            opacity: 0.8;
+        }
+
+        .region-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .region-chevron {
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .region-section.expanded .region-chevron {
+            transform: rotate(90deg);
+        }
+
+        .region-content {
+            display: none;
+            padding: 6px 0;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .region-section.expanded .region-content {
+            display: block;
+        }
+
+        /* Capacity Row */
+        .capacity-row {
+            background: var(--bg-tertiary);
+            padding: 6px 8px;
+            margin: 4px 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .capacity-header {
+            cursor: pointer;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .capacity-header:active {
+            opacity: 0.8;
+        }
+
+        .capacity-header.no-pointer {
+            cursor: default;
+        }
+
+        .capacity-name {
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: capitalize;
+            flex: 1;
+        }
+
+        .capacity-term {
+            color: var(--ios-blue);
+            font-size: 13px;
+            margin-left: 6px;
+        }
+
+
+        .capacity-chevron {
+            font-size: 14px;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+            margin-left: 8px;
+        }
+
+        .capacity-row.expanded .capacity-chevron {
+            transform: rotate(90deg);
+        }
+
+        /* Focus Rows */
+        .focus-list {
+            display: none;
+            margin-top: 6px;
+            padding-left: 10px;
+            border-left: 2px solid var(--border-color);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .capacity-row.expanded .focus-list {
+            display: block;
+        }
+
+        .focus-term {
+            color: var(--ios-blue);
+            font-size: 12px;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .modal-close:active {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Auth Guard Overlay */
+        #auth-guard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #auth-guard-overlay h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        #auth-guard-overlay p {
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.5;
+            max-width: 400px;
+        }
+
+        #auth-guard-overlay.auth-verified {
+            display: none;
+        }
+
+        #auth-guard-overlay.auth-checking {
+            display: none;
+        }
+
+        .auth-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .auth-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .auth-modal-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            width: min(420px, 90vw);
+            padding: 20px;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .auth-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .auth-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .auth-modal-close {
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .auth-modal-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .auth-modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .auth-modal-actions button {
+            flex: 1;
+            min-height: 48px;
+        }
+
+        .vocab-section {
+            margin-bottom: 20px;
+        }
+
+        .vocab-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--ios-blue);
+            text-transform: capitalize;
+        }
+
+        .vocab-item {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .vocab-term {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-transform: capitalize;
+        }
+
+        .vocab-def {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .exercise-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .exercise-item:active {
+            opacity: 0.8;
+        }
+
+        .exercise-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .exercise-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .back-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .back-button:active {
+            opacity: 0.8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .overview-card,
+        .exercise-card {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .progress-bar {
+            max-width: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .progress-fill {
+            position: relative;
+            max-height: 6px;
+        }
+
+        .error {
+            background: rgba(255, 69, 58, 0.1);
+            border: 1px solid var(--ios-red);
+            color: var(--ios-red);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        /* Slide-out Menu */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 9998;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+
+        .slide-menu {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: min(300px, 80vw);
+            height: 100%;
+            background: var(--bg-secondary);
+            transition: right 0.3s ease;
+            z-index: 9999;
+            overflow-y: auto;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-menu.active {
+            right: 0;
+        }
+
+        .menu-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .menu-close {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .menu-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-item:active {
+            background: var(--bg-tertiary);
+        }
+
+        .menu-item-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .menu-item-text {
+            font-size: 16px;
+        }
+
+        /* Roles Editor Modal */
+        .roles-editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .roles-editor-modal.active {
+            display: flex;
+        }
+
+        .roles-editor-content {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .editor-close {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .editor-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .form-select, .form-input {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-select:focus, .form-input:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+        }
+
+        /* Roles Editor Components */
+        .role-item {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .role-details {
+            flex: 1;
+        }
+
+        .role-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Guard Overlay -->
+    <div id="auth-guard-overlay" class="auth-checking">
+        <h2>🔐 Authentication Required</h2>
+        <p>You must be signed in to access Rehab Coverage.</p>
+        <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; min-height: 48px; padding: 12px 24px;">Sign In</button>
+    </div>
+
+    <!-- Auth Sign In Modal -->
+    <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
+        <div class="auth-modal-content">
+            <div class="auth-modal-header">
+                <div class="auth-modal-title" id="auth-modal-title">Sign In to Continue</div>
+                <button type="button" class="auth-modal-close" id="auth-modal-close" aria-label="Close sign in">×</button>
+            </div>
+            <div class="auth-modal-subtitle">Use your therapist account to review coverage data.</div>
+            <div id="auth-credential-fields"></div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px;">
+                <label for="auth-remember" style="font-size: 14px; color: var(--text-secondary); cursor: pointer;">Remember me on this device</label>
+            </div>
+            <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; text-align: center;"></div>
+            <button type="button" id="auth-reset-btn" style="margin-top: 8px; background: none; border: none; color: var(--ios-blue); font-size: 14px; font-weight: 600; cursor: pointer;">Forgot password?</button>
+            <div class="auth-modal-actions">
+                <button type="button" class="btn-secondary" id="auth-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="auth-signin-btn">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>Rehab Coverage</h1>
+        <button class="header-btn" onclick="toggleMenu()">☰</button>
+    </div>
+
+    <!-- Slide-out Menu -->
+    <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+    <div class="slide-menu" id="slide-menu">
+        <div class="menu-header">
+            <div class="menu-title">Menu</div>
+            <button class="menu-close" onclick="toggleMenu()">Close</button>
+        </div>
+
+        <!-- Auth Status -->
+        <div id="menu-auth-section" style="border-bottom: 1px solid rgba(0,0,0,0.1); margin-bottom: 8px;">
+            <!-- Signed In State -->
+            <div id="menu-auth-signed-in" style="display: none;">
+                <div style="padding: 16px; background: #f5f5f5;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Signed in as</div>
+                    <div id="menu-auth-email" style="font-size: 14px; font-weight: 500; color: #000; margin-bottom: 12px; word-break: break-all;"></div>
+                    <button id="menu-signout-btn" style="width: 100%; padding: 10px; background: #FF3B30; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign Out</button>
+                </div>
+            </div>
+            <!-- Signed Out State -->
+            <div id="menu-auth-signed-out" style="display: none;">
+                <div style="padding: 16px; background: #f5f5f5;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px;">Cloud sync disabled</div>
+                    <button id="menu-signin-btn" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Sign In</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-item" onclick="location.reload()">
+            <div class="menu-item-icon">🔄</div>
+            <div class="menu-item-text">Reload</div>
+        </div>
+        <div class="menu-item" onclick="toggleDebug(); toggleMenu();">
+            <div class="menu-item-icon">🐛</div>
+            <div class="menu-item-text">Debug Info</div>
+        </div>
+        <div class="menu-item" onclick="openVocabulary(); toggleMenu();">
+            <div class="menu-item-icon">📚</div>
+            <div class="menu-item-text">Vocabulary</div>
+        </div>
+        <div class="menu-item" onclick="openRolesEditor()">
+            <div class="menu-item-icon">✏️</div>
+            <div class="menu-item-text">Edit Roles</div>
+        </div>
+        <div class="menu-item" onclick="exportForPT(); toggleMenu();">
+            <div class="menu-item-icon">🏥</div>
+            <div class="menu-item-text">Export for PT</div>
+        </div>
+        <div class="menu-item" onclick="window.location.href='pt_report.html'; toggleMenu();">
+            <div class="menu-item-icon">✏️</div>
+            <div class="menu-item-text">PT Editor Mode</div>
+        </div>
+        <div class="menu-item" onclick="importPTModifications(); toggleMenu();">
+            <div class="menu-item-icon">📨</div>
+            <div class="menu-item-text">Import PT Modifications</div>
+        </div>
+        <div class="menu-item" onclick="exportAllData()">
+            <div class="menu-item-icon">💾</div>
+            <div class="menu-item-text">Export All Data</div>
+        </div>
+        <div class="menu-item" onclick="importData()">
+            <div class="menu-item-icon">📥</div>
+            <div class="menu-item-text">Import Data</div>
+        </div>
+        <div class="menu-item" onclick="goBack()">
+            <div class="menu-item-icon">←</div>
+            <div class="menu-item-text">Back to PT Tracker</div>
+        </div>
+    </div>
+
+    <!-- Roles Editor Modal -->
+    <div class="roles-editor-modal" id="roles-editor">
+        <div class="roles-editor-content">
+            <div class="editor-header">
+                <div class="editor-title">Edit Roles</div>
+                <button class="editor-close" onclick="closeRolesEditor()">Done</button>
+            </div>
+            <div class="editor-body" id="editor-body">
+                <!-- Content filled by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <div id="debug-panel" style="display: none; background: var(--bg-secondary); padding: 12px; margin-bottom: 16px; border-radius: 8px; border: 1px solid var(--ios-yellow); font-size: 11px; font-family: monospace;">
+        <div style="font-weight: 600; margin-bottom: 8px; color: var(--ios-yellow);">Debug Info</div>
+        <div id="debug-content"></div>
+    </div>
+
+    <div id="coverage-content" class="loading">Loading...</div>
+
+    <!-- Vocabulary Modal -->
+    <div id="vocab-modal" class="modal" onclick="if(event.target === this) closeVocabulary()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Vocabulary</div>
+                <button class="modal-close" onclick="closeVocabulary()">Done</button>
+            </div>
+            <div class="modal-body" id="vocab-content"></div>
+        </div>
+    </div>
+
+    <!-- Term Definition Modal -->
+    <div id="term-modal" class="modal" onclick="if(event.target === this) closeTermDefinition()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="term-modal-title"></div>
+                <button class="modal-close" onclick="closeTermDefinition()">Close</button>
+            </div>
+            <div class="modal-body" id="term-modal-content"></div>
+        </div>
+    </div>
+
+    <!-- Export for PT Modal -->
+    <div id="export-pt-modal" class="modal" onclick="if(event.target === this) closeExportPTModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📤 Send to PT</div>
+                <button class="modal-close" onclick="closeExportPTModal()">Close</button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+                    Email address is optional. Copy the payload only or open your email client with the payload ready to send.
+                </div>
+                <input type="email" id="pt-email-address" placeholder="your.pt@example.com" style="
+                    width: 100%;
+                    padding: 10px;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    margin-bottom: 10px;
+                    font-size: 14px;
+                ">
+                <textarea id="pt-note" placeholder="Optional: Add a note for your PT" style="
+                    width: 100%;
+                    min-height: 80px;
+                    padding: 10px;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    font-size: 14px;
+                    resize: vertical;
+                    margin-bottom: 12px;
+                "></textarea>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="closeExportPTModal()">Cancel</button>
+                    <button class="btn-primary" onclick="copyPtPayloadOnly()">📋 Copy Payload Only</button>
+                    <button class="btn-primary" onclick="sendToPT()">📧 Send Email</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import PT Modifications Modal -->
+    <div id="import-pt-modal" class="modal" onclick="if(event.target === this) closeImportPTModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📨 Import from PT</div>
+                <button class="modal-close" onclick="closeImportPTModal()">Close</button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+                    Paste the PT email content below. The app will automatically extract and verify the V2 payload.
+                </div>
+                <textarea id="import-pt-content" placeholder="Paste the entire email content here (including markers)..." style="
+                    width: 100%;
+                    min-height: 240px;
+                    padding: 10px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 11px;
+                    background: var(--bg-tertiary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    resize: vertical;
+                    color: var(--text-primary);
+                    margin-bottom: 12px;
+                "></textarea>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="closeImportPTModal()">Cancel</button>
+                    <button class="btn-primary" onclick="processPastedImport()">Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firestore write guard modal (in-app, iOS PWA compatible) -->
+    <div id="firestore-write-guard-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 20050; padding: 20px;">
+        <div style="background: var(--bg-primary); max-width: 520px; margin: 40px auto; border-radius: 12px; padding: 20px;">
+            <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 12px;">Cloud data not loaded</h3>
+            <p id="firestore-write-guard-message" style="white-space: pre-line; color: var(--text-secondary); margin-bottom: 16px;">
+                Cloud data has not been loaded.
+                Saving now may overwrite existing data.
+                Continue anyway?
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="firestore-write-guard-cancel" class="btn-secondary">Cancel</button>
+                <button id="firestore-write-guard-confirm" class="btn-primary">Save Anyway</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="back-button" onclick="goBack()" id="back-button">← Back</button>
+
+    <script src="pt_payload_utils.js"></script>
+    <script type="module">
+        /**
+         * Static imports for offline support via Firestore IndexedDB persistence.
+         * Uses same pattern as pt_tracker.html - static imports are cached by service worker.
+         */
+        import {
+            auth,
+            db,
+            onAuthStateChanged,
+            signOut,
+            signInWithEmailAndPassword,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence,
+            collection,
+            onSnapshot,
+            query,
+            where,
+            getDocs
+        } from './firebase.js';
+        import {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared,
+            loadExerciseVocabularyShared,
+            loadExerciseRolesSchemaShared,
+            saveExerciseRolesShared,
+            saveExerciseVocabularyShared,
+            saveExerciseRolesSchemaShared,
+            saveExerciseLibraryShared
+        } from './shared/firestore_shared_data.js';
+
+        // Make save function globally accessible for event handlers
+        window.saveExerciseRolesShared = saveExerciseRolesShared;
+
+        let currentUser = null;
+        let coverageUnsubscribe = null;
+        let patientUserId = null; // For therapist access
+        let authModalActive = false;
+        let authModalLastFocus = null;
+        // Expose auth context for non-module debug panel access.
+        window.currentUser = currentUser;
+        window.patientUserId = patientUserId;
+
+        let sharedLibraryHydrated = false;
+        let sharedRolesHydrated = false;
+        let sharedVocabHydrated = false;
+
+        const firestoreReadState = {
+            sharedLibrary: false,
+            sharedRoles: false,
+            sharedVocab: false
+        };
+
+        const userConfirmedOverwriteState = {
+            sharedLibrary: false,
+            sharedRoles: false,
+            sharedVocab: false
+        };
+
+        const sharedDocSource = window.sharedDocSource || {
+            sharedLibrary: 'unknown',
+            sharedRoles: 'unknown',
+            sharedVocab: 'unknown'
+        };
+        window.sharedDocSource = sharedDocSource;
+
+        const pendingWriteFlags = {
+            sharedLibrary: false,
+            sharedRoles: false,
+            sharedVocab: false
+        };
+
+        function setFirestoreReadSucceeded(docKey) {
+            if (firestoreReadState[docKey] !== undefined) {
+                firestoreReadState[docKey] = true;
+            }
+        }
+
+        function markDocHydrated(docKey) {
+            switch (docKey) {
+                case 'sharedLibrary':
+                    sharedLibraryHydrated = true;
+                    if (pendingWriteFlags.sharedLibrary) {
+                        pendingWriteFlags.sharedLibrary = false;
+                        void saveExerciseLibraryWithGuard();
+                    }
+                    break;
+                case 'sharedRoles':
+                    sharedRolesHydrated = true;
+                    if (pendingWriteFlags.sharedRoles) {
+                        pendingWriteFlags.sharedRoles = false;
+                        void saveRolesWithGuard();
+                    }
+                    break;
+                case 'sharedVocab':
+                    sharedVocabHydrated = true;
+                    if (pendingWriteFlags.sharedVocab) {
+                        pendingWriteFlags.sharedVocab = false;
+                        void saveVocabularyWithGuard();
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function isDocHydrated(docKey) {
+            switch (docKey) {
+                case 'sharedLibrary':
+                    return sharedLibraryHydrated;
+                case 'sharedRoles':
+                    return sharedRolesHydrated;
+                case 'sharedVocab':
+                    return sharedVocabHydrated;
+                default:
+                    return false;
+            }
+        }
+
+        function closeWriteGuardModal(result) {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            const resolver = modal?.dataset?.resolveId;
+            if (resolver && window[resolver]) {
+                window[resolver](result);
+                delete window[resolver];
+            }
+        }
+
+        function showWriteGuardModal({ message, allowOverride = true, confirmLabel = 'Save Anyway' } = {}) {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            const messageEl = document.getElementById('firestore-write-guard-message');
+            const confirmBtn = document.getElementById('firestore-write-guard-confirm');
+            const cancelBtn = document.getElementById('firestore-write-guard-cancel');
+            if (!modal || !messageEl || !confirmBtn || !cancelBtn) {
+                alert(message || 'Cloud data has not been loaded.');
+                return Promise.resolve(false);
+            }
+
+            messageEl.textContent = message || '';
+            confirmBtn.textContent = confirmLabel;
+            confirmBtn.style.display = allowOverride ? 'inline-flex' : 'none';
+            cancelBtn.textContent = allowOverride ? 'Cancel' : 'Close';
+
+            modal.style.display = 'block';
+
+            return new Promise((resolve) => {
+                const resolverId = `__writeGuardResolve_${Date.now()}`;
+                modal.dataset.resolveId = resolverId;
+                window[resolverId] = resolve;
+            });
+        }
+
+        function bindWriteGuardModalEvents() {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            const confirmBtn = document.getElementById('firestore-write-guard-confirm');
+            const cancelBtn = document.getElementById('firestore-write-guard-cancel');
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('pointerup', () => closeWriteGuardModal(true));
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('pointerup', () => closeWriteGuardModal(false));
+            }
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        closeWriteGuardModal(false);
+                    }
+                });
+            }
+        }
+
+        bindWriteGuardModalEvents();
+
+        async function confirmCanonicalWrite({ docKey, source = 'firestore' }) {
+            if (source === 'fallback' || source === 'cache') {
+                await showWriteGuardModal({
+                    message: 'Cloud data loaded from offline cache or fallback.\n\nSaving to cloud is blocked until live data loads.',
+                    allowOverride: false,
+                    confirmLabel: 'Close'
+                });
+                return false;
+            }
+
+            if (isDocHydrated(docKey) || userConfirmedOverwriteState[docKey]) {
+                return true;
+            }
+
+            const confirmed = await showWriteGuardModal({
+                message: 'Cloud data has not been loaded.\nSaving now may overwrite existing data.\nContinue anyway?',
+                allowOverride: true,
+                confirmLabel: 'Save Anyway'
+            });
+
+            if (confirmed) {
+                userConfirmedOverwriteState[docKey] = true;
+            }
+
+            return confirmed;
+        }
+
+        function showAuthMessage(message, tone = 'error') {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            errorEl.style.color = tone === 'success' ? 'var(--ios-green)' : 'var(--ios-red)';
+        }
+
+        function showAuthError(message) {
+            showAuthMessage(message, 'error');
+        }
+
+        function clearAuthError() {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+            errorEl.style.color = 'var(--ios-red)';
+        }
+
+        function ensureAuthCredentialFields() {
+            const fieldsContainer = document.getElementById('auth-credential-fields');
+            if (!fieldsContainer || fieldsContainer.childElementCount > 0) return;
+            // Create credential inputs only after explicit user action to avoid iOS PWA autofill prompts.
+            const emailGroup = document.createElement('div');
+            emailGroup.className = 'form-group';
+            emailGroup.style.marginBottom = '0';
+
+            const emailLabel = document.createElement('label');
+            emailLabel.className = 'form-label';
+            emailLabel.setAttribute('for', 'auth-email');
+            emailLabel.textContent = 'Email';
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.className = 'form-input';
+            emailInput.id = 'auth-email';
+            emailInput.placeholder = 'name@example.com';
+            emailInput.autocomplete = 'email';
+
+            emailGroup.appendChild(emailLabel);
+            emailGroup.appendChild(emailInput);
+
+            const passwordGroup = document.createElement('div');
+            passwordGroup.className = 'form-group';
+            passwordGroup.style.marginBottom = '0';
+
+            const passwordLabel = document.createElement('label');
+            passwordLabel.className = 'form-label';
+            passwordLabel.setAttribute('for', 'auth-password');
+            passwordLabel.textContent = 'Password';
+
+            const passwordInput = document.createElement('input');
+            passwordInput.type = 'password';
+            passwordInput.className = 'form-input';
+            passwordInput.id = 'auth-password';
+            passwordInput.placeholder = '••••••••';
+            passwordInput.autocomplete = 'current-password';
+
+            passwordGroup.appendChild(passwordLabel);
+            passwordGroup.appendChild(passwordInput);
+
+            fieldsContainer.appendChild(emailGroup);
+            fieldsContainer.appendChild(passwordGroup);
+
+            const submitOnEnter = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleAuthSignIn();
+                }
+            };
+
+            emailInput.addEventListener('keydown', submitOnEnter);
+            passwordInput.addEventListener('keydown', submitOnEnter);
+        }
+
+        function clearAuthCredentialFields() {
+            const fieldsContainer = document.getElementById('auth-credential-fields');
+            if (!fieldsContainer) return;
+            // Remove credential inputs when the modal closes so they are not mounted on navigation.
+            fieldsContainer.innerHTML = '';
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal) return;
+            authModalLastFocus = document.activeElement;
+            ensureAuthCredentialFields();
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            authModalActive = true;
+            clearAuthError();
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput) {
+                emailInput.focus();
+                emailInput.select();
+            }
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal || !authModalActive) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            authModalActive = false;
+            clearAuthCredentialFields();
+            if (authModalLastFocus && typeof authModalLastFocus.focus === 'function') {
+                authModalLastFocus.focus();
+            }
+        }
+
+        async function handleAuthSignIn() {
+            const emailInput = document.getElementById('auth-email');
+            const passwordInput = document.getElementById('auth-password');
+            if (!emailInput || !passwordInput) {
+                showAuthError('Tap "Sign In" to enter your credentials.');
+                return;
+            }
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Enter both email and password to sign in.');
+                return;
+            }
+
+            try {
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error('[Auth] Sign in failed:', error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showAuthError('Incorrect email or password.');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Please enter a valid email address.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Please try again later.');
+                } else {
+                    showAuthError('Sign in failed. Please try again.');
+                }
+            }
+        }
+
+        async function handleAuthPasswordReset() {
+            // Send a Firebase password reset email using the existing auth instance.
+            const emailInput = document.getElementById('auth-email');
+            if (!emailInput) {
+                showAuthError('Tap "Sign In" to enter your email first.');
+                return;
+            }
+            const email = emailInput.value.trim();
+            if (!email) {
+                showAuthError('Enter your email to reset your password.');
+                return;
+            }
+
+            try {
+                // await sendPasswordResetEmail(auth, email); // TODO: Fix password reset
+                // showAuthMessage('Password reset email sent. Check your inbox.', 'success');
+                showAuthMessage('Password reset temporarily disabled. Contact admin.', 'error');
+            } catch (error) {
+                console.error('[Auth] Password reset failed:', error);
+                if (error.code === 'auth/invalid-email') {
+                    showAuthError('Please enter a valid email address.');
+                } else if (error.code === 'auth/user-not-found') {
+                    showAuthError('No account found for that email.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Please try again later.');
+                } else {
+                    showAuthError('Password reset failed. Please try again.');
+                }
+            }
+        }
+
+        function bindAuthModalEvents() {
+            const guardButton = document.getElementById('auth-guard-signin-btn');
+            const modal = document.getElementById('auth-modal');
+            const closeButton = document.getElementById('auth-modal-close');
+            const cancelButton = document.getElementById('auth-cancel-btn');
+            const signInButton = document.getElementById('auth-signin-btn');
+            const resetButton = document.getElementById('auth-reset-btn');
+
+            if (guardButton) {
+                guardButton.addEventListener('pointerup', showAuthModal);
+                guardButton.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        showAuthModal();
+                    }
+                });
+            }
+
+            if (signInButton) {
+                signInButton.addEventListener('pointerup', handleAuthSignIn);
+            }
+
+            if (resetButton) {
+                resetButton.addEventListener('pointerup', handleAuthPasswordReset);
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        hideAuthModal();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (authModalActive && event.key === 'Escape') {
+                    event.preventDefault();
+                    hideAuthModal();
+                }
+            });
+        }
+
+        bindAuthModalEvents();
+
+        function updateMenuAuthDisplay() {
+            const signedInSection = document.getElementById('menu-auth-signed-in');
+            const signedOutSection = document.getElementById('menu-auth-signed-out');
+            const emailDisplay = document.getElementById('menu-auth-email');
+
+            if (currentUser) {
+                signedInSection.style.display = 'block';
+                signedOutSection.style.display = 'none';
+                emailDisplay.textContent = currentUser.email;
+            } else {
+                signedInSection.style.display = 'none';
+                signedOutSection.style.display = 'block';
+            }
+        }
+
+        function handleAuthState(user) {
+            currentUser = user;
+            window.currentUser = currentUser;
+            updateMenuAuthDisplay();
+
+            const authGuardOverlay = document.getElementById('auth-guard-overlay');
+            if (authGuardOverlay) {
+                // Avoid flashing the sign-in prompt before auth state is resolved.
+                authGuardOverlay.classList.remove('auth-checking');
+            }
+            if (user) {
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.add('auth-verified');
+                }
+                hideAuthModal();
+            } else {
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.remove('auth-verified');
+                }
+            }
+        }
+
+        window.subscribeToCoverageHistory = (onUpdate) => new Promise((resolve) => {
+            onAuthStateChanged(auth, async (user) => {
+                handleAuthState(user);
+
+                if (coverageUnsubscribe) {
+                    coverageUnsubscribe();
+                    coverageUnsubscribe = null;
+                }
+
+                if (!user) {
+                    onUpdate([]);
+                    resolve();
+                    return;
+                }
+
+                // Auto-discover patient if therapist
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('therapistUid', '==', user.uid));
+                const snapshot = await getDocs(q);
+
+                let isTherapist = false;
+                if (!snapshot.empty) {
+                    patientUserId = snapshot.docs[0].id;
+                    window.patientUserId = patientUserId;
+                    isTherapist = true;
+                    console.log('[Therapist] Viewing patient coverage:', patientUserId);
+                    document.getElementById('back-button').textContent = '← Back to Report';
+                    document.getElementById('back-button').onclick = () => window.location.href = 'pt_report.html';
+                } else {
+                    patientUserId = user.uid; // View own data
+                    window.patientUserId = patientUserId;
+                    document.getElementById('back-button').textContent = '← Back to Tracker';
+                    document.getElementById('back-button').onclick = () => window.location.href = 'pt_tracker.html';
+                }
+
+                const sessionsRef = collection(db, `users/${patientUserId}/sessions`);
+                const sessionsQuery = query(sessionsRef);
+                let initialLoad = true;
+
+                coverageUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
+                    const sessions = snapshot.docs.map(docSnap => ({
+                        _firestoreId: docSnap.id,
+                        ...docSnap.data()
+                    }));
+                    sessions.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+                    onUpdate(sessions);
+
+                    if (initialLoad) {
+                        initialLoad = false;
+                        console.log('[Firestore] Coverage session history loaded');
+                        resolve();
+                    }
+                }, (error) => {
+                    console.error('[Firestore] Coverage session listener error:', error);
+                    if (initialLoad) {
+                        initialLoad = false;
+                        resolve();
+                    }
+                });
+            });
+        });
+
+        window.coverageAuthReady = true;
+        window.dispatchEvent(new Event('coverageAuthReady'));
+
+        window.sharedDataLoader = {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared,
+            loadExerciseVocabularyShared,
+            loadExerciseRolesSchemaShared
+        };
+        window.sharedDataReady = true;
+        window.dispatchEvent(new Event('sharedDataReady'));
+
+        const menuSignOutButton = document.getElementById('menu-signout-btn');
+        const menuSignInButton = document.getElementById('menu-signin-btn');
+
+        if (menuSignOutButton) {
+            menuSignOutButton.addEventListener('pointerup', async () => {
+                try {
+                    await signOut(auth);
+                    window.toggleMenu();
+                } catch (error) {
+                    console.error('[Auth] Sign out error:', error);
+                    alert('Failed to sign out');
+                }
+            });
+        }
+
+        if (menuSignInButton) {
+            menuSignInButton.addEventListener('pointerup', () => {
+                showAuthModal();
+                window.toggleMenu();
+            });
+        }
+    </script>
+    <script>
+        // Global data stores
+        let schema = null;
+        let rolesData = null;
+        let vocabulary = null;
+        let exerciseLibrary = null;
+        let archivedExerciseIds = new Set();
+        let sessionHistory = null;
+        let coverageInitialized = false;
+        const DEBUG_MATCH_LOGS = false;
+
+        // Derived lists (runtime only - NO HARDCODED ENUMS)
+        let regions = [];
+        let capacities = [];
+        let contributions = [];
+
+        async function ensureCoverageAuthReady() {
+            if (window.subscribeToCoverageHistory) return;
+            await new Promise((resolve) => {
+                const handler = () => {
+                    window.removeEventListener('coverageAuthReady', handler);
+                    resolve();
+                };
+                window.addEventListener('coverageAuthReady', handler);
+                setTimeout(resolve, 2000);
+            });
+        }
+
+        async function ensureSharedDataLoaderReady() {
+            if (window.sharedDataLoader) return;
+            await new Promise((resolve) => {
+                const handler = () => {
+                    window.removeEventListener('sharedDataReady', handler);
+                    resolve();
+                };
+                window.addEventListener('sharedDataReady', handler);
+                setTimeout(resolve, 2000);
+            });
+        }
+
+        /**
+         * Bind iOS-safe pointer event handlers to elements with data-action attributes.
+         *
+         * iOS Safari/PWA does not reliably trigger onclick handlers on dynamically created elements.
+         * This function binds pointerup events (which work consistently on iOS touch and desktop mouse)
+         * and keyboard events for accessibility.
+         *
+         * @param {HTMLElement} root - Root element to search for data-action elements (default: document)
+         */
+        function bindPointerHandlers(root = document) {
+            const elements = root.querySelectorAll('[data-action]');
+            elements.forEach(el => {
+                const action = el.getAttribute('data-action');
+
+                // Handler function executes the globally available function
+                const handler = (e) => {
+                    const fn = window[action];
+                    if (fn && typeof fn === 'function') {
+                        e.preventDefault();
+                        fn();
+                    } else {
+                        console.warn(`[bindPointerHandlers] Function "${action}" not found`);
+                    }
+                };
+
+                // Bind pointerup for iOS touch and desktop mouse compatibility
+                el.addEventListener('pointerup', handler);
+
+                // Bind keyboard events for accessibility (Enter and Space)
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        handler(e);
+                    }
+                });
+            });
+        }
+
+        // Initialize
+        async function init() {
+            try {
+                await ensureSharedDataLoaderReady();
+                await loadSchema();
+                await loadRoles();
+                await loadVocabulary();
+                await loadExerciseLibrary();
+                await loadSessionHistory();
+
+                // Derive enums from schema
+                deriveEnums();
+
+                // Render coverage view
+                coverageInitialized = true;
+                renderCoverageView();
+            } catch (error) {
+                document.getElementById('coverage-content').innerHTML =
+                    `<div class="error">Error loading data: ${error.message}</div>`;
+                console.error('Init error:', error);
+            }
+        }
+
+        async function loadSchema() {
+            const sharedLoader = window.sharedDataLoader;
+            if (!sharedLoader) {
+                throw new Error('Shared data loader unavailable. Try reloading the page.');
+            }
+            const schemaResult = await sharedLoader.loadExerciseRolesSchemaShared();
+            schema = schemaResult?.data || {};
+            console.log('[Schema] Loaded:', schema);
+        }
+
+        async function loadRoles() {
+            const sharedLoader = window.sharedDataLoader;
+            if (!sharedLoader) {
+                throw new Error('Shared data loader unavailable. Try reloading the page.');
+            }
+            const rolesResult = await sharedLoader.loadExerciseRolesShared();
+            rolesData = rolesResult?.data || { exercise_roles: {} };
+            sharedDocSource.sharedRoles = rolesResult?.source || sharedDocSource.sharedRoles;
+            if (rolesResult?.hasFirestoreReadSucceeded) {
+                setFirestoreReadSucceeded('sharedRoles');
+                markDocHydrated('sharedRoles');
+            }
+            console.log('[Roles] Loaded:', Object.keys(rolesData.exercise_roles || {}).length, 'exercises with roles');
+
+            // Debug: Show sample role exercise IDs
+            const roleExerciseIds = Object.keys(rolesData.exercise_roles || {});
+            if (roleExerciseIds.length > 0) {
+                console.log('[Roles] Sample exercise IDs:', roleExerciseIds.slice(0, 5));
+            }
+        }
+
+        async function loadVocabulary() {
+            const sharedLoader = window.sharedDataLoader;
+            if (!sharedLoader) {
+                throw new Error('Shared data loader unavailable. Try reloading the page.');
+            }
+            const vocabResult = await sharedLoader.loadExerciseVocabularyShared();
+            vocabulary = vocabResult?.data || {};
+            sharedDocSource.sharedVocab = vocabResult?.source || sharedDocSource.sharedVocab;
+            if (vocabResult?.hasFirestoreReadSucceeded) {
+                setFirestoreReadSucceeded('sharedVocab');
+                markDocHydrated('sharedVocab');
+            }
+
+            // Validate schema version match
+            if (vocabulary.schema_version && schema.schema_version) {
+                if (vocabulary.schema_version !== schema.schema_version) {
+                    throw new Error(`Schema version mismatch! Vocabulary: ${vocabulary.schema_version}, Schema: ${schema.schema_version}`);
+                }
+            }
+        }
+
+        async function loadExerciseLibrary() {
+            const sharedLoader = window.sharedDataLoader;
+            if (!sharedLoader) {
+                throw new Error('Shared data loader unavailable. Try reloading the page.');
+            }
+            const libraryResult = await sharedLoader.loadExerciseLibraryShared();
+            exerciseLibrary = libraryResult?.data || [];
+            sharedDocSource.sharedLibrary = libraryResult?.source || sharedDocSource.sharedLibrary;
+            if (libraryResult?.hasFirestoreReadSucceeded) {
+                setFirestoreReadSucceeded('sharedLibrary');
+                markDocHydrated('sharedLibrary');
+            }
+            archivedExerciseIds = new Set(
+                exerciseLibrary
+                    .filter(ex => ex.lifecycle?.status === 'archived' || ex.archived)
+                    .map(ex => ex.id || ex.exercise_id)
+                    .filter(Boolean)
+            );
+            console.log('[Library] Loaded:', exerciseLibrary.length, 'exercises');
+        }
+
+        async function saveExerciseLibraryWithGuard() {
+            const canWrite = await confirmCanonicalWrite({
+                docKey: 'sharedLibrary',
+                source: sharedDocSource.sharedLibrary
+            });
+            if (!canWrite) {
+                if (sharedDocSource.sharedLibrary !== 'fallback' && sharedDocSource.sharedLibrary !== 'cache') {
+                    pendingWriteFlags.sharedLibrary = true;
+                }
+                return false;
+            }
+            await saveExerciseLibraryShared({ exercises: exerciseLibrary });
+            return true;
+        }
+
+        async function saveRolesWithGuard() {
+            const canWrite = await confirmCanonicalWrite({
+                docKey: 'sharedRoles',
+                source: sharedDocSource.sharedRoles
+            });
+            if (!canWrite) {
+                if (sharedDocSource.sharedRoles !== 'fallback' && sharedDocSource.sharedRoles !== 'cache') {
+                    pendingWriteFlags.sharedRoles = true;
+                }
+                return false;
+            }
+            await saveExerciseRolesShared(rolesData);
+            return true;
+        }
+
+        async function saveVocabularyWithGuard() {
+            const canWrite = await confirmCanonicalWrite({
+                docKey: 'sharedVocab',
+                source: sharedDocSource.sharedVocab
+            });
+            if (!canWrite) {
+                if (sharedDocSource.sharedVocab !== 'fallback' && sharedDocSource.sharedVocab !== 'cache') {
+                    pendingWriteFlags.sharedVocab = true;
+                }
+                return false;
+            }
+            await saveExerciseVocabularyShared(vocabulary);
+            return true;
+        }
+
+        async function loadSessionHistory() {
+            await ensureCoverageAuthReady();
+            if (!window.subscribeToCoverageHistory) {
+                sessionHistory = [];
+                console.warn('[History] Coverage auth not ready; skipping Firestore history load.');
+                return;
+            }
+
+            await window.subscribeToCoverageHistory((sessions) => {
+                sessionHistory = sessions;
+                console.log('[History] Loaded:', sessionHistory.length, 'sessions');
+
+                if (sessionHistory.length > 0) {
+                    const uniqueIds = [...new Set(sessionHistory.map(s => s.exerciseId))];
+                    console.log('[History] Unique exercise IDs in session history:', uniqueIds);
+                    console.log('[History] Sample session objects:', sessionHistory.slice(0, 3));
+                } else {
+                    console.warn('[History] NO SESSION HISTORY FOUND! Firestore session history is empty or unavailable.');
+                }
+
+                if (coverageInitialized) {
+                    renderCoverageView();
+                }
+            });
+        }
+
+        function deriveEnums() {
+            // Extract enums from schema - NO HARDCODING
+            // Schema uses 'definitions' (not $defs)
+            if (!schema || !schema.definitions || !schema.definitions.role) {
+                throw new Error('Schema not properly loaded or missing definitions.role');
+            }
+            const roleSchema = schema.definitions.role;
+            regions = roleSchema.properties.region.enum || [];
+            capacities = roleSchema.properties.capacity.enum || [];
+            contributions = roleSchema.properties.contribution.enum || [];
+            console.log('[Enums] Derived:', { regions, capacities, contributions });
+        }
+
+        // Get unique focuses for a (region, capacity) pair
+        function getFocuses(region, capacity) {
+            const focuses = new Set();
+            // Data structure: rolesData.exercise_roles[exerciseId].roles[]
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region === region && role.capacity === capacity && role.focus) {
+                        focuses.add(role.focus);
+                    }
+                });
+            });
+            return Array.from(focuses);
+        }
+
+        // Get all exercises for a (region, capacity, focus) bucket with their status
+        function getExercisesForBucket(region, capacity, focus = null) {
+            const exercises = [];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Find all exercises with matching roles
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region !== region || role.capacity !== capacity) return;
+
+                    // Check focus match
+                    if (focus === null) {
+                        if (role.focus) return; // Skip focused roles when looking for general
+                    } else {
+                        if (role.focus !== focus) return; // Skip if focus doesn't match
+                    }
+
+                    // Find most recent session for this exercise
+                    // Match by ID first, fallback to normalized name if IDs don't match
+                    const exerciseName = (exerciseData.name || '').trim().toLowerCase();
+                    const sessions = sessionHistory.filter(s => {
+                        // Exact ID match
+                        if (s.exerciseId === exerciseId) return true;
+
+                        // Fallback: normalized name match (handles ID mismatches)
+                        const sessionName = (s.exerciseName || '').trim().toLowerCase();
+                        if (exerciseName && sessionName && exerciseName === sessionName) {
+                            return true;
+                        }
+
+                        return false;
+                    });
+                    sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const lastSession = sessions[0];
+
+                    // Calculate daysSince by normalizing both dates to midnight for fair comparison
+                    let daysSince = null;
+                    if (lastSession) {
+                        const lastDate = new Date(lastSession.date);
+                        lastDate.setHours(0, 0, 0, 0); // Normalize to midnight
+                        daysSince = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
+                    }
+
+                    const exerciseInfo = {
+                        id: exerciseId,
+                        name: exerciseData.name || exerciseId,
+                        contribution: role.contribution,
+                        focus: role.focus || null,
+                        done: !!lastSession,
+                        lastDate: lastSession ? new Date(lastSession.date) : null,
+                        daysSince: daysSince
+                    };
+
+                    // Avoid duplicates (exercise might have multiple roles for same bucket)
+                    if (!exercises.find(e => e.id === exerciseId)) {
+                        exercises.push(exerciseInfo);
+                    }
+                });
+            });
+
+            // Sort: done exercises first (by recency), then not done (by name)
+            exercises.sort((a, b) => {
+                if (a.done && !b.done) return -1;
+                if (!a.done && b.done) return 1;
+                if (a.done && b.done) return a.daysSince - b.daysSince;
+                return a.name.localeCompare(b.name);
+            });
+
+            return exercises;
+        }
+
+        // Get unique exercises from array (by ID)
+        function getUniqueExercises(exercises) {
+            return Array.from(new Set(exercises.map(e => e.id)))
+                .map(id => exercises.find(e => e.id === id));
+        }
+
+        // Get color for completion percentage
+        function getPercentColor(percent, goodThreshold = 70, okThreshold = 40) {
+            if (percent >= goodThreshold) return 'var(--ios-green)';
+            if (percent >= okThreshold) return 'var(--ios-yellow)';
+            return 'var(--ios-red)';
+        }
+
+        // Render exercise list for a bucket
+        function renderExerciseList(exercises) {
+            if (exercises.length === 0) {
+                return '<div style="padding: 12px; color: var(--text-secondary); font-size: 13px;">No exercises assigned to this role</div>';
+            }
+
+            const contributionColors = {
+                high: 'var(--ios-red)',
+                medium: 'var(--ios-yellow)',
+                low: 'var(--ios-blue)'
+            };
+
+            let html = '<div style="padding: 4px 0;">';
+            exercises.forEach(ex => {
+                const statusIcon = ex.done ? '✓' : '⚠';
+                const statusColor = ex.done ? 'var(--ios-green)' : 'var(--ios-orange)';
+                const statusText = ex.done ? `${ex.daysSince}d` : 'not done';
+                const contribColor = contributionColors[ex.contribution] || 'var(--text-secondary)';
+
+                html += `
+                    <div class="exercise-card border-l-3" style="border-left-color: ${contribColor};">
+                        <span class="exercise-card-icon" style="color: ${statusColor};">${statusIcon}</span>
+                        <div class="exercise-card-content">
+                            <div class="exercise-card-title">${ex.name}</div>
+                            <div class="exercise-card-meta">
+                                <span class="font-weight-600" style="color: ${contribColor}; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px;">${ex.contribution}</span>
+                                <span style="margin: 0 6px; opacity: 0.5;">•</span>
+                                <span style="color: ${statusColor}; font-size: 12px;">${statusText}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+
+
+        // Render coverage view
+        function renderCoverageView() {
+            // Calculate overall stats
+            const allExercises = [];
+            regions.forEach(region => {
+                const capacities = getCapacitiesForRegion(region);
+                capacities.forEach(capacity => {
+                    const exercises = getExercisesForBucket(region, capacity, null);
+                    allExercises.push(...exercises);
+                });
+            });
+
+            const uniqueExercises = getUniqueExercises(allExercises);
+
+            const totalExercises = uniqueExercises.length;
+            const doneExercises = uniqueExercises.filter(e => e.done).length;
+            const donePercent = totalExercises > 0 ? Math.round((doneExercises / totalExercises) * 100) : 0;
+
+            // Find most recent session
+            let mostRecentDays = null;
+            if (sessionHistory.length > 0) {
+                const validDates = sessionHistory
+                    .map(session => session.timestamp ?? session.date)
+                    .filter(timestamp => timestamp)
+                    .map(timestamp => new Date(timestamp))
+                    .filter(date => !isNaN(date));
+
+                if (validDates.length > 0) {
+                    const mostRecentTimestamp = Math.max(...validDates.map(date => date.getTime()));
+                    const mostRecentDate = new Date(mostRecentTimestamp);
+                    if (!isNaN(mostRecentDate)) {
+                        // Normalize both dates to midnight for consistent day calculation
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        mostRecentDate.setHours(0, 0, 0, 0);
+                        const daysSince = Math.floor((today - mostRecentDate) / (1000 * 60 * 60 * 24));
+                        mostRecentDays = daysSince;
+                    }
+                }
+            }
+
+            const recencyColor = mostRecentDays === null ? 'var(--text-secondary)' :
+                                 mostRecentDays === 0 ? 'var(--ios-green)' :
+                                 mostRecentDays <= 3 ? 'var(--ios-green)' :
+                                 mostRecentDays <= 7 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+            const recencyText = mostRecentDays === null ? '—' :
+                               mostRecentDays === 0 ? 'Today' : `${mostRecentDays}d ago`;
+
+            // Rolling 7-day activity
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            const recentSessions = sessionHistory.filter(s => {
+                const sessionDate = s.date ? new Date(s.date).getTime() : (s.timestamp || 0);
+                return sessionDate >= sevenDaysAgo;
+            });
+            const recentExerciseIds = [...new Set(recentSessions.map(s => s.exerciseId))];
+            const recentExercisesInLibrary = uniqueExercises.filter(e => recentExerciseIds.includes(e.id));
+            const weeklyDone = recentExercisesInLibrary.length;
+            const weeklyPercent = totalExercises > 0 ? Math.round((weeklyDone / totalExercises) * 100) : 0;
+            const weeklyColor = getPercentColor(weeklyPercent, 50, 25);
+            const overallColor = getPercentColor(donePercent);
+
+            let html = `
+                <div class="overview-card">
+                    <div class="overview-header">
+                        <span class="font-13 font-weight-600 text-secondary">Coverage Overview</span>
+                        <span class="font-11" style="color: ${recencyColor};">Last session: ${recencyText}</span>
+                    </div>
+                    <div class="overview-stats">
+                        <span class="overview-percentage" style="color: ${overallColor};">${donePercent}%</span>
+                        <div class="flex-1">
+                            <div class="font-11 text-secondary mb-2">${doneExercises} of ${totalExercises} exercises done</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-fill-gradient" style="width: ${donePercent}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overview-weekly">
+                        <span class="font-11 text-secondary">Last 7 days (rolling)</span>
+                        <div class="flex-center gap-6">
+                            <span class="font-13 font-weight-600" style="color: ${weeklyColor};">${weeklyDone}/${totalExercises}</span>
+                            <span class="font-11" style="color: ${weeklyColor};">(${weeklyPercent}%)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            regions.forEach(region => {
+                // Calculate region completion
+                const regionExercises = [];
+                const capacities = getCapacitiesForRegion(region);
+                capacities.forEach(capacity => {
+                    // Get general exercises (no focus)
+                    const generalExercises = getExercisesForBucket(region, capacity, null);
+                    regionExercises.push(...generalExercises);
+
+                    // Also get focused exercises
+                    const focuses = getFocuses(region, capacity);
+                    focuses.forEach(focus => {
+                        const focusedExercises = getExercisesForBucket(region, capacity, focus);
+                        regionExercises.push(...focusedExercises);
+                    });
+                });
+                const regionUniqueExercises = getUniqueExercises(regionExercises);
+                const regionTotal = regionUniqueExercises.length;
+                const regionDone = regionUniqueExercises.filter(e => e.done).length;
+                const regionPercent = regionTotal > 0 ? Math.round((regionDone / regionTotal) * 100) : 0;
+                const regionColor = getPercentColor(regionPercent);
+
+                // Get most recent activity for the region (any exercise)
+                const regionDoneExercises = regionUniqueExercises.filter(e => e.done);
+                let regionRecentActivity = null;
+                if (regionDoneExercises.length > 0) {
+                    regionDoneExercises.sort((a, b) => a.daysSince - b.daysSince);
+                    regionRecentActivity = regionDoneExercises[0].daysSince;
+                }
+
+                // Get max gap (worst neglect) - only consider high/medium contribution
+                const regionHighMedExercises = regionUniqueExercises.filter(e => e.contribution === 'high' || e.contribution === 'medium');
+                const regionHighMedDone = regionHighMedExercises.filter(e => e.done);
+                let regionMaxGap = null;
+                let regionHasNeverDone = false;
+
+                if (regionHighMedExercises.length > 0) {
+                    // Check if any high/medium exercise has never been done
+                    regionHasNeverDone = regionHighMedExercises.some(e => !e.done);
+
+                    if (regionHasNeverDone) {
+                        regionMaxGap = 'never';
+                    } else if (regionHighMedDone.length > 0) {
+                        // Find the longest gap among done high/medium exercises
+                        regionMaxGap = Math.max(...regionHighMedDone.map(e => e.daysSince));
+                    }
+                }
+
+                // Fade based on max gap, not recent
+                let regionOpacity = 0.2;
+                if (regionMaxGap === 'never') {
+                    regionOpacity = 0.2; // Maximum guilt for never done
+                } else if (regionMaxGap !== null) {
+                    regionOpacity = Math.max(0.2, 1 - (regionMaxGap / 5));
+                }
+
+                const regionRecentText = regionRecentActivity !== null ? `${regionRecentActivity}d` : '—';
+                const regionMaxText = regionMaxGap === 'never' ? 'never' : (regionMaxGap !== null ? `max: ${regionMaxGap}d` : '—');
+
+                html += `
+                    <div class="region-section" id="region-${region}">
+                        <div class="region-header" onclick="toggleRegion('${region}')">
+                            <h2>${region}</h2>
+                            <div class="flex-center gap-8" style="flex: 1; min-width: 0; margin-left: 12px;">
+                                <div class="progress-bar flex-1" style="min-width: 40px; max-width: 200px;">
+                                    <div class="progress-fill" style="width: ${regionPercent}%; background: ${regionColor}; opacity: ${regionOpacity};"></div>
+                                </div>
+                                <span class="font-11 text-secondary nowrap">${regionRecentText} / ${regionMaxText}</span>
+                                <span class="region-chevron">›</span>
+                            </div>
+                        </div>
+                        <div class="region-content">
+                            ${renderRegionCapacities(region)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('coverage-content').innerHTML = html;
+        }
+
+        // Get capacities that actually have exercises for this region
+        function getCapacitiesForRegion(region) {
+            const capacitiesSet = new Set();
+
+            Object.keys(rolesData.exercise_roles).forEach(exerciseId => {
+                if (archivedExerciseIds.has(exerciseId)) {
+                    return;
+                }
+                const exerciseData = rolesData.exercise_roles[exerciseId];
+                exerciseData.roles.forEach(role => {
+                    if (role.region === region) {
+                        capacitiesSet.add(role.capacity);
+                    }
+                });
+            });
+
+            return Array.from(capacitiesSet);
+        }
+
+        function renderRegionCapacities(region) {
+            let html = '';
+
+            // Only show capacities that have exercises for this region
+            const regionCapacities = getCapacitiesForRegion(region);
+
+            if (regionCapacities.length === 0) {
+                html += '<div style="padding: 12px; color: var(--text-secondary); font-size: 13px;">No exercises for this region</div>';
+                return html;
+            }
+
+            regionCapacities.forEach(capacity => {
+                const focuses = getFocuses(region, capacity);
+                const generalExercises = getExercisesForBucket(region, capacity, null); // No specific focus
+
+                // Also get all focus exercises for overall metrics
+                let allExercises = [...generalExercises];
+                focuses.forEach(focus => {
+                    allExercises = allExercises.concat(getExercisesForBucket(region, capacity, focus));
+                });
+
+                // Skip if no exercises at all
+                if (allExercises.length === 0) {
+                    return; // Skip this capacity
+                }
+
+                const hasChevron = focuses.length > 0 || generalExercises.length > 0;
+
+                // Calculate overall metrics
+                const doneExercises = allExercises.filter(e => e.done);
+                const totalCount = allExercises.length;
+                const doneCount = doneExercises.length;
+
+                // Get most recent activity (any exercise)
+                let recentActivity = null;
+                if (doneExercises.length > 0) {
+                    doneExercises.sort((a, b) => a.daysSince - b.daysSince);
+                    recentActivity = doneExercises[0].daysSince;
+                }
+
+                // Get max gap (worst neglect) - only consider high/medium contribution
+                const highMedExercises = allExercises.filter(e => e.contribution === 'high' || e.contribution === 'medium');
+                const highMedDone = highMedExercises.filter(e => e.done);
+                let maxGap = null;
+                let hasNeverDone = false;
+
+                if (highMedExercises.length > 0) {
+                    // Check if any high/medium exercise has never been done
+                    hasNeverDone = highMedExercises.some(e => !e.done);
+
+                    if (hasNeverDone) {
+                        maxGap = 'never';
+                    } else if (highMedDone.length > 0) {
+                        // Find the longest gap among done high/medium exercises
+                        maxGap = Math.max(...highMedDone.map(e => e.daysSince));
+                    }
+                }
+
+                // Build summary with progress bar and recency indicator
+                const doneIcon = doneCount === totalCount ? '✓' : (doneCount > 0 ? '⚠' : '✗');
+                const doneColor = doneCount === totalCount ? 'var(--ios-green)' : (doneCount > 0 ? 'var(--ios-yellow)' : 'var(--ios-red)');
+                const progress = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
+
+                // Fade based on max gap, not recent
+                let opacity = 0.2;
+                if (maxGap === 'never') {
+                    opacity = 0.2; // Maximum guilt for never done
+                } else if (maxGap !== null) {
+                    opacity = Math.max(0.2, 1 - (maxGap / 5));
+                }
+
+                const recentText = recentActivity !== null ? `${recentActivity}d` : '—';
+                const maxText = maxGap === 'never' ? 'never' : (maxGap !== null ? `max: ${maxGap}d` : '—');
+
+                const summary = `
+                    <div class="flex-center gap-4">
+                        <span style="color: ${doneColor}; font-size: 12px;">${doneIcon}</span>
+                        <span class="font-11 nowrap">${doneCount}/${totalCount}</span>
+                        <div class="progress-bar flex-1" style="min-width: 20px;">
+                            <div class="progress-fill" style="width: ${progress}%; background: ${doneColor}; opacity: ${opacity};"></div>
+                        </div>
+                        <span class="font-11 text-secondary nowrap">${recentText} / ${maxText}</span>
+                    </div>
+                `;
+
+                html += `
+                    <div class="capacity-row ${hasChevron ? '' : 'no-expand'}" id="capacity-${region}-${capacity}">
+                        <div class="capacity-header${hasChevron ? '' : ' no-pointer'} flex-center gap-6 flex-wrap" ${hasChevron ? `onclick="toggleCapacity('${region}', '${capacity}')"` : ''}>
+                            <div class="flex-center gap-6" style="flex: 0 0 auto;">
+                                <span class="capacity-name">${capacity}</span>
+                                <span class="capacity-term" onclick="event.stopPropagation(); showTermDefinition('capacity', '${capacity}')" style="flex: 0 0 auto;">ⓘ</span>
+                            </div>
+                            <div class="flex-1" style="min-width: 0;">${summary}</div>
+                            ${hasChevron ? '<span class="capacity-chevron" style="flex: 0 0 auto;">›</span>' : ''}
+                        </div>
+                        ${hasChevron ? `
+                            <div class="focus-list">
+                                ${generalExercises.length > 0 ? `
+                                    <div class="px-12 py-8 font-13 text-secondary font-weight-500">General</div>
+                                    ${renderExerciseList(generalExercises)}
+                                ` : ''}
+                                ${focuses.length > 0 ? renderFocuses(region, capacity, focuses) : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        function renderFocuses(region, capacity, focuses) {
+            let html = '';
+
+            focuses.forEach(focus => {
+                const focusExercises = getExercisesForBucket(region, capacity, focus);
+                const doneCount = focusExercises.filter(e => e.done).length;
+                const totalCount = focusExercises.length;
+
+                // Get max gap for this focus (only high/medium contribution)
+                const focusHighMedExercises = focusExercises.filter(e => e.contribution === 'high' || e.contribution === 'medium');
+                const focusHighMedDone = focusHighMedExercises.filter(e => e.done);
+                let focusMaxGap = null;
+
+                if (focusHighMedExercises.length > 0) {
+                    const focusHasNeverDone = focusHighMedExercises.some(e => !e.done);
+                    if (focusHasNeverDone) {
+                        focusMaxGap = 'never';
+                    } else if (focusHighMedDone.length > 0) {
+                        focusMaxGap = Math.max(...focusHighMedDone.map(e => e.daysSince));
+                    }
+                }
+
+                const focusMaxText = focusMaxGap === 'never' ? 'never' : (focusMaxGap !== null ? `max: ${focusMaxGap}d` : '—');
+
+                html += `
+                    <div class="m-8 p-8 bg-secondary rounded-md border-l-3" style="border-left-color: var(--ios-blue);">
+                        <div class="flex-center gap-6 mb-6 flex-wrap">
+                            <span class="font-13 font-weight-600 flex-1" style="text-transform: capitalize; min-width: 0;">${focus.replace(/_/g, ' ')}</span>
+                            <div class="flex-center gap-6" style="flex: 0 0 auto;">
+                                <span class="focus-term text-blue font-12" onclick="showTermDefinition('focus', '${focus}')" style="cursor: pointer;">ⓘ</span>
+                                <span class="font-11 text-secondary nowrap">${doneCount}/${totalCount} • ${focusMaxText}</span>
+                            </div>
+                        </div>
+                        ${renderExerciseList(focusExercises)}
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        // Toggle region accordion
+        function toggleRegion(region) {
+            const section = document.getElementById(`region-${region}`);
+            section.classList.toggle('expanded');
+        }
+
+        // Toggle capacity accordion
+        function toggleCapacity(region, capacity) {
+            const row = document.getElementById(`capacity-${region}-${capacity}`);
+            row.classList.toggle('expanded');
+        }
+
+        // Show vocabulary modal
+        function openVocabulary() {
+            let html = '';
+
+            // Regions
+            html += '<div class="vocab-section"><h3>Regions</h3>';
+            Object.keys(vocabulary.region || {}).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.region[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Capacities
+            html += '<div class="vocab-section"><h3>Capacities</h3>';
+            Object.keys(vocabulary.capacity || {}).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.capacity[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Contributions
+            html += '<div class="vocab-section"><h3>Contributions</h3>';
+            Object.keys(vocabulary.contribution || {}).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.contribution[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Focus Terms
+            html += '<div class="vocab-section"><h3>Focus Terms</h3>';
+            Object.keys(vocabulary.focus || {}).forEach(term => {
+                html += `
+                    <div class="vocab-item">
+                        <div class="vocab-term">${term.replace(/_/g, ' ')}</div>
+                        <div class="vocab-def">${vocabulary.focus[term]}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            document.getElementById('vocab-content').innerHTML = html;
+            document.getElementById('vocab-modal').classList.add('active');
+        }
+
+        function closeVocabulary() {
+            document.getElementById('vocab-modal').classList.remove('active');
+        }
+
+        // Show term definition inline
+        function showTermDefinition(category, term) {
+            const definitions = vocabulary[category];
+            const definition = definitions && definitions[term];
+
+            document.getElementById('term-modal-title').textContent = term.replace(/_/g, ' ');
+            document.getElementById('term-modal-content').innerHTML = definition
+                ? `<div class="vocab-def">${definition}</div>`
+                : `<div class="vocab-def" style="color: var(--ios-red);">Definition not found (undefined)</div>`;
+
+            document.getElementById('term-modal').classList.add('active');
+        }
+
+        function closeTermDefinition() {
+            document.getElementById('term-modal').classList.remove('active');
+        }
+
+
+        // Toggle debug panel
+        function toggleDebug() {
+            const panel = document.getElementById('debug-panel');
+            const isVisible = panel.style.display !== 'none';
+
+            if (!isVisible) {
+                // Populate debug info
+                let debugHtml = '';
+
+                // localStorage inspection
+                debugHtml += `<div style="margin-bottom: 8px; padding: 8px; background: var(--bg-tertiary); border-radius: 4px;">`;
+                debugHtml += `<strong>localStorage status:</strong><br>`;
+                debugHtml += `<strong>Total keys:</strong> ${localStorage.length}<br>`;
+                debugHtml += `<strong>All keys:</strong><br>`;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+                    const valuePreview = value.length > 50 ? value.substring(0, 50) + '...' : value;
+                    debugHtml += `&nbsp;&nbsp;${key}: ${value.length} chars<br>`;
+                }
+                debugHtml += `</div>`;
+
+                // Session history info
+                debugHtml += `<div style="margin-bottom: 8px;">`;
+                const debugUser = window.currentUser;
+                const debugPatientId = window.patientUserId;
+                debugHtml += `<strong>Auth:</strong><br>`;
+                debugHtml += `&nbsp;&nbsp;Current user: ${debugUser ? debugUser.email || debugUser.uid : 'Signed out'}<br>`;
+                debugHtml += `&nbsp;&nbsp;Patient user ID: ${debugPatientId || '—'}<br>`;
+                debugHtml += `</div>`;
+
+                debugHtml += `<div style="margin-bottom: 8px;">`;
+                debugHtml += `<strong>Sessions:</strong> ${sessionHistory.length}<br>`;
+
+                if (sessionHistory.length > 0) {
+                    const sessionDates = sessionHistory
+                        .map(session => session.date || session.timestamp)
+                        .filter(value => value)
+                        .map(value => new Date(value))
+                        .filter(date => !isNaN(date));
+                    if (sessionDates.length > 0) {
+                        sessionDates.sort((a, b) => a - b);
+                        const oldestSession = sessionDates[0];
+                        const newestSession = sessionDates[sessionDates.length - 1];
+                        debugHtml += `<strong>Oldest session:</strong> ${oldestSession.toLocaleString()}<br>`;
+                        debugHtml += `<strong>Newest session:</strong> ${newestSession.toLocaleString()}<br>`;
+                    }
+                    const uniqueIds = [...new Set(sessionHistory.map(s => s.exerciseId))];
+                    debugHtml += `<strong>Unique exercises:</strong> ${uniqueIds.length}<br>`;
+                    debugHtml += `<strong>Sample IDs:</strong><br>`;
+                    uniqueIds.slice(0, 5).forEach(id => {
+                        debugHtml += `&nbsp;&nbsp;${id}<br>`;
+                    });
+                } else {
+                    debugHtml += `<span style="color: var(--ios-red);">NO SESSION HISTORY!</span><br>`;
+                    debugHtml += `<br><strong style="color: var(--ios-yellow);">Troubleshooting:</strong><br>`;
+                    debugHtml += `1. Close this page<br>`;
+                    debugHtml += `2. Open PT Tracker<br>`;
+                    debugHtml += `3. Scroll down and tap Coverage button<br>`;
+                }
+                debugHtml += `</div>`;
+
+                // Roles info
+                const roleExerciseIds = Object.keys(rolesData.exercise_roles || {});
+                debugHtml += `<div style="margin-bottom: 8px;">`;
+                debugHtml += `<strong>Exercises with roles:</strong> ${roleExerciseIds.length}<br>`;
+                if (roleExerciseIds.length === 0) {
+                    debugHtml += `<span style="color: var(--ios-red);">No roles loaded. Firestore pt_shared/exercise_roles may be empty or missing.</span><br>`;
+                }
+                debugHtml += `<strong>Sample IDs:</strong><br>`;
+                roleExerciseIds.slice(0, 5).forEach(id => {
+                    debugHtml += `&nbsp;&nbsp;${id}<br>`;
+                });
+                debugHtml += `</div>`;
+
+                // Check for matches
+                if (sessionHistory.length > 0 && roleExerciseIds.length > 0) {
+                    const sessionIds = new Set(sessionHistory.map(s => s.exerciseId));
+                    const matches = roleExerciseIds.filter(id => sessionIds.has(id));
+                    const missingSessionIds = roleExerciseIds.filter(id => !sessionIds.has(id));
+                    const missingRoleIds = [...sessionIds].filter(id => !roleExerciseIds.includes(id));
+                    debugHtml += `<div style="color: ${matches.length > 0 ? 'var(--ios-green)' : 'var(--ios-red)'};">`;
+                    debugHtml += `<strong>Matching IDs:</strong> ${matches.length}<br>`;
+                    if (matches.length > 0) {
+                        debugHtml += `<strong>Matches:</strong><br>`;
+                        matches.slice(0, 3).forEach(id => {
+                            const sessions = sessionHistory.filter(s => s.exerciseId === id);
+                            debugHtml += `&nbsp;&nbsp;${rolesData.exercise_roles[id].name} (${sessions.length} sessions)<br>`;
+                        });
+                    }
+                    debugHtml += `<strong>Role IDs missing sessions:</strong> ${missingSessionIds.length}<br>`;
+                    if (missingSessionIds.length > 0) {
+                        missingSessionIds.slice(0, 5).forEach(id => {
+                            const roleName = rolesData.exercise_roles[id]?.name || id;
+                            debugHtml += `&nbsp;&nbsp;${roleName} (${id})<br>`;
+                        });
+                    }
+                    debugHtml += `<strong>Session IDs missing roles:</strong> ${missingRoleIds.length}<br>`;
+                    if (missingRoleIds.length > 0) {
+                        missingRoleIds.slice(0, 5).forEach(id => {
+                            const sampleSession = sessionHistory.find(s => s.exerciseId === id);
+                            const sessionName = sampleSession?.exerciseName || 'Unnamed';
+                            debugHtml += `&nbsp;&nbsp;${sessionName} (${id})<br>`;
+                        });
+                    }
+                    debugHtml += `</div>`;
+                }
+
+                // Debug: detect name-only matches (session name matches role name, but IDs differ)
+                if (sessionHistory.length > 0 && roleExerciseIds.length > 0) {
+                    const roleNameById = {};
+                    const roleIdByName = {};
+                    roleExerciseIds.forEach(id => {
+                        const roleName = rolesData.exercise_roles[id]?.name || id;
+                        roleNameById[id] = roleName;
+                        const normalizedName = roleName.trim().toLowerCase();
+                        if (normalizedName && !roleIdByName[normalizedName]) {
+                            roleIdByName[normalizedName] = id;
+                        }
+                    });
+
+                    const nameOnlyMatches = [];
+                    const sessionsMissingRoleId = [];
+
+                    sessionHistory.forEach(session => {
+                        const sessionId = session.exerciseId;
+                        const sessionName = session.exerciseName || '';
+                        const normalizedName = sessionName.trim().toLowerCase();
+                        if (!sessionId || !normalizedName) return;
+
+                        if (roleIdByName[normalizedName] && sessionId !== roleIdByName[normalizedName]) {
+                            nameOnlyMatches.push({
+                                sessionId,
+                                roleId: roleIdByName[normalizedName],
+                                name: sessionName
+                            });
+                        }
+
+                        if (!roleNameById[sessionId]) {
+                            sessionsMissingRoleId.push({
+                                sessionId,
+                                name: sessionName
+                            });
+                        }
+                    });
+
+                    debugHtml += `<div style="margin-top: 8px;">`;
+                    debugHtml += `<strong>Name-only matches (IDs differ):</strong> ${nameOnlyMatches.length}<br>`;
+                    if (nameOnlyMatches.length > 0) {
+                        nameOnlyMatches.slice(0, 5).forEach(match => {
+                            debugHtml += `&nbsp;&nbsp;${match.name} (session ${match.sessionId} → role ${match.roleId})<br>`;
+                        });
+                    }
+                    debugHtml += `<strong>Sessions missing role ID:</strong> ${sessionsMissingRoleId.length}<br>`;
+                    if (sessionsMissingRoleId.length > 0) {
+                        sessionsMissingRoleId.slice(0, 5).forEach(entry => {
+                            debugHtml += `&nbsp;&nbsp;${entry.name || 'Unnamed'} (${entry.sessionId})<br>`;
+                        });
+                    }
+                    debugHtml += `</div>`;
+                }
+
+                // Debug: detect name-only matches (session name matches role name, but IDs differ)
+                if (sessionHistory.length > 0 && roleExerciseIds.length > 0) {
+                    const roleNameById = {};
+                    const roleIdByName = {};
+                    roleExerciseIds.forEach(id => {
+                        const roleName = rolesData.exercise_roles[id]?.name || id;
+                        roleNameById[id] = roleName;
+                        const normalizedName = roleName.trim().toLowerCase();
+                        if (normalizedName && !roleIdByName[normalizedName]) {
+                            roleIdByName[normalizedName] = id;
+                        }
+                    });
+
+                    const nameOnlyMatches = [];
+                    const sessionsMissingRoleId = [];
+
+                    sessionHistory.forEach(session => {
+                        const sessionId = session.exerciseId;
+                        const sessionName = session.exerciseName || '';
+                        const normalizedName = sessionName.trim().toLowerCase();
+                        if (!sessionId || !normalizedName) return;
+
+                        if (roleIdByName[normalizedName] && sessionId !== roleIdByName[normalizedName]) {
+                            nameOnlyMatches.push({
+                                sessionId,
+                                roleId: roleIdByName[normalizedName],
+                                name: sessionName
+                            });
+                        }
+
+                        if (!roleNameById[sessionId]) {
+                            sessionsMissingRoleId.push({
+                                sessionId,
+                                name: sessionName
+                            });
+                        }
+                    });
+
+                    debugHtml += `<div style="margin-top: 8px;">`;
+                    debugHtml += `<strong>Name-only matches (IDs differ):</strong> ${nameOnlyMatches.length}<br>`;
+                    if (nameOnlyMatches.length > 0) {
+                        nameOnlyMatches.slice(0, 5).forEach(match => {
+                            debugHtml += `&nbsp;&nbsp;${match.name} (session ${match.sessionId} → role ${match.roleId})<br>`;
+                        });
+                    }
+                    debugHtml += `<strong>Sessions missing role ID:</strong> ${sessionsMissingRoleId.length}<br>`;
+                    if (sessionsMissingRoleId.length > 0) {
+                        sessionsMissingRoleId.slice(0, 5).forEach(entry => {
+                            debugHtml += `&nbsp;&nbsp;${entry.name || 'Unnamed'} (${entry.sessionId})<br>`;
+                        });
+                    }
+                    debugHtml += `</div>`;
+                }
+
+                document.getElementById('debug-content').innerHTML = debugHtml;
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        // Menu functions
+        function toggleMenu() {
+            const overlay = document.getElementById('menu-overlay');
+            const menu = document.getElementById('slide-menu');
+            overlay.classList.toggle('active');
+            menu.classList.toggle('active');
+        }
+
+        // Export all data (single zip: library + roles + schema + vocab)
+        function exportAllData() {
+            const dateStr = new Date().toISOString().split('T')[0];
+
+            const files = [
+                {
+                    name: `exercise_library-${dateStr}.json`,
+                    data: JSON.stringify({ exercises: exerciseLibrary }, null, 2)
+                },
+                {
+                    name: `exercise_roles-${dateStr}.json`,
+                    data: JSON.stringify(rolesData, null, 2)
+                },
+                {
+                    name: `exercise_roles.schema-${dateStr}.json`,
+                    data: JSON.stringify(schema, null, 2)
+                },
+                {
+                    name: `exercise_roles_vocabulary-${dateStr}.json`,
+                    data: JSON.stringify(vocabulary, null, 2)
+                }
+            ];
+
+            const zipBlob = createZipBlob(files);
+            const url = URL.createObjectURL(zipBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `rehab-coverage-export-${dateStr}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            toggleMenu();
+            alert('Exported a zip file! Upload these to GitHub:\n1. exercise_library.json\n2. exercise_roles.json\n3. exercise_roles.schema.json\n4. exercise_roles_vocabulary.json');
+        }
+
+        function createZipBlob(files) {
+            const encoder = new TextEncoder();
+            const chunks = [];
+            const centralDirectory = [];
+            const fileRecords = [];
+            let offset = 0;
+            let centralSize = 0;
+
+            files.forEach((file) => {
+                const nameBytes = encoder.encode(file.name);
+                const dataBytes = encoder.encode(file.data);
+                const crc = crc32(dataBytes);
+
+                const localHeader = new Uint8Array(30 + nameBytes.length);
+                const localView = new DataView(localHeader.buffer);
+                localView.setUint32(0, 0x04034b50, true);
+                localView.setUint16(4, 20, true);
+                localView.setUint16(6, 0, true);
+                localView.setUint16(8, 0, true);
+                localView.setUint16(10, 0, true);
+                localView.setUint16(12, 0, true);
+                localView.setUint32(14, crc, true);
+                localView.setUint32(18, dataBytes.length, true);
+                localView.setUint32(22, dataBytes.length, true);
+                localView.setUint16(26, nameBytes.length, true);
+                localView.setUint16(28, 0, true);
+                localHeader.set(nameBytes, 30);
+
+                chunks.push(localHeader, dataBytes);
+
+                fileRecords.push({
+                    nameBytes,
+                    crc,
+                    size: dataBytes.length,
+                    offset
+                });
+
+                offset += localHeader.length + dataBytes.length;
+            });
+
+            fileRecords.forEach((record) => {
+                const header = new Uint8Array(46 + record.nameBytes.length);
+                const view = new DataView(header.buffer);
+                view.setUint32(0, 0x02014b50, true);
+                view.setUint16(4, 20, true);
+                view.setUint16(6, 20, true);
+                view.setUint16(8, 0, true);
+                view.setUint16(10, 0, true);
+                view.setUint16(12, 0, true);
+                view.setUint16(14, 0, true);
+                view.setUint32(16, record.crc, true);
+                view.setUint32(20, record.size, true);
+                view.setUint32(24, record.size, true);
+                view.setUint16(28, record.nameBytes.length, true);
+                view.setUint16(30, 0, true);
+                view.setUint16(32, 0, true);
+                view.setUint16(34, 0, true);
+                view.setUint16(36, 0, true);
+                view.setUint32(38, 0, true);
+                view.setUint32(42, record.offset, true);
+                header.set(record.nameBytes, 46);
+                centralDirectory.push(header);
+                centralSize += header.length;
+            });
+
+            const end = new Uint8Array(22);
+            const endView = new DataView(end.buffer);
+            endView.setUint32(0, 0x06054b50, true);
+            endView.setUint16(4, 0, true);
+            endView.setUint16(6, 0, true);
+            endView.setUint16(8, fileRecords.length, true);
+            endView.setUint16(10, fileRecords.length, true);
+            endView.setUint32(12, centralSize, true);
+            endView.setUint32(16, offset, true);
+            endView.setUint16(20, 0, true);
+
+            return new Blob([...chunks, ...centralDirectory, end], { type: 'application/zip' });
+        }
+
+        function crc32(bytes) {
+            let crc = 0xffffffff;
+            for (let i = 0; i < bytes.length; i++) {
+                crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ bytes[i]) & 0xff];
+            }
+            return (crc ^ 0xffffffff) >>> 0;
+        }
+
+        const CRC32_TABLE = (() => {
+            const table = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let j = 0; j < 8; j++) {
+                    c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                table[i] = c >>> 0;
+            }
+            return table;
+        })();
+
+        // Import data
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+
+                        // Validate structure
+                        if (!imported.exercise_roles || !imported.schema || !imported.vocabulary) {
+                            alert('Invalid import file: missing required sections');
+                            return;
+                        }
+
+                        // Update in-memory data
+                        rolesData = imported.exercise_roles;
+                        schema = imported.schema;
+                        vocabulary = imported.vocabulary;
+
+                        // BUG FIX: Save imported data to Firestore immediately
+                        Promise.all([
+                            saveRolesWithGuard(),
+                            saveVocabularyWithGuard(),
+                            saveExerciseRolesSchemaShared(schema)
+                        ])
+                        .then(([rolesSaved, vocabSaved]) => {
+                            if (rolesSaved === false || vocabSaved === false) {
+                                alert('Data imported locally, but cloud data was not loaded. Saves are blocked until cloud data loads.');
+                                // Still update UI even if Firestore is blocked
+                                deriveEnums();
+                                renderCoverageView();
+                                toggleMenu();
+                                return;
+                            }
+                            // Re-derive enums
+                            deriveEnums();
+
+                            // Re-render
+                            renderCoverageView();
+
+                            toggleMenu();
+                            alert('Data imported and saved to Firestore successfully!');
+                        })
+                        .catch(err => {
+                            console.error('[Import] Failed to save to Firestore:', err);
+                            alert('Warning: Data imported locally but failed to save to Firestore: ' + err.message + '\n\nChanges may be lost on reload.');
+
+                            // Still update UI even if Firestore failed
+                            deriveEnums();
+                            renderCoverageView();
+                            toggleMenu();
+                        });
+                    } catch (err) {
+                        alert('Error importing file: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // Roles editor
+        let currentEditExerciseId = null;
+
+        function openRolesEditor() {
+            toggleMenu();
+
+            // Build exercise list
+            let html = '<div class="form-group">';
+            html += '<label class="form-label">Select Exercise</label>';
+            html += '<select class="form-select" id="exercise-selector" onchange="selectExerciseToEdit(this.value)">';
+            html += '<option value="">-- Choose an exercise --</option>';
+
+            // Add exercises from library
+            exerciseLibrary.forEach(ex => {
+                const exerciseId = ex.exercise_id || ex.id;
+                const hasRoles = exerciseId && rolesData.exercise_roles[exerciseId];
+                const baseLabel = ex.canonical_name || ex.title || ex.name || exerciseId || 'Unknown exercise';
+                const label = `${baseLabel}${hasRoles ? ' ✓' : ''}`;
+                html += `<option value="${exerciseId || ''}">${label}</option>`;
+            });
+
+            html += '</select></div>';
+            html += '<div id="roles-container"></div>';
+
+            document.getElementById('editor-body').innerHTML = html;
+            document.getElementById('roles-editor').classList.add('active');
+        }
+
+        function closeRolesEditor() {
+            document.getElementById('roles-editor').classList.remove('active');
+            currentEditExerciseId = null;
+        }
+
+        function selectExerciseToEdit(exerciseId) {
+            if (!exerciseId) {
+                document.getElementById('roles-container').innerHTML = '';
+                return;
+            }
+
+            currentEditExerciseId = exerciseId;
+            const exercise = exerciseLibrary.find(e => (e.exercise_id || e.id) === exerciseId);
+            const rolesForExercise = rolesData.exercise_roles[exerciseId];
+
+            const exerciseLabel = exercise
+                ? (exercise.canonical_name || exercise.title || exercise.name || exerciseId)
+                : exerciseId;
+            let html = `<h3 style="margin: 20px 0 12px; font-size: 16px;">${exerciseLabel}</h3>`;
+
+            // Show existing roles
+            if (rolesForExercise && rolesForExercise.roles && rolesForExercise.roles.length > 0) {
+                html += '<div style="margin-bottom: 16px;">';
+                html += '<div class="form-label">Current Roles</div>';
+                rolesForExercise.roles.forEach((role, idx) => {
+                    html += `
+                        <div class="role-item">
+                            <div class="role-details">
+                                <div><strong>${role.region}</strong> → ${role.capacity}</div>
+                                <div class="role-meta">
+                                    ${role.focus ? 'Focus: ' + role.focus + ' • ' : ''}
+                                    Contribution: ${role.contribution}
+                                </div>
+                            </div>
+                            <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteRole(${idx})">Delete</button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // Add new role form
+            html += '<div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color);">';
+            html += '<div class="form-label">Add New Role</div>';
+
+            // Get all unique regions from existing roles
+            const allRegions = new Set(regions);
+            Object.values(rolesData.exercise_roles).forEach(ex => {
+                ex.roles.forEach(role => {
+                    if (role.region) allRegions.add(role.region);
+                });
+            });
+
+            html += '<div class="form-group">';
+            html += '<label class="form-label">Region</label>';
+            html += '<select class="form-select" id="new-region" onchange="toggleCustomInput(\'region\')">';
+            html += '<option value="">-- Select region --</option>';
+            Array.from(allRegions).sort().forEach(r => {
+                html += `<option value="${r}">${r}</option>`;
+            });
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-region-custom" placeholder="Enter custom region" style="display: none; margin-top: 8px;">';
+            html += '</div>';
+
+            // Get all unique capacities from existing roles
+            const allCapacities = new Set(capacities);
+            Object.values(rolesData.exercise_roles).forEach(ex => {
+                ex.roles.forEach(role => {
+                    if (role.capacity) allCapacities.add(role.capacity);
+                });
+            });
+
+            html += '<div class="form-group">';
+            html += '<label class="form-label">Capacity</label>';
+            html += '<select class="form-select" id="new-capacity" onchange="toggleCustomInput(\'capacity\')">';
+            html += '<option value="">-- Select capacity --</option>';
+            Array.from(allCapacities).sort().forEach(c => {
+                html += `<option value="${c}">${c}</option>`;
+            });
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-capacity-custom" placeholder="Enter custom capacity" style="display: none; margin-top: 8px;">';
+            html += '</div>';
+
+            // Get all unique focus values from schema + existing roles
+            const allFocuses = new Set();
+            // Add schema focus values if they exist
+            if (schema && schema.definitions && schema.definitions.role && schema.definitions.role.properties.focus) {
+                const schemaFocuses = schema.definitions.role.properties.focus.enum || [];
+                schemaFocuses.forEach(f => allFocuses.add(f));
+            }
+            // Add focus values from existing roles
+            Object.values(rolesData.exercise_roles).forEach(ex => {
+                ex.roles.forEach(role => {
+                    if (role.focus) allFocuses.add(role.focus);
+                });
+            });
+
+            html += '<div class="form-group">';
+            html += '<label class="form-label">Focus (optional)</label>';
+            html += '<select class="form-select" id="new-focus" onchange="toggleCustomInput(\'focus\')">';
+            html += '<option value="">-- No focus (general) --</option>';
+            Array.from(allFocuses).sort().forEach(f => {
+                html += `<option value="${f}">${f}</option>`;
+            });
+            html += '<option value="__custom__">➕ Other (custom)...</option>';
+            html += '</select>';
+            html += '<input type="text" class="form-input" id="new-focus-custom" placeholder="Enter custom focus" style="display: none; margin-top: 8px;">';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label class="form-label">Contribution</label>';
+            html += '<select class="form-select" id="new-contribution">';
+            html += '<option value="">-- Select --</option>';
+            contributions.forEach(c => {
+                html += `<option value="${c}">${c}</option>`;
+            });
+            html += '</select></div>';
+
+            // Add Role button with iOS-safe data-action pattern instead of onclick
+            html += '<button class="btn btn-primary" style="width: 100%;" data-action="addRole">Add Role</button>';
+            html += '</div>';
+
+            document.getElementById('roles-container').innerHTML = html;
+
+            // Rebind pointer handlers after dynamic HTML update (required for iOS tap reliability)
+            bindPointerHandlers(document.getElementById('roles-container'));
+        }
+
+        function toggleCustomInput(field) {
+            const selectElem = document.getElementById(`new-${field}`);
+            const customElem = document.getElementById(`new-${field}-custom`);
+
+            if (selectElem.value === '__custom__') {
+                customElem.style.display = 'block';
+                customElem.focus();
+            } else {
+                customElem.style.display = 'none';
+                customElem.value = '';
+            }
+        }
+
+        window.addRole = function addRole() {
+            // Get region value (from select or custom input)
+            let region = document.getElementById('new-region').value;
+            if (region === '__custom__') {
+                region = document.getElementById('new-region-custom').value.trim();
+            }
+
+            // Get capacity value (from select or custom input)
+            let capacity = document.getElementById('new-capacity').value;
+            if (capacity === '__custom__') {
+                capacity = document.getElementById('new-capacity-custom').value.trim();
+            }
+
+            // Get focus value (from select or custom input)
+            let focus = document.getElementById('new-focus').value;
+            if (focus === '__custom__') {
+                focus = document.getElementById('new-focus-custom').value.trim();
+            } else {
+                focus = focus.trim();
+            }
+
+            const contribution = document.getElementById('new-contribution').value;
+
+            if (!region || !capacity || !contribution) {
+                alert('Please fill in region, capacity, and contribution');
+                return;
+            }
+
+            const newRole = {
+                region,
+                capacity,
+                contribution
+            };
+
+            if (focus) {
+                newRole.focus = focus;
+            }
+
+            // Initialize exercise in rolesData if it doesn't exist
+            if (!rolesData.exercise_roles[currentEditExerciseId]) {
+                const exercise = exerciseLibrary.find(e => (e.exercise_id || e.id) === currentEditExerciseId);
+                const exerciseName = exercise
+                    ? (exercise.canonical_name || exercise.title || exercise.name || currentEditExerciseId)
+                    : currentEditExerciseId;
+                rolesData.exercise_roles[currentEditExerciseId] = {
+                    name: exerciseName,
+                    roles: []
+                };
+            }
+
+            // Add the role
+            rolesData.exercise_roles[currentEditExerciseId].roles.push(newRole);
+
+            // BUG FIX: Await Firestore save before showing success
+            saveRolesWithGuard()
+                .then((saved) => {
+                    if (!saved) {
+                        alert('Role added locally, but cloud data was not loaded. Save blocked until cloud data loads.');
+                        return;
+                    }
+                    // Refresh the view
+                    selectExerciseToEdit(currentEditExerciseId);
+                    alert('Role added and saved to Firestore!');
+                })
+                .catch(err => {
+                    console.error('[Firestore] Failed to save roles:', err);
+                    alert('Warning: Role added but failed to save to Firestore: ' + err.message);
+                });
+        }
+
+        // BUG FIX: Convert to async to await Firestore save before showing success
+        window.deleteRole = async function deleteRole(roleIndex) {
+            if (!confirm('Delete this role?')) return;
+
+            rolesData.exercise_roles[currentEditExerciseId].roles.splice(roleIndex, 1);
+
+            // If no roles left, remove the exercise entirely
+            if (rolesData.exercise_roles[currentEditExerciseId].roles.length === 0) {
+                delete rolesData.exercise_roles[currentEditExerciseId];
+            }
+
+            // BUG FIX: Await Firestore save before showing success
+            try {
+                const saved = await saveRolesWithGuard();
+                if (!saved) {
+                    alert('Role deleted locally, but cloud data was not loaded. Save blocked until cloud data loads.');
+                    return;
+                }
+            } catch (err) {
+                console.error('[Firestore] Failed to save roles:', err);
+                alert('Warning: Role deleted but failed to save to Firestore: ' + err.message);
+                return; // Don't show success if save failed
+            }
+
+            // Refresh the view
+            selectExerciseToEdit(currentEditExerciseId);
+            alert('Role deleted and saved to Firestore!');
+        }
+
+        // Export for PT - opens V2 export modal
+        function exportForPT() {
+            const savedEmail = localStorage.getItem('pt_email_address');
+            if (savedEmail) {
+                document.getElementById('pt-email-address').value = savedEmail;
+            }
+            document.getElementById('pt-note').value = '';
+            document.getElementById('export-pt-modal').classList.add('active');
+        }
+
+        function closeExportPTModal() {
+            document.getElementById('export-pt-modal').classList.remove('active');
+        }
+
+        async function buildPtReportExport(note) {
+            return {
+                exportDate: new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                noteForPT: note || null,
+                sessionHistory: sessionHistory,
+                exerciseLibrary: exerciseLibrary,
+                rolesData: rolesData,
+                schema: schema,
+                vocabulary: vocabulary
+            };
+        }
+
+        async function copyPtPayloadOnly() {
+            const note = document.getElementById('pt-note').value.trim();
+            const exportData = await buildPtReportExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied to clipboard. Paste it into the PT editor.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
+
+        async function sendToPT() {
+            const ptEmail = document.getElementById('pt-email-address').value.trim();
+            const note = document.getElementById('pt-note').value.trim();
+            if (ptEmail) {
+                localStorage.setItem('pt_email_address', ptEmail);
+            }
+
+            const exportData = await buildPtReportExport(note);
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
+            const subject = `PT Tracker Data - ${new Date().toLocaleDateString('en-US')}`;
+            const body = `${note ? note + '\n\n' : ''}Please paste the data below into the PT editor:\n\n${payload}`;
+            const mailtoLink = `mailto:${encodeURIComponent(ptEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+            closeExportPTModal();
+        }
+
+        // Import PT Modifications
+        function importPTModifications() {
+            document.getElementById('import-pt-content').value = '';
+            document.getElementById('import-pt-modal').classList.add('active');
+        }
+
+        function closeImportPTModal() {
+            document.getElementById('import-pt-modal').classList.remove('active');
+        }
+
+        async function processPastedImport() {
+            const pastedContent = document.getElementById('import-pt-content').value;
+
+            if (!pastedContent.trim()) {
+                alert('Please paste the email content from your PT');
+                return;
+            }
+
+            try {
+                const parsed = await ptPayloadUtils.parseV2FromText(pastedContent, 'PT_MODIFICATIONS');
+                if (parsed.errors.length > 0) {
+                    alert(parsed.errors.join('\n\n'));
+                    return;
+                }
+
+                if (parsed.type !== 'PT_MODIFICATIONS') {
+                    alert(`Invalid payload type: ${parsed.type}. Expected PT_MODIFICATIONS.`);
+                    return;
+                }
+
+                if (!parsed.obj || parsed.obj.modificationType !== 'PT_MODIFICATIONS') {
+                    alert('Invalid data: This is not a PT modifications payload.');
+                    return;
+                }
+
+                closeImportPTModal();
+                showModificationReview(parsed.obj.modifications);
+            } catch (err) {
+                alert('Error importing modifications: ' + err.message);
+            }
+        }
+
+        function showModificationReview(mods) {
+            const newExCount = mods.newExercises?.length || 0;
+            const editedExCount = Object.keys(mods.editedExercises || {}).length;
+            const archivedExCount = mods.archivedExercises?.length || 0;
+            const newRoleCount = Object.values(mods.newRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const editedRoleCount = Object.keys(mods.editedRoles || {}).length;
+            const updatedVocabCount = Object.values(mods.updatedVocab || {}).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+
+            let message = `PT Modifications Summary:\n\n`;
+            if (newExCount > 0) message += `• ${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
+            if (editedExCount > 0) message += `• ${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
+            if (archivedExCount > 0) message += `• ${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
+            if (newRoleCount > 0) message += `• ${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+            if (editedRoleCount > 0) message += `• ${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
+            if (updatedVocabCount > 0) message += `• ${updatedVocabCount} vocabulary update${updatedVocabCount !== 1 ? 's' : ''}\n`;
+            message += `\nAccept and merge all changes?`;
+
+            if (!confirm(message)) {
+                return;
+            }
+
+            // Merge modifications
+            let mergedCount = 0;
+
+            // 1. Add new exercises to library
+            if (mods.newExercises && mods.newExercises.length > 0) {
+                mods.newExercises.forEach(ex => {
+                    if (!exerciseLibrary.find(e => e.id === ex.id)) {
+                        exerciseLibrary.push(ex);
+                        mergedCount++;
+                    }
+                });
+                console.log(`[Merge] Added ${mods.newExercises.length} new exercises`);
+            }
+
+            // 2. Update edited exercises in library
+            if (mods.editedExercises && Object.keys(mods.editedExercises).length > 0) {
+                Object.keys(mods.editedExercises).forEach(exerciseId => {
+                    const updatedExercise = mods.editedExercises[exerciseId];
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    if (index !== -1) {
+                        exerciseLibrary[index] = updatedExercise;
+                        mergedCount++;
+                    }
+                });
+                console.log(`[Merge] Updated ${editedExCount} edited exercises`);
+            }
+
+            // 3. Archive exercises (remove from library)
+            if (mods.archivedExercises && mods.archivedExercises.length > 0) {
+                mods.archivedExercises.forEach(exerciseId => {
+                    const index = exerciseLibrary.findIndex(e => e.id === exerciseId);
+                    if (index !== -1) {
+                        exerciseLibrary.splice(index, 1);
+                        mergedCount++;
+                    }
+                    // Also remove from rolesData
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        delete rolesData.exercise_roles[exerciseId];
+                    }
+                });
+                console.log(`[Merge] Archived ${archivedExCount} exercises`);
+            }
+
+            // 4. Add new roles to rolesData
+            if (mods.newRoles && Object.keys(mods.newRoles).length > 0) {
+                Object.keys(mods.newRoles).forEach(exerciseId => {
+                    const newRoles = mods.newRoles[exerciseId];
+
+                    if (!rolesData.exercise_roles[exerciseId]) {
+                        const exercise = exerciseLibrary.find(e => e.id === exerciseId);
+                        rolesData.exercise_roles[exerciseId] = {
+                            name: exercise ? (exercise.title || exercise.name) : 'Unknown',
+                            roles: []
+                        };
+                    }
+
+                    rolesData.exercise_roles[exerciseId].roles.push(...newRoles);
+                    mergedCount += newRoles.length;
+                });
+                console.log(`[Merge] Added ${newRoleCount} new roles`);
+            }
+
+            // 5. Replace edited role sets
+            if (mods.editedRoles && Object.keys(mods.editedRoles).length > 0) {
+                Object.keys(mods.editedRoles).forEach(exerciseId => {
+                    const newRoleSet = mods.editedRoles[exerciseId];
+                    if (rolesData.exercise_roles[exerciseId]) {
+                        rolesData.exercise_roles[exerciseId].roles = newRoleSet;
+                        mergedCount++;
+                    }
+                });
+                console.log(`[Merge] Replaced ${editedRoleCount} role sets`);
+            }
+
+            // 6. Update vocabulary
+            if (mods.updatedVocab && Object.keys(mods.updatedVocab).length > 0) {
+                Object.keys(mods.updatedVocab).forEach(category => {
+                    const terms = mods.updatedVocab[category];
+                    Object.keys(terms).forEach(term => {
+                        if (!vocabulary[category]) {
+                            vocabulary[category] = {};
+                        }
+                        vocabulary[category][term] = terms[term];
+                        mergedCount++;
+                    });
+                });
+                console.log(`[Merge] Updated ${updatedVocabCount} vocabulary definitions`);
+            }
+
+            // BUG FIX: Save all modifications to Firestore before showing success
+            const savePromises = [];
+
+            // Save library if exercises were added, edited, or archived
+            if (newExCount > 0 || editedExCount > 0 || archivedExCount > 0) {
+                savePromises.push(saveExerciseLibraryWithGuard());
+            }
+
+            // Save roles if roles were added or edited
+            if (newRoleCount > 0 || editedRoleCount > 0) {
+                savePromises.push(saveRolesWithGuard());
+            }
+
+            // Save vocabulary if updated
+            if (updatedVocabCount > 0) {
+                savePromises.push(saveVocabularyWithGuard());
+            }
+
+            Promise.all(savePromises)
+                .then((results) => {
+                    const blocked = results.some(result => result === false);
+                    if (blocked) {
+                        deriveEnums();
+                        renderCoverageView();
+                        alert('Modifications merged locally, but cloud data was not loaded. Saves are blocked until cloud data loads.');
+                        return;
+                    }
+                    // Re-derive enums and re-render
+                    deriveEnums();
+                    renderCoverageView();
+
+                    let summary = '✅ Merged and saved to Firestore successfully!\n\n';
+                    if (newExCount > 0) summary += `${newExCount} new exercise${newExCount !== 1 ? 's' : ''}\n`;
+                    if (editedExCount > 0) summary += `${editedExCount} edited exercise${editedExCount !== 1 ? 's' : ''}\n`;
+                    if (archivedExCount > 0) summary += `${archivedExCount} archived exercise${archivedExCount !== 1 ? 's' : ''}\n`;
+                    if (newRoleCount > 0) summary += `${newRoleCount} new role${newRoleCount !== 1 ? 's' : ''}\n`;
+                    if (editedRoleCount > 0) summary += `${editedRoleCount} edited role set${editedRoleCount !== 1 ? 's' : ''}\n`;
+                    if (updatedVocabCount > 0) summary += `${updatedVocabCount} vocab update${updatedVocabCount !== 1 ? 's' : ''}\n`;
+
+                    alert(summary);
+                })
+                .catch(err => {
+                    console.error('[Merge] Failed to save to Firestore:', err);
+
+                    // Re-derive enums and re-render even if Firestore failed
+                    deriveEnums();
+                    renderCoverageView();
+
+                    alert(`Warning: Modifications merged locally but failed to save to Firestore: ${err.message}\n\nChanges may be lost on reload.`);
+                });
+        }
+
+        // Go back to PT Tracker
+        function goBack() {
+            window.location.href = 'pt_tracker.html';
+        }
+
+        // Expose functions to window for onclick handlers (module scope isolation)
+        Object.assign(window, {
+            toggleMenu,
+            toggleDebug,
+            goBack,
+            exportForPT,
+            closeExportPTModal,
+            copyPtPayloadOnly,
+            sendToPT,
+            importPTModifications,
+            closeImportPTModal,
+            processPastedImport,
+            exportAllData,
+            importData,
+            openVocabulary,
+            closeVocabulary,
+            closeTermDefinition,
+            openRolesEditor,
+            closeRolesEditor,
+            toggleRegion,
+            toggleCapacity
+        });
+
+        // Start app
+        init();
+    </script>
+</body>
+</html>

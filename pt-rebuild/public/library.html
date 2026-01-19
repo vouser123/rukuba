@@ -1,0 +1,4157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PT Progress Report</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <style>
+        body {
+            padding: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ios-blue);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--ios-green);
+        }
+
+        .toast.error {
+            background: var(--ios-red);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .report-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .report-date {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .report-patient {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .report-debug {
+            color: var(--text-secondary);
+            font-size: 10px;
+            margin-top: 6px;
+            opacity: 0.6;
+        }
+
+        .report-header-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--ios-blue);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--ios-blue);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .exercise-list {
+            margin-top: 15px;
+        }
+
+        .exercise-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border-left: 3px solid var(--ios-blue);
+        }
+
+        .exercise-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .exercise-stats {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .action-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        @media print {
+            .action-buttons {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Form styles - Optimized for touchpad/keyboard */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 14px 12px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .form-input:hover, .form-select:hover {
+            border-color: var(--ios-blue);
+            background: var(--bg-secondary);
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+            background: var(--bg-secondary);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.5;
+        }
+
+        /* Larger buttons for touchpad */
+        .section .btn-primary {
+            padding: 14px 24px;
+            font-size: 16px;
+            min-height: 48px;
+            margin-top: 10px;
+        }
+
+        .section .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+        }
+
+        /* Better focus indicators */
+        button:focus, select:focus, input:focus, textarea:focus {
+            outline: 2px solid var(--ios-blue);
+            outline-offset: 2px;
+        }
+
+        /* Dropdown arrow larger */
+        select.form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        /* Auth Guard Overlay */
+        #auth-guard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #auth-guard-overlay h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        #auth-guard-overlay p {
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.5;
+            max-width: 400px;
+        }
+
+        #auth-guard-overlay.auth-verified {
+            display: none;
+        }
+
+        #auth-guard-overlay.auth-checking {
+            display: none;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 20000;
+        }
+
+        .auth-modal.active {
+            display: flex;
+        }
+
+        .auth-modal-content {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            width: min(420px, 100%);
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .auth-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .auth-modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .auth-modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .auth-modal-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .auth-modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .auth-modal-actions button {
+            flex: 1;
+            min-height: 48px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Guard Overlay -->
+    <div id="auth-guard-overlay" class="auth-checking">
+        <h2>🔐 Authentication Required</h2>
+        <p>You must be signed in to access the PT Progress Report.</p>
+        <button id="auth-guard-signin-btn" class="btn-primary" style="margin-top: 16px; min-height: 48px; padding: 12px 24px;">Sign In</button>
+    </div>
+
+    <!-- Auth Sign In Modal -->
+    <div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
+        <div class="auth-modal-content">
+            <div class="auth-modal-header">
+                <div class="auth-modal-title" id="auth-modal-title">Sign In to Continue</div>
+                <button type="button" class="auth-modal-close" id="auth-modal-close" aria-label="Close sign in">×</button>
+            </div>
+            <div class="auth-modal-subtitle">Use your therapist account to access patient progress data.</div>
+            <div id="auth-credential-fields"></div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="auth-remember" style="width: 20px; height: 20px;">
+                <label for="auth-remember" style="font-size: 14px; color: var(--text-secondary); cursor: pointer;">Remember me on this device</label>
+            </div>
+            <div id="auth-error" style="display: none; color: var(--ios-red); font-size: 14px; text-align: center;"></div>
+            <button type="button" id="auth-reset-btn" style="margin-top: 8px; background: none; border: none; color: var(--ios-blue); font-size: 14px; font-weight: 600; cursor: pointer;">Forgot password?</button>
+            <div class="auth-modal-actions">
+                <button type="button" class="btn-secondary" id="auth-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="auth-signin-btn">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="report-header">
+        <div class="report-title">Physical Therapy Progress Report</div>
+        <div class="report-date" id="report-date"></div>
+        <div class="report-patient" id="report-patient">Patient: <span id="report-patient-id">--</span></div>
+        <div style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;" id="logged-in-display">Logged in as: <span id="logged-in-email">--</span></div>
+        <div class="report-debug" id="report-debug">debug: pt_report</div>
+        <div class="report-header-actions">
+            <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 PT View</a>
+            <a class="btn-secondary" href="pt_report.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📋 PT Report</a>
+            <button class="btn-secondary" id="logout-btn" style="display: none;">🚪 Log Out</button>
+        </div>
+    </div>
+
+    <div class="section" id="patient-note-section" style="display: none;">
+        <div class="section-title">Note from Patient</div>
+        <div id="patient-note" style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; line-height: 1.6; font-style: italic;"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Overall Progress</div>
+        <div class="metric-grid" id="overall-metrics"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Coverage Analysis</div>
+        <div id="coverage-summary"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Recent Activity (Last 7 Days)</div>
+        <div id="recent-activity"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Exercise History</div>
+        <div class="exercise-list" id="exercise-history"></div>
+    </div>
+
+    <div id="import-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+        <h2 style="margin-bottom: 20px;">PT Progress Report Viewer</h2>
+        <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">Patient: <span id="import-patient-id">--</span></div>
+        <p style="color: var(--text-secondary); margin-bottom: 30px; max-width: 500px;">
+            View patient data, or add/edit exercises, roles, dosage, and other information.
+        </p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
+            <a class="btn-secondary" href="pt_view.html" role="button" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📈 View Patient Data</a>
+        </div>
+        <!-- DONE: Patient data now loads from Firestore automatically -->
+        <!-- <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)"> -->
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+            <!-- <button class="btn-primary" data-action="showImportPasteModal">📥 Import Patient Report</button> -->
+            <button class="btn-secondary" data-action="loadPTMode">✏️ PT Editor Mode</button>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-top: 20px; max-width: 600px;">
+            <strong>PT Editor Mode:</strong> Load base exercise library from the shared Firestore library to add new exercises, assign roles, or update definitions without patient data.
+        </p>
+        <div style="color: var(--text-secondary); font-size: 10px; margin-top: 18px; opacity: 0.6;" id="import-debug">debug: pt_report</div>
+    </div>
+
+    <div class="action-buttons" style="display: none;" id="action-buttons">
+        <a class="btn-secondary" href="pt_tracker.html" id="back-to-tracker-btn" style="display: none; text-decoration: none;">← Back to Tracker</a>
+        <a class="btn-secondary" href="pt_view.html" style="text-decoration: none;">🖥️ View Dashboard</a>
+        <button class="btn-secondary" data-action="toggleEditorMode">✏️ Edit Mode</button>
+        <button class="btn-secondary" data-action="printReport">🖨️ Print</button>
+        <!-- removed - data loads directly from Firestone -->
+		<!-- <button class="btn-secondary" data-action="resetReport">📥 Load New</button> -->
+        <a class="btn-secondary" href="rehab_coverage.html" style="text-decoration: none;">← Back to Coverage</a>
+    </div>
+
+    <!-- PT Editor Mode -->
+    <div id="editor-mode" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-primary); z-index: 10000; overflow-y: auto; padding: 20px;">
+        <div style="max-width: 1000px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
+                <h2 style="font-size: 24px; font-weight: 600;">PT Editor Mode</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-secondary" data-action="goToPtView">🔎 View</button>
+                    <button class="btn-secondary" data-action="showPatientNotes">💬 Notes</button>
+                    <button class="btn-secondary" data-action="showChangeHistory">📋 Changes</button>
+                    <button class="btn-secondary" data-action="clearAllChanges">↩️ Undo All</button>
+                    <button class="btn-danger" data-action="toggleEditorMode" accesskey="x">Close (Alt+X)</button>
+                </div>
+            </div>
+
+            <!-- Keyboard Shortcuts Help -->
+            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary);">
+                <strong>Keyboard Shortcuts:</strong> Alt+A (Add Exercise), Alt+R (Add Role), Alt+V (Update Vocab), Alt+E (Export), Alt+X (Close)
+            </div>
+
+            <!-- Reference Guide -->
+            <details style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 0;">📖 Reference Guide - Vocabulary & Pattern Modifiers</summary>
+                <div id="vocabulary-reference-guide" style="margin-top: 15px; font-size: 14px; line-height: 1.6;">
+                    <!-- Populated from vocabulary dynamically -->
+                </div>
+            </details>
+
+            <!-- Add/Edit Exercise Section -->
+            <div class="section">
+                <h3 class="section-title">Add or Edit Exercise</h3>
+
+                <!-- Exercise Selector -->
+                <div class="form-group">
+                    <label class="form-label" for="edit-ex-select">Select Existing Exercise to Edit (optional)</label>
+                    <input type="text" id="edit-ex-search" class="form-input" placeholder="🔍 Search exercises..." style="margin-bottom: 8px;" oninput="filterExerciseSelect('edit-ex-select', this.value)">
+                    <select id="edit-ex-select" class="form-select" onchange="loadExerciseForEdit()">
+                        <option value="">-- Add new exercise (leave blank) --</option>
+                    </select>
+                </div>
+
+                <!-- Basic Info (Always Visible) -->
+                <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📝 Basic Information</h4>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-name">Canonical Name *</label>
+                        <input type="text" id="ex-name" class="form-input" placeholder="e.g., Single Leg Bridge">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-category">PT Category</label>
+                        <select id="ex-category" class="form-select" onchange="toggleCustomInputById('ex-category')">
+                            <option value="">-- Select --</option>
+                            <!-- Populated from schema dynamically -->
+                        </select>
+                        <input type="text" id="ex-category-custom" class="form-input" placeholder="Enter custom category" style="display: none; margin-top: 8px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-desc">Description *</label>
+                        <textarea id="ex-desc" class="form-input" rows="3" placeholder="Clear description of the exercise and how to perform it"></textarea>
+                    </div>
+                </div>
+
+                <!-- Muscles Section (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">💪 Muscles</summary>
+
+                    <div id="primary-muscles-container">
+                        <label class="form-label">Primary Muscles</label>
+                        <div id="primary-muscles-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addPrimaryMuscleField" style="width: 100%; margin-top: 8px;">+ Add Primary Muscle</button>
+                    </div>
+
+                    <div id="secondary-muscles-container" style="margin-top: 15px;">
+                        <label class="form-label">Secondary Muscles</label>
+                        <div id="secondary-muscles-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addSecondaryMuscleField" style="width: 100%; margin-top: 8px;">+ Add Secondary Muscle</button>
+                    </div>
+                </details>
+
+                <!-- Movement Pattern (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🔄 Movement Pattern</summary>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-pattern">Pattern * <span style="font-size: 11px; color: var(--text-secondary);">(side=unilateral, both=bilateral)</span></label>
+                        <select id="ex-pattern" class="form-select">
+                            <option value="">-- Select --</option>
+                            <!-- Populated from schema dynamically in initializeEditorMode() -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label">Pattern Modifiers <span style="font-size: 11px; color: var(--text-secondary);">(select from schema)</span></label>
+                        <p id="pattern-modifiers-help" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                            <!-- Populated from vocabulary dynamically -->
+                        </p>
+                        <div id="pattern-modifiers-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addPatternModifier" style="width: 100%; margin-top: 8px;">+ Add Modifier</button>
+                    </div>
+                </details>
+
+                <!-- Equipment (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🏋️ Equipment</summary>
+
+                    <div>
+                        <label class="form-label">Required Equipment</label>
+                        <div id="equipment-required-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addRequiredEquipmentField" style="width: 100%; margin-top: 8px;">+ Add Required</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Optional Equipment</label>
+                        <div id="equipment-optional-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addOptionalEquipmentField" style="width: 100%; margin-top: 8px;">+ Add Optional</button>
+                    </div>
+                </details>
+
+                <!-- Form Parameters (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">📊 Form Parameters</summary>
+
+                    <div>
+                        <label class="form-label">Form Parameters Required</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Parameters that vary per session (e.g., band color, step height, ball size)</p>
+                        <div id="form-params-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addFormParamField" style="width: 100%; margin-top: 8px;">+ Add Parameter</button>
+                    </div>
+                </details>
+
+                <!-- Guidance (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🎯 Guidance & Cues</summary>
+
+                    <div>
+                        <label class="form-label">External Cues</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Visual checks, setup instructions</p>
+                        <div id="external-cues-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addExternalCueField" style="width: 100%; margin-top: 8px;">+ Add External Cue</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Motor Cues</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Internal movement cues, what to feel</p>
+                        <div id="motor-cues-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addMotorCueField" style="width: 100%; margin-top: 8px;">+ Add Motor Cue</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Compensation Warnings</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Common form breakdowns to watch for</p>
+                        <div id="compensation-warnings-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addCompensationWarningField" style="width: 100%; margin-top: 8px;">+ Add Warning</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Safety Flags</label>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">When to stop immediately</p>
+                        <div id="safety-flags-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addSafetyFlagField" style="width: 100%; margin-top: 8px;">+ Add Safety Flag</button>
+                    </div>
+                </details>
+
+                <!-- Tags (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">🏷️ Tags</summary>
+
+                    <div>
+                        <label class="form-label">Functional Tags</label>
+                        <div id="tags-functional-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addFunctionalTagField" style="width: 100%; margin-top: 8px;">+ Add Functional Tag</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Format Tags</label>
+                        <div id="tags-format-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addFormatTagField" style="width: 100%; margin-top: 8px;">+ Add Format Tag</button>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Heatmap Tags</label>
+                        <div id="tags-heatmap-list"></div>
+                        <button type="button" class="btn-secondary" data-action="addHeatmapTagField" style="width: 100%; margin-top: 8px;">+ Add Heatmap Tag</button>
+                    </div>
+                </details>
+
+                <!-- Lifecycle Section (Collapsible) -->
+                <details style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 12px;">📅 Lifecycle & Status</summary>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-status">Status</label>
+                        <select id="ex-lifecycle-status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="archived">Archived</option>
+                            <option value="superseded">Superseded</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-start">Effective Start Date</label>
+                        <input type="date" id="ex-lifecycle-start" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise became available for prescription</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-lifecycle-end">Effective End Date</label>
+                        <input type="date" id="ex-lifecycle-end" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise was discontinued (leave blank if still active)</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ex-added-date">Added Date</label>
+                        <input type="date" id="ex-added-date" class="form-input">
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">When this exercise was added to the library</p>
+                    </div>
+                </details>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn-primary" type="button" data-action="saveExercise" accesskey="a" style="flex: 1;">💾 Save Exercise (Alt+A)</button>
+                    <button class="btn-danger" data-action="archiveExercise" id="archive-btn" style="display: none;">🗑️ Archive</button>
+                </div>
+            </div>
+
+            <!-- Reference Guide -->
+            <details style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <summary style="cursor: pointer; font-weight: 600; font-size: 15px; color: var(--ios-blue); margin-bottom: 0;">📖 Reference Guide - Vocabulary</summary>
+                <div id="vocabulary-reference-guide" style="margin-top: 15px; font-size: 14px; line-height: 1.6;">
+                    <!-- Populated from vocabulary dynamically -->
+                </div>
+            </details>
+
+            <!-- Assign Roles Section -->
+            <div class="section">
+                <h3 class="section-title">Assign Roles to Exercises</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                    <strong>Roles</strong> define how an exercise contributes to different movement capacities in different body regions.
+                    One exercise can have multiple roles (e.g., Single Leg Bridge works hip extension AND core stability).
+                </p>
+                <div class="form-group">
+                    <label class="form-label" for="role-exercise-select">Select Exercise *</label>
+                    <input type="text" id="role-ex-search" class="form-input" placeholder="🔍 Search exercises..." style="margin-bottom: 8px;" oninput="filterExerciseSelect('role-exercise-select', this.value)">
+                    <select id="role-exercise-select" class="form-select" onchange="loadExerciseRoles()">
+                        <option value="">-- Choose an exercise --</option>
+                    </select>
+                </div>
+                <div id="current-roles" style="margin: 15px 0;"></div>
+                <div id="add-role-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="new-role-region">Region *</label>
+                        <select id="new-role-region" class="form-select" onchange="toggleCustomInput('region')">
+                            <option value="">-- Select region --</option>
+                        </select>
+                        <input type="text" id="new-role-region-custom" class="form-input" placeholder="Enter custom region" style="display: none; margin-top: 8px;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="new-role-capacity">Capacity *</label>
+                        <select id="new-role-capacity" class="form-select" onchange="toggleCustomInput('capacity')">
+                            <option value="">-- Select capacity --</option>
+                        </select>
+                        <input type="text" id="new-role-capacity-custom" class="form-input" placeholder="Enter custom capacity" style="display: none; margin-top: 8px;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="new-role-focus">Focus (optional)</label>
+                        <select id="new-role-focus" class="form-select" onchange="toggleCustomInput('focus')">
+                            <option value="">-- No focus (general) --</option>
+                        </select>
+                        <input type="text" id="new-role-focus-custom" class="form-input" placeholder="Enter custom focus" style="display: none; margin-top: 8px;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="new-role-contribution">Contribution *</label>
+                        <select id="new-role-contribution" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" data-action="addRoleToExercise" accesskey="r">➕ Add Role (Alt+R)</button>
+                </div>
+                <div id="role-editing-note" style="margin-top: 15px; padding: 10px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px; display: none;">
+                    <strong>Note:</strong> Click on any role below to edit or remove it.
+                </div>
+            </div>
+
+            <!-- Manage Dosages Section -->
+            <div class="section">
+                <h3 class="section-title">Manage Patient Dosages</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                    <strong>Dosages</strong> are the prescribed sets, reps, and parameters for each exercise. Update these to change patient prescriptions.
+                </p>
+                <div class="form-group">
+                    <label class="form-label" for="dosage-exercise-select">Select Exercise *</label>
+                    <input type="text" id="dosage-ex-search" class="form-input" placeholder="🔍 Search exercises..." style="margin-bottom: 8px;" oninput="filterExerciseSelect('dosage-exercise-select', this.value)">
+                    <select id="dosage-exercise-select" class="form-select" onchange="loadExerciseDosage()">
+                        <option value="">-- Choose an exercise --</option>
+                    </select>
+                </div>
+                <div id="current-dosage-display" style="margin: 15px 0; display: none;"></div>
+                <div id="edit-dosage-form" style="display: none; padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 16px;">Update Dosage</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="dosage-sets">Sets *</label>
+                        <input type="number" id="dosage-sets" class="form-input" placeholder="e.g., 3" min="1">
+                    </div>
+                    <div class="form-group" id="dosage-reps-group">
+                        <label class="form-label" for="dosage-reps">Reps (per set) *</label>
+                        <input type="number" id="dosage-reps" class="form-input" placeholder="e.g., 10" min="1">
+                    </div>
+                    <div class="form-group" id="dosage-seconds-group" style="display: none;">
+                        <label class="form-label" for="dosage-seconds" id="dosage-seconds-label">Seconds</label>
+                        <input type="number" id="dosage-seconds" class="form-input" placeholder="e.g., 30" min="1">
+                    </div>
+                    <div class="form-group" id="dosage-distance-group" style="display: none;">
+                        <label class="form-label" for="dosage-distance">Distance (feet)</label>
+                        <input type="number" id="dosage-distance" class="form-input" placeholder="e.g., 100" min="1">
+                    </div>
+                    <button class="btn-primary" data-action="updateDosage" accesskey="d">💊 Update Dosage (Alt+D)</button>
+                </div>
+            </div>
+
+            <!-- Edit Vocabulary Section -->
+            <div class="section">
+                <h3 class="section-title">Update Vocabulary Definitions</h3>
+                <div class="form-group">
+                    <label class="form-label" for="vocab-category">Category *</label>
+                    <select id="vocab-category" class="form-select" onchange="loadVocabTerms()">
+                        <option value="">-- Choose category --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="vocab-term">Term *</label>
+                    <select id="vocab-term" class="form-select" onchange="loadVocabDefinition()">
+                        <option value="">-- Choose term --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="vocab-definition">Definition *</label>
+                    <textarea id="vocab-definition" class="form-input" rows="4" placeholder="Enter the definition"></textarea>
+                </div>
+                <button class="btn-primary" data-action="updateVocabulary" accesskey="v">💾 Update Definition (Alt+V)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Patient Report Modal (Paste) -->
+    <div id="import-paste-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <h2 style="margin: 0 0 16px 0; font-size: 20px;">📨 Import Patient Report</h2>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+                Paste the patient's email content below. The app will automatically extract the data.
+            </p>
+            <textarea id="import-paste-content" placeholder="Paste the entire email content here..." style="
+                width: 100%;
+                min-height: 300px;
+                padding: 12px;
+                font-family: 'Courier New', monospace;
+                font-size: 11px;
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                resize: vertical;
+                color: var(--text-primary);
+                margin-bottom: 16px;
+            "></textarea>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn-secondary" data-action="closeImportPasteModal">Cancel</button>
+                <button class="btn-primary" data-action="processPatientPaste">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TODO: Remove email export modal if direct Firestore workflow is working well
+	<!-- Email export removed - saves directly to Firestore -->
+
+
+    <!-- Notes Modal -->
+    <div id="notes-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 20000; padding: 20px;">
+        <div style="background: var(--bg-primary); max-width: 600px; margin: 40px auto; border-radius: 12px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 20px; font-weight: 600;">Patient Notes</h3>
+                <button data-action="closeNotesModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+            </div>
+            <div id="notes-list" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <!-- Notes loaded here -->
+            </div>
+            <div style="padding: 20px; border-top: 1px solid var(--border-color);">
+                <textarea id="new-note-text" placeholder="Write a note for the patient..." style="width: 100%; min-height: 80px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; resize: vertical;"></textarea>
+                <button data-action="addNote" class="btn-primary" style="margin-top: 10px; width: 100%;">Send Note</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firestore write guard modal (in-app, iOS PWA compatible) -->
+    <div id="firestore-write-guard-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 20050; padding: 20px;">
+        <div style="background: var(--bg-primary); max-width: 520px; margin: 40px auto; border-radius: 12px; padding: 20px;">
+            <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 12px;">Cloud data not loaded</h3>
+            <p id="firestore-write-guard-message" style="white-space: pre-line; color: var(--text-secondary); margin-bottom: 16px;">
+                Cloud data has not been loaded.
+                Saving now may overwrite existing data.
+                Continue anyway?
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="firestore-write-guard-cancel" class="btn-secondary">Cancel</button>
+                <button id="firestore-write-guard-confirm" class="btn-primary">Save Anyway</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="pt_payload_utils.js"></script>
+    <script src="shared/exercise_form_module.js"></script>
+    <script type="module">
+        import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
+        window.ulid = ulid;
+    </script>
+    <script type="module">
+        import {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared,
+            loadExerciseVocabularyShared,
+            loadExerciseLibraryVocabularyShared,
+            loadExerciseFileSchemaShared
+        } from './shared/firestore_shared_data.js';
+
+        window.sharedDataLoader = {
+            loadExerciseLibraryShared,
+            loadExerciseRolesShared,
+            loadExerciseVocabularyShared,
+            loadExerciseLibraryVocabularyShared,
+            loadExerciseFileSchemaShared
+        };
+    </script>
+    <script type="module">
+        // Firebase Auth + Auto-discover patient + Load patient data
+        import {
+            auth,
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence,
+            // sendPasswordResetEmail, // TODO: Fix password reset
+            db,
+            collection,
+            getDocs,
+            query,
+            where,
+            doc,
+            getDoc
+        } from './firebase.js';
+
+        let patientUserId = null;
+        let authModalActive = false;
+        let authModalLastFocus = null;
+        let runtimeHydrated = false;
+        let sharedLibraryHydrated = false;
+        let sharedRolesHydrated = false;
+        let sharedVocabHydrated = false;
+
+        const firestoreReadState = {
+            runtime: false,
+            sharedLibrary: false,
+            sharedRoles: false,
+            sharedVocab: false
+        };
+
+        const userConfirmedOverwriteState = {
+            runtime: false,
+            sharedLibrary: false,
+            sharedRoles: false,
+            sharedVocab: false
+        };
+
+        const sharedDocSource = window.sharedDocSource || {
+            sharedLibrary: 'unknown',
+            sharedRoles: 'unknown',
+            sharedVocab: 'unknown'
+        };
+        window.sharedDocSource = sharedDocSource;
+
+        let pendingRuntimeWrite = false;
+
+        function setFirestoreReadSucceeded(docKey) {
+            if (firestoreReadState[docKey] !== undefined) {
+                firestoreReadState[docKey] = true;
+            }
+        }
+
+        function markDocHydrated(docKey) {
+            switch (docKey) {
+                case 'runtime':
+                    runtimeHydrated = true;
+                    if (pendingRuntimeWrite) {
+                        pendingRuntimeWrite = false;
+                        void window.saveExerciseLibraryToFirestore();
+                    }
+                    break;
+                case 'sharedLibrary':
+                    sharedLibraryHydrated = true;
+                    break;
+                case 'sharedRoles':
+                    sharedRolesHydrated = true;
+                    break;
+                case 'sharedVocab':
+                    sharedVocabHydrated = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function isDocHydrated(docKey) {
+            switch (docKey) {
+                case 'runtime':
+                    return runtimeHydrated;
+                case 'sharedLibrary':
+                    return sharedLibraryHydrated;
+                case 'sharedRoles':
+                    return sharedRolesHydrated;
+                case 'sharedVocab':
+                    return sharedVocabHydrated;
+                default:
+                    return false;
+            }
+        }
+
+        function closeWriteGuardModal(result) {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            const resolver = modal?.dataset?.resolveId;
+            if (resolver && window[resolver]) {
+                window[resolver](result);
+                delete window[resolver];
+            }
+        }
+
+        function showWriteGuardModal({ message, allowOverride = true, confirmLabel = 'Save Anyway' } = {}) {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            const messageEl = document.getElementById('firestore-write-guard-message');
+            const confirmBtn = document.getElementById('firestore-write-guard-confirm');
+            const cancelBtn = document.getElementById('firestore-write-guard-cancel');
+            if (!modal || !messageEl || !confirmBtn || !cancelBtn) {
+                alert(message || 'Cloud data has not been loaded.');
+                return Promise.resolve(false);
+            }
+
+            messageEl.textContent = message || '';
+            confirmBtn.textContent = confirmLabel;
+            confirmBtn.style.display = allowOverride ? 'inline-flex' : 'none';
+            cancelBtn.textContent = allowOverride ? 'Cancel' : 'Close';
+
+            modal.style.display = 'block';
+
+            return new Promise((resolve) => {
+                const resolverId = `__writeGuardResolve_${Date.now()}`;
+                modal.dataset.resolveId = resolverId;
+                window[resolverId] = resolve;
+            });
+        }
+
+        function bindWriteGuardModalEvents() {
+            const modal = document.getElementById('firestore-write-guard-modal');
+            const confirmBtn = document.getElementById('firestore-write-guard-confirm');
+            const cancelBtn = document.getElementById('firestore-write-guard-cancel');
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('pointerup', () => closeWriteGuardModal(true));
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('pointerup', () => closeWriteGuardModal(false));
+            }
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        closeWriteGuardModal(false);
+                    }
+                });
+            }
+        }
+
+        bindWriteGuardModalEvents();
+
+        async function confirmCanonicalWrite({ docKey, source = 'firestore' }) {
+            if (source === 'fallback' || source === 'cache') {
+                await showWriteGuardModal({
+                    message: 'Cloud data loaded from offline cache or fallback.\n\nSaving to cloud is blocked until live data loads.',
+                    allowOverride: false,
+                    confirmLabel: 'Close'
+                });
+                return false;
+            }
+
+            if (isDocHydrated(docKey) || userConfirmedOverwriteState[docKey]) {
+                return true;
+            }
+
+            const confirmed = await showWriteGuardModal({
+                message: 'Cloud data has not been loaded.\nSaving now may overwrite existing data.\nContinue anyway?',
+                allowOverride: true,
+                confirmLabel: 'Save Anyway'
+            });
+
+            if (confirmed) {
+                userConfirmedOverwriteState[docKey] = true;
+            }
+
+            return confirmed;
+        }
+
+        function updatePatientDisplay(patientId, userEmail) {
+            const reportPatientId = document.getElementById('report-patient-id');
+            const importPatientId = document.getElementById('import-patient-id');
+            const reportDebug = document.getElementById('report-debug');
+            const importDebug = document.getElementById('import-debug');
+            const loggedInEmail = document.getElementById('logged-in-email');
+            const loggedInDisplay = document.getElementById('logged-in-display');
+            const logoutBtn = document.getElementById('logout-btn');
+            const displayId = patientId || 'Unknown';
+
+            if (reportPatientId) reportPatientId.textContent = displayId;
+            if (importPatientId) importPatientId.textContent = displayId;
+            if (reportDebug) reportDebug.textContent = `debug: pt_report • ${userEmail || 'signed out'}`;
+            if (importDebug) importDebug.textContent = `debug: pt_report • ${userEmail || 'signed out'}`;
+
+            if (userEmail) {
+                if (loggedInEmail) loggedInEmail.textContent = userEmail;
+                if (loggedInDisplay) loggedInDisplay.style.display = 'block';
+                if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+            } else {
+                if (loggedInDisplay) loggedInDisplay.style.display = 'none';
+                if (logoutBtn) logoutBtn.style.display = 'none';
+            }
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            const authGuardOverlay = document.getElementById('auth-guard-overlay');
+
+            if (authGuardOverlay) {
+                // Avoid flashing the sign-in prompt before auth state is resolved.
+                authGuardOverlay.classList.remove('auth-checking');
+            }
+
+            if (user) {
+                console.log('[Auth] User signed in:', user.email);
+
+                // Authenticated users should never be blocked by the guard overlay,
+                // even if downstream Firestore reads fail or take time to resolve.
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.add('auth-verified');
+                }
+                hideAuthModal();
+
+                let isPatientRole = false;
+
+                try {
+                    // Query users collection where therapistUid == current user.
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where('therapistUid', '==', user.uid));
+                    const snapshot = await getDocs(q);
+
+                    if (!snapshot.empty) {
+                        patientUserId = snapshot.docs[0].id;
+                        isPatientRole = false; // This is a PT viewing patient data
+                        console.log('[Therapist] Found patient UID:', patientUserId);
+                    } else {
+                        patientUserId = user.uid;
+                        isPatientRole = true; // This is a patient viewing their own data
+                        console.log('[Patient] Loading patient data for self:', patientUserId);
+                    }
+
+                    // Load patient data from Firestore.
+                    await loadPatientDataFromFirestore(patientUserId);
+
+                    // Check for ?mode=editor parameter
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const mode = urlParams.get('mode');
+
+                    if (mode === 'editor' && isPatientRole) {
+                        // Patient accessing editor mode - load editor directly
+                        console.log('[Editor] Auto-loading editor mode for patient');
+                        await loadPTMode();
+                    }
+                } catch (error) {
+                    // Signed-in users may still see data load warnings, but should not be re-prompted to sign in.
+                    console.error('[Therapist] Failed to resolve patient account:', error);
+                }
+
+                // Make patientUserId and role available globally
+                window.ptReportUserId = patientUserId;
+                window.ptReportIsPatientRole = isPatientRole;
+                updatePatientDisplay(patientUserId || user.uid, user.email);
+
+                // Show back to tracker button for patient role
+                if (isPatientRole) {
+                    const backBtn = document.getElementById('back-to-tracker-btn');
+                    if (backBtn) backBtn.style.display = 'inline-flex';
+                }
+            } else {
+                console.log('[Auth] No user signed in - blocking page access');
+                patientUserId = null;
+                window.ptReportUserId = null;
+                updatePatientDisplay(null, null);
+
+                if (authGuardOverlay) {
+                    authGuardOverlay.classList.remove('auth-verified');
+                }
+            }
+        });
+
+        function showAuthMessage(message, tone = 'error') {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            errorEl.style.color = tone === 'success' ? 'var(--ios-green)' : 'var(--ios-red)';
+        }
+
+        function showAuthError(message) {
+            showAuthMessage(message, 'error');
+        }
+
+        function clearAuthError() {
+            const errorEl = document.getElementById('auth-error');
+            if (!errorEl) return;
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+            errorEl.style.color = 'var(--ios-red)';
+        }
+
+        function ensureAuthCredentialFields() {
+            const fieldsContainer = document.getElementById('auth-credential-fields');
+            if (!fieldsContainer || fieldsContainer.childElementCount > 0) return;
+            // Create credential inputs only after explicit user action to avoid iOS PWA autofill prompts.
+            const emailGroup = document.createElement('div');
+            emailGroup.className = 'form-group';
+            emailGroup.style.marginBottom = '0';
+
+            const emailLabel = document.createElement('label');
+            emailLabel.className = 'form-label';
+            emailLabel.setAttribute('for', 'auth-email');
+            emailLabel.textContent = 'Email';
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.className = 'form-input';
+            emailInput.id = 'auth-email';
+            emailInput.placeholder = 'name@example.com';
+            emailInput.autocomplete = 'email';
+
+            emailGroup.appendChild(emailLabel);
+            emailGroup.appendChild(emailInput);
+
+            const passwordGroup = document.createElement('div');
+            passwordGroup.className = 'form-group';
+            passwordGroup.style.marginBottom = '0';
+
+            const passwordLabel = document.createElement('label');
+            passwordLabel.className = 'form-label';
+            passwordLabel.setAttribute('for', 'auth-password');
+            passwordLabel.textContent = 'Password';
+
+            const passwordInput = document.createElement('input');
+            passwordInput.type = 'password';
+            passwordInput.className = 'form-input';
+            passwordInput.id = 'auth-password';
+            passwordInput.placeholder = '••••••••';
+            passwordInput.autocomplete = 'current-password';
+
+            passwordGroup.appendChild(passwordLabel);
+            passwordGroup.appendChild(passwordInput);
+
+            fieldsContainer.appendChild(emailGroup);
+            fieldsContainer.appendChild(passwordGroup);
+
+            const submitOnEnter = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleAuthSignIn();
+                }
+            };
+
+            emailInput.addEventListener('keydown', submitOnEnter);
+            passwordInput.addEventListener('keydown', submitOnEnter);
+        }
+
+        function clearAuthCredentialFields() {
+            const fieldsContainer = document.getElementById('auth-credential-fields');
+            if (!fieldsContainer) return;
+            // Remove credential inputs when the modal closes so they are not mounted on navigation.
+            fieldsContainer.innerHTML = '';
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal) return;
+            authModalLastFocus = document.activeElement;
+            ensureAuthCredentialFields();
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            authModalActive = true;
+            clearAuthError();
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput) {
+                emailInput.focus();
+                emailInput.select();
+            }
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (!modal || !authModalActive) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            authModalActive = false;
+            clearAuthCredentialFields();
+            if (authModalLastFocus && typeof authModalLastFocus.focus === 'function') {
+                authModalLastFocus.focus();
+            }
+        }
+
+        async function handleAuthSignIn() {
+            const emailInput = document.getElementById('auth-email');
+            const passwordInput = document.getElementById('auth-password');
+            if (!emailInput || !passwordInput) {
+                showAuthError('Tap "Sign In" to enter your credentials.');
+                return;
+            }
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const rememberMe = document.getElementById('auth-remember').checked;
+
+            if (!email || !password) {
+                showAuthError('Enter both email and password to sign in.');
+                return;
+            }
+
+            try {
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error('[Auth] Sign in failed:', error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showAuthError('Incorrect email or password.');
+                } else if (error.code === 'auth/invalid-email') {
+                    showAuthError('Please enter a valid email address.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Please try again later.');
+                } else {
+                    showAuthError('Sign in failed. Please try again.');
+                }
+            }
+        }
+
+        async function handleAuthPasswordReset() {
+            // Send a Firebase password reset email using the existing auth instance.
+            const emailInput = document.getElementById('auth-email');
+            if (!emailInput) {
+                showAuthError('Tap "Sign In" to enter your email first.');
+                return;
+            }
+            const email = emailInput.value.trim();
+            if (!email) {
+                showAuthError('Enter your email to reset your password.');
+                return;
+            }
+
+            try {
+                // await sendPasswordResetEmail(auth, email); // TODO: Fix password reset
+                // showAuthMessage('Password reset email sent. Check your inbox.', 'success');
+                showAuthMessage('Password reset temporarily disabled. Contact your therapist.', 'error');
+            } catch (error) {
+                console.error('[Auth] Password reset failed:', error);
+                if (error.code === 'auth/invalid-email') {
+                    showAuthError('Please enter a valid email address.');
+                } else if (error.code === 'auth/user-not-found') {
+                    showAuthError('No account found for that email.');
+                } else if (error.code === 'auth/too-many-requests') {
+                    showAuthError('Too many attempts. Please try again later.');
+                } else {
+                    showAuthError('Password reset failed. Please try again.');
+                }
+            }
+        }
+
+        function bindAuthModalEvents() {
+            const guardButton = document.getElementById('auth-guard-signin-btn');
+            const modal = document.getElementById('auth-modal');
+            const closeButton = document.getElementById('auth-modal-close');
+            const cancelButton = document.getElementById('auth-cancel-btn');
+            const signInButton = document.getElementById('auth-signin-btn');
+            const resetButton = document.getElementById('auth-reset-btn');
+
+            if (guardButton) {
+                guardButton.addEventListener('pointerup', showAuthModal);
+                guardButton.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        showAuthModal();
+                    }
+                });
+            }
+
+            if (signInButton) {
+                signInButton.addEventListener('pointerup', handleAuthSignIn);
+            }
+
+            if (resetButton) {
+                resetButton.addEventListener('pointerup', handleAuthPasswordReset);
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('pointerup', hideAuthModal);
+            }
+
+            if (modal) {
+                modal.addEventListener('pointerup', (event) => {
+                    if (event.target === modal) {
+                        hideAuthModal();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (authModalActive && event.key === 'Escape') {
+                    event.preventDefault();
+                    hideAuthModal();
+                }
+            });
+        }
+
+        /**
+         * Show a toast notification message.
+         * @param {string} message - The message to display
+         * @param {string} type - Type of toast: 'success', 'error', or 'info' (default)
+         * @param {number} duration - How long to show the toast in milliseconds (default 3000)
+         */
+        window.showToast = function(message, type = 'info', duration = 3000) {
+            // Remove any existing toasts
+            const existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(toast => toast.remove());
+
+            // Create new toast
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Show toast with animation
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Hide and remove after duration
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+
+            // Bind logout button
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('pointerup', async () => {
+                    try {
+                        await signOut(auth);
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('[Auth] Logout failed:', error);
+                        alert('Failed to log out: ' + error.message);
+                    }
+                });
+            }
+        };
+
+        // Bind auth modal interactions once the module loads.
+        bindAuthModalEvents();
+
+        function normalizeExerciseLifecycle(exercises) {
+            if (!Array.isArray(exercises)) return [];
+            return exercises.map(exercise => {
+                const lifecycle = exercise?.lifecycle || {};
+                const status = lifecycle.status || (exercise?.archived ? 'archived' : 'active');
+                return {
+                    ...exercise,
+                    lifecycle: {
+                        status,
+                        effective_start_date: lifecycle.effective_start_date ?? null,
+                        effective_end_date: lifecycle.effective_end_date ?? null
+                    }
+                };
+            });
+        }
+
+        window.normalizeExerciseLifecycle = normalizeExerciseLifecycle;
+
+        async function loadPatientDataFromFirestore(uid) {
+            try {
+                // Load sessions
+                const sessionsRef = collection(db, `users/${uid}/sessions`);
+                const sessionsSnap = await getDocs(sessionsRef);
+                const sessions = sessionsSnap.docs.map(d => d.data());
+
+                // Load runtime (exercise library)
+                const runtimeRef = doc(db, `users/${uid}/pt_runtime/state`);
+                const runtimeSnap = await getDoc(runtimeRef);
+                setFirestoreReadSucceeded('runtime');
+                markDocHydrated('runtime');
+                const runtime = runtimeSnap.exists() ? runtimeSnap.data() : {};
+
+                // Wait for shared data loader to be ready
+                while (!window.sharedDataLoader) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+
+                // Load shared data (roles, schema, vocabulary, library)
+                const sharedRolesResult = await window.sharedDataLoader.loadExerciseRolesShared();
+                const schemaResult = await window.sharedDataLoader.loadExerciseFileSchemaShared();
+                const vocabResult = await window.sharedDataLoader.loadExerciseVocabularyShared();
+                const sharedLibraryResult = await window.sharedDataLoader.loadExerciseLibraryShared();
+
+                const sharedData = sharedRolesResult?.data || { exercise_roles: {} };
+                const schema = schemaResult?.data || {};
+                const vocabulary = vocabResult?.data || {};
+                const sharedLibrary = sharedLibraryResult?.data || [];
+
+                sharedDocSource.sharedRoles = sharedRolesResult?.source || sharedDocSource.sharedRoles;
+                sharedDocSource.sharedVocab = vocabResult?.source || sharedDocSource.sharedVocab;
+                sharedDocSource.sharedLibrary = sharedLibraryResult?.source || sharedDocSource.sharedLibrary;
+
+                if (sharedRolesResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedRoles');
+                    markDocHydrated('sharedRoles');
+                }
+                if (vocabResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedVocab');
+                    markDocHydrated('sharedVocab');
+                }
+                if (sharedLibraryResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedLibrary');
+                    markDocHydrated('sharedLibrary');
+                }
+
+                const runtimeLibrary = Array.isArray(runtime.exerciseLibrary) ? runtime.exerciseLibrary : [];
+                const exerciseLibrary = runtimeLibrary.length > 0 ? runtimeLibrary : sharedLibrary || [];
+                const normalizedLibrary = normalizeExerciseLifecycle(exerciseLibrary);
+
+                // Populate global variables (accessed by main script below)
+                window.ptReportData = {
+                    sessionHistory: sessions,
+                    exerciseLibrary: normalizedLibrary,
+                    rolesData: sharedData,
+                    schema: schema,
+                    vocabulary: vocabulary
+                };
+
+                console.log('[Firestore] Loaded patient data:', {
+                    sessions: sessions.length,
+                    exercises: runtime.exerciseLibrary?.length || 0
+                });
+
+                // Wait for init() to be defined in main script tag
+                if (document.readyState === 'loading') {
+                    window.addEventListener('DOMContentLoaded', () => {
+                        if (window.init) window.init();
+                    }, { once: true });
+                } else {
+                    // Delay to ensure init() is defined
+                    setTimeout(() => {
+                        if (window.init) window.init();
+                    }, 0);
+                }
+            } catch (error) {
+                console.error('[Firestore] Failed to load patient data:', error);
+                alert('Failed to load patient data: ' + error.message);
+            }
+        }
+
+        function sanitizeExerciseLibraryForRuntime(library) {
+            if (!Array.isArray(library)) return [];
+            return library.filter(entry => {
+                const exerciseId = entry?.id || entry?.exercise_id;
+                return typeof exerciseId === 'string' && exerciseId.trim().length > 0;
+            });
+        }
+
+        function sanitizeModifications(mods) {
+            const safe = {
+                newExercises: [],
+                editedExercises: {},
+                archivedExercises: [],
+                newRoles: {},
+                deletedRoles: {},
+                editedRoles: {},
+                dosageChanges: {},
+                updatedVocab: {}
+            };
+
+            if (!mods || typeof mods !== 'object') return safe;
+
+            const isValidId = (value) => typeof value === 'string' && value.trim().length > 0;
+
+            if (Array.isArray(mods.newExercises)) {
+                safe.newExercises = mods.newExercises.filter(ex => isValidId(ex?.id || ex?.exercise_id));
+            }
+
+            if (mods.editedExercises && typeof mods.editedExercises === 'object') {
+                Object.entries(mods.editedExercises).forEach(([exerciseId, exercise]) => {
+                    if (!isValidId(exerciseId) || !exercise || typeof exercise !== 'object') return;
+                    safe.editedExercises[exerciseId] = exercise;
+                });
+            }
+
+            if (Array.isArray(mods.archivedExercises)) {
+                safe.archivedExercises = mods.archivedExercises.filter(isValidId);
+            }
+
+            const sanitizeRoleMap = (map) => {
+                const sanitized = {};
+                if (!map || typeof map !== 'object') return sanitized;
+                Object.entries(map).forEach(([exerciseId, roles]) => {
+                    if (!isValidId(exerciseId)) return;
+                    if (!Array.isArray(roles)) return;
+                    sanitized[exerciseId] = roles.filter(role => role && typeof role === 'object');
+                });
+                return sanitized;
+            };
+
+            safe.newRoles = sanitizeRoleMap(mods.newRoles);
+            safe.deletedRoles = sanitizeRoleMap(mods.deletedRoles);
+            safe.editedRoles = sanitizeRoleMap(mods.editedRoles);
+
+            if (mods.dosageChanges && typeof mods.dosageChanges === 'object') {
+                Object.entries(mods.dosageChanges).forEach(([exerciseId, dosage]) => {
+                    if (!isValidId(exerciseId)) return;
+                    if (!dosage || typeof dosage !== 'object') return;
+                    safe.dosageChanges[exerciseId] = dosage;
+                });
+            }
+
+            if (mods.updatedVocab && typeof mods.updatedVocab === 'object') {
+                Object.entries(mods.updatedVocab).forEach(([category, terms]) => {
+                    if (!category || !terms || typeof terms !== 'object') return;
+                    const sanitizedTerms = {};
+                    Object.entries(terms).forEach(([term, definition]) => {
+                        if (!term || term.trim().length === 0) return;
+                        if (definition == null || definition === '') return;
+                        sanitizedTerms[term] = definition;
+                    });
+                    if (Object.keys(sanitizedTerms).length > 0) {
+                        safe.updatedVocab[category] = sanitizedTerms;
+                    }
+                });
+            }
+
+            return safe;
+        }
+
+        // Save exercise library to Firestore
+        window.saveExerciseLibraryToFirestore = async function() {
+            // BUG FIX: Throw error instead of silent return when patient UID missing
+            if (!window.ptReportUserId) {
+                throw new Error('No patient UID available - please sign in again');
+            }
+
+            try {
+                const canWrite = await confirmCanonicalWrite({ docKey: 'runtime', source: 'firestore' });
+                if (!canWrite) {
+                    pendingRuntimeWrite = true;
+                    return false;
+                }
+
+                const runtimeRef = doc(db, `users/${window.ptReportUserId}/pt_runtime/state`);
+                const librarySnapshot = Array.isArray(window.exerciseLibrary)
+                    ? window.exerciseLibrary
+                    : exerciseLibrary;
+                const sanitizedLibrary = sanitizeExerciseLibraryForRuntime(librarySnapshot || []);
+                const sanitizedModifications = sanitizeModifications(window.modifications);
+                const updatedAtClient = new Date().toISOString();
+                await import("./firebase.js")
+                    .then(({ setDoc, serverTimestamp }) => setDoc(runtimeRef, {
+                        exerciseLibrary: sanitizedLibrary,
+                        pt_modifications: sanitizedModifications,
+                        updatedAt: updatedAtClient,
+                        updatedAtClient,
+                        updatedAtServer: serverTimestamp(),
+                        ptDataVersion: PT_DATA_VERSION
+                    }, { merge: true }));
+                console.log('[Firestore] Exercise library and modifications saved');
+                return true;
+            } catch (error) {
+                console.error('[Firestore] Failed to save exercise library:', error);
+                throw error;
+            }
+        };
+
+        // Notes functionality
+        window.showPatientNotes = async function() {
+            if (!window.ptReportUserId) {
+                alert('No patient UID available');
+                return;
+            }
+
+            document.getElementById('notes-modal').style.display = 'block';
+            await loadNotes();
+        };
+
+        window.closeNotesModal = function() {
+            document.getElementById('notes-modal').style.display = 'none';
+        };
+
+        window.loadNotes = async function() {
+            if (!window.ptReportUserId) return;
+
+            try {
+                const { collection, getDocs, query, orderBy, doc: firestoreDoc, updateDoc } = await import("./firebase.js");
+                const notesRef = collection(db, `users/${window.ptReportUserId}/notes`);
+                const q = query(notesRef, orderBy('createdAt', 'desc'));
+                const snapshot = await getDocs(q);
+
+                const notesList = document.getElementById('notes-list');
+                const now = Date.now();
+                const oneHour = 60 * 60 * 1000;
+
+                // Filter out deleted and archived notes
+                const noteDocuments = [];
+                snapshot.forEach(docSnap => {
+                    const note = docSnap.data();
+                    if (!note.deleted && !note.archivedByTherapist) {
+                        noteDocuments.push({ id: docSnap.id, data: note });
+                    }
+                });
+
+                // BUG FIX: Add user feedback when marking notes as read fails
+                // Mark patient notes as read by therapist
+                const unreadPatientNotes = noteDocuments.filter(doc =>
+                    doc.data.createdBy === 'patient' && !doc.data.readByTherapist
+                );
+                let markAsReadErrors = 0;
+                for (const noteDoc of unreadPatientNotes) {
+                    try {
+                        const noteRef = firestoreDoc(db, `users/${window.ptReportUserId}/notes/${noteDoc.id}`);
+                        await updateDoc(noteRef, { readByTherapist: true });
+                    } catch (error) {
+                        console.error('[Firestore] Failed to mark note as read:', error);
+                        markAsReadErrors++;
+                    }
+                }
+                // Show warning if any notes failed to mark as read
+                if (markAsReadErrors > 0) {
+                    alert(`Warning: ${markAsReadErrors} note${markAsReadErrors > 1 ? 's' : ''} could not be marked as read. Patient may not see "Read by Therapist" status.`);
+                }
+
+                if (noteDocuments.length === 0) {
+                    notesList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No notes yet</div>';
+                    return;
+                }
+
+                let html = '';
+                noteDocuments.forEach(noteDoc => {
+                    const note = noteDoc.data;
+                    const noteId = noteDoc.id;
+                    const date = new Date(note.createdAt);
+                    const dateStr = date.toLocaleString();
+                    const isTherapist = note.createdBy === 'therapist';
+                    const canUndo = (now - date.getTime() < oneHour); // Allow undo for any note within 1 hour
+
+                    // Show read status for both sides
+                    let readStatus = '';
+                    if (isTherapist) {
+                        readStatus = note.readByPatient ? '✓ Read by Patient' : '○ Sent';
+                    } else {
+                        readStatus = note.readByTherapist ? '✓ Read by you' : '○ New';
+                    }
+
+                    html += `
+                        <div style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: ${isTherapist ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'}; border-left: 3px solid ${isTherapist ? 'var(--ios-blue)' : 'var(--ios-green)'};">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                <div><strong>${isTherapist ? 'You (Therapist)' : 'Patient'}</strong> • ${dateStr}</div>
+                                <span style="font-size: 10px; color: var(--text-secondary);">${readStatus}</span>
+                            </div>
+                            <div style="white-space: pre-wrap; margin-bottom: 8px;">${note.text}</div>
+                            <div style="display: flex; gap: 8px; font-size: 12px;">
+                                <button data-action="archiveNoteReport" data-action-arg="${noteId}" style="background: transparent; border: none; color: var(--ios-red); cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
+                                ${canUndo ? `<button data-action="undoSendNoteReport" data-action-arg="${noteId}" style="background: transparent; border: none; color: var(--ios-orange); cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                notesList.innerHTML = html;
+
+                // Bind event handlers to dynamically created buttons
+                bindPointerHandlers(notesList);
+            } catch (error) {
+                console.error('[Firestore] Failed to load notes:', error);
+                // BUG FIX: Show user feedback when notes fail to load
+                notesList.innerHTML = '<div style="color: var(--ios-red); text-align: center; padding: 20px;">Failed to load notes: ' + error.message + '<br><br>Please try refreshing the page.</div>';
+            }
+        };
+
+        window.archiveNoteReport = async function(noteId) {
+            if (!window.ptReportUserId) return;
+
+            try {
+                const { doc: firestoreDoc, updateDoc } = await import("./firebase.js");
+                const noteRef = firestoreDoc(db, `users/${window.ptReportUserId}/notes/${noteId}`);
+                await updateDoc(noteRef, {
+                    archivedByTherapist: true
+                });
+                await window.loadNotes();
+            } catch (error) {
+                console.error('[Firestore] Failed to archive note:', error);
+                alert('Failed to hide note');
+            }
+        };
+
+        window.undoSendNoteReport = async function(noteId) {
+            if (!window.ptReportUserId) return;
+
+            if (!confirm('Delete this note? It will be removed for both you and the patient.')) {
+                return;
+            }
+
+            try {
+                const { doc: firestoreDoc, updateDoc } = await import("./firebase.js");
+                const noteRef = firestoreDoc(db, `users/${window.ptReportUserId}/notes/${noteId}`);
+                await updateDoc(noteRef, {
+                    deleted: true,
+                    deletedAt: new Date().toISOString(),
+                    deletedBy: 'therapist'
+                });
+                await window.loadNotes();
+            } catch (error) {
+                console.error('[Firestore] Failed to delete note:', error);
+                alert('Failed to delete note');
+            }
+        };
+
+        window.addNote = async function() {
+            const text = document.getElementById('new-note-text').value.trim();
+
+            if (!text) {
+                alert('Please enter a note');
+                return;
+            }
+
+            if (!window.ptReportUserId) {
+                alert('No patient UID available');
+                return;
+            }
+
+            try {
+                const { collection, addDoc, serverTimestamp } = await import("./firebase.js");
+                const notesRef = collection(db, `users/${window.ptReportUserId}/notes`);
+
+                await addDoc(notesRef, {
+                    text: text,
+                    createdBy: 'therapist',
+                    createdAt: new Date().toISOString(),
+                    authorUid: auth.currentUser.uid
+                });
+
+                document.getElementById('new-note-text').value = '';
+                await loadNotes();
+            } catch (error) {
+                console.error('[Firestore] Failed to add note:', error);
+                alert('Failed to send note: ' + error.message);
+            }
+        };
+    </script>
+    <script>
+        const exerciseFormModule = window.exerciseFormModule;
+        let sessionHistory = [];
+        let exerciseLibrary = [];
+        let rolesData = null;
+        let schema = null;
+        let vocabulary = null;
+        let patientEmailCache = '';
+        let initHasRun = false;
+        const PT_DATA_VERSION = '1';
+
+        // Track PT modifications
+        let modifications = {
+            newExercises: [],
+            editedExercises: {},  // exerciseId: updated exercise object
+            archivedExercises: [], // exerciseId array
+            newRoles: {},  // exerciseId: [roles to add]
+            deletedRoles: {},  // exerciseId: [roles to delete]
+            editedRoles: {},  // exerciseId: [complete new role set - replaces all]
+            dosageChanges: {},  // exerciseId: new dosage spec
+            updatedVocab: {}  // category: { term: definition }
+        };
+        window.modifications = modifications;
+
+        const exerciseFormBindings = {
+            restrictToFields: [
+                'id',
+                'canonical_name',
+                'pt_category',
+                'description',
+                'primary_muscles',
+                'secondary_muscles',
+                'pattern',
+                'pattern_modifiers',
+                'equipment',
+                'form_parameters_required',
+                'tags',
+                'guidance',
+                'lifecycle',
+                'added_date',
+                'updated_date'
+            ],
+            fields: {
+                canonical_name: { id: 'ex-name', trim: true, normalize: 'title' },
+                pt_category: { id: 'ex-category', trim: true, nullIfBlank: true, normalize: 'lower_snake', useCustomSelect: true },
+                description: { id: 'ex-desc', trim: true, nullIfBlank: true },
+                pattern: { id: 'ex-pattern', trim: true },
+                added_date: { id: 'ex-added-date', type: 'date', nullIfBlank: true }
+            },
+            arrayFields: {
+                primary_muscles: {
+                    selector: '[id^="primary-muscle-"]',
+                    normalize: 'sentence',
+                    addItem: (value) => addMuscleField('primary', value)
+                },
+                secondary_muscles: {
+                    selector: '[id^="secondary-muscle-"]',
+                    normalize: 'sentence',
+                    addItem: (value) => addMuscleField('secondary', value)
+                },
+                pattern_modifiers: {
+                    selector: '#pattern-modifiers-list select[id^="pattern-mod-"]',
+                    addItem: (value) => addPatternModifier(value)
+                },
+                form_parameters_required: {
+                    selector: '#form-params-list select[id^="form-param-"]',
+                    useCustomSelect: true,
+                    addItem: (value) => addFormParamField(value)
+                }
+            },
+            nestedArrayFields: {
+                equipment: {
+                    required: {
+                        selector: '#equipment-required-list select[id^="equipment-required-"]',
+                        useCustomSelect: true,
+                        normalize: 'sentence',
+                        addItem: (value) => addEquipmentField('required', value)
+                    },
+                    optional: {
+                        selector: '#equipment-optional-list select[id^="equipment-optional-"]',
+                        useCustomSelect: true,
+                        normalize: 'sentence',
+                        addItem: (value) => addEquipmentField('optional', value)
+                    }
+                },
+                guidance: {
+                    external_cues: {
+                        selector: '#external-cues-list textarea[id^="external-"]',
+                        addItem: (value) => addGuidanceField('external', value)
+                    },
+                    motor_cues: {
+                        selector: '#motor-cues-list textarea[id^="motor-"]',
+                        addItem: (value) => addGuidanceField('motor', value)
+                    },
+                    compensation_warnings: {
+                        selector: '#compensation-warnings-list textarea[id^="compensation-"]',
+                        addItem: (value) => addGuidanceField('compensation', value)
+                    },
+                    safety_flags: {
+                        selector: '#safety-flags-list textarea[id^="safety-"]',
+                        addItem: (value) => addGuidanceField('safety', value)
+                    }
+                },
+                tags: {
+                    functional: {
+                        selector: '[id^="tag-functional-"]',
+                        addItem: (value) => addTagField('functional', value)
+                    },
+                    format: {
+                        selector: '[id^="tag-format-"]',
+                        addItem: (value) => addTagField('format', value)
+                    },
+                    heatmap: {
+                        selector: '[id^="tag-heatmap-"]',
+                        addItem: (value) => addTagField('heatmap', value)
+                    }
+                }
+            },
+            nestedFields: {
+                lifecycle: {
+                    status: { id: 'ex-lifecycle-status', default: 'active' },
+                    effective_start_date: { id: 'ex-lifecycle-start', type: 'date', nullIfBlank: true },
+                    effective_end_date: { id: 'ex-lifecycle-end', type: 'date', nullIfBlank: true }
+                }
+            }
+        };
+
+        async function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                // Validate the data
+                if (!data.sessionHistory || !data.rolesData || !data.schema) {
+                    throw new Error('Invalid report file format');
+                }
+
+                // Load the data
+                sessionHistory = data.sessionHistory;
+                exerciseLibrary = window.normalizeExerciseLifecycle(data.exerciseLibrary || []);
+                rolesData = data.rolesData;
+                schema = data.schema;
+                vocabulary = data.vocabulary || null;
+
+                // Hide import screen, show report
+                document.getElementById('import-screen').style.display = 'none';
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'block');
+                document.querySelector('.report-header').style.display = 'block';
+                document.getElementById('action-buttons').style.display = 'flex';
+
+                // Set report date
+                document.getElementById('report-date').textContent = data.exportDate || `Imported: ${new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}`;
+
+                // Show patient note if present
+                if (data.noteForPT) {
+                    document.getElementById('patient-note').textContent = data.noteForPT;
+                    document.getElementById('patient-note-section').style.display = 'block';
+                }
+
+                // Generate report
+                renderOverallMetrics();
+                renderCoverageSummary();
+                renderRecentActivity();
+                renderExerciseHistory();
+            } catch (error) {
+                console.error('Error importing report:', error);
+                alert('Error importing report: ' + error.message);
+            }
+        }
+
+        function resetReport() {
+            document.getElementById('import-screen').style.display = 'flex';
+            document.querySelectorAll('body > .section').forEach(el => el.style.display = 'none');
+            document.querySelector('.report-header').style.display = 'none';
+            document.getElementById('action-buttons').style.display = 'none';
+            document.getElementById('file-input').value = '';
+        }
+        window.resetReport = resetReport;
+
+        // iOS-safe button handlers
+        function goToPtView() {
+            window.location.href = 'pt_view.html';
+        }
+
+        function bindPointerHandlers(root = document) {
+            const elements = root.querySelectorAll('[data-action]');
+            elements.forEach(el => {
+                // Skip if already bound
+                if (el.dataset.bound === 'true') return;
+                el.dataset.bound = 'true';
+
+                const action = el.getAttribute('data-action');
+                const handler = (e) => {
+                    e.preventDefault();
+                    const fn = window[action];
+                    if (!fn) return;
+
+                    // Special handling for functions with data attributes (e.g., deleteRole)
+                    if (action === 'deleteRole') {
+                        const exerciseId = el.getAttribute('data-exercise-id');
+                        const roleIdx = parseInt(el.getAttribute('data-role-idx'), 10);
+                        const roleType = el.getAttribute('data-role-type');
+                        fn(exerciseId, roleIdx, roleType);
+                    } else if (action === 'removeFieldContainer') {
+                        fn(e);
+                    } else {
+                        fn();
+                    }
+                };
+                el.addEventListener('pointerup', handler);
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') handler(e);
+                });
+            });
+        }
+
+        /**
+         * Initialize the PT Report UI after data is loaded.
+         * Exposed on window for access from Firebase module script.
+         */
+        window.init = function init() {
+            if (initHasRun) return;
+            initHasRun = true;
+
+            // Bind iOS-safe event handlers
+            bindPointerHandlers();
+            // Check if data was loaded from Firestore
+            if (window.ptReportData) {
+                sessionHistory = window.ptReportData.sessionHistory;
+                exerciseLibrary = window.ptReportData.exerciseLibrary;
+                rolesData = window.ptReportData.rolesData;
+                schema = window.ptReportData.schema;
+                vocabulary = window.ptReportData.vocabulary;
+
+                // Auto-load report view
+                document.getElementById('import-screen').style.display = 'none';
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'block');
+                document.querySelector('.report-header').style.display = 'block';
+                document.getElementById('action-buttons').style.display = 'flex';
+                document.getElementById('report-date').textContent = `Loaded: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+
+                renderOverallMetrics();
+                renderCoverageSummary();
+                renderRecentActivity();
+                renderExerciseHistory();
+            } else {
+                // Hide report sections initially (fallback to import mode)
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'none');
+                document.querySelector('.report-header').style.display = 'none';
+            }
+        }
+
+        function renderOverallMetrics() {
+            const container = document.getElementById('overall-metrics');
+
+            const totalSessions = sessionHistory.length;
+            const uniqueExercises = new Set(sessionHistory.map(s => s.exerciseId)).size;
+            const totalSets = sessionHistory.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+            const totalReps = sessionHistory.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+
+            // Calculate days active
+            const uniqueDays = new Set(sessionHistory.map(s => new Date(s.date).toDateString())).size;
+
+            // Calculate date range
+            if (sessionHistory.length > 0) {
+                const dates = sessionHistory.map(s => new Date(s.date).getTime());
+                const firstDate = new Date(Math.min(...dates));
+                const lastDate = new Date(Math.max(...dates));
+                const daySpan = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24)) + 1;
+
+                container.innerHTML = `
+                    <div class="metric">
+                        <div class="metric-value">${totalSessions}</div>
+                        <div class="metric-label">Total Sessions</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${uniqueExercises}</div>
+                        <div class="metric-label">Exercises Performed</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${uniqueDays}</div>
+                        <div class="metric-label">Days Active</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${totalSets}</div>
+                        <div class="metric-label">Total Sets</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${totalReps}</div>
+                        <div class="metric-label">Total Reps</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${daySpan}</div>
+                        <div class="metric-label">Day Span</div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<div class="metric"><div class="metric-label">No session data available</div></div>';
+            }
+        }
+
+        // Helper: Format dosage display based on exercise pattern_modifiers
+        function formatDosageMetric(exercise, set) {
+            if (!exercise || !set) return '? reps';
+
+            const modifiers = exercise.pattern_modifiers || [];
+
+            // Check pattern modifiers to determine primary metric
+            if (modifiers.includes('hold_seconds') && set.duration) {
+                return `${set.duration}s hold`;
+            }
+            if (modifiers.includes('duration_seconds') && set.duration) {
+                return `${set.duration}s`;
+            }
+            if (modifiers.includes('distance_feet') && set.distance) {
+                return `${set.distance}ft`;
+            }
+            if (modifiers.includes('AMRAP')) {
+                return set.reps ? `${set.reps} reps (AMRAP)` : 'AMRAP';
+            }
+
+            // Default: show reps
+            return `${set.reps || '?'} reps`;
+        }
+
+        // Helper: Get summary metric name for exercise
+        function getSummaryMetricName(exercise) {
+            if (!exercise) return 'reps';
+
+            const modifiers = exercise.pattern_modifiers || [];
+
+            if (modifiers.includes('hold_seconds')) return 'hold time';
+            if (modifiers.includes('duration_seconds')) return 'duration';
+            if (modifiers.includes('distance_feet')) return 'distance';
+            if (modifiers.includes('AMRAP')) return 'AMRAP sets';
+
+            return 'reps';
+        }
+
+        function renderCoverageSummary() {
+            const container = document.getElementById('coverage-summary');
+
+            if (!rolesData || !schema) {
+                container.innerHTML = '<div style="color: var(--text-secondary);">Coverage data not available</div>';
+                return;
+            }
+
+            // Get all exercises from roles
+            const allExercises = Object.keys(rolesData.exercise_roles || {});
+            const totalExercises = allExercises.length;
+
+            // Get exercises that have been done
+            const doneExerciseIds = new Set(sessionHistory.map(s => s.exerciseId));
+            const doneExercises = allExercises.filter(id => doneExerciseIds.has(id));
+            const coveragePercent = totalExercises > 0 ? Math.round((doneExercises.length / totalExercises) * 100) : 0;
+
+            // Get regions from schema
+            const regions = schema.definitions?.role?.properties?.region?.enum || [];
+
+            let html = `
+                <div class="metric-grid" style="margin-bottom: 20px;">
+                    <div class="metric">
+                        <div class="metric-value" style="color: ${coveragePercent >= 70 ? 'var(--ios-green)' : coveragePercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)'};">${coveragePercent}%</div>
+                        <div class="metric-label">Exercise Coverage</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${doneExercises.length}/${totalExercises}</div>
+                        <div class="metric-label">Exercises Completed</div>
+                    </div>
+                </div>
+            `;
+
+            // Break down by region
+            html += '<div style="font-weight: 600; margin-bottom: 10px;">Coverage by Body Region:</div>';
+            regions.forEach(region => {
+                const regionExercises = allExercises.filter(id => {
+                    const exerciseData = rolesData.exercise_roles[id];
+                    return exerciseData?.roles?.some(role => role.region === region);
+                });
+                const regionDone = regionExercises.filter(id => doneExerciseIds.has(id)).length;
+                const regionPercent = regionExercises.length > 0 ? Math.round((regionDone / regionExercises.length) * 100) : 0;
+                const barColor = regionPercent >= 70 ? 'var(--ios-green)' : regionPercent >= 40 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+
+                html += `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="text-transform: capitalize; font-size: 14px;">${region}</span>
+                            <span style="font-size: 13px; color: ${barColor}; font-weight: 600;">${regionDone}/${regionExercises.length} (${regionPercent}%)</span>
+                        </div>
+                        <div style="height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; width: ${regionPercent}%; background: ${barColor}; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderRecentActivity() {
+            const container = document.getElementById('recent-activity');
+
+            const sevenDaysAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+            const recentSessions = sessionHistory.filter(s => new Date(s.date) >= sevenDaysAgo);
+
+            if (recentSessions.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary);">No activity in the last 7 days</div>';
+                return;
+            }
+
+            const uniqueExercises = new Set(recentSessions.map(s => s.exerciseId)).size;
+            const totalSets = recentSessions.reduce((sum, s) => sum + (s.sets?.length || 0), 0);
+            const totalReps = recentSessions.reduce((sum, s) => sum + s.sets.reduce((rs, set) => rs + (set.reps || 0), 0), 0);
+            const daysActive = new Set(recentSessions.map(s => new Date(s.date).toDateString())).size;
+
+            let html = `
+                <div class="metric-grid" style="margin-bottom: 20px;">
+                    <div class="metric">
+                        <div class="metric-value">${recentSessions.length}</div>
+                        <div class="metric-label">Sessions</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${uniqueExercises}</div>
+                        <div class="metric-label">Unique Exercises</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${daysActive}/7</div>
+                        <div class="metric-label">Days Active</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${totalSets}</div>
+                        <div class="metric-label">Total Sets</div>
+                    </div>
+                </div>
+            `;
+
+            // Group by exercise
+            const exerciseGroups = {};
+            recentSessions.forEach(session => {
+                if (!exerciseGroups[session.exerciseId]) {
+                    exerciseGroups[session.exerciseId] = {
+                        name: session.exerciseName,
+                        sessions: 0,
+                        sets: 0,
+                        reps: 0
+                    };
+                }
+                exerciseGroups[session.exerciseId].sessions++;
+                exerciseGroups[session.exerciseId].sets += session.sets.length;
+                exerciseGroups[session.exerciseId].reps += session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            });
+
+            html += '<div style="font-weight: 600; margin-bottom: 10px;">Exercises This Week:</div>';
+            Object.entries(exerciseGroups)
+                .sort((a, b) => b[1].sessions - a[1].sessions)
+                .forEach(([id, data]) => {
+                    // Look up exercise to check if it's rep-based
+                    const exercise = exerciseLibrary.find(ex => ex.id === id);
+                    const metricName = getSummaryMetricName(exercise);
+                    const showReps = metricName === 'reps' && data.reps > 0;
+
+                    html += `
+                        <div style="padding: 10px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">${data.name}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">
+                                ${data.sessions} sessions • ${data.sets} sets${showReps ? ` • ${data.reps} reps` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+            container.innerHTML = html;
+        }
+
+        function renderExerciseHistory() {
+            const container = document.getElementById('exercise-history');
+
+            if (sessionHistory.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary);">No exercise history available</div>';
+                return;
+            }
+
+            // Group all sessions by exercise
+            const exerciseGroups = {};
+            sessionHistory.forEach(session => {
+                if (!exerciseGroups[session.exerciseId]) {
+                    exerciseGroups[session.exerciseId] = {
+                        name: session.exerciseName,
+                        sessions: [],
+                        totalSets: 0,
+                        totalReps: 0
+                    };
+                }
+                exerciseGroups[session.exerciseId].sessions.push(session);
+                exerciseGroups[session.exerciseId].totalSets += session.sets.length;
+                exerciseGroups[session.exerciseId].totalReps += session.sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            });
+
+            let html = '';
+            Object.entries(exerciseGroups)
+                .sort((a, b) => b[1].sessions.length - a[1].sessions.length)
+                .slice(0, 20) // Limit to top 20 exercises
+                .forEach(([id, data]) => {
+                    const lastSession = data.sessions[data.sessions.length - 1];
+                    const lastDate = new Date(lastSession.date);
+                    const daysAgo = Math.floor((Date.now() - lastDate) / (1000 * 60 * 60 * 24));
+
+                    // Look up exercise to check metric type
+                    const exercise = exerciseLibrary.find(ex => ex.id === id);
+                    const metricName = getSummaryMetricName(exercise);
+                    const showReps = metricName === 'reps' && data.totalReps > 0;
+                    const isArchived = exercise?.lifecycle?.status === 'archived' || exercise?.archived === true;
+                    const exerciseDisplayName = isArchived ? `${data.name} (archived)` : data.name;
+
+                    html += `
+                        <div class="exercise-item">
+                            <div class="exercise-name">${exerciseDisplayName}</div>
+                            <div class="exercise-stats">
+                                ${data.sessions.length} sessions • ${data.totalSets} sets${showReps ? ` • ${data.totalReps} reps` : ''}
+                                <br>Last performed: ${daysAgo === 0 ? 'Today' : `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`}
+                            </div>
+                    `;
+
+                    // Show recent sessions with details (last 3)
+                    const recentSessions = data.sessions.slice(-3).reverse();
+                    if (recentSessions.length > 0) {
+                        html += '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">';
+                        recentSessions.forEach(session => {
+                            const sessionDate = new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                            // Extract parameters from sets
+                            const parameters = {};
+                            session.sets.forEach(set => {
+                                if (set.weight) parameters.weight = true;
+                                if (set.distance) parameters.distance = true;
+                                if (set.duration) parameters.duration = true;
+                                if (set.side) parameters.side = true;
+                            });
+
+                            html += `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">`;
+                            html += `<strong>${sessionDate}:</strong> ${session.sets.length} set${session.sets.length > 1 ? 's' : ''}`;
+
+                            // Show set details with parameters
+                            const setDetails = [];
+                            // Look up exercise to get pattern_modifiers
+                            const exercise = exerciseLibrary.find(ex => ex.id === session.exerciseId);
+
+                            session.sets.forEach((set, idx) => {
+                                // Use helper to format primary metric based on exercise type
+                                let detail = formatDosageMetric(exercise, set);
+
+                                // Add side if present (and not already shown in metric)
+                                if (set.side && !detail.includes(set.side)) {
+                                    detail += ` (${set.side})`;
+                                }
+                                // Add weight if present (and not already shown)
+                                if (set.weight && !detail.includes('lbs')) {
+                                    detail += ` @ ${set.weight}lbs`;
+                                }
+                                setDetails.push(detail);
+                            });
+
+                            if (setDetails.length > 0) {
+                                html += ` - ${setDetails.join(' | ')}`;
+                            }
+
+                            // Show session notes if present
+                            if (session.notes && session.notes.trim()) {
+                                html += `<br><span style="font-style: italic; color: var(--ios-blue);">Note: ${session.notes}</span>`;
+                            }
+
+                            html += `</div>`;
+                        });
+                        html += '</div>';
+                    }
+
+                    html += `</div>`;
+                });
+
+            container.innerHTML = html;
+        }
+
+        // ========== PT EDITOR MODE FUNCTIONS ==========
+
+        function toggleEditorMode() {
+            const editorMode = document.getElementById('editor-mode');
+            const isVisible = editorMode.style.display !== 'none';
+
+            if (isVisible) {
+                editorMode.style.display = 'none';
+                // If no report has been loaded, show import screen
+                if (!sessionHistory || sessionHistory.length === 0) {
+                    document.getElementById('import-screen').style.display = 'flex';
+                }
+            } else {
+                editorMode.style.display = 'block';
+                initializeEditorMode();
+            }
+        }
+        window.toggleEditorMode = toggleEditorMode;
+
+        function printReport() {
+            window.print();
+        }
+        window.printReport = printReport;
+
+        // Wrapper functions for data-action buttons (iOS-safe PWA pattern)
+        function removeFieldContainer(event) {
+            // event.currentTarget is the button with data-action (more reliable than event.target)
+            const button = event.currentTarget;
+            const container = button.closest('.form-group');
+            if (container) container.remove();
+        }
+        window.removeFieldContainer = removeFieldContainer;
+
+        function addPrimaryMuscleField() { addMuscleField('primary'); }
+        window.addPrimaryMuscleField = addPrimaryMuscleField;
+
+        function addSecondaryMuscleField() { addMuscleField('secondary'); }
+        window.addSecondaryMuscleField = addSecondaryMuscleField;
+
+        function addRequiredEquipmentField() { addEquipmentField('required'); }
+        window.addRequiredEquipmentField = addRequiredEquipmentField;
+
+        function addOptionalEquipmentField() { addEquipmentField('optional'); }
+        window.addOptionalEquipmentField = addOptionalEquipmentField;
+
+        function addExternalCueField() { addGuidanceField('external'); }
+        window.addExternalCueField = addExternalCueField;
+
+        function addMotorCueField() { addGuidanceField('motor'); }
+        window.addMotorCueField = addMotorCueField;
+
+        function addCompensationWarningField() { addGuidanceField('compensation'); }
+        window.addCompensationWarningField = addCompensationWarningField;
+
+        function addSafetyFlagField() { addGuidanceField('safety'); }
+        window.addSafetyFlagField = addSafetyFlagField;
+
+        function addFunctionalTagField() { addTagField('functional'); }
+        window.addFunctionalTagField = addFunctionalTagField;
+
+        function addFormatTagField() { addTagField('format'); }
+        window.addFormatTagField = addFormatTagField;
+
+        function addHeatmapTagField() { addTagField('heatmap'); }
+        window.addHeatmapTagField = addHeatmapTagField;
+
+        let currentEditingExerciseId = null; // Track which exercise is being edited
+
+        window.addPatternModifier = addPatternModifier;
+        window.addFormParamField = addFormParamField;
+        window.saveExercise = saveExercise;
+        // archiveExercise is defined later and exposed on window at line 2867
+        window.addRoleToExercise = addRoleToExercise;
+        // deleteRole is defined later at line 3113 and needs to be exposed there
+        window.loadExerciseRoles = loadExerciseRoles;
+        window.toggleCustomInput = toggleCustomInput;
+        window.updateDosage = updateDosage;
+        window.updateVocabulary = updateVocabulary;
+        window.closeImportPasteModal = closeImportPasteModal;
+        window.processPatientPaste = processPatientPaste;
+        // closeNotesModal is defined earlier and exposed on window at line 1373
+        // addNote is defined earlier and exposed on window at line 1505
+
+        /**
+         * Filter exercise dropdown by search text.
+         * iOS-compatible - called via oninput on search boxes.
+         * Exposed on window for inline handler access.
+         */
+        window.filterExerciseSelect = function filterExerciseSelect(selectId, searchText) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const searchLower = searchText.toLowerCase().trim();
+            const options = select.querySelectorAll('option');
+
+            options.forEach(option => {
+                if (!option.value) {
+                    // Keep placeholder option visible
+                    option.style.display = '';
+                    return;
+                }
+
+                const text = option.textContent.toLowerCase();
+                if (!searchLower || text.includes(searchLower)) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        function initializeEditorMode() {
+            console.log('[Editor] Initializing with', exerciseLibrary?.length || 0, 'exercises');
+
+            if (!exerciseLibrary || exerciseLibrary.length === 0) {
+                console.warn('[Editor] exerciseLibrary is empty or undefined');
+            }
+
+            exerciseFormModule.populateExerciseSelect({
+                selectId: 'role-exercise-select',
+                exercises: exerciseLibrary,
+                placeholder: '-- Choose an exercise --'
+            });
+            exerciseFormModule.populateExerciseSelect({
+                selectId: 'dosage-exercise-select',
+                exercises: exerciseLibrary,
+                placeholder: '-- Choose an exercise --'
+            });
+            exerciseFormModule.populateExerciseSelect({
+                selectId: 'edit-ex-select',
+                exercises: exerciseLibrary,
+                placeholder: '-- Add new exercise (leave blank) --'
+            });
+            if (exerciseLibrary && exerciseLibrary.length > 0) {
+                console.log('[Editor] Populated edit dropdown with', exerciseLibrary.length, 'exercises');
+            } else {
+                console.warn('[Editor] No exercises to populate in edit dropdown');
+            }
+
+            exerciseFormModule.populateRoleSelects({
+                regionSelectId: 'new-role-region',
+                capacitySelectId: 'new-role-capacity',
+                focusSelectId: 'new-role-focus',
+                contributionSelectId: 'new-role-contribution',
+                schema,
+                vocabulary,
+                rolesData
+            });
+
+            console.log('[Editor] Populating pattern dropdown, schema:', schema);
+            exerciseFormModule.populatePatternSelect({ selectId: 'ex-pattern', schema });
+
+            exerciseFormModule.populatePatternModifiersHelp({
+                containerId: 'pattern-modifiers-help',
+                vocabulary
+            });
+
+            // Populate PT category dropdown
+            const ptCategoryOptions = exerciseFormModule.getPtCategoryOptions({ schema, exerciseLibrary });
+            const ptCategorySelect = document.getElementById('ex-category');
+            if (ptCategorySelect) {
+                const optionsHtml = exerciseFormModule.buildSelectOptionsHtml(ptCategoryOptions, {
+                    placeholder: '-- Select --',
+                    includeCustom: true
+                });
+                ptCategorySelect.innerHTML = optionsHtml;
+            }
+
+            exerciseFormModule.populateVocabCategorySelect({
+                selectId: 'vocab-category',
+                vocabulary
+            });
+
+            // Populate pattern modifiers contextual help
+            const patternModifiersHelp = document.getElementById('pattern-modifiers-help');
+            if (patternModifiersHelp && vocabulary && vocabulary.pattern_modifiers) {
+                let helpText = 'Available: ';
+                const modifiers = Object.keys(vocabulary.pattern_modifiers)
+                    .filter(key => !key.startsWith('_')) // Skip _meta keys
+                    .map(key => {
+                        const modifier = vocabulary.pattern_modifiers[key];
+                        // Handle nested structure (has .definition) or simple string
+                        const description = typeof modifier === 'object' && modifier.definition
+                            ? modifier.definition
+                            : modifier;
+                        return `<strong>${key}</strong> (${description})`;
+                    });
+                patternModifiersHelp.innerHTML = helpText + modifiers.join('; ');
+            }
+
+            // Populate vocabulary reference guide
+            const vocabGuide = document.getElementById('vocabulary-reference-guide');
+            if (vocabGuide && vocabulary) {
+                let guideHTML = '';
+
+                // Regions
+                if (vocabulary.regions) {
+                    guideHTML += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Regions</h4>
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 13px; color: var(--text-primary); padding-left: 10px;">
+                    `;
+                    Object.keys(vocabulary.regions).forEach(key => {
+                        guideHTML += `• <strong>${key}:</strong> ${vocabulary.regions[key]}<br>`;
+                    });
+                    guideHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Capacities
+                if (vocabulary.capacities) {
+                    guideHTML += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Capacities</h4>
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 13px; color: var(--text-primary); padding-left: 10px;">
+                    `;
+                    Object.keys(vocabulary.capacities).forEach(key => {
+                        guideHTML += `• <strong>${key}:</strong> ${vocabulary.capacities[key]}<br>`;
+                    });
+                    guideHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Contributions
+                if (vocabulary.contributions) {
+                    guideHTML += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 15px;">Contributions</h4>
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+                                <div style="font-size: 13px; color: var(--text-primary); padding-left: 10px;">
+                    `;
+                    Object.keys(vocabulary.contributions).forEach(key => {
+                        guideHTML += `• <strong>${key}:</strong> ${vocabulary.contributions[key]}<br>`;
+                    });
+                    guideHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                vocabGuide.innerHTML = guideHTML;
+            }
+
+        }
+
+        const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+        function encodeUlidTime(time) {
+            let value = time;
+            let encoded = '';
+            for (let i = 0; i < 10; i += 1) {
+                encoded = ULID_ALPHABET[value % 32] + encoded;
+                value = Math.floor(value / 32);
+            }
+            return encoded;
+        }
+
+        function encodeUlidRandom(length = 16) {
+            const bytes = new Uint8Array(length);
+            if (window.crypto && window.crypto.getRandomValues) {
+                window.crypto.getRandomValues(bytes);
+            } else {
+                for (let i = 0; i < length; i += 1) {
+                    bytes[i] = Math.floor(Math.random() * 256);
+                }
+            }
+            let encoded = '';
+            for (let i = 0; i < length; i += 1) {
+                encoded += ULID_ALPHABET[bytes[i] % 32];
+            }
+            return encoded;
+        }
+
+        function generateULID() {
+            if (typeof window.ulid === 'function') {
+                return window.ulid();
+            }
+            if (window.ulid && typeof window.ulid.ulid === 'function') {
+                return window.ulid.ulid();
+            }
+            return `${encodeUlidTime(Date.now())}${encodeUlidRandom()}`;
+        }
+
+        // ========== ARRAY FIELD HELPERS ==========
+
+        function addMuscleField(type, value = '') {
+            const containerId = type === 'primary' ? 'primary-muscles-list' : 'secondary-muscles-list';
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="${type}-muscle-${index}" placeholder="e.g., Gluteus Maximus" style="flex: 1;">
+                    <button type="button" class="btn-danger" data-action="removeFieldContainer" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+            bindPointerHandlers(div); // Rebind after innerHTML update
+            if (value) {
+                const input = document.getElementById(`${type}-muscle-${index}`);
+                if (input) input.value = value;
+            }
+        }
+
+        function addPatternModifier(value = '') {
+            const container = document.getElementById('pattern-modifiers-list');
+            const index = container.children.length;
+
+            const modifiers = exerciseFormModule.getPatternModifierOptions(schema);
+            const selectOptions = exerciseFormModule.buildSelectOptionsHtml(modifiers, {
+                placeholder: '-- Select --'
+            });
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <select class="form-select" id="pattern-mod-${index}" style="flex: 1;">
+                        ${selectOptions}
+                    </select>
+                    <button type="button" class="btn-danger" data-action="removeFieldContainer" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+            bindPointerHandlers(div); // Rebind after innerHTML update
+            if (value) {
+                const select = document.getElementById(`pattern-mod-${index}`);
+                if (select) select.value = value;
+            }
+        }
+        function toggleCustomInputById(selectId) {
+            exerciseFormModule.toggleCustomInputById(selectId);
+        }
+
+        function addEquipmentField(type, value = '') {
+            const containerId = type === 'required' ? 'equipment-required-list' : 'equipment-optional-list';
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const options = exerciseFormModule.getEquipmentOptions({ schema, exerciseLibrary, type });
+            const selectOptions = exerciseFormModule.buildSelectOptionsHtml(options, {
+                placeholder: '-- Select --',
+                includeCustom: true
+            });
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <select class="form-select custom-select-trigger" id="equipment-${type}-${index}" data-custom-type="equipment-${type}-${index}"('equipment-${type}-${index}')">
+                            ${selectOptions}
+                        </select>
+                        <input type="text" class="form-input" id="equipment-${type}-${index}-custom" placeholder="Enter custom equipment" style="display: none; margin-top: 8px;">
+                    </div>
+                    <button type="button" class="btn-danger" data-action="removeFieldContainer" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+            bindPointerHandlers(div); // Rebind after innerHTML update
+
+            if (value) {
+                exerciseFormModule.setSelectValueWithCustom(`equipment-${type}-${index}`, value);
+            }
+        }
+
+        function addFormParamField(value = '') {
+            const container = document.getElementById('form-params-list');
+            const index = container.children.length;
+
+            const options = exerciseFormModule.getFormParameterOptions({ schema, exerciseLibrary });
+            const selectOptions = exerciseFormModule.buildSelectOptionsHtml(options, {
+                placeholder: '-- Select --',
+                includeCustom: true
+            });
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <div style="flex: 1;">
+                        <select class="form-select custom-select-trigger" id="form-param-${index}" data-custom-type="form-param-${index}"('form-param-${index}')">
+                            ${selectOptions}
+                        </select>
+                        <input type="text" class="form-input" id="form-param-${index}-custom" placeholder="Enter custom parameter" style="display: none; margin-top: 8px;">
+                    </div>
+                    <button type="button" class="btn-danger" data-action="removeFieldContainer" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+            bindPointerHandlers(div); // Rebind after innerHTML update
+
+            if (value) {
+                exerciseFormModule.setSelectValueWithCustom(`form-param-${index}`, value);
+            }
+        }
+
+        function addGuidanceField(type, value = '') {
+            const typeMap = {
+                'external': 'external-cues-list',
+                'motor': 'motor-cues-list',
+                'compensation': 'compensation-warnings-list',
+                'safety': 'safety-flags-list'
+            };
+
+            const container = document.getElementById(typeMap[type]);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <textarea class="form-input" id="${type}-${index}" rows="2" placeholder="Enter ${type} cue/warning..." style="flex: 1;"></textarea>
+                    <button type="button" class="btn-danger" data-action="removeFieldContainer" style="padding: 10px 15px; height: fit-content;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+            bindPointerHandlers(div); // Rebind after innerHTML update
+            if (value) {
+                const input = document.getElementById(`${type}-${index}`);
+                if (input) input.value = value;
+            }
+        }
+
+        function addTagField(type, value = '') {
+            const containerId = `tags-${type}-list`;
+            const container = document.getElementById(containerId);
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" id="tag-${type}-${index}" placeholder="e.g., gait, balance" style="flex: 1;">
+                    <button type="button" class="btn-danger" data-action="removeFieldContainer" style="padding: 10px 15px;">✕</button>
+                </div>
+            `;
+            container.appendChild(div);
+            bindPointerHandlers(div); // Rebind after innerHTML update
+            if (value) {
+                const input = document.getElementById(`tag-${type}-${index}`);
+                if (input) input.value = value;
+            }
+        }
+
+        function clearAllArrayFields() {
+            // Clear all dynamic array field containers
+            document.getElementById('primary-muscles-list').innerHTML = '';
+            document.getElementById('secondary-muscles-list').innerHTML = '';
+            document.getElementById('pattern-modifiers-list').innerHTML = '';
+            document.getElementById('equipment-required-list').innerHTML = '';
+            document.getElementById('equipment-optional-list').innerHTML = '';
+            document.getElementById('form-params-list').innerHTML = '';
+            document.getElementById('external-cues-list').innerHTML = '';
+            document.getElementById('motor-cues-list').innerHTML = '';
+            document.getElementById('compensation-warnings-list').innerHTML = '';
+            document.getElementById('safety-flags-list').innerHTML = '';
+            document.getElementById('tags-functional-list').innerHTML = '';
+            document.getElementById('tags-format-list').innerHTML = '';
+            document.getElementById('tags-heatmap-list').innerHTML = '';
+        }
+
+        function loadExerciseForEdit() {
+            const exerciseId = document.getElementById('edit-ex-select').value;
+            const archiveBtn = document.getElementById('archive-btn');
+
+            if (!exerciseId) {
+                // Clear form for new exercise
+                document.getElementById('ex-name').value = '';
+                document.getElementById('ex-category').value = '';
+                document.getElementById('ex-category-custom').style.display = 'none';
+                document.getElementById('ex-category-custom').value = '';
+                document.getElementById('ex-desc').value = '';
+                document.getElementById('ex-pattern').value = '';
+                document.getElementById('ex-lifecycle-status').value = 'active';
+                document.getElementById('ex-lifecycle-start').value = '';
+                document.getElementById('ex-lifecycle-end').value = '';
+                document.getElementById('ex-added-date').value = '';
+                clearAllArrayFields();
+                archiveBtn.style.display = 'none';
+                currentEditingExerciseId = null;
+                return;
+            }
+
+            // Load exercise data
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+            if (!exercise) {
+                alert('Exercise not found');
+                return;
+            }
+
+            console.log('[Editor] Loading exercise for edit:', exercise);
+
+            // Clear all array fields first
+            clearAllArrayFields();
+
+            const normalizedExercise = {
+                ...exercise,
+                canonical_name: exercise.canonical_name || exercise.title || exercise.name || ''
+            };
+            exerciseFormModule.hydrateExerciseToBindings({
+                exercise: normalizedExercise,
+                bindings: exerciseFormBindings
+            });
+
+            // Show archive button
+            archiveBtn.style.display = 'block';
+            currentEditingExerciseId = exerciseId;
+        }
+
+        async function runExportRegressionCheck(exerciseId, expectedExercise) {
+            try {
+                const exportData = await buildModificationsExport();
+                const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_MODIFICATIONS', obj: exportData });
+                const decoded = await ptPayloadUtils.parseV2FromText(payload, 'PT_MODIFICATIONS');
+                if (!decoded || decoded.errors?.length) {
+                    console.warn('[Editor] Export regression check failed to decode payload', decoded?.errors);
+                    return;
+                }
+
+                const exportedMods = decoded.obj?.modifications;
+                let exportedExercise = exportedMods?.editedExercises?.[exerciseId];
+                if (!exportedExercise && Array.isArray(exportedMods?.newExercises)) {
+                    exportedExercise = exportedMods.newExercises.find(ex => ex.id === exerciseId);
+                }
+
+                if (!exportedExercise) {
+                    console.warn('[Editor] Export regression check missing exercise', exerciseId);
+                    return;
+                }
+
+                const keysToCheck = exerciseFormBindings.restrictToFields.filter(key => key !== 'id');
+                const mismatches = keysToCheck.filter(key => {
+                    return JSON.stringify(exportedExercise[key]) !== JSON.stringify(expectedExercise[key]);
+                });
+
+                if (mismatches.length > 0) {
+                    console.warn('[Editor] Export regression check mismatch fields:', mismatches);
+                }
+            } catch (error) {
+                console.warn('[Editor] Export regression check failed', error);
+            }
+        }
+
+        function getTodayDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function normalizeForCompare(value) {
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed === '' ? null : trimmed;
+            }
+            if (Array.isArray(value)) {
+                return value.length === 0 ? null : value;
+            }
+            if (typeof value === 'object') {
+                return Object.keys(value).length === 0 ? null : value;
+            }
+            return value;
+        }
+
+        function isBlankValue(value) {
+            return normalizeForCompare(value) === null;
+        }
+
+        function getChangedFields(existing, updated, fields) {
+            if (!existing) return [];
+            return fields.filter((key) => {
+                const existingValue = normalizeForCompare(existing[key]);
+                const updatedValue = normalizeForCompare(updated[key]);
+                return JSON.stringify(existingValue) !== JSON.stringify(updatedValue);
+            });
+        }
+
+        function getBlankFields(existing, updated, fields) {
+            if (!existing) return [];
+            return fields.filter((key) => {
+                if (key === 'id') return false;
+                const updatedValue = updated[key];
+                const existingValue = existing[key];
+                return isBlankValue(updatedValue) && !isBlankValue(existingValue);
+            });
+        }
+
+        function applyExistingValues(updated, existing, fields) {
+            fields.forEach((key) => {
+                updated[key] = existing[key];
+            });
+        }
+
+        function formatFieldLabel(fieldKey) {
+            const fieldLabels = {
+                canonical_name: 'Name',
+                pt_category: 'PT Category',
+                description: 'Description',
+                primary_muscles: 'Primary muscles',
+                secondary_muscles: 'Secondary muscles',
+                pattern: 'Pattern',
+                pattern_modifiers: 'Pattern modifiers',
+                equipment: 'Equipment',
+                form_parameters_required: 'Form parameters',
+                tags: 'Tags',
+                guidance: 'Guidance',
+                lifecycle: 'Lifecycle',
+                added_date: 'Added date',
+                updated_date: 'Updated date'
+            };
+            return fieldLabels[fieldKey] || fieldKey;
+        }
+
+        async function saveExercise() {
+            try {
+            console.log('[saveExercise] Called, currentEditingExerciseId:', currentEditingExerciseId);
+            // Make exerciseLibrary available globally for Firestore save
+            window.exerciseLibrary = exerciseLibrary;
+            const existingExercise = currentEditingExerciseId
+                ? exerciseLibrary.find(ex => ex.id === currentEditingExerciseId)
+                : null;
+            const exercise = exerciseFormModule.serializeExerciseFromBindings({
+                bindings: exerciseFormBindings,
+                schema,
+                id: currentEditingExerciseId,
+                generateId: generateULID
+            });
+
+            const lifecycleStatusInput = document.getElementById('ex-lifecycle-status');
+            const lifecycleStartInput = document.getElementById('ex-lifecycle-start');
+            const lifecycleEndInput = document.getElementById('ex-lifecycle-end');
+
+            const lifecycleStatus = lifecycleStatusInput ? lifecycleStatusInput.value : 'active';
+            const lifecycleStart = lifecycleStartInput ? lifecycleStartInput.value : '';
+            const lifecycleEnd = lifecycleEndInput ? lifecycleEndInput.value : '';
+
+            exercise.lifecycle = {
+                status: lifecycleStatus || 'active',
+                effective_start_date: lifecycleStart ? lifecycleStart : null,
+                effective_end_date: lifecycleEnd ? lifecycleEnd : null
+            };
+
+            const name = (exercise.canonical_name || '').trim();
+            exercise.canonical_name = name;
+
+            const blankFields = getBlankFields(existingExercise, exercise, exerciseFormBindings.restrictToFields);
+            if (blankFields.length > 0) {
+                const confirmClear = confirm(
+                    `The following fields are blank and will clear existing data:\n\n` +
+                    `${blankFields.map(field => `• ${formatFieldLabel(field)}`).join('\n')}\n\n` +
+                    `Press OK to clear them, or Cancel to keep existing values.`
+                );
+                if (!confirmClear) {
+                    applyExistingValues(exercise, existingExercise, blankFields);
+                }
+            }
+
+            const changedFields = getChangedFields(existingExercise, exercise, exerciseFormBindings.restrictToFields);
+
+            if (existingExercise && changedFields.length === 0) {
+                alert('No changes detected to save.');
+                return;
+            }
+
+            const today = getTodayDate();
+            if (existingExercise) {
+                exercise.updated_date = today;
+            } else {
+                if (!exercise.added_date) {
+                    exercise.added_date = today;
+                }
+                exercise.updated_date = today;
+            }
+
+            const errors = exerciseFormModule.validateExercise(
+                exercise,
+                schema,
+                exerciseFormBindings.restrictToFields
+            );
+
+            if (errors.length > 0) {
+                alert('Cannot save - required fields missing:\n\n' + errors.join('\n'));
+                return;
+            }
+
+            // Add legacy name aliases for compatibility
+            exercise.name = name;
+            exercise.title = name;
+
+            const exerciseId = exercise.id;
+            const newExerciseIndex = modifications.newExercises.findIndex(ex => ex.id === exerciseId);
+
+            // Save without confirmation dialog
+            if (currentEditingExerciseId) {
+                if (newExerciseIndex !== -1) {
+                    modifications.newExercises[newExerciseIndex] = exercise;
+                } else {
+                    modifications.editedExercises[exerciseId] = exercise;
+                }
+                const index = exerciseLibrary.findIndex(ex => ex.id === exerciseId);
+                if (index !== -1) {
+                    exerciseLibrary[index] = exercise;
+                }
+            } else {
+                modifications.newExercises.push(exercise);
+                exerciseLibrary.push(exercise);
+            }
+
+            // Save to Firestore - expose both on window for Firestore save function
+            window.exerciseLibrary = exerciseLibrary;
+            window.modifications = modifications;
+            try {
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    showToast('Saved locally, but cloud data was not loaded. Save blocked until cloud data loads.', 'error', 4000);
+                } else {
+                    showToast(`"${name}" saved`, 'success', 2000);
+                }
+            } catch (error) {
+                showToast(`Failed to save: ${error.message}`, 'error', 4000);
+                throw error;
+            }
+
+            await runExportRegressionCheck(exerciseId, exercise);
+
+            // Clear form
+            document.getElementById('ex-name').value = '';
+            document.getElementById('ex-category').value = '';
+            document.getElementById('ex-category-custom').style.display = 'none';
+            document.getElementById('ex-category-custom').value = '';
+            document.getElementById('ex-desc').value = '';
+            document.getElementById('ex-pattern').value = '';
+            clearAllArrayFields();
+            document.getElementById('edit-ex-select').value = '';
+            document.getElementById('archive-btn').style.display = 'none';
+            currentEditingExerciseId = null;
+
+            initializeEditorMode();
+            } catch (error) {
+                alert(`ERROR in saveExercise: ${error.message}\n\nStack: ${error.stack}`);
+                console.error('[saveExercise] Error:', error);
+            }
+        }
+
+        /**
+         * Archive the currently selected exercise by marking its lifecycle status as archived.
+         * Called by the Archive button in the exercise editor form.
+         * First click: Shows confirmation state on button
+         * Second click: Performs the archive action
+         */
+        let archiveConfirmPending = false;
+        window.archiveExercise = function archiveExercise() {
+            if (!currentEditingExerciseId) {
+                showToast('No exercise selected', 'error', 2000);
+                return;
+            }
+
+            const archiveBtn = document.getElementById('archive-btn');
+            const exercise = exerciseLibrary.find(ex => ex.id === currentEditingExerciseId);
+            const exerciseName = exercise ? (exercise.title || exercise.name) : 'this exercise';
+
+            // First click: Show confirmation
+            if (!archiveConfirmPending) {
+                archiveConfirmPending = true;
+                archiveBtn.textContent = '✓ Confirm Archive?';
+                archiveBtn.style.background = 'var(--ios-red)';
+
+                // Reset after 3 seconds if not confirmed
+                setTimeout(() => {
+                    if (archiveConfirmPending) {
+                        archiveConfirmPending = false;
+                        archiveBtn.textContent = '🗑️ Archive';
+                        archiveBtn.style.background = '';
+                    }
+                }, 3000);
+                return;
+            }
+
+            // Second click: Perform archive
+            archiveConfirmPending = false;
+
+            // Add to archived list
+            if (!modifications.archivedExercises.includes(currentEditingExerciseId)) {
+                modifications.archivedExercises.push(currentEditingExerciseId);
+            }
+
+            if (exercise) {
+                const today = new Date().toISOString().split('T')[0];
+                const lifecycle = exercise.lifecycle || {};
+                exercise.lifecycle = {
+                    ...lifecycle,
+                    status: 'archived',
+                    effective_end_date: lifecycle.effective_end_date || today
+                };
+                modifications.editedExercises[currentEditingExerciseId] = exercise;
+            }
+
+            const lifecycleEndInput = document.getElementById('ex-lifecycle-end');
+            if (lifecycleEndInput && !lifecycleEndInput.value) {
+                lifecycleEndInput.value = new Date().toISOString().split('T')[0];
+            }
+
+            showToast(`"${exerciseName}" archived`, 'success', 2000);
+
+            // Clear form
+            [
+                'new-ex-name',
+                'new-ex-desc',
+                'new-ex-instructions',
+                'new-ex-video',
+                'edit-ex-select'
+            ].forEach((fieldId) => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.value = '';
+                }
+            });
+            archiveBtn.style.display = 'none';
+            archiveBtn.textContent = '🗑️ Archive';
+            archiveBtn.style.background = '';
+            currentEditingExerciseId = null;
+
+            // Refresh dropdowns
+            initializeEditorMode();
+        };
+
+        function loadExerciseRoles() {
+            const exerciseId = document.getElementById('role-exercise-select').value;
+            const currentRolesDiv = document.getElementById('current-roles');
+            const addRoleForm = document.getElementById('add-role-form');
+
+            if (!exerciseId) {
+                currentRolesDiv.innerHTML = '';
+                addRoleForm.style.display = 'none';
+                return;
+            }
+
+            addRoleForm.style.display = 'block';
+
+            // Show current roles
+            const exerciseRoles = rolesData.exercise_roles[exerciseId];
+            const modifiedRoles = modifications.newRoles[exerciseId] || [];
+            const deletedRoles = modifications.deletedRoles?.[exerciseId] || [];
+
+            let html = '<h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">Current Roles:</h4>';
+
+            if (exerciseRoles && exerciseRoles.roles && exerciseRoles.roles.length > 0) {
+                exerciseRoles.roles.forEach((role, idx) => {
+                    const isDeleted = deletedRoles.some(dr =>
+                        dr.region === role.region &&
+                        dr.capacity === role.capacity &&
+                        (dr.focus || '') === (role.focus || '')
+                    );
+
+                    if (!isDeleted) {
+                        html += `
+                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
+                                <div style="flex: 1;">
+                                    <strong>${role.region}</strong> → ${role.capacity}
+                                    ${role.focus ? ` (${role.focus})` : ''}
+                                    • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                                </div>
+                                <button data-action="deleteRole" data-exercise-id="${exerciseId}" data-role-idx="${idx}" data-role-type="existing" class="btn-danger" style="padding: 6px 12px; font-size: 12px; min-height: unset;">✕</button>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 13px; opacity: 0.5; text-decoration: line-through;">
+                                <div style="flex: 1;">
+                                    <strong>${role.region}</strong> → ${role.capacity}
+                                    ${role.focus ? ` (${role.focus})` : ''}
+                                    • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                                </div>
+                                <span style="color: var(--ios-red); font-size: 11px;">WILL BE DELETED</span>
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            if (modifiedRoles.length > 0) {
+                html += '<h4 style="font-size: 14px; margin: 15px 0 10px; color: var(--ios-green);">New Roles (will be exported):</h4>';
+                modifiedRoles.forEach((role, idx) => {
+                    html += `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(48, 209, 88, 0.1); border: 1px solid var(--ios-green); border-radius: 6px; margin-bottom: 6px; font-size: 13px;">
+                            <div style="flex: 1;">
+                                <strong>${role.region}</strong> → ${role.capacity}
+                                ${role.focus ? ` (${role.focus})` : ''}
+                                • <span style="color: var(--ios-yellow);">${role.contribution}</span>
+                            </div>
+                            <button data-action="deleteRole" data-exercise-id="${exerciseId}" data-role-idx="${idx}" data-role-type="new" class="btn-danger" style="padding: 6px 12px; font-size: 12px; min-height: unset;">✕</button>
+                        </div>
+                    `;
+                });
+            }
+
+            if (!exerciseRoles && modifiedRoles.length === 0) {
+                html += '<div style="color: var(--text-secondary); font-size: 13px;">No roles assigned yet</div>';
+            }
+
+            currentRolesDiv.innerHTML = html;
+            bindPointerHandlers(currentRolesDiv); // Rebind after innerHTML update
+        }
+
+        function toggleCustomInput(field) {
+            const selectElem = document.getElementById(`new-role-${field}`);
+            const customElem = document.getElementById(`new-role-${field}-custom`);
+
+            if (selectElem.value === '__custom__') {
+                customElem.style.display = 'block';
+                customElem.focus();
+            } else {
+                customElem.style.display = 'none';
+                customElem.value = '';
+            }
+        }
+
+        async function addRoleToExercise() {
+            try {
+            console.log('[addRoleToExercise] Called');
+            const exerciseId = document.getElementById('role-exercise-select').value;
+
+            // Get region value (from select or custom input)
+            let region = document.getElementById('new-role-region').value;
+            if (region === '__custom__') {
+                region = document.getElementById('new-role-region-custom').value.trim();
+            }
+
+            // Get capacity value (from select or custom input)
+            let capacity = document.getElementById('new-role-capacity').value;
+            if (capacity === '__custom__') {
+                capacity = document.getElementById('new-role-capacity-custom').value.trim();
+            }
+
+            // Get focus value (from select or custom input)
+            let focus = document.getElementById('new-role-focus').value;
+            if (focus === '__custom__') {
+                focus = document.getElementById('new-role-focus-custom').value.trim();
+            } else {
+                focus = focus.trim();
+            }
+
+            const contribution = document.getElementById('new-role-contribution').value;
+
+            if (!exerciseId || !region || !capacity || !contribution) {
+                alert('Please fill in exercise, region, capacity, and contribution');
+                return;
+            }
+
+            const newRole = {
+                region: region,
+                capacity: capacity,
+                contribution: contribution
+            };
+
+            if (focus) {
+                newRole.focus = focus;
+            }
+
+            // Add to modifications
+            if (!modifications.newRoles[exerciseId]) {
+                modifications.newRoles[exerciseId] = [];
+            }
+            modifications.newRoles[exerciseId].push(newRole);
+
+            // Clear form
+            document.getElementById('new-role-region').value = '';
+            document.getElementById('new-role-capacity').value = '';
+            document.getElementById('new-role-focus').value = '';
+            document.getElementById('new-role-contribution').value = '';
+            // Hide and clear custom inputs
+            document.getElementById('new-role-region-custom').style.display = 'none';
+            document.getElementById('new-role-region-custom').value = '';
+            document.getElementById('new-role-capacity-custom').style.display = 'none';
+            document.getElementById('new-role-capacity-custom').value = '';
+            document.getElementById('new-role-focus-custom').style.display = 'none';
+            document.getElementById('new-role-focus-custom').value = '';
+
+            // Save to Firestore
+            try {
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    alert('Role tracked locally, but cloud data was not loaded. Save blocked until cloud data loads.');
+                    return;
+                }
+            } catch (error) {
+                alert(`Role tracked but Firestore save failed: ${error.message}`);
+            }
+
+            // Refresh display
+            loadExerciseRoles();
+
+            alert('Role added and saved to Firestore!');
+            } catch (error) {
+                alert(`ERROR in addRoleToExercise: ${error.message}\n\nStack: ${error.stack}`);
+                console.error('[addRoleToExercise] Error:', error);
+            }
+        }
+
+        window.deleteRole = function deleteRole(exerciseId, roleIndex, roleType) {
+            if (!confirm('Delete this role?\n\nThis will be exported as a role removal.')) {
+                return;
+            }
+
+            if (roleType === 'new') {
+                // Remove from newRoles array
+                if (modifications.newRoles[exerciseId]) {
+                    modifications.newRoles[exerciseId].splice(roleIndex, 1);
+                    if (modifications.newRoles[exerciseId].length === 0) {
+                        delete modifications.newRoles[exerciseId];
+                    }
+                }
+            } else if (roleType === 'existing') {
+                // Add to deletedRoles
+                const exerciseRoles = rolesData.exercise_roles[exerciseId];
+                if (exerciseRoles && exerciseRoles.roles && exerciseRoles.roles[roleIndex]) {
+                    if (!modifications.deletedRoles[exerciseId]) {
+                        modifications.deletedRoles[exerciseId] = [];
+                    }
+                    modifications.deletedRoles[exerciseId].push(exerciseRoles.roles[roleIndex]);
+                }
+            }
+
+            // Refresh display
+            loadExerciseRoles();
+        }
+
+        function loadVocabTerms() {
+            const category = document.getElementById('vocab-category').value;
+            document.getElementById('vocab-definition').value = '';
+            exerciseFormModule.populateVocabTermSelect({
+                selectId: 'vocab-term',
+                vocabulary,
+                category
+            });
+        }
+
+        function loadVocabDefinition() {
+            const category = document.getElementById('vocab-category').value;
+            const term = document.getElementById('vocab-term').value;
+
+            const vocabMap = exerciseFormModule.getVocabularyMap(vocabulary, category);
+            if (!category || !term || !vocabMap) {
+                document.getElementById('vocab-definition').value = '';
+                return;
+            }
+
+            const currentDef = vocabMap[term] || '';
+            document.getElementById('vocab-definition').value = currentDef;
+        }
+
+        async function updateVocabulary() {
+            const category = document.getElementById('vocab-category').value;
+            const term = document.getElementById('vocab-term').value;
+            const definition = document.getElementById('vocab-definition').value.trim();
+
+            if (!category || !term || !definition) {
+                alert('Please select category, term, and enter a definition');
+                return;
+            }
+
+            // Add to modifications
+            if (!modifications.updatedVocab[category]) {
+                modifications.updatedVocab[category] = {};
+            }
+            modifications.updatedVocab[category][term] = definition;
+
+            // Save to Firestore
+            try {
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    showToast('Definition saved locally, but cloud data was not loaded. Save blocked until cloud data loads.', 'error', 4000);
+                    return;
+                }
+                showToast(`Definition for "${term}" saved`, 'success', 2000);
+            } catch (error) {
+                showToast(`Failed to save: ${error.message}`, 'error', 4000);
+            }
+        }
+
+        function loadExerciseDosage() {
+            const exerciseId = document.getElementById('dosage-exercise-select').value;
+            const currentDosageDisplay = document.getElementById('current-dosage-display');
+            const editDosageForm = document.getElementById('edit-dosage-form');
+
+            if (!exerciseId) {
+                currentDosageDisplay.style.display = 'none';
+                editDosageForm.style.display = 'none';
+                return;
+            }
+
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+            if (!exercise) return;
+
+            const spec = exercise.current || {};
+            const modifiers = exercise.pattern_modifiers || [];
+
+            // Display current dosage
+            let currentHtml = '<h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">Current Dosage:</h4>';
+            if (spec.sets) {
+                let dosageText = `${spec.sets} sets`;
+                if (spec.repsPerSet && !modifiers.includes('duration_seconds') && !modifiers.includes('distance_feet')) {
+                    dosageText += ` × ${spec.repsPerSet} reps`;
+                }
+                if (spec.secondsPerRep && spec.secondsPerRep > 0) {
+                    dosageText += ` × ${spec.secondsPerRep}s`;
+                }
+                if (spec.distanceFeet && spec.distanceFeet > 0) {
+                    dosageText += ` × ${spec.distanceFeet}ft`;
+                }
+                currentHtml += `<div style="padding: 8px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 6px; font-size: 15px; font-weight: 600;">${dosageText}</div>`;
+            } else {
+                currentHtml += '<div style="color: var(--text-secondary); font-size: 13px;">No dosage set yet</div>';
+            }
+
+            // Check if there's a pending change
+            if (modifications.dosageChanges[exerciseId]) {
+                const pendingSpec = modifications.dosageChanges[exerciseId];
+                let pendingText = `${pendingSpec.sets} sets`;
+                if (pendingSpec.repsPerSet && !modifiers.includes('duration_seconds') && !modifiers.includes('distance_feet')) {
+                    pendingText += ` × ${pendingSpec.repsPerSet} reps`;
+                }
+                if (pendingSpec.secondsPerRep && pendingSpec.secondsPerRep > 0) {
+                    pendingText += ` × ${pendingSpec.secondsPerRep}s`;
+                }
+                if (pendingSpec.distanceFeet && pendingSpec.distanceFeet > 0) {
+                    pendingText += ` × ${pendingSpec.distanceFeet}ft`;
+                }
+                currentHtml += '<h4 style="font-size: 14px; margin: 15px 0 10px; color: var(--ios-green);">Pending Change (will be exported):</h4>';
+                currentHtml += `<div style="padding: 8px; background: rgba(48, 209, 88, 0.1); border: 1px solid var(--ios-green); border-radius: 6px; margin-bottom: 6px; font-size: 15px; font-weight: 600;">${pendingText}</div>`;
+            }
+
+            currentDosageDisplay.innerHTML = currentHtml;
+            currentDosageDisplay.style.display = 'block';
+
+            // Populate edit form
+            document.getElementById('dosage-sets').value = spec.sets || '';
+            document.getElementById('dosage-reps').value = spec.repsPerSet || '';
+            document.getElementById('dosage-seconds').value = spec.secondsPerRep || '';
+            document.getElementById('dosage-distance').value = spec.distanceFeet || '';
+
+            // Show/hide fields based on modifiers
+            const repsGroup = document.getElementById('dosage-reps-group');
+            const secondsGroup = document.getElementById('dosage-seconds-group');
+            const secondsLabel = document.getElementById('dosage-seconds-label');
+            const distanceGroup = document.getElementById('dosage-distance-group');
+
+            const hasHold = modifiers.includes('hold_seconds');
+            const hasDuration = modifiers.includes('duration_seconds');
+            const hasDistance = modifiers.includes('distance_feet');
+
+            if (hasDuration || hasDistance) {
+                repsGroup.style.display = 'none';
+            } else {
+                repsGroup.style.display = 'block';
+            }
+
+            if (hasHold || hasDuration) {
+                secondsGroup.style.display = 'block';
+                secondsLabel.textContent = hasHold ? 'Hold Seconds (per rep) *' : 'Duration (seconds) *';
+            } else {
+                secondsGroup.style.display = 'none';
+            }
+
+            distanceGroup.style.display = hasDistance ? 'block' : 'none';
+
+            editDosageForm.style.display = 'block';
+        }
+
+        async function updateDosage() {
+            try {
+            console.log('[updateDosage] Called');
+            const exerciseId = document.getElementById('dosage-exercise-select').value;
+            const sets = parseInt(document.getElementById('dosage-sets').value);
+            let reps = parseInt(document.getElementById('dosage-reps').value);
+            const seconds = parseInt(document.getElementById('dosage-seconds').value) || 0;
+            const distance = parseInt(document.getElementById('dosage-distance').value) || 0;
+
+            if (!exerciseId) {
+                alert('Please select an exercise');
+                return;
+            }
+
+            if (!sets || sets < 1) {
+                alert('Please enter valid sets');
+                return;
+            }
+
+            const exercise = exerciseLibrary.find(ex => ex.id === exerciseId);
+            if (!exercise) return;
+
+            const modifiers = exercise.pattern_modifiers || [];
+            const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+            if (replacesReps) {
+                reps = 1;
+            } else {
+                if (!reps || reps < 1) {
+                    alert('Please enter valid reps');
+                    return;
+                }
+            }
+
+            // Validate required fields
+            if (modifiers.includes('hold_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid seconds for this hold exercise');
+                return;
+            }
+            if (modifiers.includes('duration_seconds') && (!seconds || seconds < 1)) {
+                alert('Please enter valid duration in seconds');
+                return;
+            }
+            if (modifiers.includes('distance_feet') && (!distance || distance < 1)) {
+                alert('Please enter valid distance in feet');
+                return;
+            }
+
+            const newSpec = {
+                type: modifiers.includes('hold_seconds') ? 'hold' : modifiers.includes('duration_seconds') ? 'duration' : 'reps',
+                sets: sets,
+                repsPerSet: reps,
+                secondsPerRep: seconds
+            };
+
+            if (modifiers.includes('distance_feet') && distance > 0) {
+                newSpec.distanceFeet = distance;
+            }
+
+            const previousSpec = exercise.current || {};
+            let dosageSummary = `${sets} sets`;
+            if (!replacesReps) dosageSummary += ` × ${reps} reps`;
+            if (seconds > 0) dosageSummary += ` × ${seconds}s`;
+            if (distance > 0) dosageSummary += ` × ${distance}ft`;
+
+            // Add to modifications
+            modifications.dosageChanges[exerciseId] = newSpec;
+
+            exercise.current = newSpec;
+            if (!exercise.history) exercise.history = [];
+            exercise.history.push({
+                timestamp: new Date().toISOString(),
+                summary: `Dosage updated to ${dosageSummary}`,
+                previous: previousSpec,
+                next: newSpec,
+                supersedes: []
+            });
+
+            // Save to Firestore
+            try {
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    alert('Dosage tracked locally, but cloud data was not loaded. Save blocked until cloud data loads.');
+                    return;
+                }
+            } catch (error) {
+                alert(`Dosage tracked but Firestore save failed: ${error.message}`);
+            }
+
+            // Refresh display
+            loadExerciseDosage();
+
+            alert('Dosage updated and saved to Firestore!');
+            } catch (error) {
+                alert(`ERROR in updateDosage: ${error.message}\n\nStack: ${error.stack}`);
+                console.error('[updateDosage] Error:', error);
+            }
+        }
+
+        function updateModificationSummary() {
+            const summaryDiv = document.getElementById('mod-summary');
+            const contentDiv = document.getElementById('mod-summary-content');
+
+            const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const editedRoleCount = Object.keys(modifications.editedRoles).length;
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
+            const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+
+            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && deletedRoleCount === 0 && editedRoleCount === 0 && dosageChangeCount === 0 && updatedVocabCount === 0) {
+                summaryDiv.style.display = 'none';
+                return;
+            }
+
+            summaryDiv.style.display = 'block';
+
+            let html = '<div style="font-size: 14px;">';
+            if (newExCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✅ <strong>${newExCount}</strong> new exercise${newExCount > 1 ? 's' : ''} added</div>`;
+            }
+            if (editedExCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✏️ <strong>${editedExCount}</strong> exercise${editedExCount > 1 ? 's' : ''} edited</div>`;
+            }
+            if (archivedExCount > 0) {
+                html += `<div style="margin-bottom: 6px;">🗑️ <strong>${archivedExCount}</strong> exercise${archivedExCount > 1 ? 's' : ''} archived</div>`;
+            }
+            if (newRoleCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✅ <strong>${newRoleCount}</strong> new role${newRoleCount > 1 ? 's' : ''} assigned</div>`;
+            }
+            if (deletedRoleCount > 0) {
+                html += `<div style="margin-bottom: 6px;">🗑️ <strong>${deletedRoleCount}</strong> role${deletedRoleCount > 1 ? 's' : ''} deleted</div>`;
+            }
+            if (editedRoleCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✏️ <strong>${editedRoleCount}</strong> exercise role${editedRoleCount > 1 ? 's' : ''} edited</div>`;
+            }
+            if (dosageChangeCount > 0) {
+                html += `<div style="margin-bottom: 6px;">💊 <strong>${dosageChangeCount}</strong> dosage${dosageChangeCount > 1 ? 's' : ''} updated</div>`;
+            }
+            if (updatedVocabCount > 0) {
+                html += `<div style="margin-bottom: 6px;">✅ <strong>${updatedVocabCount}</strong> vocabulary definition${updatedVocabCount > 1 ? 's' : ''} updated</div>`;
+            }
+            html += '</div>';
+
+            contentDiv.innerHTML = html;
+        }
+
+        function showImportPasteModal() {
+            document.getElementById('import-paste-content').value = '';
+            document.getElementById('import-paste-modal').style.display = 'flex';
+        }
+
+        function closeImportPasteModal() {
+            document.getElementById('import-paste-modal').style.display = 'none';
+        }
+
+        async function processPatientPaste() {
+            const pastedContent = document.getElementById('import-paste-content').value;
+
+            if (!pastedContent.trim()) {
+                alert('Please paste the email content from your patient');
+                return;
+            }
+
+            try {
+                const parsed = await ptPayloadUtils.parseV2FromText(pastedContent, 'PT_DATA');
+                if (parsed.errors.length > 0) {
+                    alert(parsed.errors.join('\n\n'));
+                    return;
+                }
+
+                if (parsed.type !== 'PT_DATA') {
+                    alert(`Invalid payload type: ${parsed.type}. Expected PT_DATA.`);
+                    return;
+                }
+
+                const reportData = parsed.obj;
+
+                // Load the data
+                sessionHistory = reportData.sessionHistory || [];
+                exerciseLibrary = window.normalizeExerciseLifecycle(reportData.exerciseLibrary || []);
+                rolesData = reportData.rolesData || {};
+                schema = reportData.schema || {};
+                vocabulary = reportData.vocabulary || {};
+
+                // Migrate exercise_id → id (one-time, idempotent)
+                exerciseLibrary.forEach(ex => {
+                    if (ex.exercise_id && !ex.id) {
+                        ex.id = ex.exercise_id;
+                        delete ex.exercise_id;
+                    }
+                });
+
+                console.log('[Import] Loaded report:', {
+                    sessions: sessionHistory.length,
+                    exercises: exerciseLibrary.length
+                });
+
+                closeImportPasteModal();
+                document.getElementById('import-screen').style.display = 'none';
+
+                // Show patient note if present
+                if (reportData.noteForPT) {
+                    document.getElementById('patient-note').textContent = reportData.noteForPT;
+                    document.getElementById('patient-note-section').style.display = 'block';
+                } else {
+                    document.getElementById('patient-note-section').style.display = 'none';
+                }
+
+                // Show report header with export date
+                const reportHeader = document.querySelector('.report-header');
+                reportHeader.style.display = 'block';
+                document.getElementById('report-date').textContent = `Report Date: ${new Date(reportData.exportDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}`;
+
+                // Show action buttons
+                document.getElementById('action-buttons').style.display = 'flex';
+
+                // Show and render all report sections
+                document.querySelectorAll('body > .section').forEach(el => el.style.display = 'block');
+
+                renderOverallMetrics();
+                renderCoverageSummary();
+                renderRecentActivity();
+                renderExerciseHistory();
+
+                alert(`Patient report loaded!\n\nDate: ${reportData.exportDate}\n${reportData.noteForPT ? 'Note: ' + reportData.noteForPT : ''}`);
+            } catch (err) {
+                alert('Error parsing data: ' + err.message + '\n\nMake sure you pasted the complete email content.');
+                console.error('Import error:', err);
+            }
+        }
+
+        async function buildModificationsExport() {
+            return {
+                exportDate: new Date().toISOString(),
+                modificationType: 'PT_MODIFICATIONS',
+                modifications: modifications
+            };
+        }
+
+        // TODO: Remove email export functions if direct Firestore workflow is working well
+        /*
+        function showExportEmailModal() {
+            const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const editedRoleCount = Object.keys(modifications.editedRoles).length;
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
+            const updatedVocabCount = Object.values(modifications.updatedVocab).reduce((sum, terms) => sum + Object.keys(terms).length, 0);
+
+            if (newExCount === 0 && editedExCount === 0 && archivedExCount === 0 && newRoleCount === 0 && deletedRoleCount === 0 && editedRoleCount === 0 && dosageChangeCount === 0 && updatedVocabCount === 0) {
+                alert('No modifications to export');
+                return;
+            }
+
+            if (patientEmailCache) {
+                document.getElementById('patient-email').value = patientEmailCache;
+            }
+            document.getElementById('pt-message').value = '';
+            document.getElementById('export-email-modal').style.display = 'flex';
+        }
+
+        function closeExportEmailModal() {
+            document.getElementById('export-email-modal').style.display = 'none';
+        }
+
+        async function copyModificationsPayload() {
+            const exportData = await buildModificationsExport();
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_MODIFICATIONS', obj: exportData });
+            try {
+                await navigator.clipboard.writeText(payload);
+                alert('Payload copied. Paste it into the PT Tracker import screen.');
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                alert('Unable to copy to clipboard in this browser. Please use Send Email instead.');
+            }
+        }
+
+        async function sendModificationsToPatient() {
+            const patientEmail = document.getElementById('patient-email').value.trim();
+            const message = document.getElementById('pt-message').value.trim();
+
+            if (patientEmail) {
+                patientEmailCache = patientEmail;
+            }
+
+            const exportData = await buildModificationsExport();
+            const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_MODIFICATIONS', obj: exportData });
+            const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+            // Count modifications for summary
+            const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
+
+            let summary = '';
+            if (newExCount > 0) summary += `• ${newExCount} new exercise${newExCount > 1 ? 's' : ''}\n`;
+            if (editedExCount > 0) summary += `• ${editedExCount} edited exercise${editedExCount > 1 ? 's' : ''}\n`;
+            if (archivedExCount > 0) summary += `• ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}\n`;
+            if (newRoleCount > 0) summary += `• ${newRoleCount} new role${newRoleCount > 1 ? 's' : ''} assigned\n`;
+            if (deletedRoleCount > 0) summary += `• ${deletedRoleCount} role${deletedRoleCount > 1 ? 's' : ''} deleted\n`;
+            if (dosageChangeCount > 0) summary += `• ${dosageChangeCount} dosage${dosageChangeCount > 1 ? 's' : ''} updated\n`;
+
+            // Format email body with V2 payload block
+            const emailBody = `Hi,
+
+${message ? message + '\n\n' : ''}I've made the following modifications to your PT program:
+
+${summary}
+Please paste the data below into your PT Tracker app to receive the updates.
+${payload}`;
+
+            const subject = `PT Program Updates - ${dateStr}`;
+
+            // Create mailto link
+            const mailtoLink = `mailto:${encodeURIComponent(patientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+
+            // Open email client
+            window.location.href = mailtoLink;
+
+            closeExportEmailModal();
+        }
+
+        function exportModifications() {
+            // Legacy function - now redirects to email flow
+            showExportEmailModal();
+        }
+        */
+
+        // PT Mode - load base files without patient data
+        /**
+         * Load PT Editor Mode - loads base exercise library without patient data.
+         * Saves changes to the PT's own Firestore account.
+         * Exposed on window for onclick handler access.
+         */
+        window.loadPTMode = async function loadPTMode() {
+            try {
+                // Check if user is authenticated (ptReportUserId should be set by auth flow)
+                if (!window.ptReportUserId) {
+                    alert('You must be signed in to use PT Editor Mode.\n\nPlease sign in first, then click PT Editor Mode.');
+                    return;
+                }
+
+                console.log('[PT Mode] Using account for saves:', window.ptReportUserId);
+
+                const sharedLoader = window.sharedDataLoader;
+                if (!sharedLoader) {
+                    throw new Error('Shared data loader unavailable. Try reloading the page.');
+                }
+
+                const [
+                    libraryResult,
+                    rolesResult,
+                    schemaResult,
+                    vocabResult,
+                    libraryVocabResult
+                ] = await Promise.all([
+                    sharedLoader.loadExerciseLibraryShared(),
+                    sharedLoader.loadExerciseRolesShared(),
+                    sharedLoader.loadExerciseFileSchemaShared(),
+                    sharedLoader.loadExerciseVocabularyShared(),
+                    sharedLoader.loadExerciseLibraryVocabularyShared()
+                ]);
+
+                const libraryExercises = libraryResult?.data || [];
+                const rolesDataRaw = rolesResult?.data || { exercise_roles: {} };
+                const schemaData = schemaResult?.data || {};
+                const vocabData = vocabResult?.data || {};
+                const libraryVocabData = libraryVocabResult?.data || {};
+
+                const sharedDocSource = window.sharedDocSource || {
+                    sharedLibrary: 'unknown',
+                    sharedRoles: 'unknown',
+                    sharedVocab: 'unknown'
+                };
+                window.sharedDocSource = sharedDocSource;
+
+                sharedDocSource.sharedLibrary = libraryResult?.source || sharedDocSource.sharedLibrary;
+                sharedDocSource.sharedRoles = rolesResult?.source || sharedDocSource.sharedRoles;
+                sharedDocSource.sharedVocab = vocabResult?.source || sharedDocSource.sharedVocab;
+
+                if (libraryResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedLibrary');
+                    markDocHydrated('sharedLibrary');
+                }
+                if (rolesResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedRoles');
+                    markDocHydrated('sharedRoles');
+                }
+                if (vocabResult?.hasFirestoreReadSucceeded) {
+                    setFirestoreReadSucceeded('sharedVocab');
+                    markDocHydrated('sharedVocab');
+                }
+
+                // Set global data
+                sessionHistory = []; // Empty - no patient data
+                // Map shared exercise library format to expected format
+                exerciseLibrary = (libraryExercises || []).map(ex => {
+                    const id = ex.id || ex.exercise_id;
+                    const canonicalName = ex.canonical_name || ex.name || ex.title || '';
+                    return {
+                        ...ex,
+                        id,
+                        name: canonicalName,
+                        title: canonicalName
+                    };
+                });
+                rolesData = rolesDataRaw;
+                schema = schemaData;
+                vocabulary = {
+                    ...vocabData,
+                    regions: vocabData.regions || vocabData.region,
+                    capacities: vocabData.capacities || vocabData.capacity,
+                    contributions: vocabData.contributions || vocabData.contribution,
+                    pattern_modifiers: libraryVocabData?.pattern_modifiers || {}
+                };
+
+                console.log('[PT Mode] Loaded', exerciseLibrary.length, 'exercises from library');
+                console.log('[PT Mode] Sample exercise:', exerciseLibrary[0]);
+
+                // Hide import screen, show editor immediately
+                document.getElementById('import-screen').style.display = 'none';
+                document.getElementById('editor-mode').style.display = 'block';
+                initializeEditorMode();
+
+                //Hide Alert: alert('PT Editor Mode loaded!\n\nYou can now:\n• Add new exercises\n• Assign roles\n• Update vocabulary\n\nExport modifications when done and email to patient.');
+            } catch (error) {
+                console.error('Error loading PT mode:', error);
+                alert('Error loading PT Mode: ' + error.message + '\n\nMake sure you have internet connection and the shared data is accessible.');
+            }
+        }
+
+        // Show change history
+        function showChangeHistory() {
+            const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
+
+            let summary = 'Current Changes:\n\n';
+
+            if (newExCount > 0) {
+                summary += `New Exercises (${newExCount}):\n`;
+                modifications.newExercises.forEach(ex => summary += `  • ${ex.canonical_name || ex.name}\n`);
+                summary += '\n';
+            }
+
+            if (editedExCount > 0) {
+                summary += `Edited Exercises (${editedExCount}):\n`;
+                Object.values(modifications.editedExercises).forEach(ex => summary += `  • ${ex.canonical_name || ex.name}\n`);
+                summary += '\n';
+            }
+
+            if (archivedExCount > 0) {
+                summary += `Archived Exercises (${archivedExCount}):\n`;
+                modifications.archivedExercises.forEach(id => {
+                    const ex = exerciseLibrary.find(e => e.id === id);
+                    summary += `  • ${ex?.canonical_name || ex?.name || id}\n`;
+                });
+                summary += '\n';
+            }
+
+            if (newRoleCount > 0) summary += `New Roles: ${newRoleCount}\n`;
+            if (deletedRoleCount > 0) summary += `Deleted Roles: ${deletedRoleCount}\n`;
+            if (dosageChangeCount > 0) summary += `Dosage Changes: ${dosageChangeCount}\n`;
+
+            if (newExCount + editedExCount + archivedExCount + newRoleCount + deletedRoleCount + dosageChangeCount === 0) {
+                summary = 'No changes yet.';
+            }
+
+            alert(summary);
+        }
+
+        // Clear all changes
+        function clearAllChanges() {
+            if (!confirm('Undo all changes?\n\nThis will reload the original data from Firestore.')) {
+                return;
+            }
+            location.reload();
+        }
+
+        // Commit all changes to Firestore
+        async function commitAllChangesToFirestore() {
+            if (!window.ptReportUserId) {
+                alert('No patient UID available');
+                return;
+            }
+
+            const newExCount = modifications.newExercises.length;
+            const editedExCount = Object.keys(modifications.editedExercises).length;
+            const archivedExCount = modifications.archivedExercises.length;
+            const newRoleCount = Object.values(modifications.newRoles).reduce((sum, roles) => sum + roles.length, 0);
+            const deletedRoleCount = Object.values(modifications.deletedRoles || {}).reduce((sum, roles) => sum + roles.length, 0);
+            const dosageChangeCount = Object.keys(modifications.dosageChanges || {}).length;
+
+            const summaryLines = [
+                newExCount ? `• ${newExCount} new exercise${newExCount > 1 ? 's' : ''}` : null,
+                editedExCount ? `• ${editedExCount} edited exercise${editedExCount > 1 ? 's' : ''}` : null,
+                archivedExCount ? `• ${archivedExCount} archived exercise${archivedExCount > 1 ? 's' : ''}` : null,
+                newRoleCount ? `• ${newRoleCount} new role${newRoleCount > 1 ? 's' : ''}` : null,
+                deletedRoleCount ? `• ${deletedRoleCount} deleted role${deletedRoleCount > 1 ? 's' : ''}` : null,
+                dosageChangeCount ? `• ${dosageChangeCount} dosage update${dosageChangeCount > 1 ? 's' : ''}` : null
+            ].filter(Boolean);
+
+            const destructiveWarning = (archivedExCount || deletedRoleCount)
+                ? '\n\n⚠️ Destructive review: archived exercises or deleted roles are included.'
+                : '';
+
+            const confirmMessage = `Review changes before saving:\n\n${summaryLines.length ? summaryLines.join('\n') : '• No changes detected'}${destructiveWarning}\n\nSave all changes to Firestore?`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            try {
+                window.exerciseLibrary = exerciseLibrary;
+                const saved = await window.saveExerciseLibraryToFirestore();
+                if (!saved) {
+                    alert('Changes saved locally, but cloud data was not loaded. Save blocked until cloud data loads.');
+                    return;
+                }
+                alert('All changes saved to Firestore!');
+            } catch (error) {
+                alert('Failed to save to Firestore: ' + error.message);
+            }
+        }
+
+        // Event delegation for custom input selects (iOS-safe pattern)
+        document.addEventListener('change', (event) => {
+            if (event.target.classList.contains('custom-select-trigger')) {
+                const selectId = event.target.id;
+                toggleCustomInputById(selectId);
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
