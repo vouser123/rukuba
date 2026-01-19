@@ -1726,18 +1726,15 @@
             }, 1500);
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="firebase.js"></script>
     <script type="module">
         import { db } from './firebase.js';
-        import {
-            auth,
-            signInWithEmailAndPassword,
-            signOut,
-            onAuthStateChanged,
-            setPersistence,
-            browserLocalPersistence,
-            browserSessionPersistence
-        } from './firebase.js';
+
+        // Supabase client for authentication
+        const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         // import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"; // TODO: Fix password reset
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         import {
@@ -1906,8 +1903,7 @@
 
         async function handleMenuSignOut() {
             try {
-                // TODO(firebase-auth): replace Firebase sign-out with API-based auth
-                await signOut(auth);
+                await supabase.auth.signOut();
                 console.log('[Auth] Signed out successfully');
                 // Close menu
                 const toggleMenu = window.toggleHamburgerMenu;
@@ -1942,23 +1938,24 @@
             }
 
             try {
-                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
-                // TODO(firebase-auth): replace Firebase auth persistence with API-based auth
-                await setPersistence(auth, persistence);
-                // TODO(firebase-auth): replace Firebase sign-in with API-based auth
-                await signInWithEmailAndPassword(auth, email, password);
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+                if (error) {
+                    console.error('[Auth] Sign in error:', error);
+                    if (error.message.includes('Invalid login credentials')) {
+                        showAuthError('Incorrect email or password.');
+                    } else if (error.message.includes('email')) {
+                        showAuthError('Please enter a valid email address.');
+                    } else {
+                        showAuthError('Sign in failed. Please try again.');
+                    }
+                    return;
+                }
+
                 console.log('[Auth] Signed in successfully');
             } catch (error) {
                 console.error('[Auth] Sign in error:', error);
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    showAuthError('Incorrect email or password.');
-                } else if (error.code === 'auth/invalid-email') {
-                    showAuthError('Please enter a valid email address.');
-                } else if (error.code === 'auth/too-many-requests') {
-                    showAuthError('Too many attempts. Please try again later.');
-                } else {
-                    showAuthError('Sign in failed. Please try again.');
-                }
+                showAuthError('Sign in failed. Please try again.');
             }
         }
 
@@ -1994,8 +1991,8 @@
         }
 
         // Auth state listener
-        // TODO(firebase-auth): replace Firebase auth state listener with API-based auth
-        onAuthStateChanged(auth, (user) => {
+        supabase.auth.onAuthStateChange((event, session) => {
+            const user = session?.user;
             currentUser = user;
             isAuthReady = true;
 
@@ -2007,7 +2004,7 @@
             }
             if (user) {
                 console.log('[Auth] User signed in:', user.email);
-                firestoreUserId = user.uid; // Set for runtime sync
+                firestoreUserId = user.id; // Set for runtime sync (Supabase uses 'id' not 'uid')
                 updateMenuAuthDisplay(); // Update menu
 
                 // Remove auth guard overlay
@@ -2734,7 +2731,7 @@
             if (session._firestoreId) return session._firestoreId;
             if (!currentUser || !session.sessionId) return null;
             try {
-                const snapshot = await fetch(`/api/logs?patient_id=${currentUser.uid}`).then(r => r.json());
+                const snapshot = await fetch(`/api/logs?patient_id=${currentUser.id}`).then(r => r.json());
                 const sessions = Array.isArray(snapshot) ? snapshot : [];
                 const match = sessions.find(entry => entry.sessionId === session.sessionId);
                 return match ? (match._firestoreId || match.id || null) : null;
@@ -2774,7 +2771,7 @@
             if (!user || sessionHistoryHydrated || legacyHistoryFetchAttempted) return;
             legacyHistoryFetchAttempted = true;
             try {
-                const snapshot = await fetch(`/api/logs?patient_id=${user.uid}`).then(r => r.json());
+                const snapshot = await fetch(`/api/logs?patient_id=${user.id}`).then(r => r.json());
                 const sessions = (snapshot || []).map(session => ({
                     _firestoreId: session._firestoreId || session.id,
                     ...session
@@ -2809,7 +2806,7 @@
             (async () => {
                 try {
                     const timestamp = new Date().toISOString();
-                    const snapshot = await fetch(`/api/logs?patient_id=${user.uid}`).then(r => r.json());
+                    const snapshot = await fetch(`/api/logs?patient_id=${user.id}`).then(r => r.json());
                     console.log(`[${timestamp}] [Firestore] Session history loaded`);
 
                     const sessions = (snapshot || []).map(session => ({
@@ -2847,9 +2844,10 @@
             void fetchFirestoreSessionsForLegacyMigration(user);
         }
 
-        // TODO(firebase-auth): replace Firebase auth state listener with API-based auth
-        onAuthStateChanged(auth, user => {
-            firestoreUserId = user ? user.uid : null;
+        // Supabase auth state listener for Firestore session history
+        supabase.auth.onAuthStateChange((event, session) => {
+            const user = session?.user;
+            firestoreUserId = user ? user.id : null;
             subscribeToFirestoreSessionHistory(user);
             if (user) {
                 void loadRuntimeFromFirestore();
@@ -2913,7 +2911,7 @@
                 return;
             }
 
-            console.log(`[Firestore] Flushing ${queue.length} queued sessions for user ${currentUser.uid}`);
+            console.log(`[Firestore] Flushing ${queue.length} queued sessions for user ${currentUser.id}`);
 
             const BATCH_SIZE = 500; // Firestore max batch size
             const remaining = [];
@@ -2926,7 +2924,7 @@
 
                 // Add each session to the batch
                 batchSessions.forEach(session => {
-                    const docRef = doc(collection(db, `users/${currentUser.uid}/sessions`));
+                    const docRef = doc(collection(db, `users/${currentUser.id}/sessions`));
                     // TODO(firebase-write): replace batched session write with API
                     batch.set(docRef, sanitizeSessionForFirestore(session));
                 });
@@ -5477,7 +5475,7 @@
                 if (currentUser) {
                     // User is authenticated - attempt direct write
                     // TODO(firebase-write): replace session write with API
-                    await addDoc(collection(db, `users/${currentUser.uid}/sessions`), sanitizeSessionForFirestore(finalizedSession));
+                    await addDoc(collection(db, `users/${currentUser.id}/sessions`), sanitizeSessionForFirestore(finalizedSession));
                     console.log('[Firestore] Session synced immediately:', finalizedSession.sessionId);
                     removeQueuedSession(finalizedSession);
                     firestoreSuccess = true;
@@ -6681,7 +6679,7 @@
                         console.warn('[Firestore] Unable to delete session: missing doc ID');
                     } else {
                         // TODO(firebase-write): replace session delete with API
-                        await deleteDoc(doc(db, `users/${currentUser.uid}/sessions`, docId));
+                        await deleteDoc(doc(db, `users/${currentUser.id}/sessions`, docId));
                         console.log('[Firestore] Session deleted:', sessionToDelete.sessionId);
                     }
                 } catch (error) {
@@ -6723,7 +6721,7 @@
                         alert('Warning: Session saved locally but could not sync to cloud (missing doc ID).');
                     } else {
                         // TODO(firebase-write): replace session update with API
-                        await updateDoc(doc(db, `users/${currentUser.uid}/sessions`, docId), sanitizeSessionForFirestore(session));
+                        await updateDoc(doc(db, `users/${currentUser.id}/sessions`, docId), sanitizeSessionForFirestore(session));
                         console.log('[Firestore] Session updated:', session.sessionId);
                     }
                 } catch (error) {
@@ -7894,7 +7892,7 @@
 
             /*
             try {
-                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+                const notesRef = collection(db, `users/${currentUser.id}/notes`);
                 const q = query(notesRef, where('createdBy', '==', 'therapist'), where('createdAt', '>', lastReadNoteTime));
                 const snapshot = await getDocs(q);
 
@@ -7947,7 +7945,7 @@
                 return;
             }
 
-            console.log('[Notes] Loading notes for user:', currentUser.uid);
+            console.log('[Notes] Loading notes for user:', currentUser.id);
 
             // TODO(firebase-read): notes load requires API endpoint mapping
             console.warn('[Notes] Skipping Firestore notes load until API replacement.');
@@ -7955,7 +7953,7 @@
 
             /*
             try {
-                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+                const notesRef = collection(db, `users/${currentUser.id}/notes`);
                 const q = query(notesRef, orderBy('createdAt', 'desc'));
                 const snapshot = await getDocs(q);
 
@@ -7983,7 +7981,7 @@
                 );
                 for (const noteDoc of unreadTherapistNotes) {
                     try {
-                        const noteRef = doc(db, `users/${currentUser.uid}/notes/${noteDoc.id}`);
+                        const noteRef = doc(db, `users/${currentUser.id}/notes/${noteDoc.id}`);
                         // TODO(firebase-write): replace note read status update with API
                         await updateDoc(noteRef, { readByPatient: true });
                     } catch (error) {
@@ -8052,16 +8050,16 @@
                 return;
             }
 
-            console.log('[Notes] Sending note for user:', currentUser.uid);
+            console.log('[Notes] Sending note for user:', currentUser.id);
 
             try {
-                const notesRef = collection(db, `users/${currentUser.uid}/notes`);
+                const notesRef = collection(db, `users/${currentUser.id}/notes`);
 
                 const noteData = {
                     text: text,
                     createdBy: 'patient',
                     createdAt: new Date().toISOString(),
-                    authorUid: currentUser.uid
+                    authorUid: currentUser.id
                 };
 
                 console.log('[Notes] Note data:', noteData);
@@ -8084,7 +8082,7 @@
             if (!currentUser) return;
 
             try {
-                const noteRef = doc(db, `users/${currentUser.uid}/notes/${noteId}`);
+                const noteRef = doc(db, `users/${currentUser.id}/notes/${noteId}`);
                 // TODO(firebase-write): replace note archive update with API
                 await updateDoc(noteRef, {
                     archivedByPatient: true
@@ -8105,7 +8103,7 @@
             }
 
             try {
-                const noteRef = doc(db, `users/${currentUser.uid}/notes/${noteId}`);
+                const noteRef = doc(db, `users/${currentUser.id}/notes/${noteId}`);
                 // TODO(firebase-write): replace note delete update with API
                 await updateDoc(noteRef, {
                     deleted: true,
