@@ -281,22 +281,24 @@ class OfflineManager {
 
   /**
    * Get programs from cache
+   * Note: Since we're single-patient, just return all programs
    */
   async getCachedPrograms(patientId) {
     const tx = this.db.transaction(['programs'], 'readonly');
     const store = tx.objectStore('programs');
-    const index = store.index('patient_id');
-    return await index.getAll(patientId);
+    // Get all programs (patient_id index lookup fails when passed auth_id instead of users.id)
+    return await store.getAll();
   }
 
   /**
    * Get activity logs from cache
+   * Note: Since we're single-patient, just return all logs
    */
   async getCachedLogs(patientId) {
     const tx = this.db.transaction(['activity_logs'], 'readonly');
     const store = tx.objectStore('activity_logs');
-    const index = store.index('patient_id');
-    return await index.getAll(patientId);
+    // Get all logs (patient_id index lookup fails when passed auth_id instead of users.id)
+    return await store.getAll();
   }
 
   /**
