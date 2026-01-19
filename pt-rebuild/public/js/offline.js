@@ -163,10 +163,14 @@ class OfflineManager {
    * Get all pending queue items
    */
   async getQueueItems() {
-    const tx = this.db.transaction(['offline_queue'], 'readonly');
-    const store = tx.objectStore('offline_queue');
-    const items = await store.getAll();
-    return items;
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['offline_queue'], 'readonly');
+      const store = tx.objectStore('offline_queue');
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
   }
 
   /**
@@ -175,16 +179,21 @@ class OfflineManager {
   async createAutoExport() {
     const queue = await this.getQueueItems();
 
-    const tx = this.db.transaction(['auto_exports'], 'readwrite');
-    const store = tx.objectStore('auto_exports');
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['auto_exports'], 'readwrite');
+      const store = tx.objectStore('auto_exports');
 
-    const backup = {
-      timestamp: new Date().toISOString(),
-      queue_snapshot: queue
-    };
+      // Deep clone queue to ensure it's serializable (avoid DataCloneError)
+      const backup = {
+        timestamp: new Date().toISOString(),
+        queue_snapshot: JSON.parse(JSON.stringify(queue))
+      };
 
-    await store.add(backup);
-    return { success: true };
+      const request = store.add(backup);
+
+      request.onsuccess = () => resolve({ success: true });
+      request.onerror = () => reject(request.error);
+    });
   }
 
   /**

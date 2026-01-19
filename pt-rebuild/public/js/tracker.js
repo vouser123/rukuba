@@ -41,11 +41,15 @@ async function init() {
  */
 function bindEvents() {
   document.addEventListener('pointerup', async (e) => {
-    const action = e.target.dataset.action;
+    // Find the closest element with data-action (handles clicks on child elements)
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
     if (!action) return;
 
     // Prevent multi-tap (iOS issue)
-    if (e.target.disabled) return;
+    if (target.disabled) return;
 
     switch (action) {
       case 'show-login':
@@ -61,7 +65,7 @@ function bindEvents() {
         await handleSync();
         break;
       case 'select-exercise':
-        selectExercise(e.target.dataset.exerciseId);
+        selectExercise(target.dataset.exerciseId);
         break;
       case 'increment':
         repCount++;
@@ -313,6 +317,7 @@ function selectExercise(exerciseId) {
  * Update rep counter display
  */
 function updateCounter() {
+  // Show current count (counts UP like original)
   document.getElementById('rep-count').textContent = repCount;
 }
 
@@ -410,6 +415,14 @@ async function showHistory() {
 
   const list = document.getElementById('history-list');
   list.innerHTML = '';
+
+  if (!Array.isArray(logs)) {
+    console.error('Logs is not an array:', logs);
+    list.innerHTML = '<li style="padding: 20px; text-align: center; color: #666;">No activity history found.</li>';
+    document.getElementById('exercise-picker').style.display = 'none';
+    document.getElementById('history-view').style.display = 'block';
+    return;
+  }
 
   logs.slice(0, 20).forEach(log => {
     const li = document.createElement('li');
