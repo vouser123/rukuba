@@ -8,7 +8,7 @@
  * GET enforces: patients see own logs only, therapists see their patients' logs.
  */
 
-import { getSupabaseClient, getSupabaseAdmin } from '../lib/db.js';
+import { getSupabaseWithAuth, getSupabaseAdmin } from '../lib/db.js';
 import { requireAuth, requirePatient } from '../lib/auth.js';
 
 /**
@@ -17,45 +17,23 @@ import { requireAuth, requirePatient } from '../lib/auth.js';
  * Returns recent activity logs (last 90 days) with sets.
  */
 async function getActivityLogs(req, res) {
-  const supabase = getSupabaseAdmin(); // Use admin to bypass RLS
+  const supabase = getSupabaseWithAuth(req.accessToken); // Use auth context for RLS
   const { patient_id, limit } = req.query;
 
   // Default to current user's ID if not specified
-  let targetPatientId = patient_id || req.user.id;
-
-  // Authorization: patients see own logs, therapists see their patients' logs
-  // Accept either users.id or auth_id for patient_id parameter
-  const isOwnAccount = req.user.id === targetPatientId || req.user.auth_id === targetPatientId;
-
-  if (req.user.role === 'patient' && !isOwnAccount) {
-    return res.status(403).json({ error: 'Cannot access other patients\' logs' });
-  }
-
-  if (req.user.role === 'therapist' && patient_id) {
-    // Verify patient belongs to this therapist
-    const { data: patient } = await supabase
-      .from('users')
-      .select('therapist_id')
-      .eq('id', patient_id)
-      .single();
-
-    if (!patient || patient.therapist_id !== req.user.id) {
-      return res.status(403).json({ error: 'Patient does not belong to this therapist' });
-    }
-  }
+  const targetPatientId = patient_id || req.user.id;
 
   try {
-    // Use users.id for the query (in case frontend passed auth_id)
-    const actualPatientId = req.user.id;
 
     // Fetch activity logs (last 90 days, or with limit)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
+    // RLS policies will enforce access control (patients see own, therapists see their patients')
     let query = supabase
       .from('patient_activity_logs')
       .select('*')
-      .eq('patient_id', actualPatientId)
+      .eq('patient_id', targetPatientId)
       .gte('performed_at', ninetyDaysAgo.toISOString())
       .order('performed_at', { ascending: false });
 
@@ -115,7 +93,7 @@ async function getActivityLogs(req, res) {
  * Deduplicates by client_mutation_id (returns 409 if duplicate).
  */
 async function createActivityLog(req, res) {
-  const supabase = getSupabaseAdmin(); // Use admin to bypass RLS (auth already verified by middleware)
+  const supabase = getSupabaseWithAuth(req.accessToken); // Use auth context for RLS
   const {
     exercise_id,
     exercise_name,

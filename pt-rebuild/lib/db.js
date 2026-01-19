@@ -30,6 +30,24 @@ export function getSupabaseClient() {
 }
 
 /**
+ * Get Supabase client with user auth context (respects RLS)
+ * Use this for user-initiated operations in API routes
+ * @param {string} accessToken - JWT access token from Authorization header
+ * @returns {import('@supabase/supabase-js').SupabaseClient}
+ */
+export function getSupabaseWithAuth(accessToken) {
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Set auth context so RLS policies work correctly
+  client.auth.setSession({
+    access_token: accessToken,
+    refresh_token: '' // Not needed for server-side auth context
+  });
+
+  return client;
+}
+
+/**
  * Get Supabase admin client (service key - bypasses RLS)
  * Use ONLY for admin operations like offline queue processing
  * @returns {import('@supabase/supabase-js').SupabaseClient}

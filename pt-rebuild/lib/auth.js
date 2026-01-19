@@ -92,6 +92,10 @@ export function requireAuth(handler) {
     // Attach user to request object
     req.user = user;
 
+    // Extract and attach the access token for RLS context
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    req.accessToken = authHeader.substring(7); // Remove "Bearer " prefix
+
     return handler(req, res);
   };
 }
@@ -114,6 +118,11 @@ export function requirePatient(handler) {
     }
 
     req.user = user;
+
+    // Extract and attach the access token for RLS context
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    req.accessToken = authHeader.substring(7); // Remove "Bearer " prefix
+
     return handler(req, res);
   };
 }
