@@ -56,17 +56,13 @@ export async function authenticateRequest(req) {
       };
     }
 
-    // Check if this is the app owner (full admin access)
-    const isOwner = user.email === 'cindi@puppyraiser.com';
-
     return {
       user: {
         id: userData.id,
         auth_id: user.id,
         email: user.email,
         role: userData.role,
-        therapist_id: userData.therapist_id,
-        isOwner // App owner gets full access regardless of role
+        therapist_id: userData.therapist_id
       },
       role: userData.role,
       error: null
@@ -144,8 +140,7 @@ export function requireTherapist(handler) {
       return res.status(401).json({ error });
     }
 
-    // Allow app owner or therapists
-    if (role !== 'therapist' && !user.isOwner) {
+    if (role !== 'therapist') {
       return res.status(403).json({ error: 'Therapist access required' });
     }
 

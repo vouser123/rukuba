@@ -100,7 +100,10 @@ async function getActivityLogs(req, res) {
  * POST /api/logs
  *
  * Create new activity log with sets.
- * Body: { exercise_id, exercise_name, activity_type, notes, performed_at, client_mutation_id, sets: [...] }
+ * Body: { patient_id?, exercise_id, exercise_name, activity_type, notes, performed_at, client_mutation_id, sets: [...] }
+ *
+ * - Patients log to their own patient_id (defaults to req.user.id)
+ * - Therapists can specify patient_id to log on behalf of their patients
  *
  * Deduplicates by client_mutation_id (returns 409 if duplicate).
  */
@@ -108,6 +111,7 @@ async function createActivityLog(req, res) {
   // Use client with JWT auth context - RLS policies will enforce access control
   const supabase = getSupabaseWithAuth(req.accessToken);
   const {
+    patient_id,
     exercise_id,
     exercise_name,
     activity_type,
@@ -116,6 +120,11 @@ async function createActivityLog(req, res) {
     client_mutation_id,
     sets
   } = req.body;
+
+  // Determine target patient_id:
+  // - If patient_id provided (therapist logging on behalf), use that
+  // - Otherwise default to logged-in user's ID (patient logging own data)
+  const targetPatientId = patient_id || req.user.id;
 
   // Validation
   if (!exercise_name || !activity_type || !performed_at || !client_mutation_id || !sets || !Array.isArray(sets)) {
@@ -135,7 +144,7 @@ async function createActivityLog(req, res) {
     const { data: log, error: logError } = await supabase
       .from('patient_activity_logs')
       .insert({
-        patient_id: req.user.id, // From auth middleware
+        patient_id: targetPatientId, // Patient logging own data OR therapist logging for patient
         exercise_id: exercise_id || null,
         exercise_name,
         client_mutation_id,
@@ -200,7 +209,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    return requirePatient(createActivityLog)(req, res);
+    // Both patients and therapists can create logs
+    // Patients log their own data, therapists log on behalf of patients
+    return requireAuth(createActivityLog)(req, res);
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
