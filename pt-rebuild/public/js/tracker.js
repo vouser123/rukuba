@@ -228,7 +228,8 @@ async function loadExercises() {
 
   // Show only assigned exercises (with dosage)
   programs.forEach(program => {
-    const exercise = exercises.find(ex => ex.id === program.exercise_id);
+    // Use nested exercise data if available, otherwise lookup from exercises array
+    const exercise = program.exercises || exercises.find(ex => ex.id === program.exercise_id);
     if (!exercise) return;
 
     const li = document.createElement('li');
