@@ -23,6 +23,14 @@ async function getActivityLogs(req, res) {
   // Default to current user's ID if not specified
   const targetPatientId = patient_id || req.user.id;
 
+  // Debug logging
+  console.log('[GET /api/logs] User:', {
+    id: req.user.id,
+    email: req.user.email,
+    role: req.user.role,
+    targetPatientId
+  });
+
   try {
 
     // Fetch activity logs (last 90 days, or with limit)
@@ -45,6 +53,8 @@ async function getActivityLogs(req, res) {
     const { data: logs, error: logsError } = await query;
 
     if (logsError) throw logsError;
+
+    console.log('[GET /api/logs] Found', logs.length, 'logs');
 
     // Fetch all sets for these logs
     const logIds = logs.map(log => log.id);
