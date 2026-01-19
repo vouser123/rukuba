@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PT Tracker</title>
+    <link rel="stylesheet" href="main.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            overflow-x: hidden;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .auth-modal.hidden {
+            display: none;
+        }
+
+        .auth-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-content h2 {
+            margin: 0 0 1.5rem 0;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .auth-form button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .auth-form button:active {
+            background: #0056b3;
+        }
+
+        .auth-error {
+            color: #d32f2f;
+            margin-top: 1rem;
+            font-size: 14px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 1rem;
+            border-bottom: 2px solid #007bff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #007bff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .sync-badge {
+            background: #ffc107;
+            color: #000;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .sync-badge.hidden {
+            display: none;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        /* Exercise Picker View */
+        .view {
+            display: none;
+            padding: 1rem;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .search-container {
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .exercise-card {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        .exercise-card:active {
+            background: #f0f0f0;
+        }
+
+        .exercise-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .exercise-dosage {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Logger View */
+        .logger-header {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .logger-exercise-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .logger-dosage {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .counter-container {
+            background: white;
+            padding: 2rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .counter-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #007bff;
+            margin: 1rem 0;
+        }
+
+        .counter-label {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .counter-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .counter-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .counter-btn-minus {
+            background: #dc3545;
+            color: white;
+        }
+
+        .counter-btn-plus {
+            background: #28a745;
+            color: white;
+        }
+
+        .counter-btn:active {
+            opacity: 0.8;
+        }
+
+        .set-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .set-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-set-btn {
+            width: 100%;
+            padding: 1rem;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-set-btn:active {
+            background: #218838;
+        }
+
+        .finish-session-btn {
+            width: 100%;
+            padding: 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .finish-session-btn:active {
+            background: #0056b3;
+        }
+
+        /* History View */
+        .session-card {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .session-date {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .session-exercise {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .session-sets {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 0.25rem;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .form-actions button {
+            flex: 1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #666;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .nav-tab.active {
+            border-bottom-color: #007bff;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .nav-tab:active {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-content">
+            <h2>PT Tracker Sign In</h2>
+            <form id="authForm" class="auth-form">
+                <input
+                    type="email"
+                    id="emailInput"
+                    placeholder="Email"
+                    required
+                    autocomplete="email"
+                >
+                <input
+                    type="password"
+                    id="passwordInput"
+                    placeholder="Password"
+                    required
+                    autocomplete="current-password"
+                >
+                <button type="submit">Sign In</button>
+                <div id="authError" class="auth-error"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>PT Tracker</h1>
+        <div class="header-actions">
+            <span id="syncBadge" class="sync-badge hidden">0 unsynced</span>
+            <button class="btn" data-action="manual-sync">Sync Now</button>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+        <button class="nav-tab active" data-action="show-view" data-view="picker">Exercises</button>
+        <button class="nav-tab" data-action="show-view" data-view="history">History</button>
+    </div>
+
+    <!-- Exercise Picker View -->
+    <div id="pickerView" class="view active">
+        <div class="search-container">
+            <input
+                type="text"
+                id="searchInput"
+                class="search-input"
+                placeholder="Search exercises..."
+            >
+        </div>
+        <div id="exerciseList">
+            <div class="loading">Loading exercises...</div>
+        </div>
+    </div>
+
+    <!-- Logger View -->
+    <div id="loggerView" class="view">
+        <div class="logger-header">
+            <div class="logger-exercise-name" id="loggerExerciseName"></div>
+            <div class="logger-dosage" id="loggerDosage"></div>
+        </div>
+
+        <div class="counter-container">
+            <div class="counter-label" id="counterLabel">Reps</div>
+            <div class="counter-display" id="counterDisplay">0</div>
+            <div class="counter-controls">
+                <button class="counter-btn counter-btn-minus" data-action="counter-decrease">−</button>
+                <button class="counter-btn counter-btn-plus" data-action="counter-increase">+</button>
+            </div>
+        </div>
+
+        <div class="set-info">
+            <div class="set-info-row">
+                <span>Current Set:</span>
+                <span id="currentSetNumber">1</span>
+            </div>
+            <div class="set-info-row">
+                <span>Total Sets:</span>
+                <span id="totalSetsLogged">0</span>
+            </div>
+        </div>
+
+        <button class="log-set-btn" data-action="log-set">Log This Set</button>
+        <button class="finish-session-btn" data-action="finish-session">Finish Session</button>
+        <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;" data-action="back-to-picker">← Back to Exercises</button>
+    </div>
+
+    <!-- History View -->
+    <div id="historyView" class="view">
+        <div id="historyList">
+            <div class="loading">Loading history...</div>
+        </div>
+    </div>
+
+    <!-- Session Notes Modal -->
+    <div id="notesModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Session Notes</h2>
+                <button class="close-btn" data-action="close-notes-modal">&times;</button>
+            </div>
+            <form id="notesForm">
+                <div class="form-group">
+                    <label for="sessionNotes">Notes (optional)</label>
+                    <textarea id="sessionNotes" placeholder="Add notes about this session..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" data-action="close-notes-modal">Skip</button>
+                    <button type="submit" class="btn">Save Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Supabase initialization
+        const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // State
+        let currentUser = null;
+        let authToken = null;
+        let allExercises = [];
+        let currentExercise = null;
+        let currentSession = null;
+        let offlineQueue = [];
+
+        // Initialize app
+        async function init() {
+            // Check auth state
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                currentUser = session.user;
+                authToken = session.access_token;
+                hideAuthModal();
+                await loadData();
+            } else {
+                showAuthModal();
+            }
+
+            // Auth state listener
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN') {
+                    currentUser = session.user;
+                    authToken = session.access_token;
+                    hideAuthModal();
+                    loadData();
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    authToken = null;
+                    showAuthModal();
+                }
+            });
+
+            // Load offline queue from localStorage
+            loadOfflineQueue();
+            updateSyncBadge();
+
+            // Bind event handlers
+            bindEventHandlers();
+        }
+
+        // Auth functions
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        async function signIn(email, password) {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            return data;
+        }
+
+        // Data loading
+        async function loadData() {
+            try {
+                document.getElementById('exerciseList').innerHTML = '<div class="loading">Loading exercises...</div>';
+
+                const result = await fetchWithAuth('/api/exercises');
+                allExercises = result.exercises || [];
+
+                renderExerciseList(allExercises);
+                await loadHistory();
+
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.getElementById('exerciseList').innerHTML =
+                    '<div class="empty-state">Failed to load exercises. Using offline mode.</div>';
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const result = await fetchWithAuth(`/api/logs?limit=50`);
+                const logs = result.logs || [];
+                renderHistory(logs);
+            } catch (error) {
+                console.error('Failed to load history:', error);
+                document.getElementById('historyList').innerHTML =
+                    '<div class="empty-state">Failed to load history.</div>';
+            }
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // Render functions
+        function renderExerciseList(exercises) {
+            const listEl = document.getElementById('exerciseList');
+
+            if (exercises.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">No exercises found.</div>';
+                return;
+            }
+
+            const html = exercises
+                .filter(ex => !ex.archived)
+                .map(ex => `
+                    <div class="exercise-card" data-action="select-exercise" data-id="${ex.id}">
+                        <div class="exercise-name">${escapeHtml(ex.canonical_name)}</div>
+                        <div class="exercise-dosage">${escapeHtml(ex.pt_category)}</div>
+                    </div>
+                `).join('');
+
+            listEl.innerHTML = html || '<div class="empty-state">No active exercises.</div>';
+        }
+
+        function renderHistory(logs) {
+            const listEl = document.getElementById('historyList');
+
+            if (logs.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">No history yet. Start logging exercises!</div>';
+                return;
+            }
+
+            const html = logs.map(log => {
+                const date = new Date(log.performed_at);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                const setsCount = log.sets ? log.sets.length : 0;
+
+                return `
+                    <div class="session-card">
+                        <div class="session-date">${dateStr}</div>
+                        <div class="session-exercise">${escapeHtml(log.exercise_name)}</div>
+                        <div class="session-sets">${setsCount} sets logged</div>
+                    </div>
+                `;
+            }).join('');
+
+            listEl.innerHTML = html;
+        }
+
+        // Exercise selection
+        function selectExercise(exerciseId) {
+            currentExercise = allExercises.find(ex => ex.id === exerciseId);
+            if (!currentExercise) {
+                alert('Exercise not found');
+                return;
+            }
+
+            // Initialize new session
+            currentSession = {
+                sessionId: generateSessionId(),
+                exerciseId: currentExercise.id,
+                exerciseName: currentExercise.canonical_name,
+                sets: [],
+                date: new Date().toISOString()
+            };
+
+            // Setup logger view
+            document.getElementById('loggerExerciseName').textContent = currentExercise.canonical_name;
+            document.getElementById('loggerDosage').textContent = currentExercise.pt_category;
+            document.getElementById('counterDisplay').textContent = '0';
+            document.getElementById('currentSetNumber').textContent = '1';
+            document.getElementById('totalSetsLogged').textContent = '0';
+
+            showView('logger');
+        }
+
+        // Counter functions
+        function increaseCounter() {
+            const display = document.getElementById('counterDisplay');
+            const current = parseInt(display.textContent);
+            display.textContent = current + 1;
+        }
+
+        function decreaseCounter() {
+            const display = document.getElementById('counterDisplay');
+            const current = parseInt(display.textContent);
+            if (current > 0) {
+                display.textContent = current - 1;
+            }
+        }
+
+        // Log set
+        function logSet() {
+            const reps = parseInt(document.getElementById('counterDisplay').textContent);
+
+            if (reps === 0) {
+                alert('Please log at least 1 rep');
+                return;
+            }
+
+            const set = {
+                reps: reps,
+                timestamp: new Date().toISOString()
+            };
+
+            currentSession.sets.push(set);
+
+            // Update UI
+            document.getElementById('totalSetsLogged').textContent = currentSession.sets.length;
+            document.getElementById('currentSetNumber').textContent = currentSession.sets.length + 1;
+            document.getElementById('counterDisplay').textContent = '0';
+
+            alert(`Set ${currentSession.sets.length} logged: ${reps} reps`);
+        }
+
+        // Finish session
+        function finishSession() {
+            if (currentSession.sets.length === 0) {
+                alert('Please log at least one set before finishing');
+                return;
+            }
+
+            // Show notes modal
+            document.getElementById('notesModal').classList.remove('hidden');
+        }
+
+        function closeNotesModal() {
+            document.getElementById('notesModal').classList.add('hidden');
+        }
+
+        async function saveSession(notes) {
+            currentSession.notes = notes || null;
+
+            // Add to offline queue
+            offlineQueue.push(currentSession);
+            saveOfflineQueue();
+            updateSyncBadge();
+
+            // Try to sync immediately if online
+            try {
+                await syncOfflineQueue();
+            } catch (error) {
+                console.log('Sync failed, session queued for later');
+            }
+
+            closeNotesModal();
+            currentSession = null;
+            currentExercise = null;
+            showView('picker');
+
+            alert('Session saved! Remember to sync when you have internet.');
+        }
+
+        // Offline queue management
+        function loadOfflineQueue() {
+            const stored = localStorage.getItem('pt_offline_queue');
+            if (stored) {
+                try {
+                    offlineQueue = JSON.parse(stored);
+                } catch (e) {
+                    offlineQueue = [];
+                }
+            }
+        }
+
+        function saveOfflineQueue() {
+            localStorage.setItem('pt_offline_queue', JSON.stringify(offlineQueue));
+        }
+
+        function updateSyncBadge() {
+            const badge = document.getElementById('syncBadge');
+            if (offlineQueue.length > 0) {
+                badge.textContent = `${offlineQueue.length} unsynced`;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        async function syncOfflineQueue() {
+            if (offlineQueue.length === 0) {
+                alert('Nothing to sync!');
+                return;
+            }
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const session of [...offlineQueue]) {
+                try {
+                    const apiSession = {
+                        exercise_id: session.exerciseId || null,
+                        exercise_name: session.exerciseName,
+                        activity_type: 'reps',
+                        notes: session.notes || null,
+                        performed_at: session.date,
+                        client_mutation_id: session.sessionId,
+                        sets: session.sets.map((set, idx) => ({
+                            set_number: idx + 1,
+                            reps: set.reps || null,
+                            performed_at: set.timestamp || session.date
+                        }))
+                    };
+
+                    const response = await fetchWithAuth('/api/logs', {
+                        method: 'POST',
+                        body: JSON.stringify(apiSession)
+                    });
+
+                    // Success or duplicate - remove from queue
+                    offlineQueue = offlineQueue.filter(s => s.sessionId !== session.sessionId);
+                    successCount++;
+
+                } catch (error) {
+                    console.error('Failed to sync session:', session.sessionId, error);
+                    failCount++;
+                }
+            }
+
+            saveOfflineQueue();
+            updateSyncBadge();
+
+            if (failCount === 0) {
+                alert(`✓ Synced ${successCount} sessions successfully!`);
+            } else {
+                alert(`Synced ${successCount} sessions. ${failCount} failed (will retry later).`);
+            }
+
+            // Reload history
+            await loadHistory();
+        }
+
+        // View management
+        function showView(viewName) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+            if (viewName === 'picker') {
+                document.getElementById('pickerView').classList.add('active');
+                document.querySelector('[data-view="picker"]').classList.add('active');
+            } else if (viewName === 'logger') {
+                document.getElementById('loggerView').classList.add('active');
+            } else if (viewName === 'history') {
+                document.getElementById('historyView').classList.add('active');
+                document.querySelector('[data-view="history"]').classList.add('active');
+            }
+        }
+
+        // Search
+        function handleSearch(query) {
+            if (!query.trim()) {
+                renderExerciseList(allExercises);
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const filtered = allExercises.filter(ex =>
+                ex.canonical_name.toLowerCase().includes(lowerQuery) ||
+                ex.description.toLowerCase().includes(lowerQuery)
+            );
+
+            renderExerciseList(filtered);
+        }
+
+        // Event handlers
+        function bindEventHandlers() {
+            // Auth form
+            document.getElementById('authForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('emailInput').value;
+                const password = document.getElementById('passwordInput').value;
+                const errorEl = document.getElementById('authError');
+
+                try {
+                    await signIn(email, password);
+                    errorEl.textContent = '';
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                }
+            });
+
+            // Search
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                handleSearch(e.target.value);
+            });
+
+            // Notes form
+            document.getElementById('notesForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const notes = document.getElementById('sessionNotes').value;
+                saveSession(notes);
+                document.getElementById('sessionNotes').value = '';
+            });
+
+            // Pointer events (iOS-safe)
+            document.body.addEventListener('pointerup', (e) => {
+                const action = e.target.dataset.action;
+                if (!action) return;
+
+                switch (action) {
+                    case 'show-view':
+                        showView(e.target.dataset.view);
+                        break;
+                    case 'select-exercise':
+                        selectExercise(e.target.dataset.id);
+                        break;
+                    case 'counter-increase':
+                        increaseCounter();
+                        break;
+                    case 'counter-decrease':
+                        decreaseCounter();
+                        break;
+                    case 'log-set':
+                        logSet();
+                        break;
+                    case 'finish-session':
+                        finishSession();
+                        break;
+                    case 'back-to-picker':
+                        currentSession = null;
+                        currentExercise = null;
+                        showView('picker');
+                        break;
+                    case 'close-notes-modal':
+                        closeNotesModal();
+                        break;
+                    case 'manual-sync':
+                        syncOfflineQueue();
+                        break;
+                }
+            });
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function generateSessionId() {
+            return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
