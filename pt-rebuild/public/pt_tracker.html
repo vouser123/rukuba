@@ -2885,6 +2885,11 @@
             return stripSessionMetadata(session);
         }
 
+        async function getAuthToken() {
+            const { data } = await supabase.auth.getSession();
+            return data.session?.access_token || null;
+        }
+
         async function enqueueFirestoreSession(session) {
             // Convert session to API format
             const apiSession = {
@@ -3020,8 +3025,10 @@
             let sharedLoaded = false;
 
             try {
-                const result = await fetch('/api/exercises').then(r => r.json());
-                sharedExerciseLibrary = result || [];
+                const token = await getAuthToken();
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const result = await fetch('/api/exercises', { headers }).then(r => r.json());
+                sharedExerciseLibrary = result.exercises || result || [];
                 sharedDocSource.sharedLibrary = 'api';
                 setFirestoreReadSucceeded('sharedLibrary');
                 markDocHydrated('sharedLibrary');
@@ -6969,7 +6976,7 @@
             let sharedExercises = [];
             let sharedError = null;
             try {
-                const result = await fetch('/api/exercises').then(r => r.json());
+                const result = await fetch('/api/exercises', { headers: await getAuthToken() ? { 'Authorization':  } : {} }).then(r => r.json());
                 sharedExercises = result || [];
                 sharedDocSource.sharedLibrary = 'api';
                 setFirestoreReadSucceeded('sharedLibrary');
@@ -8816,7 +8823,7 @@ ${payload}`;
             let sharedVocabularyCount = 0;
 
             try {
-                const result = await fetch('/api/exercises').then(r => r.json());
+                const result = await fetch('/api/exercises', { headers: await getAuthToken() ? { 'Authorization':  } : {} }).then(r => r.json());
                 sharedExerciseLibrary = result || [];
                 sharedDocSource.sharedLibrary = 'api';
                 setFirestoreReadSucceeded('sharedLibrary');
@@ -8829,7 +8836,7 @@ ${payload}`;
             const exerciseLibrary = mergeExerciseLibraries(sharedExerciseLibrary, localExerciseLibrary);
 
             try {
-                const result = await fetch('/api/roles').then(r => r.json());
+                const result = await fetch('/api/roles', { headers: await getAuthToken() ? { 'Authorization':  } : {} }).then(r => r.json());
                 rolesData = buildRolesDataFromApi(result);
                 sharedDocSource.sharedRoles = 'api';
                 setFirestoreReadSucceeded('sharedRoles');
@@ -8842,7 +8849,7 @@ ${payload}`;
             }
 
             try {
-                const result = await fetch('/api/vocab').then(r => r.json());
+                const result = await fetch('/api/vocab', { headers: await getAuthToken() ? { 'Authorization':  } : {} }).then(r => r.json());
                 vocabulary = buildVocabularyFromApi(result);
                 sharedDocSource.sharedVocab = 'api';
                 setFirestoreReadSucceeded('sharedVocab');
