@@ -63,7 +63,7 @@ async function getPrograms(req, res) {
         )
       `)
       .eq('patient_id', actualPatientId)
-      .eq('archived', false)
+      .is('archived_at', null)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
