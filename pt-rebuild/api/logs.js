@@ -18,21 +18,20 @@ import { requireAuth, requirePatient } from '../lib/auth.js';
  */
 async function getActivityLogs(req, res) {
   const supabase = getSupabaseAdmin(); // Use admin to bypass RLS
-  const { patient_id } = req.query;
+  const { patient_id, limit } = req.query;
 
-  if (!patient_id) {
-    return res.status(400).json({ error: 'patient_id query parameter required' });
-  }
+  // Default to current user's ID if not specified
+  let targetPatientId = patient_id || req.user.id;
 
   // Authorization: patients see own logs, therapists see their patients' logs
   // Accept either users.id or auth_id for patient_id parameter
-  const isOwnAccount = req.user.id === patient_id || req.user.auth_id === patient_id;
+  const isOwnAccount = req.user.id === targetPatientId || req.user.auth_id === targetPatientId;
 
   if (req.user.role === 'patient' && !isOwnAccount) {
     return res.status(403).json({ error: 'Cannot access other patients\' logs' });
   }
 
-  if (req.user.role === 'therapist') {
+  if (req.user.role === 'therapist' && patient_id) {
     // Verify patient belongs to this therapist
     const { data: patient } = await supabase
       .from('users')
@@ -49,16 +48,23 @@ async function getActivityLogs(req, res) {
     // Use users.id for the query (in case frontend passed auth_id)
     const actualPatientId = req.user.id;
 
-    // Fetch activity logs (last 90 days)
+    // Fetch activity logs (last 90 days, or with limit)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const { data: logs, error: logsError } = await supabase
+    let query = supabase
       .from('patient_activity_logs')
       .select('*')
       .eq('patient_id', actualPatientId)
       .gte('performed_at', ninetyDaysAgo.toISOString())
       .order('performed_at', { ascending: false });
+
+    // Apply limit if provided
+    if (limit) {
+      query = query.limit(parseInt(limit));
+    }
+
+    const { data: logs, error: logsError } = await query;
 
     if (logsError) throw logsError;
 
