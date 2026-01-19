@@ -5,7 +5,7 @@
  * Enforces patient/therapist permissions per endpoint.
  */
 
-import { getSupabaseClient } from './db.js';
+import { getSupabaseClient, getSupabaseAdmin } from './db.js';
 
 /**
  * Extract and verify JWT token from Authorization header
@@ -40,8 +40,9 @@ export async function authenticateRequest(req) {
       };
     }
 
-    // Load user role from users table
-    const { data: userData, error: userError } = await supabase
+    // Load user role from users table (using admin client to bypass RLS)
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, role, therapist_id')
       .eq('auth_id', user.id)
