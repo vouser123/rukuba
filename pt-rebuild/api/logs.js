@@ -17,34 +17,12 @@ import { requireAuth, requirePatient } from '../lib/auth.js';
  * Returns recent activity logs (last 90 days) with sets.
  */
 async function getActivityLogs(req, res) {
-  // Use admin client to bypass RLS (auth is handled by requireAuth middleware)
-  // This is secure because:
-  // 1. requireAuth middleware validates JWT and populates req.user
-  // 2. We filter by req.user.id (validated user ID)
-  // 3. Manual authorization checks below ensure proper access control
-  const supabase = getSupabaseAdmin();
+  // Use client with JWT auth context - RLS policies will enforce access control
+  const supabase = getSupabaseWithAuth(req.accessToken);
   const { patient_id, limit } = req.query;
 
   // Default to current user's ID if not specified
   const targetPatientId = patient_id || req.user.id;
-
-  // Authorization: Patients can only access their own data
-  if (req.user.role === 'patient' && targetPatientId !== req.user.id) {
-    return res.status(403).json({ error: 'Cannot access other patients\' logs' });
-  }
-
-  // Authorization: Therapists can only access their patients' data
-  if (req.user.role === 'therapist' && patient_id) {
-    const { data: patient } = await supabase
-      .from('users')
-      .select('therapist_id')
-      .eq('id', patient_id)
-      .single();
-
-    if (!patient || patient.therapist_id !== req.user.id) {
-      return res.status(403).json({ error: 'Patient does not belong to this therapist' });
-    }
-  }
 
   // Debug logging
   console.log('[GET /api/logs] User:', {
@@ -127,9 +105,8 @@ async function getActivityLogs(req, res) {
  * Deduplicates by client_mutation_id (returns 409 if duplicate).
  */
 async function createActivityLog(req, res) {
-  // Use admin client (auth is handled by requirePatient middleware)
-  // Secure because requirePatient ensures user is authenticated as patient
-  const supabase = getSupabaseAdmin();
+  // Use client with JWT auth context - RLS policies will enforce access control
+  const supabase = getSupabaseWithAuth(req.accessToken);
   const {
     exercise_id,
     exercise_name,
