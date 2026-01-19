@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PT View - History Dashboard</title>
+    <link rel="stylesheet" href="main.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .auth-modal.hidden {
+            display: none;
+        }
+
+        .auth-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-content h2 {
+            margin: 0 0 1.5rem 0;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .auth-form button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .auth-form button:active {
+            background: #0056b3;
+        }
+
+        .auth-error {
+            color: #d32f2f;
+            margin-top: 1rem;
+            font-size: 14px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 1rem;
+            border-bottom: 2px solid #007bff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #007bff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        /* Summary Cards */
+        .summary-section {
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+            margin: 0.5rem 0;
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        /* Filters */
+        .filters-section {
+            background: white;
+            padding: 1rem;
+            margin: 0 1rem 1rem 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+
+        .filter-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .date-range {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        /* History List */
+        .history-section {
+            padding: 0 1rem 1rem 1rem;
+        }
+
+        .session-card {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .session-date {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .session-time {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .session-exercise {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .session-sets {
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .set-item {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .set-item:last-child {
+            border-bottom: none;
+        }
+
+        .session-notes {
+            background: #fff3cd;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            border-left: 3px solid #ffc107;
+        }
+
+        .session-notes-label {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #666;
+        }
+
+        .grouped-by-date {
+            margin-bottom: 1.5rem;
+        }
+
+        .date-group-header {
+            background: #007bff;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-content">
+            <h2>PT View Sign In</h2>
+            <form id="authForm" class="auth-form">
+                <input
+                    type="email"
+                    id="emailInput"
+                    placeholder="Email"
+                    required
+                    autocomplete="email"
+                >
+                <input
+                    type="password"
+                    id="passwordInput"
+                    placeholder="Password"
+                    required
+                    autocomplete="current-password"
+                >
+                <button type="submit">Sign In</button>
+                <div id="authError" class="auth-error"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>PT History</h1>
+        <div class="header-actions">
+            <button class="btn" data-action="refresh-data">↻ Refresh</button>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-section">
+        <div class="summary-card">
+            <div class="summary-label">Total Sessions</div>
+            <div class="summary-value" id="totalSessions">0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Total Sets</div>
+            <div class="summary-value" id="totalSets">0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Last 7 Days</div>
+            <div class="summary-value" id="recentSessions">0</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filter-group">
+            <label for="searchInput">Search</label>
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Exercise name or notes..."
+            >
+        </div>
+        <div class="filter-group">
+            <label for="exerciseFilter">Filter by Exercise</label>
+            <select id="exerciseFilter">
+                <option value="">All Exercises</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Date Range</label>
+            <div class="date-range">
+                <input type="date" id="startDate">
+                <input type="date" id="endDate">
+            </div>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section">
+        <div id="historyList">
+            <div class="loading">Loading history...</div>
+        </div>
+    </div>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Supabase initialization
+        const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // State
+        let currentUser = null;
+        let authToken = null;
+        let allLogs = [];
+        let filteredLogs = [];
+
+        // Initialize app
+        async function init() {
+            // Check auth state
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                currentUser = session.user;
+                authToken = session.access_token;
+                hideAuthModal();
+                await loadData();
+            } else {
+                showAuthModal();
+            }
+
+            // Auth state listener
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN') {
+                    currentUser = session.user;
+                    authToken = session.access_token;
+                    hideAuthModal();
+                    loadData();
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    authToken = null;
+                    showAuthModal();
+                }
+            });
+
+            // Bind event handlers
+            bindEventHandlers();
+        }
+
+        // Auth functions
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        async function signIn(email, password) {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            return data;
+        }
+
+        // Data loading
+        async function loadData() {
+            try {
+                document.getElementById('historyList').innerHTML = '<div class="loading">Loading history...</div>';
+
+                const result = await fetchWithAuth('/api/logs?limit=1000');
+                allLogs = result.logs || [];
+
+                // Update summary stats
+                updateSummary();
+
+                // Populate exercise filter
+                populateExerciseFilter();
+
+                // Apply filters and render
+                applyFilters();
+
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.getElementById('historyList').innerHTML =
+                    '<div class="empty-state">Failed to load history.</div>';
+            }
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // Summary stats
+        function updateSummary() {
+            const totalSessions = allLogs.length;
+            const totalSets = allLogs.reduce((sum, log) => sum + (log.sets ? log.sets.length : 0), 0);
+
+            // Last 7 days
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const recentSessions = allLogs.filter(log =>
+                new Date(log.performed_at) >= sevenDaysAgo
+            ).length;
+
+            document.getElementById('totalSessions').textContent = totalSessions;
+            document.getElementById('totalSets').textContent = totalSets;
+            document.getElementById('recentSessions').textContent = recentSessions;
+        }
+
+        // Exercise filter
+        function populateExerciseFilter() {
+            const exerciseNames = [...new Set(allLogs.map(log => log.exercise_name))].sort();
+            const select = document.getElementById('exerciseFilter');
+
+            select.innerHTML = '<option value="">All Exercises</option>' +
+                exerciseNames.map(name =>
+                    `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`
+                ).join('');
+        }
+
+        // Filters
+        function applyFilters() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const exerciseFilter = document.getElementById('exerciseFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            filteredLogs = allLogs.filter(log => {
+                // Search filter
+                if (searchQuery) {
+                    const matchesName = log.exercise_name.toLowerCase().includes(searchQuery);
+                    const matchesNotes = log.notes && log.notes.toLowerCase().includes(searchQuery);
+                    if (!matchesName && !matchesNotes) {
+                        return false;
+                    }
+                }
+
+                // Exercise filter
+                if (exerciseFilter && log.exercise_name !== exerciseFilter) {
+                    return false;
+                }
+
+                // Date range filter
+                const logDate = new Date(log.performed_at);
+                if (startDate) {
+                    const start = new Date(startDate);
+                    if (logDate < start) {
+                        return false;
+                    }
+                }
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59);
+                    if (logDate > end) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            renderHistory();
+        }
+
+        // Render history
+        function renderHistory() {
+            const listEl = document.getElementById('historyList');
+
+            if (filteredLogs.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">No sessions found.</div>';
+                return;
+            }
+
+            // Group by date
+            const groupedByDate = {};
+            filteredLogs.forEach(log => {
+                const date = new Date(log.performed_at);
+                const dateKey = date.toLocaleDateString();
+                if (!groupedByDate[dateKey]) {
+                    groupedByDate[dateKey] = [];
+                }
+                groupedByDate[dateKey].push(log);
+            });
+
+            // Sort dates descending
+            const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+                return new Date(b) - new Date(a);
+            });
+
+            const html = sortedDates.map(dateKey => {
+                const logs = groupedByDate[dateKey];
+
+                const sessionsHtml = logs.map(log => {
+                    const date = new Date(log.performed_at);
+                    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    const setsHtml = log.sets ? log.sets.map((set, idx) => {
+                        let setInfo = `Set ${set.set_number || idx + 1}: `;
+                        if (set.reps) setInfo += `${set.reps} reps`;
+                        if (set.seconds) setInfo += `${set.seconds}s`;
+                        if (set.distance_feet) setInfo += `${set.distance_feet} ft`;
+                        if (set.side) setInfo += ` (${set.side})`;
+                        return `<div class="set-item">${setInfo}</div>`;
+                    }).join('') : '';
+
+                    const notesHtml = log.notes ? `
+                        <div class="session-notes">
+                            <div class="session-notes-label">Notes:</div>
+                            ${escapeHtml(log.notes)}
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="session-card">
+                            <div class="session-header">
+                                <div class="session-date">${dateKey}</div>
+                                <div class="session-time">${timeStr}</div>
+                            </div>
+                            <div class="session-exercise">${escapeHtml(log.exercise_name)}</div>
+                            <div class="session-sets">${setsHtml}</div>
+                            ${notesHtml}
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="grouped-by-date">
+                        <div class="date-group-header">${dateKey} (${logs.length} session${logs.length > 1 ? 's' : ''})</div>
+                        ${sessionsHtml}
+                    </div>
+                `;
+            }).join('');
+
+            listEl.innerHTML = html;
+        }
+
+        // Event handlers
+        function bindEventHandlers() {
+            // Auth form
+            document.getElementById('authForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('emailInput').value;
+                const password = document.getElementById('passwordInput').value;
+                const errorEl = document.getElementById('authError');
+
+                try {
+                    await signIn(email, password);
+                    errorEl.textContent = '';
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                }
+            });
+
+            // Filters
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('exerciseFilter').addEventListener('change', applyFilters);
+            document.getElementById('startDate').addEventListener('change', applyFilters);
+            document.getElementById('endDate').addEventListener('change', applyFilters);
+
+            // Pointer events (iOS-safe)
+            document.body.addEventListener('pointerup', (e) => {
+                const action = e.target.dataset.action;
+                if (!action) return;
+
+                if (action === 'refresh-data') {
+                    loadData();
+                }
+            });
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
