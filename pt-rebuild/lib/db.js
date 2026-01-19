@@ -53,10 +53,11 @@ export function getSupabaseWithAuth(accessToken) {
  * @returns {import('@supabase/supabase-js').SupabaseClient}
  */
 export function getSupabaseAdmin() {
-  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  // Supabase Vercel integration uses SUPABASE_SERVICE_ROLE_KEY
+  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
   if (!SUPABASE_SERVICE_KEY) {
-    throw new Error('Missing SUPABASE_SERVICE_KEY environment variable');
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
   }
 
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
