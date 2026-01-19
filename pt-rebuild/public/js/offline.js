@@ -287,7 +287,10 @@ class OfflineManager {
     const tx = this.db.transaction(['programs'], 'readonly');
     const store = tx.objectStore('programs');
     // Get all programs (patient_id index lookup fails when passed auth_id instead of users.id)
-    return await store.getAll();
+    const result = await store.getAll();
+    console.log('getCachedPrograms raw result:', result, 'isArray:', Array.isArray(result));
+    // Ensure we return an array
+    return Array.isArray(result) ? result : [];
   }
 
   /**

@@ -93,8 +93,14 @@
   <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => {
-        console.error('Service worker registration failed:', err);
+      // Unregister all existing service workers first (clean slate)
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => reg.unregister());
+      }).then(() => {
+        // Register fresh service worker
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+          console.error('Service worker registration failed:', err);
+        });
       });
     }
   </script>
