@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PT Tracker</title>
     <link rel="stylesheet" href="main.css">
     <style>
@@ -16,6 +16,9 @@
             padding: 0;
             background: #f5f5f5;
             overflow-x: hidden;
+            touch-action: manipulation; /* Prevent iOS double-tap zoom */
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         /* Auth Modal */
@@ -124,6 +127,9 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px; /* Apple HIG minimum touch target */
         }
 
         .btn-secondary {
@@ -136,6 +142,159 @@
 
         .btn:active {
             opacity: 0.8;
+        }
+
+        /* Hamburger Menu */
+        .hamburger-btn {
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            touch-action: manipulation;
+        }
+
+        .hamburger-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        }
+
+        .hamburger-overlay.active {
+            display: block;
+        }
+
+        .hamburger-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 280px;
+            background: white;
+            z-index: 9999;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+
+        .hamburger-menu.active {
+            display: block;
+        }
+
+        .hamburger-header {
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hamburger-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .hamburger-close {
+            background: transparent;
+            border: none;
+            color: #007bff;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .hamburger-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+            touch-action: manipulation;
+        }
+
+        .hamburger-item:active {
+            background: #f0f0f0;
+        }
+
+        .hamburger-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Side Tracking */
+        .side-tracking {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .side-tracking-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+
+        .side-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .side-btn {
+            flex: 1;
+            padding: 0.75rem;
+            background: white;
+            border: 2px solid #007bff;
+            color: #007bff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+        }
+
+        .side-btn.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .side-btn:active {
+            opacity: 0.8;
+        }
+
+        /* Visual Feedback */
+        .log-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(40, 167, 69, 0.95);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            font-size: 3rem;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .log-feedback.show {
+            opacity: 1;
         }
 
         /* Exercise Picker View */
@@ -167,6 +326,8 @@
             border-radius: 4px;
             border: 1px solid #ddd;
             cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .exercise-card:active {
@@ -243,6 +404,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .counter-btn-minus {
@@ -257,6 +420,12 @@
 
         .counter-btn:active {
             opacity: 0.8;
+        }
+
+        .counter-display {
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .set-info {
@@ -436,6 +605,9 @@
             cursor: pointer;
             font-size: 14px;
             border-bottom: 2px solid transparent;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
         }
 
         .nav-tab.active {
@@ -480,7 +652,42 @@
         <h1>PT Tracker</h1>
         <div class="header-actions">
             <span id="syncBadge" class="sync-badge hidden">0 unsynced</span>
-            <button class="btn" data-action="manual-sync">Sync Now</button>
+            <button class="hamburger-btn" data-action="toggle-hamburger">☰</button>
+        </div>
+    </div>
+
+    <!-- Hamburger Menu -->
+    <div class="hamburger-overlay" id="hamburgerOverlay" data-action="toggle-hamburger"></div>
+    <div class="hamburger-menu" id="hamburgerMenu">
+        <div class="hamburger-header">
+            <h3>Menu</h3>
+            <button class="hamburger-close" data-action="toggle-hamburger">Close</button>
+        </div>
+        <div>
+            <a href="pt_editor.html" class="hamburger-item">
+                <span class="hamburger-icon">✏️</span>
+                <span>Exercise Editor</span>
+            </a>
+            <a href="pt_view.html" class="hamburger-item">
+                <span class="hamburger-icon">📊</span>
+                <span>View History</span>
+            </a>
+            <a href="rehab_coverage.html" class="hamburger-item">
+                <span class="hamburger-icon">📈</span>
+                <span>Coverage Analysis</span>
+            </a>
+            <div class="hamburger-item" data-action="manual-sync">
+                <span class="hamburger-icon">🔄</span>
+                <span>Sync Now</span>
+            </div>
+            <div class="hamburger-item" data-action="reload">
+                <span class="hamburger-icon">🔄</span>
+                <span>Reload</span>
+            </div>
+            <div class="hamburger-item" data-action="sign-out">
+                <span class="hamburger-icon">🚪</span>
+                <span>Sign Out</span>
+            </div>
         </div>
     </div>
 
@@ -510,6 +717,15 @@
         <div class="logger-header">
             <div class="logger-exercise-name" id="loggerExerciseName"></div>
             <div class="logger-dosage" id="loggerDosage"></div>
+        </div>
+
+        <div class="side-tracking">
+            <div class="side-tracking-label">Side:</div>
+            <div class="side-buttons">
+                <button class="side-btn" data-action="select-side" data-side="left">L</button>
+                <button class="side-btn" data-action="select-side" data-side="both">Both</button>
+                <button class="side-btn active" data-action="select-side" data-side="right">R</button>
+            </div>
         </div>
 
         <div class="counter-container">
@@ -564,6 +780,9 @@
         </div>
     </div>
 
+    <!-- Visual Feedback -->
+    <div id="logFeedback" class="log-feedback">✓</div>
+
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -580,6 +799,7 @@
         let currentExercise = null;
         let currentSession = null;
         let offlineQueue = [];
+        let currentSide = 'right'; // Default side: right
 
         // Initialize app
         async function init() {
@@ -754,6 +974,10 @@
                 date: new Date().toISOString()
             };
 
+            // Reset side selection to default
+            currentSide = 'right';
+            selectSide('right');
+
             // Setup logger view
             document.getElementById('loggerExerciseName').textContent = currentExercise.canonical_name;
             document.getElementById('loggerDosage').textContent = currentExercise.pt_category;
@@ -779,6 +1003,66 @@
             }
         }
 
+        /**
+         * Toggle hamburger menu visibility
+         * iOS-safe: Uses class-based visibility instead of display manipulation
+         */
+        function toggleHamburger() {
+            const overlay = document.getElementById('hamburgerOverlay');
+            const menu = document.getElementById('hamburgerMenu');
+            overlay.classList.toggle('active');
+            menu.classList.toggle('active');
+        }
+
+        /**
+         * Select side for tracking (left, right, both)
+         * Updates UI and stores current selection for logging
+         */
+        function selectSide(side) {
+            currentSide = side;
+
+            // Update button states
+            document.querySelectorAll('.side-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.side === side) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        /**
+         * Show visual feedback when a set is logged
+         * iOS-safe: Uses CSS transitions for smooth animation
+         */
+        function showLogFeedback() {
+            const feedback = document.getElementById('logFeedback');
+            feedback.classList.add('show');
+
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 800);
+        }
+
+        /**
+         * Sign out the current user
+         */
+        async function signOut() {
+            try {
+                await supabaseClient.auth.signOut();
+                // Auth state listener will handle UI updates
+            } catch (error) {
+                console.error('Sign out error:', error);
+                alert('Failed to sign out: ' + error.message);
+            }
+        }
+
+        /**
+         * Reload the page
+         */
+        function reloadPage() {
+            window.location.reload();
+        }
+
         // Log set
         function logSet() {
             const reps = parseInt(document.getElementById('counterDisplay').textContent);
@@ -790,6 +1074,7 @@
 
             const set = {
                 reps: reps,
+                side: currentSide, // Include side tracking
                 timestamp: new Date().toISOString()
             };
 
@@ -800,7 +1085,8 @@
             document.getElementById('currentSetNumber').textContent = currentSession.sets.length + 1;
             document.getElementById('counterDisplay').textContent = '0';
 
-            alert(`Set ${currentSession.sets.length} logged: ${reps} reps`);
+            // Show visual feedback instead of alert
+            showLogFeedback();
         }
 
         // Finish session
@@ -888,6 +1174,7 @@
                         sets: session.sets.map((set, idx) => ({
                             set_number: idx + 1,
                             reps: set.reps || null,
+                            side: set.side || 'right', // Include side tracking
                             performed_at: set.timestamp || session.date
                         }))
                     };
@@ -982,17 +1269,25 @@
                 document.getElementById('sessionNotes').value = '';
             });
 
-            // Pointer events (iOS-safe)
+            /**
+             * Bind iOS-safe pointer event handlers to elements with data-action attributes.
+             *
+             * iOS Safari/PWA does not reliably trigger onclick handlers on dynamically created elements.
+             * This function binds pointerup events (which work consistently on iOS touch and desktop mouse)
+             * and keyboard events for accessibility.
+             */
             document.body.addEventListener('pointerup', (e) => {
-                const action = e.target.dataset.action;
-                if (!action) return;
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+
+                const action = target.dataset.action;
 
                 switch (action) {
                     case 'show-view':
-                        showView(e.target.dataset.view);
+                        showView(target.dataset.view);
                         break;
                     case 'select-exercise':
-                        selectExercise(e.target.dataset.id);
+                        selectExercise(target.dataset.id);
                         break;
                     case 'counter-increase':
                         increaseCounter();
@@ -1015,7 +1310,21 @@
                         closeNotesModal();
                         break;
                     case 'manual-sync':
+                        toggleHamburger(); // Close menu
                         syncOfflineQueue();
+                        break;
+                    case 'toggle-hamburger':
+                        toggleHamburger();
+                        break;
+                    case 'select-side':
+                        selectSide(target.dataset.side);
+                        break;
+                    case 'sign-out':
+                        toggleHamburger(); // Close menu
+                        signOut();
+                        break;
+                    case 'reload':
+                        reloadPage();
                         break;
                 }
             });
