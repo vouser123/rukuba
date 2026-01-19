@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rehab Coverage Analysis</title>
+    <link rel="stylesheet" href="main.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .auth-modal.hidden {
+            display: none;
+        }
+
+        .auth-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-content h2 {
+            margin: 0 0 1.5rem 0;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .auth-form button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .auth-form button:active {
+            background: #0056b3;
+        }
+
+        .auth-error {
+            color: #d32f2f;
+            margin-top: 1rem;
+            font-size: 14px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 1rem;
+            border-bottom: 2px solid #007bff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #007bff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        /* Date Range Selector */
+        .date-range-section {
+            background: white;
+            padding: 1rem;
+            margin: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .date-range-section h3 {
+            margin: 0 0 1rem 0;
+        }
+
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .date-inputs input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .quick-ranges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-range-btn {
+            padding: 0.25rem 0.75rem;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .quick-range-btn:active {
+            background: #e0e0e0;
+        }
+
+        /* Coverage Matrix */
+        .coverage-section {
+            padding: 0 1rem 1rem 1rem;
+        }
+
+        .region-group {
+            background: white;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+
+        .region-header {
+            background: #007bff;
+            color: white;
+            padding: 0.75rem 1rem;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .region-header:active {
+            background: #0056b3;
+        }
+
+        .region-content {
+            padding: 1rem;
+        }
+
+        .region-content.collapsed {
+            display: none;
+        }
+
+        .capacity-group {
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+            border-left: 3px solid #007bff;
+        }
+
+        .capacity-header {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 0.5rem;
+        }
+
+        .focus-item {
+            background: #f8f9fa;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border-left: 3px solid #28a745;
+        }
+
+        .focus-item.not-covered {
+            border-left-color: #dc3545;
+        }
+
+        .focus-item.needs-attention {
+            border-left-color: #ffc107;
+        }
+
+        .focus-name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .focus-exercises {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .exercise-chip {
+            display: inline-block;
+            background: white;
+            padding: 0.125rem 0.5rem;
+            margin: 0.125rem;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+
+        .exercise-chip.done {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .focus-status {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .status-done {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-gap {
+            color: #ffc107;
+            font-weight: bold;
+        }
+
+        .status-not-done {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* Summary Stats */
+        .summary-stats {
+            background: white;
+            padding: 1rem;
+            margin: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .summary-stats h3 {
+            margin: 0 0 1rem 0;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #666;
+        }
+
+        .expand-icon {
+            transition: transform 0.2s;
+        }
+
+        .expand-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-content">
+            <h2>Coverage Analysis Sign In</h2>
+            <form id="authForm" class="auth-form">
+                <input
+                    type="email"
+                    id="emailInput"
+                    placeholder="Email"
+                    required
+                    autocomplete="email"
+                >
+                <input
+                    type="password"
+                    id="passwordInput"
+                    placeholder="Password"
+                    required
+                    autocomplete="current-password"
+                >
+                <button type="submit">Sign In</button>
+                <div id="authError" class="auth-error"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Rehab Coverage</h1>
+        <div class="header-actions">
+            <button class="btn" data-action="refresh-data">↻ Refresh</button>
+        </div>
+    </div>
+
+    <!-- Date Range -->
+    <div class="date-range-section">
+        <h3>Date Range</h3>
+        <div class="date-inputs">
+            <input type="date" id="startDate">
+            <input type="date" id="endDate">
+        </div>
+        <div class="quick-ranges">
+            <button class="quick-range-btn" data-action="set-range" data-days="7">Last 7 days</button>
+            <button class="quick-range-btn" data-action="set-range" data-days="14">Last 14 days</button>
+            <button class="quick-range-btn" data-action="set-range" data-days="30">Last 30 days</button>
+            <button class="quick-range-btn" data-action="set-range" data-days="90">Last 90 days</button>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="summary-stats">
+        <h3>Coverage Summary</h3>
+        <div class="stat-row">
+            <span class="stat-label">Total Focus Areas:</span>
+            <span class="stat-value" id="totalFocusAreas">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Covered (done):</span>
+            <span class="stat-value status-done" id="coveredCount">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Needs Attention (3+ days):</span>
+            <span class="stat-value status-gap" id="gapCount">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Not Covered:</span>
+            <span class="stat-value status-not-done" id="notCoveredCount">0</span>
+        </div>
+    </div>
+
+    <!-- Coverage Matrix -->
+    <div class="coverage-section">
+        <div id="coverageMatrix">
+            <div class="loading">Loading coverage data...</div>
+        </div>
+    </div>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Supabase initialization
+        const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // State
+        let currentUser = null;
+        let authToken = null;
+        let allLogs = [];
+        let allRoles = [];
+        let coverageData = {};
+        let collapsedRegions = new Set();
+
+        // Initialize app
+        async function init() {
+            // Set default date range (last 7 days)
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 7);
+
+            document.getElementById('startDate').valueAsDate = startDate;
+            document.getElementById('endDate').valueAsDate = endDate;
+
+            // Check auth state
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                currentUser = session.user;
+                authToken = session.access_token;
+                hideAuthModal();
+                await loadData();
+            } else {
+                showAuthModal();
+            }
+
+            // Auth state listener
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN') {
+                    currentUser = session.user;
+                    authToken = session.access_token;
+                    hideAuthModal();
+                    loadData();
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    authToken = null;
+                    showAuthModal();
+                }
+            });
+
+            // Bind event handlers
+            bindEventHandlers();
+        }
+
+        // Auth functions
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        async function signIn(email, password) {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            return data;
+        }
+
+        // Data loading
+        async function loadData() {
+            try {
+                document.getElementById('coverageMatrix').innerHTML = '<div class="loading">Loading coverage data...</div>';
+
+                // Load logs and roles in parallel
+                const [logsResult, rolesResult] = await Promise.all([
+                    fetchWithAuth('/api/logs?limit=1000'),
+                    fetchWithAuth('/api/roles')
+                ]);
+
+                allLogs = logsResult.logs || [];
+                allRoles = rolesResult.roles || [];
+
+                // Calculate coverage
+                calculateCoverage();
+
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.getElementById('coverageMatrix').innerHTML =
+                    '<div class="empty-state">Failed to load coverage data.</div>';
+            }
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // Coverage calculation
+        function calculateCoverage() {
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            endDate.setHours(23, 59, 59);
+
+            // Filter logs by date range
+            const filteredLogs = allLogs.filter(log => {
+                const logDate = new Date(log.performed_at);
+                return logDate >= startDate && logDate <= endDate;
+            });
+
+            // Build coverage matrix: region → capacity → focus → exercises
+            coverageData = {};
+
+            allRoles.forEach(role => {
+                const { region, capacity, focus, exercise_id } = role;
+
+                if (!coverageData[region]) {
+                    coverageData[region] = {};
+                }
+                if (!coverageData[region][capacity]) {
+                    coverageData[region][capacity] = {};
+                }
+                if (!coverageData[region][capacity][focus]) {
+                    coverageData[region][capacity][focus] = {
+                        exercises: [],
+                        lastDone: null
+                    };
+                }
+
+                // Check if this exercise was done in date range
+                const exerciseLogs = filteredLogs.filter(log => log.exercise_id === exercise_id);
+                const done = exerciseLogs.length > 0;
+                const lastLog = exerciseLogs.length > 0
+                    ? new Date(Math.max(...exerciseLogs.map(l => new Date(l.performed_at))))
+                    : null;
+
+                coverageData[region][capacity][focus].exercises.push({
+                    exercise_id,
+                    done,
+                    lastDone: lastLog
+                });
+
+                // Update focus area last done date
+                if (lastLog) {
+                    if (!coverageData[region][capacity][focus].lastDone || lastLog > coverageData[region][capacity][focus].lastDone) {
+                        coverageData[region][capacity][focus].lastDone = lastLog;
+                    }
+                }
+            });
+
+            renderCoverageMatrix();
+            updateSummaryStats();
+        }
+
+        // Render coverage matrix
+        function renderCoverageMatrix() {
+            const matrixEl = document.getElementById('coverageMatrix');
+
+            if (Object.keys(coverageData).length === 0) {
+                matrixEl.innerHTML = '<div class="empty-state">No coverage data available.</div>';
+                return;
+            }
+
+            const regions = Object.keys(coverageData).sort();
+
+            const html = regions.map(region => {
+                const capacities = Object.keys(coverageData[region]).sort();
+                const isCollapsed = collapsedRegions.has(region);
+
+                const capacitiesHtml = capacities.map(capacity => {
+                    const focuses = Object.keys(coverageData[region][capacity]).sort();
+
+                    const focusesHtml = focuses.map(focus => {
+                        const data = coverageData[region][capacity][focus];
+                        const exercises = data.exercises;
+
+                        const doneCount = exercises.filter(ex => ex.done).length;
+                        const totalCount = exercises.length;
+
+                        let statusClass = '';
+                        let statusText = '';
+                        let statusHtml = '';
+
+                        if (doneCount === totalCount) {
+                            statusClass = 'done';
+                            statusText = '✓ Covered';
+                            if (data.lastDone) {
+                                const daysAgo = Math.floor((new Date() - data.lastDone) / (1000 * 60 * 60 * 24));
+                                if (daysAgo >= 3) {
+                                    statusClass = 'needs-attention';
+                                    statusText = `⚠ ${daysAgo} days ago`;
+                                }
+                            }
+                        } else if (doneCount > 0) {
+                            statusClass = 'needs-attention';
+                            statusText = `⚠ Partial (${doneCount}/${totalCount})`;
+                        } else {
+                            statusClass = 'not-covered';
+                            statusText = '✗ Not Covered';
+                        }
+
+                        const exercisesHtml = exercises.map(ex => {
+                            const chipClass = ex.done ? 'exercise-chip done' : 'exercise-chip';
+                            return `<span class="${chipClass}">${escapeHtml(ex.exercise_id)}</span>`;
+                        }).join('');
+
+                        return `
+                            <div class="focus-item ${statusClass === 'not-covered' ? 'not-covered' : statusClass === 'needs-attention' ? 'needs-attention' : ''}">
+                                <div class="focus-name">${escapeHtml(focus)}</div>
+                                <div class="focus-exercises">${exercisesHtml}</div>
+                                <div class="focus-status status-${statusClass}">${statusText}</div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    return `
+                        <div class="capacity-group">
+                            <div class="capacity-header">${escapeHtml(capacity)}</div>
+                            ${focusesHtml}
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="region-group">
+                        <div class="region-header" data-action="toggle-region" data-region="${escapeHtml(region)}">
+                            <span>${escapeHtml(region)}</span>
+                            <span class="expand-icon ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                        </div>
+                        <div class="region-content ${isCollapsed ? 'collapsed' : ''}">
+                            ${capacitiesHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            matrixEl.innerHTML = html;
+        }
+
+        // Update summary stats
+        function updateSummaryStats() {
+            let totalFocusAreas = 0;
+            let coveredCount = 0;
+            let gapCount = 0;
+            let notCoveredCount = 0;
+
+            Object.values(coverageData).forEach(capacities => {
+                Object.values(capacities).forEach(focuses => {
+                    Object.values(focuses).forEach(focusData => {
+                        totalFocusAreas++;
+
+                        const exercises = focusData.exercises;
+                        const doneCount = exercises.filter(ex => ex.done).length;
+                        const totalCount = exercises.length;
+
+                        if (doneCount === totalCount) {
+                            // Check days since last done
+                            if (focusData.lastDone) {
+                                const daysAgo = Math.floor((new Date() - focusData.lastDone) / (1000 * 60 * 60 * 24));
+                                if (daysAgo >= 3) {
+                                    gapCount++;
+                                } else {
+                                    coveredCount++;
+                                }
+                            } else {
+                                coveredCount++;
+                            }
+                        } else if (doneCount === 0) {
+                            notCoveredCount++;
+                        } else {
+                            gapCount++;
+                        }
+                    });
+                });
+            });
+
+            document.getElementById('totalFocusAreas').textContent = totalFocusAreas;
+            document.getElementById('coveredCount').textContent = coveredCount;
+            document.getElementById('gapCount').textContent = gapCount;
+            document.getElementById('notCoveredCount').textContent = notCoveredCount;
+        }
+
+        // Toggle region collapse
+        function toggleRegion(region) {
+            if (collapsedRegions.has(region)) {
+                collapsedRegions.delete(region);
+            } else {
+                collapsedRegions.add(region);
+            }
+            renderCoverageMatrix();
+        }
+
+        // Set date range
+        function setDateRange(days) {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - days);
+
+            document.getElementById('startDate').valueAsDate = startDate;
+            document.getElementById('endDate').valueAsDate = endDate;
+
+            calculateCoverage();
+        }
+
+        // Event handlers
+        function bindEventHandlers() {
+            // Auth form
+            document.getElementById('authForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('emailInput').value;
+                const password = document.getElementById('passwordInput').value;
+                const errorEl = document.getElementById('authError');
+
+                try {
+                    await signIn(email, password);
+                    errorEl.textContent = '';
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                }
+            });
+
+            // Date inputs
+            document.getElementById('startDate').addEventListener('change', calculateCoverage);
+            document.getElementById('endDate').addEventListener('change', calculateCoverage);
+
+            // Pointer events (iOS-safe)
+            document.body.addEventListener('pointerup', (e) => {
+                const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action;
+                if (!action) return;
+
+                const target = e.target.closest('[data-action]');
+
+                if (action === 'refresh-data') {
+                    loadData();
+                } else if (action === 'set-range') {
+                    const days = parseInt(target.dataset.days);
+                    setDateRange(days);
+                } else if (action === 'toggle-region') {
+                    const region = target.dataset.region;
+                    toggleRegion(region);
+                }
+            });
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
