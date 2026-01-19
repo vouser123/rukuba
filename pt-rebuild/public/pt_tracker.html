@@ -1741,10 +1741,6 @@
         // import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"; // TODO: Fix password reset
         import { ulid } from "https://cdn.jsdelivr.net/npm/ulid@2.3.0/dist/index.esm.js";
         import {
-            loadExerciseRolesShared,
-            loadExerciseVocabularyShared,
-            loadExerciseFileSchemaShared,
-            loadExerciseRolesSchemaShared,
             saveExerciseRolesShared,
             saveExerciseVocabularyShared,
             saveExerciseLibraryShared
@@ -1754,13 +1750,8 @@
             collection,
             deleteDoc,
             doc,
-            getDoc,
-            getDocs,
-            orderBy,
-            query,
             setDoc,
             updateDoc,
-            where,
             writeBatch
         } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
@@ -2654,10 +2645,14 @@
                 runtimeSyncPending = true;
                 return;
             }
+            // TODO(firebase-read): runtime state read requires API endpoint mapping
+            console.warn('[Runtime] Skipping Firestore runtime read until API replacement.');
+            return;
+
+            /*
             try {
                 const wasRuntimeHydrated = runtimeHydrated;
                 const docRef = doc(db, 'users', firestoreUserId, 'pt_runtime', 'state');
-                // TODO(firebase-read): runtime state read requires API endpoint mapping
                 const snapshot = await getDoc(docRef);
                 setFirestoreReadSucceeded('runtime');
                 markDocHydrated('runtime');
@@ -2719,6 +2714,7 @@
             } catch (error) {
                 console.error('Failed to load runtime data from Firestore:', error);
             }
+            */
         }
 
         function getQueuedSessionFingerprint(session) {
@@ -2738,14 +2734,12 @@
             if (session._firestoreId) return session._firestoreId;
             if (!currentUser || !session.sessionId) return null;
             try {
-                const sessionsRef = collection(db, `users/${currentUser.uid}/sessions`);
-                const sessionQuery = query(sessionsRef, where('sessionId', '==', session.sessionId));
-                // TODO(firebase-read): session doc lookup needs API replacement while preserving Firestore IDs
-                const snapshot = await getDocs(sessionQuery);
-                const docMatch = snapshot.docs[0];
-                return docMatch ? docMatch.id : null;
+                const snapshot = await fetch(`/api/logs?patient_id=${currentUser.uid}`).then(r => r.json());
+                const sessions = Array.isArray(snapshot) ? snapshot : [];
+                const match = sessions.find(entry => entry.sessionId === session.sessionId);
+                return match ? (match._firestoreId || match.id || null) : null;
             } catch (error) {
-                console.warn('[Firestore] Failed to resolve session doc ID:', error);
+                console.warn('[API] Failed to resolve session doc ID:', error);
                 return null;
             }
         }
@@ -3556,55 +3550,92 @@
             }
         }
 
-        // Load roles data from Firestore (cached locally for offline use)
+        function buildRolesDataFromApi(payload) {
+            const rolesList = Array.isArray(payload) ? payload : payload?.roles || [];
+            const exerciseRoles = {};
+            rolesList.forEach(role => {
+                const exerciseId = role.exercise_id || role.exerciseId || role.exercises?.id || role.exercise?.id;
+                if (!exerciseId) return;
+                if (!exerciseRoles[exerciseId]) {
+                    const exerciseName = role.exercises?.canonical_name
+                        || role.exercise_name
+                        || role.exercise?.canonical_name
+                        || exerciseId;
+                    exerciseRoles[exerciseId] = { name: exerciseName, roles: [] };
+                }
+                exerciseRoles[exerciseId].roles.push({
+                    region: role.region,
+                    capacity: role.capacity,
+                    focus: role.focus,
+                    contribution: role.contribution
+                });
+            });
+            return { exercise_roles: exerciseRoles };
+        }
+
+        function buildVocabularyFromApi(payload) {
+            const vocabularies = payload?.vocabularies || payload || {};
+            const toMap = (items) => {
+                const map = {};
+                (items || []).forEach(item => {
+                    if (!item || !item.code) return;
+                    map[item.code] = item.definition || item.code;
+                });
+                return map;
+            };
+            return {
+                region: toMap(vocabularies.region),
+                capacity: toMap(vocabularies.capacity),
+                contribution: toMap(vocabularies.contribution),
+                focus: toMap(vocabularies.focus),
+                pt_category: toMap(vocabularies.pt_category),
+                pattern: toMap(vocabularies.pattern)
+            };
+        }
+
+        // Load roles data from API (cached locally for offline use)
         function loadRolesData() {
-            // TODO(firebase-read): roles shared data requires API endpoint mapping
-            return loadExerciseRolesShared().then((result) => {
-                const data = result?.data || { exercise_roles: {} };
-                sharedDocSource.sharedRoles = result?.source || sharedDocSource.sharedRoles;
-                if (result?.hasFirestoreReadSucceeded) {
+            return fetch('/api/roles')
+                .then(response => response.json())
+                .then(result => {
+                    const data = buildRolesDataFromApi(result);
+                    sharedDocSource.sharedRoles = 'api';
                     setFirestoreReadSucceeded('sharedRoles');
                     markDocHydrated('sharedRoles');
-                }
-                if (data) {
-                    saveRolesDataSync(data, { skipFirestoreSync: true });
-                }
-                return data;
-            }).catch(err => {
-                console.error('Failed to load roles data:', err);
-                return { exercise_roles: {} };
-            });
+                    if (data) {
+                        saveRolesDataSync(data, { skipFirestoreSync: true });
+                    }
+                    return data;
+                }).catch(err => {
+                    console.error('Failed to load roles data:', err);
+                    return { exercise_roles: {} };
+                });
         }
 
-        // Load schema from Firestore
+        // Load schema from API (placeholder until endpoint exists)
         function loadSchema() {
             // TODO(firebase-read): schema shared data requires API endpoint mapping
-            return loadExerciseFileSchemaShared().then((result) => {
-                return result?.data || {};
-            }).catch(err => {
-                console.error('Failed to load schema:', err);
-                return {};
-            });
+            console.warn('[Schema] Skipping Firestore schema read until API replacement.');
+            return Promise.resolve({});
         }
 
-        // Load vocabulary from Firestore (cached locally for offline use)
+        // Load vocabulary from API (cached locally for offline use)
         function loadVocabulary() {
-            // TODO(firebase-read): vocabulary shared data requires API endpoint mapping
-            return loadExerciseVocabularyShared().then((result) => {
-                const data = result?.data || {};
-                sharedDocSource.sharedVocab = result?.source || sharedDocSource.sharedVocab;
-                if (result?.hasFirestoreReadSucceeded) {
+            return fetch('/api/vocab')
+                .then(response => response.json())
+                .then(result => {
+                    const data = buildVocabularyFromApi(result);
+                    sharedDocSource.sharedVocab = 'api';
                     setFirestoreReadSucceeded('sharedVocab');
                     markDocHydrated('sharedVocab');
-                }
-                if (data) {
-                    saveVocabularySync(data, { skipFirestoreSync: true });
-                }
-                return data;
-            }).catch(err => {
-                console.error('Failed to load vocabulary:', err);
-                return {};
-            });
+                    if (data) {
+                        saveVocabularySync(data, { skipFirestoreSync: true });
+                    }
+                    return data;
+                }).catch(err => {
+                    console.error('Failed to load vocabulary:', err);
+                    return {};
+                });
         }
 
         /**
@@ -7857,10 +7888,14 @@
         async function checkForNewNotes() {
             if (!currentUser) return;
 
+            // TODO(firebase-read): notes check requires API endpoint mapping
+            console.warn('[Notes] Skipping Firestore notes check until API replacement.');
+            return;
+
+            /*
             try {
                 const notesRef = collection(db, `users/${currentUser.uid}/notes`);
                 const q = query(notesRef, where('createdBy', '==', 'therapist'), where('createdAt', '>', lastReadNoteTime));
-                // TODO(firebase-read): notes check requires API endpoint mapping
                 const snapshot = await getDocs(q);
 
                 if (!snapshot.empty) {
@@ -7899,6 +7934,7 @@
             } catch (error) {
                 console.error('[Firestore] Failed to check new notes:', error);
             }
+            */
         }
 
         function closeNotesModal() {
@@ -7913,10 +7949,14 @@
 
             console.log('[Notes] Loading notes for user:', currentUser.uid);
 
+            // TODO(firebase-read): notes load requires API endpoint mapping
+            console.warn('[Notes] Skipping Firestore notes load until API replacement.');
+            return;
+
+            /*
             try {
                 const notesRef = collection(db, `users/${currentUser.uid}/notes`);
                 const q = query(notesRef, orderBy('createdAt', 'desc'));
-                // TODO(firebase-read): notes load requires API endpoint mapping
                 const snapshot = await getDocs(q);
 
                 console.log('[Notes] Fetched notes, total count:', snapshot.size);
@@ -7996,6 +8036,7 @@
             } catch (error) {
                 console.error('[Firestore] Failed to load notes:', error);
             }
+            */
         }
 
         async function sendNote() {
@@ -8736,40 +8777,34 @@ ${payload}`;
                 markDocHydrated('sharedLibrary');
                 sharedExerciseLibraryLoaded = true;
             } catch (error) {
-                console.warn('[Import] Failed to load exercise library from Firestore; using local storage:', error);
+                console.warn('[Import] Failed to load exercise library from API; using local storage:', error);
             }
 
             const exerciseLibrary = mergeExerciseLibraries(sharedExerciseLibrary, localExerciseLibrary);
 
             try {
-                // TODO(firebase-read): roles shared data requires API endpoint mapping
-                const result = await loadExerciseRolesShared();
-                rolesData = result?.data || { exercise_roles: {} };
-                sharedDocSource.sharedRoles = result?.source || sharedDocSource.sharedRoles;
-                if (result?.hasFirestoreReadSucceeded) {
-                    setFirestoreReadSucceeded('sharedRoles');
-                    markDocHydrated('sharedRoles');
-                }
+                const result = await fetch('/api/roles').then(r => r.json());
+                rolesData = buildRolesDataFromApi(result);
+                sharedDocSource.sharedRoles = 'api';
+                setFirestoreReadSucceeded('sharedRoles');
+                markDocHydrated('sharedRoles');
                 rolesDataLoaded = true;
                 sharedRolesCount = Object.keys(rolesData?.exercise_roles || {}).length;
             } catch (error) {
-                console.warn('[Import] Failed to load roles from Firestore; using local storage:', error);
+                console.warn('[Import] Failed to load roles from API; using local storage:', error);
                 rolesData = loadRolesDataSync();
             }
 
             try {
-                // TODO(firebase-read): vocabulary shared data requires API endpoint mapping
-                const result = await loadExerciseVocabularyShared();
-                vocabulary = result?.data || {};
-                sharedDocSource.sharedVocab = result?.source || sharedDocSource.sharedVocab;
-                if (result?.hasFirestoreReadSucceeded) {
-                    setFirestoreReadSucceeded('sharedVocab');
-                    markDocHydrated('sharedVocab');
-                }
+                const result = await fetch('/api/vocab').then(r => r.json());
+                vocabulary = buildVocabularyFromApi(result);
+                sharedDocSource.sharedVocab = 'api';
+                setFirestoreReadSucceeded('sharedVocab');
+                markDocHydrated('sharedVocab');
                 vocabularyLoaded = true;
                 sharedVocabularyCount = Object.keys(vocabulary || {}).length;
             } catch (error) {
-                console.warn('[Import] Failed to load vocabulary from Firestore; using local storage:', error);
+                console.warn('[Import] Failed to load vocabulary from API; using local storage:', error);
                 vocabulary = loadVocabularySync();
             }
 
@@ -9024,8 +9059,8 @@ ${payload}`;
                 // Load schema files
                 // TODO(firebase-read): schema shared data requires API endpoint mapping
                 Promise.all([
-                    loadExerciseFileSchemaShared(),
-                    loadExerciseRolesSchemaShared()
+                    Promise.resolve({ data: {} }),
+                    Promise.resolve({ data: {} })
                 ]).then(([exerciseSchemaResult, rolesSchemaResult]) => {
                     const exerciseSchema = exerciseSchemaResult?.data || {};
                     const rolesSchema = rolesSchemaResult?.data || {};
