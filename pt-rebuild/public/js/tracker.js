@@ -220,6 +220,12 @@ async function loadExercises() {
   const list = document.getElementById('exercise-list');
   list.innerHTML = '';
 
+  // Check if programs is valid array before iterating
+  if (!Array.isArray(programs) || programs.length === 0) {
+    list.innerHTML = '<li style="padding: 20px; text-align: center; color: #666;">No exercises assigned. Contact your therapist.</li>';
+    return;
+  }
+
   // Show only assigned exercises (with dosage)
   programs.forEach(program => {
     const exercise = exercises.find(ex => ex.id === program.exercise_id);
