@@ -2885,11 +2885,55 @@
             return stripSessionMetadata(session);
         }
 
-        function enqueueFirestoreSession(session) {
-            const queue = loadFirestoreQueue();
-            queue.push(sanitizeSessionForFirestore(session));
-            saveFirestoreQueue(queue);
-            console.log('[Firestore] Session queued for sync:', session.sessionId || session.date);
+        async function enqueueFirestoreSession(session) {
+            // Convert session to API format
+            const apiSession = {
+                exercise_id: session.exerciseId || null,
+                exercise_name: session.exerciseName,
+                activity_type: session.exerciseType || 'reps',
+                notes: session.notes || null,
+                performed_at: session.date,
+                client_mutation_id: session.sessionId,
+                sets: session.sets.map((set, idx) => ({
+                    set_number: idx + 1,
+                    reps: set.reps || null,
+                    seconds: set.seconds || null,
+                    distance_feet: set.distance || null,
+                    side: set.side || null,
+                    manual_log: set.manualLog || false,
+                    partial_rep: set.partialRep || false,
+                    performed_at: set.timestamp || session.date
+                }))
+            };
+
+            try {
+                const token = await supabase.auth.getSession().then(({ data }) => data.session?.access_token);
+                if (!token) {
+                    throw new Error('No auth token');
+                }
+
+                const response = await fetch('/api/logs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(apiSession)
+                });
+
+                if (response.ok) {
+                    console.log('[API] Session saved:', session.sessionId);
+                } else if (response.status === 409) {
+                    console.log('[API] Session already exists (duplicate):', session.sessionId);
+                } else {
+                    throw new Error(`API error: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('[API] Failed to save session, queueing for retry:', error);
+                const queue = loadFirestoreQueue();
+                queue.push(sanitizeSessionForFirestore(session));
+                saveFirestoreQueue(queue);
+            }
         }
 
         /**
