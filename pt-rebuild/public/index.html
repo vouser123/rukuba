@@ -1446,6 +1446,10 @@
             document.getElementById('notesModal').classList.add('hidden');
         }
 
+        /**
+         * Save the current session and attempt immediate sync.
+         * If sync fails, session is queued in localStorage for later retry.
+         */
         async function saveSession(notes) {
             currentSession.notes = notes || null;
 
@@ -1455,10 +1459,12 @@
             updateSyncBadge();
 
             // Try to sync immediately if online
+            let syncSucceeded = false;
             try {
                 await syncOfflineQueue();
+                syncSucceeded = (offlineQueue.length === 0); // Check if queue is empty after sync
             } catch (error) {
-                console.log('Sync failed, session queued for later');
+                console.error('Sync failed, session queued for later:', error);
             }
 
             closeNotesModal();
@@ -1466,7 +1472,8 @@
             currentExercise = null;
             showView('picker');
 
-            alert('Session saved! Remember to sync when you have internet.');
+            // Don't show misleading alert - sync feedback is handled by syncOfflineQueue
+            // Alert is only shown if sync completely fails (already shown by syncOfflineQueue)
         }
 
         // Offline queue management
@@ -1506,10 +1513,21 @@
 
             for (const session of [...offlineQueue]) {
                 try {
+                    // Determine activity type based on what data exists in sets
+                    let activityType = 'reps'; // default
+                    if (session.sets && session.sets.length > 0) {
+                        const firstSet = session.sets[0];
+                        if (firstSet.distance_feet != null && firstSet.distance_feet > 0) {
+                            activityType = 'distance';
+                        } else if (firstSet.seconds != null && firstSet.seconds > 0) {
+                            activityType = 'timed';
+                        }
+                    }
+
                     const apiSession = {
                         exercise_id: session.exerciseId || null,
                         exercise_name: session.exerciseName,
-                        activity_type: 'reps',
+                        activity_type: activityType,
                         notes: session.notes || null,
                         performed_at: session.date,
                         client_mutation_id: session.sessionId,
