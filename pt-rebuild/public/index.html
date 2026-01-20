@@ -372,60 +372,141 @@
             border-radius: 4px;
             border: 1px solid #ddd;
             text-align: center;
-        }
-
-        .counter-display {
-            font-size: 4rem;
-            font-weight: bold;
-            color: #007bff;
-            margin: 1rem 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .counter-label {
             font-size: 1rem;
             color: #666;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /**
+         * Big tappable circle for counting reps.
+         * iOS Safari optimized: Large touch target, smooth feedback.
+         */
+        .counter-display {
+            width: min(320px, 85vw);
+            height: min(320px, 85vw);
+            border-radius: 50%;
+            background: var(--counter-bg, white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 72px;
+            font-weight: 700;
+            color: var(--counter-color, #007bff);
+            box-shadow: 0 4px 20px rgba(0, 122, 255, 0.3);
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            /* iOS Safari touch fixes for large tap target */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .counter-display:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(0, 122, 255, 0.2);
         }
 
         .counter-controls {
             display: flex;
             gap: 1rem;
             justify-content: center;
-            margin-top: 1.5rem;
+            margin-top: 0.5rem;
         }
 
         .counter-btn {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
             border: none;
-            font-size: 2rem;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+            color: white;
         }
 
         .counter-btn-minus {
             background: #dc3545;
-            color: white;
         }
 
         .counter-btn-plus {
             background: #28a745;
-            color: white;
         }
 
         .counter-btn:active {
             opacity: 0.8;
         }
 
-        .counter-display {
+        /* Timer Mode */
+        .timer-container {
+            background: white;
+            padding: 2rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .timer-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .timer-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: var(--timer-color, #007bff);
+            margin: 1rem 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timer-target {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .timer-btn {
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
             touch-action: manipulation;
-            -webkit-user-select: none;
-            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+        }
+
+        .timer-btn-start {
+            background: #28a745;
+            color: white;
+        }
+
+        .timer-btn-reset {
+            background: #6c757d;
+            color: white;
+        }
+
+        .timer-btn:active {
+            opacity: 0.8;
         }
 
         .set-info {
@@ -728,12 +809,24 @@
             </div>
         </div>
 
-        <div class="counter-container">
+        <!-- Counter Mode (for reps) -->
+        <div id="counterMode" class="counter-container">
             <div class="counter-label" id="counterLabel">Reps</div>
-            <div class="counter-display" id="counterDisplay">0</div>
+            <!-- Big tappable circle - tap to increment reps -->
+            <div class="counter-display" id="counterDisplay" data-action="counter-tap">0</div>
             <div class="counter-controls">
-                <button class="counter-btn counter-btn-minus" data-action="counter-decrease">−</button>
-                <button class="counter-btn counter-btn-plus" data-action="counter-increase">+</button>
+                <button class="counter-btn counter-btn-minus" data-action="counter-decrease">− Undo</button>
+            </div>
+        </div>
+
+        <!-- Timer Mode (for hold/duration exercises) -->
+        <div id="timerMode" class="timer-container hidden">
+            <div class="timer-info" id="timerRepInfo">Rep 1 of 10</div>
+            <div class="timer-display" id="timerDisplay">00:00</div>
+            <div class="timer-target" id="timerTarget">Target: 10 seconds</div>
+            <div class="timer-controls">
+                <button class="timer-btn timer-btn-start" data-action="timer-start-pause" id="timerStartBtn">Start</button>
+                <button class="timer-btn timer-btn-reset" data-action="timer-reset">Reset</button>
             </div>
         </div>
 
@@ -981,9 +1074,27 @@
             // Setup logger view
             document.getElementById('loggerExerciseName').textContent = currentExercise.canonical_name;
             document.getElementById('loggerDosage').textContent = currentExercise.pt_category;
-            document.getElementById('counterDisplay').textContent = '0';
             document.getElementById('currentSetNumber').textContent = '1';
             document.getElementById('totalSetsLogged').textContent = '0';
+
+            // Determine which mode to show: timer mode or counter mode
+            const hasTimerModifier = currentExercise.pattern_modifiers?.includes('duration_seconds') ||
+                                      currentExercise.pattern_modifiers?.includes('hold_seconds');
+
+            const counterMode = document.getElementById('counterMode');
+            const timerMode = document.getElementById('timerMode');
+
+            if (hasTimerModifier) {
+                // Show timer mode for duration/hold exercises
+                counterMode.classList.add('hidden');
+                timerMode.classList.remove('hidden');
+                initTimerMode();
+            } else {
+                // Show counter mode for reps exercises
+                counterMode.classList.remove('hidden');
+                timerMode.classList.add('hidden');
+                document.getElementById('counterDisplay').textContent = '0';
+            }
 
             showView('logger');
         }
@@ -992,7 +1103,16 @@
         function increaseCounter() {
             const display = document.getElementById('counterDisplay');
             const current = parseInt(display.textContent);
-            display.textContent = current + 1;
+            const newValue = current + 1;
+            display.textContent = newValue;
+
+            // Voice countdown when approaching target (5 reps left, 4 reps left, etc.)
+            if (currentExercise && currentExercise.current_reps) {
+                const remaining = currentExercise.current_reps - newValue;
+                if (remaining <= 5 && remaining > 0) {
+                    speakText(`${remaining} reps left`);
+                }
+            }
         }
 
         function decreaseCounter() {
@@ -1000,6 +1120,170 @@
             const current = parseInt(display.textContent);
             if (current > 0) {
                 display.textContent = current - 1;
+            }
+        }
+
+        /**
+         * Timer state for hold/duration exercises.
+         * iOS Safari requires user interaction to enable audio, so beeps and voice are initialized on first start.
+         */
+        let timerState = {
+            intervalId: null,
+            startTime: null,
+            elapsedMs: 0,
+            isRunning: false,
+            currentRep: 1,
+            targetSeconds: 10,
+            totalReps: 1
+        };
+
+        /**
+         * Initialize timer mode for hold or duration exercises.
+         * Called when selecting an exercise with duration_seconds or hold_seconds pattern modifier.
+         */
+        function initTimerMode() {
+            // Determine if this is hold (per-rep timer) or duration (single long timer)
+            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+            const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds');
+
+            if (hasHold) {
+                // Hold = timer per rep (e.g., 10 reps × 10 seconds each)
+                timerState.targetSeconds = currentExercise.seconds_per_rep || 10;
+                timerState.totalReps = currentExercise.current_reps || 1;
+                timerState.currentRep = 1;
+                document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+            } else if (hasDuration) {
+                // Duration = single long timer (e.g., 60 seconds plank)
+                timerState.targetSeconds = currentExercise.seconds_per_rep || 60;
+                timerState.totalReps = 1;
+                timerState.currentRep = 1;
+                document.getElementById('timerRepInfo').textContent = `Duration Exercise`;
+            }
+
+            document.getElementById('timerTarget').textContent = `Target: ${timerState.targetSeconds} seconds`;
+            document.getElementById('timerDisplay').textContent = formatTime(0);
+            timerState.elapsedMs = 0;
+            timerState.isRunning = false;
+            updateTimerButton();
+        }
+
+        /**
+         * Format milliseconds as MM:SS display.
+         */
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        /**
+         * Start or pause the timer countdown.
+         * Timer counts UP to show elapsed time, but beeps/voice warn when approaching target.
+         */
+        function toggleTimer() {
+            if (timerState.isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            timerState.isRunning = true;
+            timerState.startTime = Date.now() - timerState.elapsedMs;
+
+            timerState.intervalId = setInterval(() => {
+                timerState.elapsedMs = Date.now() - timerState.startTime;
+                const elapsedSeconds = Math.floor(timerState.elapsedMs / 1000);
+
+                document.getElementById('timerDisplay').textContent = formatTime(timerState.elapsedMs);
+
+                // Beep and voice warnings when approaching target
+                const remaining = timerState.targetSeconds - elapsedSeconds;
+
+                if (remaining === 5) {
+                    playBeep();
+                    speakText('5 seconds left');
+                } else if (remaining === 4) {
+                    speakText('4 seconds left');
+                } else if (remaining === 3) {
+                    speakText('3 seconds left');
+                } else if (remaining === 2) {
+                    speakText('2 seconds left');
+                } else if (remaining === 1) {
+                    speakText('1 second left');
+                } else if (remaining === 0) {
+                    playBeep();
+                    speakText('Time');
+                    pauseTimer(); // Auto-pause at target, but allow user to continue
+                }
+            }, 100); // Update every 100ms for smooth display
+
+            updateTimerButton();
+        }
+
+        function pauseTimer() {
+            timerState.isRunning = false;
+            if (timerState.intervalId) {
+                clearInterval(timerState.intervalId);
+                timerState.intervalId = null;
+            }
+            updateTimerButton();
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timerState.elapsedMs = 0;
+            document.getElementById('timerDisplay').textContent = formatTime(0);
+        }
+
+        function updateTimerButton() {
+            const btn = document.getElementById('timerStartBtn');
+            btn.textContent = timerState.isRunning ? 'Pause' : 'Start';
+        }
+
+        /**
+         * Play a simple beep sound using Web Audio API.
+         * iOS Safari requires user interaction before playing audio.
+         */
+        function playBeep() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800; // 800 Hz beep
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (error) {
+                console.warn('Audio not available:', error);
+            }
+        }
+
+        /**
+         * Speak text using Web Speech API.
+         * iOS Safari supports speechSynthesis but may require user interaction to initialize.
+         */
+        function speakText(text) {
+            try {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                }
+            } catch (error) {
+                console.warn('Speech not available:', error);
             }
         }
 
@@ -1063,20 +1347,47 @@
             window.location.reload();
         }
 
-        // Log set
+        /**
+         * Log a set (either reps or timer mode).
+         * In timer mode, logs the elapsed seconds.
+         * In counter mode, logs the reps counted.
+         */
         function logSet() {
-            const reps = parseInt(document.getElementById('counterDisplay').textContent);
+            const counterMode = document.getElementById('counterMode');
+            const isTimerMode = counterMode.classList.contains('hidden');
 
-            if (reps === 0) {
-                alert('Please log at least 1 rep');
-                return;
+            let reps = null;
+            let seconds = null;
+            let distance_feet = null;
+
+            if (isTimerMode) {
+                // Timer mode: log elapsed seconds
+                const elapsedSeconds = Math.floor(timerState.elapsedMs / 1000);
+                if (elapsedSeconds === 0) {
+                    alert('Please start the timer before logging');
+                    return;
+                }
+                seconds = elapsedSeconds;
+                // Reset timer for next rep
+                resetTimer();
+            } else {
+                // Counter mode: log reps
+                reps = parseInt(document.getElementById('counterDisplay').textContent);
+                if (reps === 0) {
+                    alert('Please log at least 1 rep');
+                    return;
+                }
+                // Reset counter for next set
+                document.getElementById('counterDisplay').textContent = '0';
             }
+
+            // TODO: Add distance mode support
 
             const set = {
                 set_number: currentSession.sets.length + 1,
                 reps: reps,
-                seconds: null, // TODO: Add timer mode
-                distance_feet: null, // TODO: Add distance mode
+                seconds: seconds,
+                distance_feet: distance_feet,
                 side: currentSide,
                 manual_log: false,
                 partial_rep: false,
@@ -1088,7 +1399,6 @@
             // Update UI
             document.getElementById('totalSetsLogged').textContent = currentSession.sets.length;
             document.getElementById('currentSetNumber').textContent = currentSession.sets.length + 1;
-            document.getElementById('counterDisplay').textContent = '0';
 
             // Show visual feedback instead of alert
             showLogFeedback();
@@ -1298,11 +1608,18 @@
                     case 'select-exercise':
                         selectExercise(target.dataset.id);
                         break;
+                    case 'counter-tap':
                     case 'counter-increase':
                         increaseCounter();
                         break;
                     case 'counter-decrease':
                         decreaseCounter();
+                        break;
+                    case 'timer-start-pause':
+                        toggleTimer();
+                        break;
+                    case 'timer-reset':
+                        resetTimer();
                         break;
                     case 'log-set':
                         logSet();
