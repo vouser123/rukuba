@@ -901,6 +901,11 @@
                 <label id="logSetInputLabel" for="logSetInput">Reps performed</label>
                 <input type="number" id="logSetInput" min="0" step="1">
             </div>
+            <!-- Form Parameters (weight, band resistance, etc.) -->
+            <div id="formParamsContainer" class="hidden" style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333;">Form Parameters:</div>
+                <div id="formParamsFields"></div>
+            </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" data-action="close-log-set-modal">Cancel</button>
                 <button type="button" class="btn" data-action="save-logged-set">Save Set</button>
@@ -1450,6 +1455,7 @@
         /**
          * Open "Log Set" modal to review/edit the current set before saving.
          * Pre-fills with counter or timer value, allows manual adjustment.
+         * Shows form parameters if exercise requires them (weight, band resistance, etc.)
          */
         function logSet() {
             const counterMode = document.getElementById('counterMode');
@@ -1471,9 +1477,103 @@
                 label.textContent = 'Reps performed';
             }
 
+            // Populate form parameters if exercise requires them
+            populateFormParameters();
+
             // Show modal
             modal.classList.remove('hidden');
             input.focus();
+        }
+
+        /**
+         * Populate form parameter fields based on exercise requirements.
+         * Common parameters: weight, band_resistance, band_position, surface, eyes, etc.
+         */
+        function populateFormParameters() {
+            const formParams = currentExercise.form_parameters_required || [];
+            const container = document.getElementById('formParamsContainer');
+            const fieldsDiv = document.getElementById('formParamsFields');
+
+            if (formParams.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            // Build form parameter inputs
+            const html = formParams.map(param => {
+                if (param === 'weight') {
+                    return `
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">Weight</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" class="form-control" id="param-weight" placeholder="Weight" min="0" step="1" style="flex: 1;" data-param="weight">
+                                <select class="form-control" id="param-weight-unit" style="width: 80px;">
+                                    <option value="lb">lb</option>
+                                    <option value="kg">kg</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                } else if (param === 'band_resistance') {
+                    return `
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">Band Resistance</label>
+                            <select class="form-control" id="param-band_resistance" data-param="band_resistance">
+                                <option value="">Select...</option>
+                                <option value="yellow">Yellow (lightest)</option>
+                                <option value="red">Red</option>
+                                <option value="green">Green</option>
+                                <option value="blue">Blue</option>
+                                <option value="black">Black</option>
+                                <option value="silver">Silver</option>
+                                <option value="gold">Gold (heaviest)</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (param === 'band_position') {
+                    return `
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">Band Position</label>
+                            <input type="text" class="form-control" id="param-band_position" placeholder="e.g., above knee" data-param="band_position">
+                        </div>
+                    `;
+                } else if (param === 'surface') {
+                    return `
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">Surface</label>
+                            <select class="form-control" id="param-surface" data-param="surface">
+                                <option value="">Select...</option>
+                                <option value="firm">Firm</option>
+                                <option value="foam">Foam</option>
+                                <option value="bosu">BOSU</option>
+                                <option value="pillow">Pillow</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (param === 'eyes') {
+                    return `
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">Eyes</label>
+                            <select class="form-control" id="param-eyes" data-param="eyes">
+                                <option value="">Select...</option>
+                                <option value="open">Open</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+                    `;
+                } else {
+                    // Generic text input for unknown parameters
+                    return `
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${param.replace(/_/g, ' ')}</label>
+                            <input type="text" class="form-control" id="param-${param}" placeholder="${param.replace(/_/g, ' ')}" data-param="${param}">
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            fieldsDiv.innerHTML = html;
+            container.classList.remove('hidden');
         }
 
         function closeLogSetModal() {
@@ -1482,6 +1582,7 @@
 
         /**
          * Save the set from the modal (user reviewed/edited the value).
+         * Collects form parameters (weight, band resistance, etc.) if present.
          */
         function saveLoggedSet() {
             const counterMode = document.getElementById('counterMode');
@@ -1507,12 +1608,31 @@
                 document.getElementById('counterDisplay').textContent = '0';
             }
 
+            // Collect form parameters if present
+            const formParams = {};
+            const paramInputs = document.querySelectorAll('[data-param]');
+            paramInputs.forEach(input => {
+                const paramName = input.dataset.param;
+                let paramValue = input.value;
+
+                // For weight, include unit
+                if (paramName === 'weight' && paramValue) {
+                    const unit = document.getElementById('param-weight-unit')?.value || 'lb';
+                    paramValue = `${paramValue} ${unit}`;
+                }
+
+                if (paramValue && paramValue.trim() !== '') {
+                    formParams[paramName] = paramValue;
+                }
+            });
+
             const set = {
                 set_number: currentSession.sets.length + 1,
                 reps: reps,
                 seconds: seconds,
                 distance_feet: null, // TODO: Add distance mode
                 side: currentSide,
+                form_params: Object.keys(formParams).length > 0 ? formParams : null,
                 manual_log: false,
                 partial_rep: false,
                 performed_at: new Date().toISOString()
