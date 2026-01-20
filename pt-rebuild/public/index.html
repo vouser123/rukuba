@@ -1073,9 +1073,14 @@
             }
 
             const set = {
+                set_number: currentSession.sets.length + 1,
                 reps: reps,
-                side: currentSide, // Include side tracking
-                timestamp: new Date().toISOString()
+                seconds: null, // TODO: Add timer mode
+                distance_feet: null, // TODO: Add distance mode
+                side: currentSide,
+                manual_log: false,
+                partial_rep: false,
+                performed_at: new Date().toISOString()
             };
 
             currentSession.sets.push(set);
@@ -1171,11 +1176,15 @@
                         notes: session.notes || null,
                         performed_at: session.date,
                         client_mutation_id: session.sessionId,
-                        sets: session.sets.map((set, idx) => ({
-                            set_number: idx + 1,
+                        sets: session.sets.map(set => ({
+                            set_number: set.set_number,
                             reps: set.reps || null,
-                            side: set.side || 'right', // Include side tracking
-                            performed_at: set.timestamp || session.date
+                            seconds: set.seconds || null,
+                            distance_feet: set.distance_feet || null,
+                            side: set.side || null,
+                            manual_log: set.manual_log || false,
+                            partial_rep: set.partial_rep || false,
+                            performed_at: set.performed_at || session.date
                         }))
                     };
 
