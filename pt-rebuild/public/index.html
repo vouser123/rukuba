@@ -1004,6 +1004,33 @@
             return response.json();
         }
 
+        /**
+         * Format dosage display string based on exercise type and pattern modifiers.
+         * Examples: "3 × 10 reps", "3 × 30 sec", "20 feet", "3 × 10 sec hold"
+         */
+        function formatDosage(exercise) {
+            const sets = exercise.current_sets || 0;
+            const reps = exercise.current_reps || 0;
+            const seconds = exercise.seconds_per_rep || 0;
+            const distance = exercise.distance_target || 0;
+
+            const hasDuration = exercise.pattern_modifiers?.includes('duration_seconds');
+            const hasHold = exercise.pattern_modifiers?.includes('hold_seconds');
+            const hasDistance = exercise.pattern_modifiers?.includes('distance_feet');
+
+            if (hasDistance && distance > 0) {
+                return `${distance} feet`;
+            } else if (hasDuration && seconds > 0) {
+                return `${sets} × ${seconds} sec`;
+            } else if (hasHold && seconds > 0 && reps > 0) {
+                return `${sets} × ${reps} reps (${seconds} sec hold)`;
+            } else if (reps > 0) {
+                return `${sets} × ${reps} reps`;
+            } else {
+                return exercise.pt_category || '';
+            }
+        }
+
         // Render functions
         function renderExerciseList(exercises) {
             const listEl = document.getElementById('exerciseList');
@@ -1018,7 +1045,7 @@
                 .map(ex => `
                     <div class="exercise-card" data-action="select-exercise" data-id="${ex.id}">
                         <div class="exercise-name">${escapeHtml(ex.canonical_name)}</div>
-                        <div class="exercise-dosage">${escapeHtml(ex.pt_category)}</div>
+                        <div class="exercise-dosage">${escapeHtml(formatDosage(ex))}</div>
                     </div>
                 `).join('');
 
@@ -1073,7 +1100,7 @@
 
             // Setup logger view
             document.getElementById('loggerExerciseName').textContent = currentExercise.canonical_name;
-            document.getElementById('loggerDosage').textContent = currentExercise.pt_category;
+            document.getElementById('loggerDosage').textContent = formatDosage(currentExercise);
             document.getElementById('currentSetNumber').textContent = '1';
             document.getElementById('totalSetsLogged').textContent = '0';
 
