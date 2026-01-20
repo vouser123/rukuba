@@ -858,6 +858,24 @@
         </div>
     </div>
 
+    <!-- Log Set Modal (for manual entry/review) -->
+    <div id="logSetModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Log Set</h2>
+                <button class="close-btn" data-action="close-log-set-modal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label id="logSetInputLabel" for="logSetInput">Reps performed</label>
+                <input type="number" id="logSetInput" min="0" step="1">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" data-action="close-log-set-modal">Cancel</button>
+                <button type="button" class="btn" data-action="save-logged-set">Save Set</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Session Notes Modal -->
     <div id="notesModal" class="modal hidden">
         <div class="modal-content">
@@ -1099,15 +1117,26 @@
                 date: new Date().toISOString()
             };
 
-            // Reset side selection to default
-            currentSide = 'right';
-            selectSide('right');
-
             // Setup logger view
             document.getElementById('loggerExerciseName').textContent = currentExercise.canonical_name;
             document.getElementById('loggerDosage').textContent = formatDosage(currentExercise);
             document.getElementById('currentSetNumber').textContent = '1';
             document.getElementById('totalSetsLogged').textContent = '0';
+
+            // Handle side tracking visibility - only show for pattern: "side"
+            const sideTracking = document.querySelector('.side-tracking');
+            const isSidePattern = currentExercise.pattern === 'side';
+
+            if (isSidePattern) {
+                // Show side selector and reset to default
+                sideTracking.classList.remove('hidden');
+                currentSide = 'right';
+                selectSide('right');
+            } else {
+                // Hide side selector for bilateral (both) exercises
+                sideTracking.classList.add('hidden');
+                currentSide = null; // No side tracking for bilateral
+            }
 
             // Determine which mode to show: timer mode or counter mode
             const hasTimerModifier = currentExercise.pattern_modifiers?.includes('duration_seconds') ||
@@ -1193,7 +1222,8 @@
             }
 
             document.getElementById('timerTarget').textContent = `Target: ${timerState.targetSeconds} seconds`;
-            document.getElementById('timerDisplay').textContent = formatTime(0);
+            // Initialize display to show target time (countdown starts from target)
+            document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
             timerState.elapsedMs = 0;
             timerState.isRunning = false;
             updateTimerButton();
@@ -1211,7 +1241,7 @@
 
         /**
          * Start or pause the timer countdown.
-         * Timer counts UP to show elapsed time, but beeps/voice warn when approaching target.
+         * Timer counts DOWN from target to 0, with beeps/voice warnings.
          */
         function toggleTimer() {
             if (timerState.isRunning) {
@@ -1228,11 +1258,13 @@
             timerState.intervalId = setInterval(() => {
                 timerState.elapsedMs = Date.now() - timerState.startTime;
                 const elapsedSeconds = Math.floor(timerState.elapsedMs / 1000);
-
-                document.getElementById('timerDisplay').textContent = formatTime(timerState.elapsedMs);
-
-                // Beep and voice warnings when approaching target
                 const remaining = timerState.targetSeconds - elapsedSeconds;
+
+                // Display countdown (remaining time)
+                const displayMs = Math.max(0, remaining * 1000);
+                document.getElementById('timerDisplay').textContent = formatTime(displayMs);
+
+                // Beep and voice warnings when approaching zero
 
                 if (remaining === 5) {
                     playBeep();
@@ -1267,7 +1299,8 @@
         function resetTimer() {
             pauseTimer();
             timerState.elapsedMs = 0;
-            document.getElementById('timerDisplay').textContent = formatTime(0);
+            // Reset to target time (countdown starts from target)
+            document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
         }
 
         function updateTimerButton() {
@@ -1380,42 +1413,70 @@
         }
 
         /**
-         * Log a set (either reps or timer mode).
-         * In timer mode, logs the elapsed seconds.
-         * In counter mode, logs the reps counted.
+         * Open "Log Set" modal to review/edit the current set before saving.
+         * Pre-fills with counter or timer value, allows manual adjustment.
          */
         function logSet() {
             const counterMode = document.getElementById('counterMode');
             const isTimerMode = counterMode.classList.contains('hidden');
 
-            let reps = null;
-            let seconds = null;
-            let distance_feet = null;
+            const modal = document.getElementById('logSetModal');
+            const input = document.getElementById('logSetInput');
+            const label = document.getElementById('logSetInputLabel');
 
             if (isTimerMode) {
-                // Timer mode: log elapsed seconds (allow 0 for manual logging)
+                // Timer mode: pre-fill with elapsed seconds
                 const elapsedSeconds = Math.floor(timerState.elapsedMs / 1000);
-                seconds = elapsedSeconds;
+                input.value = elapsedSeconds;
+                label.textContent = 'Seconds performed';
+            } else {
+                // Counter mode: pre-fill with reps
+                const reps = parseInt(document.getElementById('counterDisplay').textContent);
+                input.value = reps;
+                label.textContent = 'Reps performed';
+            }
+
+            // Show modal
+            modal.classList.remove('hidden');
+            input.focus();
+        }
+
+        function closeLogSetModal() {
+            document.getElementById('logSetModal').classList.add('hidden');
+        }
+
+        /**
+         * Save the set from the modal (user reviewed/edited the value).
+         */
+        function saveLoggedSet() {
+            const counterMode = document.getElementById('counterMode');
+            const isTimerMode = counterMode.classList.contains('hidden');
+            const input = document.getElementById('logSetInput');
+            const value = parseInt(input.value) || 0;
+
+            if (value === 0) {
+                alert('Please enter a value greater than 0');
+                return;
+            }
+
+            let reps = null;
+            let seconds = null;
+
+            if (isTimerMode) {
+                seconds = value;
                 // Reset timer for next rep
                 resetTimer();
             } else {
-                // Counter mode: log reps
-                reps = parseInt(document.getElementById('counterDisplay').textContent);
-                if (reps === 0) {
-                    alert('Please log at least 1 rep');
-                    return;
-                }
+                reps = value;
                 // Reset counter for next set
                 document.getElementById('counterDisplay').textContent = '0';
             }
-
-            // TODO: Add distance mode support
 
             const set = {
                 set_number: currentSession.sets.length + 1,
                 reps: reps,
                 seconds: seconds,
-                distance_feet: distance_feet,
+                distance_feet: null, // TODO: Add distance mode
                 side: currentSide,
                 manual_log: false,
                 partial_rep: false,
@@ -1428,7 +1489,8 @@
             document.getElementById('totalSetsLogged').textContent = currentSession.sets.length;
             document.getElementById('currentSetNumber').textContent = currentSession.sets.length + 1;
 
-            // Show visual feedback instead of alert
+            // Close modal and show feedback
+            closeLogSetModal();
             showLogFeedback();
         }
 
@@ -1677,6 +1739,12 @@
                         currentSession = null;
                         currentExercise = null;
                         showView('picker');
+                        break;
+                    case 'close-log-set-modal':
+                        closeLogSetModal();
+                        break;
+                    case 'save-logged-set':
+                        saveLoggedSet();
                         break;
                     case 'close-notes-modal':
                         closeNotesModal();
