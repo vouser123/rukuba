@@ -21,6 +21,11 @@
             user-select: none;
         }
 
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
         /* Auth Modal */
         .auth-modal {
             position: fixed;
@@ -1388,12 +1393,8 @@
             let distance_feet = null;
 
             if (isTimerMode) {
-                // Timer mode: log elapsed seconds
+                // Timer mode: log elapsed seconds (allow 0 for manual logging)
                 const elapsedSeconds = Math.floor(timerState.elapsedMs / 1000);
-                if (elapsedSeconds === 0) {
-                    alert('Please start the timer before logging');
-                    return;
-                }
                 seconds = elapsedSeconds;
                 // Reset timer for next rep
                 resetTimer();
