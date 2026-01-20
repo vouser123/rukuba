@@ -26,6 +26,38 @@
             display: none !important;
         }
 
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--toast-bg, #333);
+            color: var(--toast-text, white);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10001;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            max-width: 90%;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error {
+            background: var(--toast-error-bg, #dc3545);
+        }
+
+        .toast.success {
+            background: var(--toast-success-bg, #28a745);
+        }
+
         /* Auth Modal */
         .auth-modal {
             position: fixed;
@@ -899,6 +931,9 @@
     <!-- Visual Feedback -->
     <div id="logFeedback" class="log-feedback">✓</div>
 
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -1104,7 +1139,7 @@
         function selectExercise(exerciseId) {
             currentExercise = allExercises.find(ex => ex.id === exerciseId);
             if (!currentExercise) {
-                alert('Exercise not found');
+                showToast('Exercise not found', 'error');
                 return;
             }
 
@@ -1401,7 +1436,7 @@
                 // Auth state listener will handle UI updates
             } catch (error) {
                 console.error('Sign out error:', error);
-                alert('Failed to sign out: ' + error.message);
+                showToast('Failed to sign out: ' + error.message, 'error');
             }
         }
 
@@ -1455,7 +1490,7 @@
             const value = parseInt(input.value) || 0;
 
             if (value === 0) {
-                alert('Please enter a value greater than 0');
+                showToast('Please enter a value greater than 0', 'error');
                 return;
             }
 
@@ -1497,7 +1532,7 @@
         // Finish session
         function finishSession() {
             if (currentSession.sets.length === 0) {
-                alert('Please log at least one set before finishing');
+                showToast('Please log at least one set before finishing', 'error');
                 return;
             }
 
@@ -1567,7 +1602,7 @@
 
         async function syncOfflineQueue() {
             if (offlineQueue.length === 0) {
-                alert('Nothing to sync!');
+                showToast('Nothing to sync!', '');
                 return;
             }
 
@@ -1625,9 +1660,9 @@
             updateSyncBadge();
 
             if (failCount === 0) {
-                alert(`✓ Synced ${successCount} sessions successfully!`);
+                showToast(`✓ Synced ${successCount} sessions successfully!`, 'success');
             } else {
-                alert(`Synced ${successCount} sessions. ${failCount} failed (will retry later).`);
+                showToast(`Synced ${successCount} sessions. ${failCount} failed (will retry later).`, 'error');
             }
 
             // Reload history
@@ -1648,6 +1683,31 @@
                 document.getElementById('historyView').classList.add('active');
                 document.querySelector('[data-view="history"]').classList.add('active');
             }
+        }
+
+        /**
+         * Show a toast notification (brief message that fades away).
+         * Better UX than blocking alerts.
+         * @param {string} message - The message to display
+         * @param {string} type - 'success', 'error', or default (neutral)
+         * @param {number} duration - How long to show in ms (default 3000)
+         */
+        function showToast(message, type = '', duration = 3000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+
+            container.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // Remove after duration
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => container.removeChild(toast), 300);
+            }, duration);
         }
 
         // Search
