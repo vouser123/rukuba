@@ -1866,27 +1866,45 @@ ${queueData}
                 try {
                     const rawQueue = JSON.parse(stored);
 
-                    // Migrate old session format to new format
-                    offlineQueue = rawQueue.filter(session => {
+                    // Migrate old session format to new format (PRESERVE DATA, don't delete)
+                    offlineQueue = rawQueue.map((session, sessionIdx) => {
                         // Check if this is an old format session (missing set_number)
                         if (session.sets && session.sets.length > 0) {
                             const firstSet = session.sets[0];
 
                             // Old format: has "timestamp" instead of "performed_at", missing "set_number"
                             if (firstSet.timestamp && !firstSet.set_number) {
-                                console.log('Removing old format session from queue:', session.sessionId);
-                                return false; // Filter out old sessions
+                                console.log('Migrating old format session:', session.sessionId);
+
+                                // Migrate sets to new format
+                                const migratedSets = session.sets.map((set, idx) => ({
+                                    set_number: idx + 1,
+                                    reps: set.reps || null,
+                                    seconds: set.seconds || null,
+                                    distance_feet: null,
+                                    side: null, // Old sessions don't have side tracking
+                                    form_data: null, // Old sessions don't have form data
+                                    manual_log: false,
+                                    partial_rep: false,
+                                    performed_at: set.timestamp || session.date
+                                }));
+
+                                return {
+                                    ...session,
+                                    sets: migratedSets
+                                };
                             }
                         }
-                        return true; // Keep new format sessions
+                        return session; // Return unchanged if already in new format
                     });
 
-                    // Save cleaned queue
-                    if (rawQueue.length !== offlineQueue.length) {
+                    // Save migrated queue
+                    if (JSON.stringify(rawQueue) !== JSON.stringify(offlineQueue)) {
                         saveOfflineQueue();
-                        console.log(`Cleaned ${rawQueue.length - offlineQueue.length} old sessions from queue`);
+                        console.log('Migrated old sessions to new format');
                     }
                 } catch (e) {
+                    console.error('Error loading offline queue:', e);
                     offlineQueue = [];
                 }
             }
