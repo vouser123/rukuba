@@ -798,6 +798,10 @@
                 <span class="hamburger-icon">🔄</span>
                 <span>Sync Now</span>
             </div>
+            <div class="hamburger-item" data-action="show-debug">
+                <span class="hamburger-icon">🐛</span>
+                <span>Show Debug Info</span>
+            </div>
             <div class="hamburger-item" data-action="reload">
                 <span class="hamburger-icon">🔄</span>
                 <span>Reload</span>
@@ -1064,7 +1068,15 @@
             });
 
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                // Try to get error details from response body
+                let errorDetail = '';
+                try {
+                    const errorBody = await response.json();
+                    errorDetail = errorBody.error || errorBody.message || JSON.stringify(errorBody);
+                } catch (e) {
+                    errorDetail = await response.text();
+                }
+                throw new Error(`API error ${response.status}: ${errorDetail || response.statusText}`);
             }
 
             return response.json();
@@ -1463,6 +1475,34 @@
          */
         function reloadPage() {
             window.location.reload();
+        }
+
+        /**
+         * Show debug information about offline queue
+         */
+        function showDebugInfo() {
+            const queueData = JSON.stringify(offlineQueue, null, 2);
+            console.log('Offline Queue:', offlineQueue);
+
+            // Create a modal-like debug display
+            const debugInfo = `
+Queue Length: ${offlineQueue.length}
+Auth Token: ${authToken ? 'Present' : 'Missing'}
+Current User: ${currentUser?.email || 'None'}
+
+Queued Sessions:
+${queueData}
+            `.trim();
+
+            // Show in alert for now (can be improved with a modal)
+            alert(debugInfo);
+
+            // Also copy first session to clipboard if available
+            if (offlineQueue.length > 0) {
+                const firstSession = JSON.stringify(offlineQueue[0], null, 2);
+                console.log('First queued session:', firstSession);
+                showToast('Debug info logged to console', '', 3000);
+            }
         }
 
         /**
@@ -1898,6 +1938,8 @@
 
                 } catch (error) {
                     console.error('Failed to sync session:', session.sessionId, error);
+                    // Show detailed error in toast for debugging
+                    showToast(`Sync error: ${error.message || error}`, 'error', 5000);
                     failCount++;
                 }
             }
@@ -2058,6 +2100,10 @@
                     case 'manual-sync':
                         toggleHamburger(); // Close menu
                         syncOfflineQueue();
+                        break;
+                    case 'show-debug':
+                        toggleHamburger(); // Close menu
+                        showDebugInfo();
                         break;
                     case 'toggle-hamburger':
                         toggleHamburger();
