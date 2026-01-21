@@ -1938,9 +1938,17 @@ ${queueData}
 
                 } catch (error) {
                     console.error('Failed to sync session:', session.sessionId, error);
-                    // Show detailed error in toast for debugging
-                    showToast(`Sync error: ${error.message || error}`, 'error', 5000);
-                    failCount++;
+
+                    // Handle 409 duplicate as success (session already exists in DB)
+                    if (error.message && error.message.includes('409')) {
+                        offlineQueue = offlineQueue.filter(s => s.sessionId !== session.sessionId);
+                        successCount++;
+                        console.log('Removed duplicate session from queue:', session.sessionId);
+                    } else {
+                        // Show detailed error in toast for debugging
+                        showToast(`Sync error: ${error.message || error}`, 'error', 5000);
+                        failCount++;
+                    }
                 }
             }
 
