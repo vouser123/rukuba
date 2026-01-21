@@ -37,18 +37,19 @@ export function getSupabaseClient() {
  */
 export function getSupabaseWithAuth(accessToken) {
   // Create a fresh client for each request with the user's JWT
-  // The db.auth.setAccessToken() method properly sets the context for RLS
+  // Pass the access token in global headers for RLS context
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    },
     auth: {
       autoRefreshToken: false,
       persistSession: false,
       detectSessionInUrl: false
     }
   });
-
-  // Set the access token for this client instance
-  // This makes auth.uid() work correctly in RLS policies
-  client.rest.headers['Authorization'] = `Bearer ${accessToken}`;
 
   return client;
 }
