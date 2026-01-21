@@ -1864,7 +1864,28 @@ ${queueData}
             const stored = localStorage.getItem('pt_offline_queue');
             if (stored) {
                 try {
-                    offlineQueue = JSON.parse(stored);
+                    const rawQueue = JSON.parse(stored);
+
+                    // Migrate old session format to new format
+                    offlineQueue = rawQueue.filter(session => {
+                        // Check if this is an old format session (missing set_number)
+                        if (session.sets && session.sets.length > 0) {
+                            const firstSet = session.sets[0];
+
+                            // Old format: has "timestamp" instead of "performed_at", missing "set_number"
+                            if (firstSet.timestamp && !firstSet.set_number) {
+                                console.log('Removing old format session from queue:', session.sessionId);
+                                return false; // Filter out old sessions
+                            }
+                        }
+                        return true; // Keep new format sessions
+                    });
+
+                    // Save cleaned queue
+                    if (rawQueue.length !== offlineQueue.length) {
+                        saveOfflineQueue();
+                        console.log(`Cleaned ${rawQueue.length - offlineQueue.length} old sessions from queue`);
+                    }
                 } catch (e) {
                     offlineQueue = [];
                 }
