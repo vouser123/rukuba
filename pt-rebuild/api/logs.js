@@ -139,6 +139,17 @@ async function createActivityLog(req, res) {
     });
   }
 
+  // Debug logging
+  console.log('[POST /api/logs] Creating activity log:', {
+    targetPatientId,
+    userId: req.user.id,
+    userAuthId: req.user.auth_id,
+    userEmail: req.user.email,
+    hasAccessToken: !!req.accessToken,
+    exerciseName: exercise_name,
+    activityType: activity_type
+  });
+
   try {
     // Create activity log (with deduplication)
     const { data: log, error: logError } = await supabase
@@ -166,7 +177,7 @@ async function createActivityLog(req, res) {
       throw logError;
     }
 
-    // Insert sets
+    // Insert sets (without form_data - that goes in separate table)
     const setsWithLogId = sets.map(set => ({
       activity_log_id: log.id,
       set_number: set.set_number,
@@ -185,6 +196,34 @@ async function createActivityLog(req, res) {
       .select();
 
     if (setsError) throw setsError;
+
+    // Insert form data for each set (if present)
+    // form_data is an array of {parameter_name, parameter_value, parameter_unit}
+    const formDataRows = [];
+    for (let i = 0; i < sets.length; i++) {
+      const set = sets[i];
+      const createdSet = createdSets[i];
+
+      if (set.form_data && Array.isArray(set.form_data) && set.form_data.length > 0) {
+        for (const param of set.form_data) {
+          formDataRows.push({
+            activity_set_id: createdSet.id,
+            parameter_name: param.parameter_name,
+            parameter_value: param.parameter_value,
+            parameter_unit: param.parameter_unit || null
+          });
+        }
+      }
+    }
+
+    // Insert form data if any
+    if (formDataRows.length > 0) {
+      const { error: formDataError } = await supabase
+        .from('patient_activity_set_form_data')
+        .insert(formDataRows);
+
+      if (formDataError) throw formDataError;
+    }
 
     return res.status(201).json({
       log: {
