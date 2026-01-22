@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>O&M Timing Practice Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f4ef;
+      --text: #1b1b1b;
+      --muted: #6c6c6c;
+      --accent: #2f5d62;
+      --outline: #1b1b1b;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .panel {
+      width: min(560px, 90vw);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .mode-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .mode-toggle label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    .mode-toggle input[type="radio"] {
+      accent-color: var(--accent);
+    }
+
+    .sound-toggle {
+      align-self: center;
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      padding: 6px 14px;
+      background: #fff;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .sound-toggle[aria-pressed="false"] {
+      opacity: 0.55;
+    }
+
+    .markers {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .marker-shape {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 3px solid var(--outline);
+      display: grid;
+      place-items: center;
+      background: #fff;
+    }
+
+    .marker-shape span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--outline);
+    }
+
+    .marker.complete .marker-shape {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .marker.complete .marker-shape span {
+      border-color: #fff;
+      background: #fff;
+    }
+
+    .marker.current .marker-shape {
+      background: #fff;
+      border-style: double;
+    }
+
+    .marker label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .action-btn {
+      width: min(260px, 70vw);
+      height: 180px;
+      margin: 0 auto;
+      border-radius: 22px;
+      border: 4px solid var(--outline);
+      background: #fff;
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .action-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 0.95rem;
+      color: var(--muted);
+      min-height: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <div class="mode-toggle" role="group" aria-label="Mode selection">
+      <label>
+        <input type="radio" name="mode" value="2" checked />
+        Start → Finish
+      </label>
+      <label>
+        <input type="radio" name="mode" value="3" />
+        Start → Boundary → Finish
+      </label>
+    </div>
+
+    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true">
+      <span aria-hidden="true">🔊</span>
+      Sound On
+    </button>
+
+    <section class="markers" id="markers"></section>
+
+    <button class="action-btn" id="actionBtn" type="button">Begin</button>
+
+    <div class="status" id="statusText">Ready.</div>
+  </main>
+
+  <script>
+    const actionBtn = document.getElementById("actionBtn");
+    const markersEl = document.getElementById("markers");
+    const statusText = document.getElementById("statusText");
+    const modeInputs = [...document.querySelectorAll("input[name='mode']")];
+    const soundToggle = document.getElementById("soundToggle");
+
+    const modes = {
+      2: { labels: ["Start", "Finish"], reference: [0, 3.5] },
+      3: { labels: ["Start", "Boundary", "Finish"], reference: [0, 1.8, 3.5] }
+    };
+
+    const tolerance = 0.4;
+
+    let audioContext;
+    let soundEnabled = true;
+    let markerTimes = [];
+    let currentMode = 2;
+    let stage = 0;
+    let started = false;
+    let replayTimeout;
+
+    const tones = {
+      confirm: 440,
+      user: 392,
+      reference: 523.25,
+      within: 659.25,
+      outside: 277.18
+    };
+
+    function ensureAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+    }
+
+    function playTone(frequency, duration = 0.16, startTime = 0) {
+      if (!soundEnabled) return;
+      ensureAudioContext();
+      const now = audioContext.currentTime;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = "sine";
+      osc.frequency.value = frequency;
+      const attack = 0.01;
+      const release = 0.07;
+      gain.gain.setValueAtTime(0, now + startTime);
+      gain.gain.linearRampToValueAtTime(0.3, now + startTime + attack);
+      gain.gain.linearRampToValueAtTime(0, now + startTime + duration + release);
+      osc.connect(gain).connect(audioContext.destination);
+      osc.start(now + startTime);
+      osc.stop(now + startTime + duration + release + 0.02);
+    }
+
+    function updateMode() {
+      const selected = modeInputs.find((input) => input.checked);
+      currentMode = Number(selected.value);
+      renderMarkers();
+      resetState();
+    }
+
+    function renderMarkers() {
+      markersEl.innerHTML = "";
+      const { labels } = modes[currentMode];
+      labels.forEach((label, index) => {
+        const item = document.createElement("div");
+        item.className = "marker";
+        item.dataset.index = String(index);
+        item.innerHTML = `
+          <div class="marker-shape"><span></span></div>
+          <label>${label}</label>
+        `;
+        markersEl.appendChild(item);
+      });
+      updateMarkerStates();
+    }
+
+    function updateMarkerStates() {
+      const markerNodes = [...markersEl.querySelectorAll(".marker")];
+      markerNodes.forEach((node, index) => {
+        node.classList.toggle("complete", index < stage);
+        node.classList.toggle("current", index === stage && started);
+      });
+    }
+
+    function setStatus(message) {
+      statusText.textContent = message;
+    }
+
+    function lockModeSelection(lock) {
+      modeInputs.forEach((input) => {
+        input.disabled = lock;
+      });
+    }
+
+    function resetState(message = "Ready.") {
+      markerTimes = [];
+      stage = 0;
+      started = false;
+      actionBtn.disabled = false;
+      actionBtn.textContent = "Begin";
+      setStatus(message);
+      updateMarkerStates();
+      lockModeSelection(false);
+    }
+
+    function recordMarker() {
+      if (!started) {
+        started = true;
+        lockModeSelection(true);
+        markerTimes = [0];
+        stage = 1;
+        actionBtn.textContent = "Mark";
+        setStatus("Listening for the next marker.");
+        playTone(tones.confirm);
+        updateMarkerStates();
+        return;
+      }
+
+      const elapsed = (performance.now() - startTimestamp) / 1000;
+      markerTimes.push(elapsed);
+      playTone(tones.confirm);
+      stage += 1;
+
+      if (stage >= modes[currentMode].labels.length) {
+        actionBtn.disabled = true;
+        actionBtn.textContent = "Replay";
+        setStatus("Replaying your markers and the reference.");
+        updateMarkerStates();
+        beginReplay();
+      } else {
+        setStatus("Listening for the next marker.");
+        updateMarkerStates();
+      }
+    }
+
+    function beginReplay() {
+      const { reference } = modes[currentMode];
+      const baseDelay = 0.6;
+      const maxTime = Math.max(
+        ...markerTimes,
+        ...reference
+      );
+
+      markerTimes.forEach((time) => {
+        playTone(tones.user, 0.14, baseDelay + time);
+      });
+
+      reference.forEach((time) => {
+        playTone(tones.reference, 0.14, baseDelay + time);
+      });
+
+      reference.slice(1).forEach((time, index) => {
+        const userTime = markerTimes[index + 1] ?? 0;
+        const diff = Math.abs(userTime - time);
+        const feedbackTone = diff <= tolerance ? tones.within : tones.outside;
+        playTone(feedbackTone, 0.12, baseDelay + time + 0.28);
+      });
+
+      clearTimeout(replayTimeout);
+      replayTimeout = setTimeout(() => {
+        resetState("Ready for another try.");
+      }, (maxTime + baseDelay + 1.2) * 1000);
+    }
+
+    let startTimestamp = 0;
+
+    actionBtn.addEventListener("click", () => {
+      ensureAudioContext();
+      if (!started) {
+        startTimestamp = performance.now();
+      }
+      recordMarker();
+    });
+
+    modeInputs.forEach((input) => {
+      input.addEventListener("change", updateMode);
+    });
+
+    soundToggle.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+      soundToggle.innerHTML = soundEnabled
+        ? "<span aria-hidden=\"true\">🔊</span> Sound On"
+        : "<span aria-hidden=\"true\">🔇</span> Sound Off";
+      if (soundEnabled) {
+        playTone(tones.confirm, 0.12);
+      }
+    });
+
+    renderMarkers();
+  </script>
+</body>
+</html>
