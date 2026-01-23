@@ -19,6 +19,7 @@
       font-family: "Helvetica Neue", Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
+      font-size: 18px;
       display: flex;
       min-height: 100vh;
       align-items: center;
@@ -166,6 +167,24 @@
       opacity: 0.55;
     }
 
+    .settings-trigger {
+      align-self: center;
+      border: 3px solid var(--outline);
+      border-radius: 999px;
+      padding: 10px 18px;
+      background: #fff;
+      font-size: 1.2rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .settings-trigger span {
+      font-size: 1.5rem;
+    }
+
     .markers {
       display: flex;
       justify-content: center;
@@ -219,13 +238,13 @@
     }
 
     .action-btn {
-      width: min(260px, 70vw);
-      height: 180px;
+      width: min(320px, 80vw);
+      height: 220px;
       margin: 0 auto;
       border-radius: 22px;
       border: 4px solid var(--outline);
       background: #fff;
-      font-size: 1.2rem;
+      font-size: 1.4rem;
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -239,6 +258,21 @@
       border-style: double;
     }
 
+    .action-btn.running.stage-start {
+      background: #1b1b1b;
+      color: #fff;
+    }
+
+    .action-btn.running.stage-boundary {
+      background: #005a9c;
+      color: #fff;
+    }
+
+    .action-btn.running.stage-finish {
+      background: #2f5d62;
+      color: #fff;
+    }
+
     .action-btn:disabled {
       opacity: 0.55;
       cursor: not-allowed;
@@ -249,63 +283,82 @@
       color: var(--muted);
       min-height: 1.2rem;
     }
+
+    .debug {
+      font-size: 0.95rem;
+      color: #000;
+    }
+
+    dialog {
+      border: none;
+      padding: 0;
+      background: transparent;
+      max-width: min(640px, 92vw);
+      width: 100%;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-card {
+      background: #fff;
+      border: 3px solid var(--outline);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .close-modal {
+      border: 2px solid var(--outline);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .preview-btn,
+    .settings-action {
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      background: #fff;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    button:focus-visible {
+      outline: 4px solid #000;
+      outline-offset: 2px;
+    }
   </style>
 </head>
 <body>
   <main class="panel">
-    <section class="setup" aria-label="Settings and setup">
-      <h2>Settings / Setup</h2>
-      <div class="setup-group" aria-label="Sound calibration">
-        <h3>Sound Calibration</h3>
-        <fieldset aria-label="Acceptable feedback sounds">
-          <legend>Acceptable (within tolerance)</legend>
-          <div class="sound-options">
-            <div class="sound-option">
-              <input type="radio" id="acceptable-a" name="acceptableSound" value="acceptable-a" />
-              <label for="acceptable-a">Chime A</label>
-              <button type="button" class="preview-btn" data-sound="acceptable-a" aria-label="Play acceptable sound option A">Play</button>
-            </div>
-            <div class="sound-option">
-              <input type="radio" id="acceptable-b" name="acceptableSound" value="acceptable-b" />
-              <label for="acceptable-b">Chime B</label>
-              <button type="button" class="preview-btn" data-sound="acceptable-b" aria-label="Play acceptable sound option B">Play</button>
-            </div>
-          </div>
-        </fieldset>
-        <fieldset aria-label="Out of bounds feedback sounds">
-          <legend>Out of bounds (outside tolerance)</legend>
-          <div class="sound-options">
-            <div class="sound-option">
-              <input type="radio" id="outside-a" name="outsideSound" value="outside-a" />
-              <label for="outside-a">Low Pulse A</label>
-              <button type="button" class="preview-btn" data-sound="outside-a" aria-label="Play out of bounds sound option A">Play</button>
-            </div>
-            <div class="sound-option">
-              <input type="radio" id="outside-b" name="outsideSound" value="outside-b" />
-              <label for="outside-b">Low Pulse B</label>
-              <button type="button" class="preview-btn" data-sound="outside-b" aria-label="Play out of bounds sound option B">Play</button>
-            </div>
-          </div>
-        </fieldset>
-      </div>
-      <div class="setup-group" aria-label="Time entry">
-        <h3>Time Entry</h3>
-        <label for="clearTime">Time to clear from left (seconds)</label>
-        <input id="clearTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Time to clear from left in seconds" />
-        <label for="fullTime">Full street time (seconds)</label>
-        <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Full street time in seconds" />
-      </div>
-      <div class="setup-group" aria-label="Margin of error">
-        <h3>Margin of Error</h3>
-        <label for="marginInput">Acceptable margin of error (seconds)</label>
-        <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" aria-label="Acceptable margin of error in seconds" value="0.4" />
-      </div>
-    </section>
+    <button class="settings-trigger" id="settingsTrigger" type="button" aria-label="Open settings">
+      <span aria-hidden="true">⚙️</span>
+      Settings
+    </button>
 
     <div class="mode-toggle" role="group" aria-label="Mode selection">
       <label>
         <input type="radio" name="mode" value="2" checked aria-label="Start to finish mode" />
         Start → Finish
+      </label>
+      <label>
+        <input type="radio" name="mode" value="2b" aria-label="Start to boundary mode" />
+        Start → Boundary
       </label>
       <label>
         <input type="radio" name="mode" value="3" aria-label="Start boundary finish mode" />
@@ -323,14 +376,92 @@
     <button class="action-btn" id="actionBtn" type="button" aria-label="Begin or mark timing">Begin</button>
 
     <div class="status" id="statusText">Ready.</div>
+    <div class="status debug" id="debugText" aria-live="polite"></div>
   </main>
+
+  <dialog id="settingsModal" aria-label="Settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Settings / Setup</h2>
+        <button class="close-modal" type="button" id="closeSettings">Close</button>
+      </div>
+      <section class="setup" aria-label="Settings and setup">
+        <div class="setup-group" aria-label="Sound calibration">
+          <h3>Sound Calibration</h3>
+          <fieldset aria-label="Acceptable feedback sounds">
+            <legend>Acceptable (within tolerance)</legend>
+            <div class="sound-options">
+              <div class="sound-option">
+                <input type="radio" id="acceptable-a" name="acceptableSound" value="acceptable-a" />
+                <label for="acceptable-a">Chime A</label>
+                <button type="button" class="preview-btn" data-sound="acceptable-a" aria-label="Play acceptable sound option A">Play</button>
+              </div>
+              <div class="sound-option">
+                <input type="radio" id="acceptable-b" name="acceptableSound" value="acceptable-b" />
+                <label for="acceptable-b">Chime B</label>
+                <button type="button" class="preview-btn" data-sound="acceptable-b" aria-label="Play acceptable sound option B">Play</button>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset aria-label="Out of bounds feedback sounds">
+            <legend>Out of bounds (outside tolerance)</legend>
+            <div class="sound-options">
+              <div class="sound-option">
+                <input type="radio" id="outside-a" name="outsideSound" value="outside-a" />
+                <label for="outside-a">Low Pulse A</label>
+                <button type="button" class="preview-btn" data-sound="outside-a" aria-label="Play out of bounds sound option A">Play</button>
+              </div>
+              <div class="sound-option">
+                <input type="radio" id="outside-b" name="outsideSound" value="outside-b" />
+                <label for="outside-b">Low Pulse B</label>
+                <button type="button" class="preview-btn" data-sound="outside-b" aria-label="Play out of bounds sound option B">Play</button>
+              </div>
+            </div>
+          </fieldset>
+          <button type="button" class="settings-action" id="previewUserSound">
+            Hear my sound
+          </button>
+          <label>
+            <input type="checkbox" id="replayUsesConfirm" />
+            Use button chime for replay marker sound
+          </label>
+        </div>
+        <div class="setup-group" aria-label="Time entry">
+          <h3>Time Entry</h3>
+          <label for="clearTime">Time to clear from left (seconds)</label>
+          <input id="clearTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Time to clear from left in seconds" />
+          <label for="fullTime">Full street time (seconds)</label>
+          <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Full street time in seconds" />
+        </div>
+        <div class="setup-group" aria-label="Margin of error">
+          <h3>Margin of Error</h3>
+          <label for="marginInput">Acceptable margin of error (seconds)</label>
+          <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" aria-label="Acceptable margin of error in seconds" value="0.4" />
+        </div>
+        <div class="setup-group" aria-label="Debug options">
+          <h3>Debug</h3>
+          <label>
+            <input type="checkbox" id="debugToggle" />
+            Show user times vs reference at replay start
+          </label>
+        </div>
+      </section>
+    </div>
+  </dialog>
 
   <script>
     const actionBtn = document.getElementById("actionBtn");
     const markersEl = document.getElementById("markers");
     const statusText = document.getElementById("statusText");
+    const debugText = document.getElementById("debugText");
     const modeInputs = [...document.querySelectorAll("input[name='mode']")];
     const soundToggle = document.getElementById("soundToggle");
+    const settingsTrigger = document.getElementById("settingsTrigger");
+    const settingsModal = document.getElementById("settingsModal");
+    const closeSettings = document.getElementById("closeSettings");
+    const previewUserSoundBtn = document.getElementById("previewUserSound");
+    const replayUsesConfirm = document.getElementById("replayUsesConfirm");
+    const debugToggle = document.getElementById("debugToggle");
     const clearTimeInput = document.getElementById("clearTime");
     const fullTimeInput = document.getElementById("fullTime");
     const marginInput = document.getElementById("marginInput");
@@ -338,31 +469,38 @@
     const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
     const previewButtons = [...document.querySelectorAll(".preview-btn")];
     const setupControls = [
+      settingsTrigger,
+      previewUserSoundBtn,
       clearTimeInput,
       fullTimeInput,
       marginInput,
+      replayUsesConfirm,
+      debugToggle,
       ...acceptableInputs,
       ...outsideInputs,
       ...previewButtons
     ];
 
     const modes = {
-      2: { labels: ["Start", "Finish"] },
-      3: { labels: ["Start", "Boundary", "Finish"] }
+      "2": { labels: ["Start", "Finish"] },
+      "2b": { labels: ["Start", "Boundary"] },
+      "3": { labels: ["Start", "Boundary", "Finish"] }
     };
 
     let audioContext;
     let soundEnabled = true;
     let markerTimes = [];
-    let currentMode = 2;
+    let currentMode = "2";
     let stage = 0;
     let started = false;
     let replayTimeout;
+    let replayUsesConfirmTone = false;
+    let showDebug = false;
 
     const tones = {
       confirm: { base: 350, harmonic: 700 },
       user: { base: 410 },
-      reference: { base: 560 }
+      reference: { acceptable: 600, outside: 320 }
     };
 
     const feedbackOptions = {
@@ -377,8 +515,8 @@
         "acceptable-b": {
           label: "Chime B",
           partials: [
-            { freq: 590, gain: 0.2 },
-            { freq: 650, gain: 0.1 }
+            { freq: 523, gain: 0.2 },
+            { freq: 659, gain: 0.1 }
           ]
         }
       },
@@ -444,23 +582,24 @@
       gain.connect(context.destination);
     }
 
-    function playConfirmTone() {
+    function playConfirmTone(startTime = 0, allowMuted = false) {
       playCompositeTone(
         [
           { freq: tones.confirm.base, gain: 0.22 },
           { freq: tones.confirm.harmonic, gain: 0.1 }
         ],
         0.18,
-        0
+        startTime,
+        allowMuted
       );
     }
 
-    function playUserMarkerTone(startTime = 0) {
-      playCompositeTone([{ freq: tones.user.base, gain: 0.2 }], 0.14, startTime);
+    function playUserMarkerTone(startTime = 0, allowMuted = false) {
+      playCompositeTone([{ freq: tones.user.base, gain: 0.2 }], 0.14, startTime, allowMuted);
     }
 
-    function playReferenceTone(startTime = 0) {
-      playCompositeTone([{ freq: tones.reference.base, gain: 0.18 }], 0.14, startTime);
+    function playReferenceTone(pitch, startTime = 0) {
+      playCompositeTone([{ freq: pitch, gain: 0.18 }], 0.14, startTime);
     }
 
     function playFeedbackTone(type, startTime = 0) {
@@ -528,11 +667,11 @@
     function validateSetup() {
       const { clearTime, fullTime } = getTimingInputs();
       const margin = getMargin();
-      if (!Number.isFinite(clearTime) || clearTime <= 0) {
+      if (currentMode !== "2" && (!Number.isFinite(clearTime) || clearTime <= 0)) {
         setStatus("Enter a time to clear from left before starting.");
         return false;
       }
-      if (!Number.isFinite(fullTime) || fullTime <= 0) {
+      if (currentMode !== "2b" && (!Number.isFinite(fullTime) || fullTime <= 0)) {
         setStatus("Enter a full street time before starting.");
         return false;
       }
@@ -545,15 +684,19 @@
 
     function getReferenceTimes() {
       const { clearTime, fullTime } = getTimingInputs();
-      if (currentMode === 2) {
+      if (currentMode === "2") {
         return [0, fullTime];
+      }
+      if (currentMode === "2b") {
+        return [0, clearTime];
       }
       return [0, clearTime, fullTime];
     }
 
     function updateMode() {
       const selected = modeInputs.find((input) => input.checked);
-      currentMode = Number(selected.value);
+      currentMode = selected?.value || "2";
+      localStorage.setItem("om-mode", currentMode);
       renderMarkers();
       resetState();
     }
@@ -580,6 +723,21 @@
         node.classList.toggle("complete", index < stage);
         node.classList.toggle("current", index === stage && started);
       });
+      updateActionButtonStage();
+    }
+
+    function updateActionButtonStage() {
+      actionBtn.classList.remove("stage-start", "stage-boundary", "stage-finish");
+      if (!started || currentMode !== "3") {
+        return;
+      }
+      if (stage === 1) {
+        actionBtn.classList.add("stage-start");
+      } else if (stage === 2) {
+        actionBtn.classList.add("stage-boundary");
+      } else if (stage >= 3) {
+        actionBtn.classList.add("stage-finish");
+      }
     }
 
     function setStatus(message) {
@@ -599,6 +757,7 @@
       actionBtn.disabled = false;
       actionBtn.textContent = "Begin";
       setStatus(message);
+      debugText.textContent = "";
       updateMarkerStates();
       lockModeSelection(false);
       lockSettings(false);
@@ -649,18 +808,30 @@
       );
 
       markerTimes.forEach((time) => {
+        if (replayUsesConfirmTone) {
+          playConfirmTone(baseDelay + time);
+          return;
+        }
         playUserMarkerTone(baseDelay + time);
       });
 
-      reference.forEach((time) => {
-        playReferenceTone(baseDelay + time);
-      });
+      if (showDebug) {
+        const userTimes = markerTimes.map((time) => time.toFixed(2)).join(", ");
+        const refTimes = reference.map((time) => time.toFixed(2)).join(", ");
+        debugText.textContent = `User: ${userTimes}s | Ref: ${refTimes}s`;
+      } else {
+        debugText.textContent = "";
+      }
 
       reference.slice(1).forEach((time, index) => {
         const userTime = markerTimes[index + 1] ?? 0;
         const diff = Math.abs(userTime - time);
-        const feedbackType = diff <= getMargin() ? "acceptable" : "outside";
-        playFeedbackTone(feedbackType, baseDelay + time + 0.28);
+        const latency =
+          (audioContext?.baseLatency || 0) + (audioContext?.outputLatency || 0);
+        const timingEpsilon = Math.max(0.02, latency);
+        const feedbackType = diff <= getMargin() + timingEpsilon ? "acceptable" : "outside";
+        const pitch = tones.reference[feedbackType];
+        playReferenceTone(pitch, baseDelay + time);
       });
 
       clearTimeout(replayTimeout);
@@ -694,6 +865,20 @@
       }
     });
 
+    settingsTrigger.addEventListener("click", () => {
+      settingsModal.showModal();
+    });
+
+    closeSettings.addEventListener("click", () => {
+      settingsModal.close();
+    });
+
+    settingsModal.addEventListener("click", (event) => {
+      if (event.target === settingsModal) {
+        settingsModal.close();
+      }
+    });
+
     acceptableInputs.forEach((input) => {
       input.addEventListener("change", () => {
         storeSelection("acceptable", input.value);
@@ -720,6 +905,37 @@
       });
     });
 
+    previewUserSoundBtn.addEventListener("click", () => {
+      ensureAudioContext();
+      if (replayUsesConfirmTone) {
+        playConfirmTone(0, true);
+        return;
+      }
+      playUserMarkerTone(0, true);
+    });
+
+    replayUsesConfirm.addEventListener("change", () => {
+      replayUsesConfirmTone = replayUsesConfirm.checked;
+      localStorage.setItem("om-replay-use-confirm", String(replayUsesConfirmTone));
+    });
+
+    debugToggle.addEventListener("change", () => {
+      showDebug = debugToggle.checked;
+      localStorage.setItem("om-debug-replay", String(showDebug));
+    });
+
+    clearTimeInput.addEventListener("change", () => {
+      localStorage.setItem("om-clear-time", clearTimeInput.value);
+    });
+
+    fullTimeInput.addEventListener("change", () => {
+      localStorage.setItem("om-full-time", fullTimeInput.value);
+    });
+
+    marginInput.addEventListener("change", () => {
+      localStorage.setItem("om-margin", marginInput.value);
+    });
+
     const unlockAudio = () => {
       ensureAudioContext();
       document.removeEventListener("pointerdown", unlockAudio);
@@ -729,7 +945,37 @@
     document.addEventListener("pointerdown", unlockAudio, { once: true });
     document.addEventListener("keydown", unlockAudio, { once: true });
 
+    function restoreStoredSettings() {
+      const storedClear = localStorage.getItem("om-clear-time");
+      const storedFull = localStorage.getItem("om-full-time");
+      const storedMargin = localStorage.getItem("om-margin");
+      const storedMode = localStorage.getItem("om-mode");
+      const storedReplay = localStorage.getItem("om-replay-use-confirm");
+      const storedDebug = localStorage.getItem("om-debug-replay");
+
+      if (storedClear) {
+        clearTimeInput.value = storedClear;
+      }
+      if (storedFull) {
+        fullTimeInput.value = storedFull;
+      }
+      if (storedMargin) {
+        marginInput.value = storedMargin;
+      }
+      if (storedMode && modes[storedMode]) {
+        currentMode = storedMode;
+        modeInputs.forEach((input) => {
+          input.checked = input.value === storedMode;
+        });
+      }
+      replayUsesConfirmTone = storedReplay === "true";
+      replayUsesConfirm.checked = replayUsesConfirmTone;
+      showDebug = storedDebug === "true";
+      debugToggle.checked = showDebug;
+    }
+
     applyStoredSelections();
+    restoreStoredSettings();
     renderMarkers();
   </script>
 </body>
