@@ -362,7 +362,7 @@
     const tones = {
       confirm: { base: 350, harmonic: 700 },
       user: { base: 410 },
-      reference: { base: 560 }
+      reference: { acceptable: 600, outside: 320 }
     };
 
     const feedbackOptions = {
@@ -459,8 +459,8 @@
       playCompositeTone([{ freq: tones.user.base, gain: 0.2 }], 0.14, startTime);
     }
 
-    function playReferenceTone(startTime = 0) {
-      playCompositeTone([{ freq: tones.reference.base, gain: 0.18 }], 0.14, startTime);
+    function playReferenceTone(pitch, startTime = 0) {
+      playCompositeTone([{ freq: pitch, gain: 0.18 }], 0.14, startTime);
     }
 
     function playFeedbackTone(type, startTime = 0) {
@@ -652,15 +652,12 @@
         playUserMarkerTone(baseDelay + time);
       });
 
-      reference.forEach((time) => {
-        playReferenceTone(baseDelay + time);
-      });
-
       reference.slice(1).forEach((time, index) => {
         const userTime = markerTimes[index + 1] ?? 0;
         const diff = Math.abs(userTime - time);
         const feedbackType = diff <= getMargin() ? "acceptable" : "outside";
-        playFeedbackTone(feedbackType, baseDelay + time + 0.28);
+        const pitch = tones.reference[feedbackType];
+        playReferenceTone(pitch, baseDelay + time);
       });
 
       clearTimeout(replayTimeout);
