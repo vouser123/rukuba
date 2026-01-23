@@ -407,29 +407,41 @@
       if (audioContext.state === "suspended") {
         audioContext.resume();
       }
+      return audioContext;
     }
 
-    function playCompositeTone(partials, duration = 0.16, startTime = 0) {
-      if (!soundEnabled) return;
-      ensureAudioContext();
-      const now = audioContext.currentTime + startTime;
-      const gain = audioContext.createGain();
+    function playCompositeTone(
+      partials,
+      duration = 0.16,
+      startTime = 0,
+      allowMuted = false
+    ) {
+      if (!soundEnabled && !allowMuted) return;
+      const context = ensureAudioContext();
+      if (context.state === "suspended") {
+        context.resume().then(() => {
+          playCompositeTone(partials, duration, startTime, allowMuted);
+        });
+        return;
+      }
+      const now = context.currentTime + startTime;
+      const gain = context.createGain();
       const attack = 0.01;
       const release = 0.07;
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(0.25, now + attack);
       gain.gain.linearRampToValueAtTime(0, now + duration + release);
       partials.forEach((partial) => {
-        const osc = audioContext.createOscillator();
+        const osc = context.createOscillator();
         osc.type = "sine";
         osc.frequency.value = partial.freq;
-        const oscGain = audioContext.createGain();
+        const oscGain = context.createGain();
         oscGain.gain.setValueAtTime(partial.gain, now);
         osc.connect(oscGain).connect(gain);
         osc.start(now);
         osc.stop(now + duration + release + 0.02);
       });
-      gain.connect(audioContext.destination);
+      gain.connect(context.destination);
     }
 
     function playConfirmTone() {
@@ -696,16 +708,26 @@
 
     previewButtons.forEach((button) => {
       button.addEventListener("click", () => {
+        ensureAudioContext();
         const soundId = button.dataset.sound;
         if (feedbackOptions.acceptable[soundId]) {
-          playCompositeTone(feedbackOptions.acceptable[soundId].partials, 0.16, 0);
+          playCompositeTone(feedbackOptions.acceptable[soundId].partials, 0.16, 0, true);
           return;
         }
         if (feedbackOptions.outside[soundId]) {
-          playCompositeTone(feedbackOptions.outside[soundId].partials, 0.16, 0);
+          playCompositeTone(feedbackOptions.outside[soundId].partials, 0.16, 0, true);
         }
       });
     });
+
+    const unlockAudio = () => {
+      ensureAudioContext();
+      document.removeEventListener("pointerdown", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+    };
+
+    document.addEventListener("pointerdown", unlockAudio, { once: true });
+    document.addEventListener("keydown", unlockAudio, { once: true });
 
     applyStoredSelections();
     renderMarkers();
