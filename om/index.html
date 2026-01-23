@@ -34,6 +34,102 @@
       padding: 24px;
     }
 
+    .setup {
+      background: #fff;
+      border: 2px solid var(--outline);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
+    }
+
+    .setup h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .setup h3 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+    }
+
+    .setup-group {
+      border-top: 1px solid #dedad1;
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .setup-group:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .setup label {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .setup input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 2px solid var(--outline);
+      font-size: 1rem;
+      margin-top: 6px;
+    }
+
+    .sound-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    fieldset {
+      border: 1px solid #dedad1;
+      border-radius: 12px;
+      padding: 10px 12px 12px;
+      margin: 0;
+    }
+
+    legend {
+      padding: 0 6px;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .sound-option {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+
+    .sound-option button {
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      background: #fff;
+      padding: 4px 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .sound-option button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .mode-toggle {
       display: flex;
       align-items: center;
@@ -136,6 +232,13 @@
       cursor: pointer;
     }
 
+    .action-btn.running {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 40px;
+      border-style: double;
+    }
+
     .action-btn:disabled {
       opacity: 0.55;
       cursor: not-allowed;
@@ -150,25 +253,74 @@
 </head>
 <body>
   <main class="panel">
+    <section class="setup" aria-label="Settings and setup">
+      <h2>Settings / Setup</h2>
+      <div class="setup-group" aria-label="Sound calibration">
+        <h3>Sound Calibration</h3>
+        <fieldset aria-label="Acceptable feedback sounds">
+          <legend>Acceptable (within tolerance)</legend>
+          <div class="sound-options">
+            <div class="sound-option">
+              <input type="radio" id="acceptable-a" name="acceptableSound" value="acceptable-a" />
+              <label for="acceptable-a">Chime A</label>
+              <button type="button" class="preview-btn" data-sound="acceptable-a" aria-label="Play acceptable sound option A">Play</button>
+            </div>
+            <div class="sound-option">
+              <input type="radio" id="acceptable-b" name="acceptableSound" value="acceptable-b" />
+              <label for="acceptable-b">Chime B</label>
+              <button type="button" class="preview-btn" data-sound="acceptable-b" aria-label="Play acceptable sound option B">Play</button>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset aria-label="Out of bounds feedback sounds">
+          <legend>Out of bounds (outside tolerance)</legend>
+          <div class="sound-options">
+            <div class="sound-option">
+              <input type="radio" id="outside-a" name="outsideSound" value="outside-a" />
+              <label for="outside-a">Low Pulse A</label>
+              <button type="button" class="preview-btn" data-sound="outside-a" aria-label="Play out of bounds sound option A">Play</button>
+            </div>
+            <div class="sound-option">
+              <input type="radio" id="outside-b" name="outsideSound" value="outside-b" />
+              <label for="outside-b">Low Pulse B</label>
+              <button type="button" class="preview-btn" data-sound="outside-b" aria-label="Play out of bounds sound option B">Play</button>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+      <div class="setup-group" aria-label="Time entry">
+        <h3>Time Entry</h3>
+        <label for="clearTime">Time to clear from left (seconds)</label>
+        <input id="clearTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Time to clear from left in seconds" />
+        <label for="fullTime">Full street time (seconds)</label>
+        <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Full street time in seconds" />
+      </div>
+      <div class="setup-group" aria-label="Margin of error">
+        <h3>Margin of Error</h3>
+        <label for="marginInput">Acceptable margin of error (seconds)</label>
+        <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" aria-label="Acceptable margin of error in seconds" value="0.4" />
+      </div>
+    </section>
+
     <div class="mode-toggle" role="group" aria-label="Mode selection">
       <label>
-        <input type="radio" name="mode" value="2" checked />
+        <input type="radio" name="mode" value="2" checked aria-label="Start to finish mode" />
         Start → Finish
       </label>
       <label>
-        <input type="radio" name="mode" value="3" />
+        <input type="radio" name="mode" value="3" aria-label="Start boundary finish mode" />
         Start → Boundary → Finish
       </label>
     </div>
 
-    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true">
+    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true" aria-label="Toggle sound on or off">
       <span aria-hidden="true">🔊</span>
       Sound On
     </button>
 
     <section class="markers" id="markers"></section>
 
-    <button class="action-btn" id="actionBtn" type="button">Begin</button>
+    <button class="action-btn" id="actionBtn" type="button" aria-label="Begin or mark timing">Begin</button>
 
     <div class="status" id="statusText">Ready.</div>
   </main>
@@ -179,13 +331,25 @@
     const statusText = document.getElementById("statusText");
     const modeInputs = [...document.querySelectorAll("input[name='mode']")];
     const soundToggle = document.getElementById("soundToggle");
+    const clearTimeInput = document.getElementById("clearTime");
+    const fullTimeInput = document.getElementById("fullTime");
+    const marginInput = document.getElementById("marginInput");
+    const acceptableInputs = [...document.querySelectorAll("input[name='acceptableSound']")];
+    const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
+    const previewButtons = [...document.querySelectorAll(".preview-btn")];
+    const setupControls = [
+      clearTimeInput,
+      fullTimeInput,
+      marginInput,
+      ...acceptableInputs,
+      ...outsideInputs,
+      ...previewButtons
+    ];
 
     const modes = {
-      2: { labels: ["Start", "Finish"], reference: [0, 3.5] },
-      3: { labels: ["Start", "Boundary", "Finish"], reference: [0, 1.8, 3.5] }
+      2: { labels: ["Start", "Finish"] },
+      3: { labels: ["Start", "Boundary", "Finish"] }
     };
-
-    const tolerance = 0.4;
 
     let audioContext;
     let soundEnabled = true;
@@ -196,11 +360,44 @@
     let replayTimeout;
 
     const tones = {
-      confirm: 440,
-      user: 392,
-      reference: 523.25,
-      within: 659.25,
-      outside: 277.18
+      confirm: { base: 350, harmonic: 700 },
+      user: { base: 410 },
+      reference: { base: 560 }
+    };
+
+    const feedbackOptions = {
+      acceptable: {
+        "acceptable-a": {
+          label: "Chime A",
+          partials: [
+            { freq: 540, gain: 0.22 },
+            { freq: 630, gain: 0.12 }
+          ]
+        },
+        "acceptable-b": {
+          label: "Chime B",
+          partials: [
+            { freq: 590, gain: 0.2 },
+            { freq: 650, gain: 0.1 }
+          ]
+        }
+      },
+      outside: {
+        "outside-a": {
+          label: "Low Pulse A",
+          partials: [
+            { freq: 240, gain: 0.2 },
+            { freq: 290, gain: 0.08 }
+          ]
+        },
+        "outside-b": {
+          label: "Low Pulse B",
+          partials: [
+            { freq: 260, gain: 0.18 },
+            { freq: 300, gain: 0.08 }
+          ]
+        }
+      }
     };
 
     function ensureAudioContext() {
@@ -210,24 +407,148 @@
       if (audioContext.state === "suspended") {
         audioContext.resume();
       }
+      return audioContext;
     }
 
-    function playTone(frequency, duration = 0.16, startTime = 0) {
-      if (!soundEnabled) return;
-      ensureAudioContext();
-      const now = audioContext.currentTime;
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.type = "sine";
-      osc.frequency.value = frequency;
+    function playCompositeTone(
+      partials,
+      duration = 0.16,
+      startTime = 0,
+      allowMuted = false
+    ) {
+      if (!soundEnabled && !allowMuted) return;
+      const context = ensureAudioContext();
+      if (context.state === "suspended") {
+        context.resume().then(() => {
+          playCompositeTone(partials, duration, startTime, allowMuted);
+        });
+        return;
+      }
+      const now = context.currentTime + startTime;
+      const gain = context.createGain();
       const attack = 0.01;
       const release = 0.07;
-      gain.gain.setValueAtTime(0, now + startTime);
-      gain.gain.linearRampToValueAtTime(0.3, now + startTime + attack);
-      gain.gain.linearRampToValueAtTime(0, now + startTime + duration + release);
-      osc.connect(gain).connect(audioContext.destination);
-      osc.start(now + startTime);
-      osc.stop(now + startTime + duration + release + 0.02);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + attack);
+      gain.gain.linearRampToValueAtTime(0, now + duration + release);
+      partials.forEach((partial) => {
+        const osc = context.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = partial.freq;
+        const oscGain = context.createGain();
+        oscGain.gain.setValueAtTime(partial.gain, now);
+        osc.connect(oscGain).connect(gain);
+        osc.start(now);
+        osc.stop(now + duration + release + 0.02);
+      });
+      gain.connect(context.destination);
+    }
+
+    function playConfirmTone() {
+      playCompositeTone(
+        [
+          { freq: tones.confirm.base, gain: 0.22 },
+          { freq: tones.confirm.harmonic, gain: 0.1 }
+        ],
+        0.18,
+        0
+      );
+    }
+
+    function playUserMarkerTone(startTime = 0) {
+      playCompositeTone([{ freq: tones.user.base, gain: 0.2 }], 0.14, startTime);
+    }
+
+    function playReferenceTone(startTime = 0) {
+      playCompositeTone([{ freq: tones.reference.base, gain: 0.18 }], 0.14, startTime);
+    }
+
+    function playFeedbackTone(type, startTime = 0) {
+      const selection =
+        type === "acceptable"
+          ? getSelectedSound("acceptable")
+          : getSelectedSound("outside");
+      const option = feedbackOptions[type][selection];
+      playCompositeTone(option.partials, 0.12, startTime);
+    }
+
+    function getSelectedSound(category) {
+      const key =
+        category === "acceptable"
+          ? "om-feedback-acceptable"
+          : "om-feedback-outside";
+      const inputs = category === "acceptable" ? acceptableInputs : outsideInputs;
+      const stored = localStorage.getItem(key);
+      const fallback = inputs[0]?.value;
+      return stored && feedbackOptions[category][stored] ? stored : fallback;
+    }
+
+    function applyStoredSelections() {
+      const acceptableSelection = getSelectedSound("acceptable");
+      const outsideSelection = getSelectedSound("outside");
+      acceptableInputs.forEach((input) => {
+        input.checked = input.value === acceptableSelection;
+      });
+      outsideInputs.forEach((input) => {
+        input.checked = input.value === outsideSelection;
+      });
+      if (acceptableSelection) {
+        storeSelection("acceptable", acceptableSelection);
+      }
+      if (outsideSelection) {
+        storeSelection("outside", outsideSelection);
+      }
+    }
+
+    function storeSelection(category, value) {
+      const key =
+        category === "acceptable"
+          ? "om-feedback-acceptable"
+          : "om-feedback-outside";
+      localStorage.setItem(key, value);
+    }
+
+    function lockSettings(lock) {
+      setupControls.forEach((control) => {
+        control.disabled = lock;
+      });
+    }
+
+    function getTimingInputs() {
+      return {
+        clearTime: Number(clearTimeInput.value),
+        fullTime: Number(fullTimeInput.value)
+      };
+    }
+
+    function getMargin() {
+      return Number(marginInput.value);
+    }
+
+    function validateSetup() {
+      const { clearTime, fullTime } = getTimingInputs();
+      const margin = getMargin();
+      if (!Number.isFinite(clearTime) || clearTime <= 0) {
+        setStatus("Enter a time to clear from left before starting.");
+        return false;
+      }
+      if (!Number.isFinite(fullTime) || fullTime <= 0) {
+        setStatus("Enter a full street time before starting.");
+        return false;
+      }
+      if (!Number.isFinite(margin) || margin < 0) {
+        setStatus("Enter a margin of error before starting.");
+        return false;
+      }
+      return true;
+    }
+
+    function getReferenceTimes() {
+      const { clearTime, fullTime } = getTimingInputs();
+      if (currentMode === 2) {
+        return [0, fullTime];
+      }
+      return [0, clearTime, fullTime];
     }
 
     function updateMode() {
@@ -280,24 +601,31 @@
       setStatus(message);
       updateMarkerStates();
       lockModeSelection(false);
+      lockSettings(false);
+      actionBtn.classList.remove("running");
     }
 
     function recordMarker() {
       if (!started) {
+        if (!validateSetup()) {
+          return;
+        }
         started = true;
         lockModeSelection(true);
+        lockSettings(true);
         markerTimes = [0];
         stage = 1;
         actionBtn.textContent = "Mark";
         setStatus("Listening for the next marker.");
-        playTone(tones.confirm);
+        playConfirmTone();
+        actionBtn.classList.add("running");
         updateMarkerStates();
         return;
       }
 
       const elapsed = (performance.now() - startTimestamp) / 1000;
       markerTimes.push(elapsed);
-      playTone(tones.confirm);
+      playConfirmTone();
       stage += 1;
 
       if (stage >= modes[currentMode].labels.length) {
@@ -313,7 +641,7 @@
     }
 
     function beginReplay() {
-      const { reference } = modes[currentMode];
+      const reference = getReferenceTimes();
       const baseDelay = 0.6;
       const maxTime = Math.max(
         ...markerTimes,
@@ -321,18 +649,18 @@
       );
 
       markerTimes.forEach((time) => {
-        playTone(tones.user, 0.14, baseDelay + time);
+        playUserMarkerTone(baseDelay + time);
       });
 
       reference.forEach((time) => {
-        playTone(tones.reference, 0.14, baseDelay + time);
+        playReferenceTone(baseDelay + time);
       });
 
       reference.slice(1).forEach((time, index) => {
         const userTime = markerTimes[index + 1] ?? 0;
         const diff = Math.abs(userTime - time);
-        const feedbackTone = diff <= tolerance ? tones.within : tones.outside;
-        playTone(feedbackTone, 0.12, baseDelay + time + 0.28);
+        const feedbackType = diff <= getMargin() ? "acceptable" : "outside";
+        playFeedbackTone(feedbackType, baseDelay + time + 0.28);
       });
 
       clearTimeout(replayTimeout);
@@ -362,10 +690,46 @@
         ? "<span aria-hidden=\"true\">🔊</span> Sound On"
         : "<span aria-hidden=\"true\">🔇</span> Sound Off";
       if (soundEnabled) {
-        playTone(tones.confirm, 0.12);
+        playConfirmTone();
       }
     });
 
+    acceptableInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        storeSelection("acceptable", input.value);
+      });
+    });
+
+    outsideInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        storeSelection("outside", input.value);
+      });
+    });
+
+    previewButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        ensureAudioContext();
+        const soundId = button.dataset.sound;
+        if (feedbackOptions.acceptable[soundId]) {
+          playCompositeTone(feedbackOptions.acceptable[soundId].partials, 0.16, 0, true);
+          return;
+        }
+        if (feedbackOptions.outside[soundId]) {
+          playCompositeTone(feedbackOptions.outside[soundId].partials, 0.16, 0, true);
+        }
+      });
+    });
+
+    const unlockAudio = () => {
+      ensureAudioContext();
+      document.removeEventListener("pointerdown", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+    };
+
+    document.addEventListener("pointerdown", unlockAudio, { once: true });
+    document.addEventListener("keydown", unlockAudio, { once: true });
+
+    applyStoredSelections();
     renderMarkers();
   </script>
 </body>
