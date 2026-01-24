@@ -6,69 +6,15 @@
   <title>O&M Timing Practice Prototype</title>
   <style>
     :root {
-      color-scheme: light dark;
+      color-scheme: light;
       --bg: #f6f4ef;
-      --surface: #ffffff;
-      --surface-alt: #fbfaf6;
       --text: #1b1b1b;
       --muted: #6c6c6c;
       --accent: #2f5d62;
-      --accent-contrast: #ffffff;
       --outline: #1b1b1b;
-      --stage-start-bg: #1b1b1b;
-      --stage-start-text: #ffffff;
-      --stage-boundary-bg: #005a9c;
-      --stage-boundary-text: #ffffff;
-      --stage-finish-bg: #2f5d62;
-      --stage-finish-text: #ffffff;
-      --flash-shadow: rgba(47, 93, 98, 0.35);
       /* A11Y ADDITIONS START */
       --base-font-size: 18px;
       /* A11Y ADDITIONS END */
-    }
-
-    body[data-theme="light"] {
-      color-scheme: light;
-    }
-
-    body[data-theme="dark"] {
-      color-scheme: dark;
-      --bg: #0b0b0b;
-      --surface: #151515;
-      --surface-alt: #1e1e1e;
-      --text: #f7f7f7;
-      --muted: #d8d8d8;
-      --accent: #7fd6ff;
-      --accent-contrast: #0b0b0b;
-      --outline: #f7f7f7;
-      --stage-start-bg: #f7f7f7;
-      --stage-start-text: #0b0b0b;
-      --stage-boundary-bg: #4aa3ff;
-      --stage-boundary-text: #0b0b0b;
-      --stage-finish-bg: #52d3b8;
-      --stage-finish-text: #0b0b0b;
-      --flash-shadow: rgba(127, 214, 255, 0.4);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      body[data-theme="auto"] {
-        color-scheme: dark;
-        --bg: #0b0b0b;
-        --surface: #151515;
-        --surface-alt: #1e1e1e;
-        --text: #f7f7f7;
-        --muted: #d8d8d8;
-        --accent: #7fd6ff;
-        --accent-contrast: #0b0b0b;
-        --outline: #f7f7f7;
-        --stage-start-bg: #f7f7f7;
-        --stage-start-text: #0b0b0b;
-        --stage-boundary-bg: #4aa3ff;
-        --stage-boundary-text: #0b0b0b;
-        --stage-finish-bg: #52d3b8;
-        --stage-finish-text: #0b0b0b;
-        --flash-shadow: rgba(127, 214, 255, 0.4);
-      }
     }
 
     body {
@@ -93,7 +39,7 @@
     }
 
     .setup {
-      background: var(--surface);
+      background: #fff;
       border: 2px solid var(--outline);
       border-radius: 18px;
       padding: 18px;
@@ -119,7 +65,7 @@
     }
 
     .setup-group {
-      border-top: 1px solid var(--outline);
+      border-top: 1px solid #dedad1;
       padding-top: 12px;
       display: flex;
       flex-direction: column;
@@ -141,19 +87,6 @@
       padding: 8px 10px;
       border-radius: 8px;
       border: 2px solid var(--outline);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 1rem;
-      margin-top: 6px;
-    }
-
-    .setup select {
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 2px solid var(--outline);
-      background: var(--surface);
-      color: var(--text);
       font-size: 1rem;
       margin-top: 6px;
     }
@@ -165,7 +98,7 @@
     }
 
     fieldset {
-      border: 1px solid var(--outline);
+      border: 1px solid #dedad1;
       border-radius: 12px;
       padding: 10px 12px 12px;
       margin: 0;
@@ -190,8 +123,7 @@
     .sound-option button {
       border: 2px solid var(--outline);
       border-radius: 999px;
-      background: var(--surface);
-      color: var(--text);
+      background: #fff;
       padding: 4px 12px;
       cursor: pointer;
       font-size: 0.85rem;
@@ -226,8 +158,7 @@
       border: 2px solid var(--outline);
       border-radius: 999px;
       padding: 6px 14px;
-      background: var(--surface);
-      color: var(--text);
+      background: #fff;
       font-size: 1rem;
       display: inline-flex;
       align-items: center;
@@ -244,8 +175,7 @@
       border: 3px solid var(--outline);
       border-radius: 999px;
       padding: 8px 16px;
-      background: var(--surface);
-      color: var(--text);
+      background: #fff;
       font-size: 1rem;
       font-weight: 600;
       display: inline-flex;
@@ -264,8 +194,7 @@
       border: 3px solid var(--outline);
       border-radius: 999px;
       padding: 10px 18px;
-      background: var(--surface);
-      color: var(--text);
+      background: #fff;
       font-size: 1.2rem;
       font-weight: 600;
       display: inline-flex;
@@ -291,8 +220,7 @@
       border: 3px solid var(--outline);
       border-radius: 999px;
       padding: 10px 18px;
-      background: var(--surface);
-      color: var(--text);
+      background: #fff;
       font-size: 1.2rem;
       font-weight: 600;
       display: inline-flex;
@@ -326,7 +254,7 @@
       border: 3px solid var(--outline);
       display: grid;
       place-items: center;
-      background: var(--surface);
+      background: #fff;
     }
 
     .marker-shape span {
@@ -342,12 +270,12 @@
     }
 
     .marker.complete .marker-shape span {
-      border-color: var(--surface);
-      background: var(--surface);
+      border-color: #fff;
+      background: #fff;
     }
 
     .marker.current .marker-shape {
-      background: var(--surface);
+      background: #fff;
       border-style: double;
     }
 
@@ -364,8 +292,7 @@
       margin: 0 auto;
       border-radius: 22px;
       border: 4px solid var(--outline);
-      background: var(--surface);
-      color: var(--text);
+      background: #fff;
       font-size: 1.4rem;
       font-weight: 600;
       letter-spacing: 0.08em;
@@ -375,24 +302,24 @@
 
     .action-btn.running {
       background: var(--accent);
-      color: var(--accent-contrast);
+      color: #fff;
       border-radius: 40px;
       border-style: double;
     }
 
     .action-btn.running.stage-start {
-      background: var(--stage-start-bg);
-      color: var(--stage-start-text);
+      background: #1b1b1b;
+      color: #fff;
     }
 
     .action-btn.running.stage-boundary {
-      background: var(--stage-boundary-bg);
-      color: var(--stage-boundary-text);
+      background: #005a9c;
+      color: #fff;
     }
 
     .action-btn.running.stage-finish {
-      background: var(--stage-finish-bg);
-      color: var(--stage-finish-text);
+      background: #2f5d62;
+      color: #fff;
     }
 
     .action-btn:disabled {
@@ -411,7 +338,7 @@
       border: 2px solid var(--outline);
       border-radius: 12px;
       padding: 10px 12px;
-      background: var(--surface);
+      background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -432,7 +359,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--accent-contrast);
+      color: #fff;
       font-size: 0.75rem;
       font-weight: 700;
     }
@@ -454,7 +381,7 @@
     }
 
     .action-btn.flash {
-      box-shadow: 0 0 0 6px var(--flash-shadow);
+      box-shadow: 0 0 0 6px rgba(47, 93, 98, 0.35);
     }
 
     body[data-text-size="large"] {
@@ -467,20 +394,10 @@
 
     body.high-contrast {
       --bg: #ffffff;
-      --surface: #ffffff;
-      --surface-alt: #ffffff;
       --text: #000000;
       --muted: #1a1a1a;
       --accent: #000000;
-      --accent-contrast: #ffffff;
       --outline: #000000;
-      --stage-start-bg: #000000;
-      --stage-start-text: #ffffff;
-      --stage-boundary-bg: #000000;
-      --stage-boundary-text: #ffffff;
-      --stage-finish-bg: #000000;
-      --stage-finish-text: #ffffff;
-      --flash-shadow: rgba(0, 0, 0, 0.5);
     }
 
     body.focus-boost :focus-visible {
@@ -491,7 +408,7 @@
 
     .debug {
       font-size: 0.95rem;
-      color: var(--text);
+      color: #000;
     }
 
     dialog {
@@ -507,7 +424,7 @@
     }
 
     .modal-card {
-      background: var(--surface);
+      background: #fff;
       border: 3px solid var(--outline);
       border-radius: 20px;
       padding: 20px;
@@ -525,8 +442,7 @@
 
     .close-modal {
       border: 2px solid var(--outline);
-      background: var(--surface);
-      color: var(--text);
+      background: #fff;
       border-radius: 999px;
       padding: 6px 12px;
       font-size: 1rem;
@@ -537,8 +453,7 @@
     .settings-action {
       border: 2px solid var(--outline);
       border-radius: 999px;
-      background: var(--surface);
-      color: var(--text);
+      background: #fff;
       padding: 6px 14px;
       cursor: pointer;
       font-size: 0.95rem;
@@ -546,7 +461,7 @@
     }
 
     button:focus-visible {
-      outline: 4px solid var(--outline);
+      outline: 4px solid #000;
       outline-offset: 2px;
     }
 
@@ -559,7 +474,7 @@
     /* A11Y ADDITIONS END */
   </style>
 </head>
-<body data-theme="auto">
+<body>
   <main class="panel">
     <!-- A11Y ADDITIONS START -->
     <div class="settings-actions">
@@ -673,24 +588,6 @@
           <label for="marginInput">Acceptable margin of error (seconds)</label>
           <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" aria-label="Acceptable margin of error in seconds" value="0.4" />
         </div>
-        <div class="setup-group" aria-label="Appearance preferences">
-          <h3>Appearance</h3>
-          <fieldset aria-label="Theme preference">
-            <legend>Theme</legend>
-            <label>
-              <input type="radio" name="themeMode" value="auto" checked />
-              Auto (follow system)
-            </label>
-            <label>
-              <input type="radio" name="themeMode" value="light" />
-              Light
-            </label>
-            <label>
-              <input type="radio" name="themeMode" value="dark" />
-              Dark
-            </label>
-          </fieldset>
-        </div>
         <div class="setup-group" aria-label="Debug options">
           <h3>Debug</h3>
           <label>
@@ -793,7 +690,6 @@
      * - om-a11y-high-contrast
      * - om-a11y-focus-boost
      * - om-a11y-announce-cues
-     * - om-theme
      * Supported cue types:
      * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled,
      *   exemplar_start, exemplar_stage, exemplar_end
@@ -838,7 +734,6 @@
     const acceptableInputs = [...document.querySelectorAll("input[name='acceptableSound']")];
     const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
     const previewButtons = [...document.querySelectorAll(".preview-btn")];
-    const themeInputs = [...document.querySelectorAll("input[name='themeMode']")];
     const setupControls = [
       settingsTrigger,
       previewUserSoundBtn,
@@ -849,7 +744,6 @@
       debugToggle,
       ...acceptableInputs,
       ...outsideInputs,
-      ...themeInputs,
       ...previewButtons
     ];
     /* A11Y ADDITIONS START */
@@ -884,7 +778,6 @@
     let exemplarTimeout;
     let replayUsesConfirmTone = false;
     let showDebug = false;
-    let themeMode = "auto";
     /* A11Y ADDITIONS START */
     let lastDialogTrigger = null;
     let flashTimeout;
@@ -1534,10 +1427,6 @@
       }
     }
 
-    function applyThemeMode() {
-      document.body.dataset.theme = themeMode;
-    }
-
     function emitCue(type, detail = {}) {
       const messages = {
         start: "Started.",
@@ -1596,7 +1485,6 @@
       const storedMode = localStorage.getItem("om-mode");
       const storedReplay = localStorage.getItem("om-replay-use-confirm");
       const storedDebug = localStorage.getItem("om-debug-replay");
-      const storedTheme = localStorage.getItem("om-theme");
       /* A11Y ADDITIONS START */
       const storedOutputMode = localStorage.getItem("om-a11y-output-mode");
       const storedShowBanner = localStorage.getItem("om-a11y-show-banner");
@@ -1629,12 +1517,6 @@
       replayUsesConfirm.checked = replayUsesConfirmTone;
       showDebug = storedDebug === "true";
       debugToggle.checked = showDebug;
-      if (storedTheme && ["auto", "light", "dark"].includes(storedTheme)) {
-        themeMode = storedTheme;
-      }
-      themeInputs.forEach((input) => {
-        input.checked = input.value === themeMode;
-      });
       /* A11Y ADDITIONS START */
       if (storedOutputMode) {
         a11ySettings.outputMode = storedOutputMode;
@@ -1679,7 +1561,6 @@
       a11yFocusBoost.checked = a11ySettings.focusBoost;
       a11yAnnounceCues.checked = a11ySettings.announceCues;
       applyA11ySettings();
-      applyThemeMode();
       /* A11Y ADDITIONS END */
     }
 
@@ -1744,14 +1625,6 @@
       localStorage.setItem("om-a11y-announce-cues", String(a11ySettings.announceCues));
     });
     /* A11Y ADDITIONS END */
-
-    themeInputs.forEach((input) => {
-      input.addEventListener("change", () => {
-        themeMode = input.value;
-        localStorage.setItem("om-theme", themeMode);
-        applyThemeMode();
-      });
-    });
 
     applyStoredSelections();
     restoreStoredSettings();
