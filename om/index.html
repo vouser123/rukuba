@@ -6,15 +6,69 @@
   <title>O&M Timing Practice Prototype</title>
   <style>
     :root {
-      color-scheme: light;
+      color-scheme: light dark;
       --bg: #f6f4ef;
+      --surface: #ffffff;
+      --surface-alt: #fbfaf6;
       --text: #1b1b1b;
       --muted: #6c6c6c;
       --accent: #2f5d62;
+      --accent-contrast: #ffffff;
       --outline: #1b1b1b;
+      --stage-start-bg: #1b1b1b;
+      --stage-start-text: #ffffff;
+      --stage-boundary-bg: #005a9c;
+      --stage-boundary-text: #ffffff;
+      --stage-finish-bg: #2f5d62;
+      --stage-finish-text: #ffffff;
+      --flash-shadow: rgba(47, 93, 98, 0.35);
       /* A11Y ADDITIONS START */
       --base-font-size: 18px;
       /* A11Y ADDITIONS END */
+    }
+
+    body[data-theme="light"] {
+      color-scheme: light;
+    }
+
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0b0b0b;
+      --surface: #151515;
+      --surface-alt: #1e1e1e;
+      --text: #f7f7f7;
+      --muted: #d8d8d8;
+      --accent: #7fd6ff;
+      --accent-contrast: #0b0b0b;
+      --outline: #f7f7f7;
+      --stage-start-bg: #f7f7f7;
+      --stage-start-text: #0b0b0b;
+      --stage-boundary-bg: #4aa3ff;
+      --stage-boundary-text: #0b0b0b;
+      --stage-finish-bg: #52d3b8;
+      --stage-finish-text: #0b0b0b;
+      --flash-shadow: rgba(127, 214, 255, 0.4);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body[data-theme="auto"] {
+        color-scheme: dark;
+        --bg: #0b0b0b;
+        --surface: #151515;
+        --surface-alt: #1e1e1e;
+        --text: #f7f7f7;
+        --muted: #d8d8d8;
+        --accent: #7fd6ff;
+        --accent-contrast: #0b0b0b;
+        --outline: #f7f7f7;
+        --stage-start-bg: #f7f7f7;
+        --stage-start-text: #0b0b0b;
+        --stage-boundary-bg: #4aa3ff;
+        --stage-boundary-text: #0b0b0b;
+        --stage-finish-bg: #52d3b8;
+        --stage-finish-text: #0b0b0b;
+        --flash-shadow: rgba(127, 214, 255, 0.4);
+      }
     }
 
     body {
@@ -39,7 +93,7 @@
     }
 
     .setup {
-      background: #fff;
+      background: var(--surface);
       border: 2px solid var(--outline);
       border-radius: 18px;
       padding: 18px;
@@ -65,7 +119,7 @@
     }
 
     .setup-group {
-      border-top: 1px solid #dedad1;
+      border-top: 1px solid var(--outline);
       padding-top: 12px;
       display: flex;
       flex-direction: column;
@@ -87,6 +141,19 @@
       padding: 8px 10px;
       border-radius: 8px;
       border: 2px solid var(--outline);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 1rem;
+      margin-top: 6px;
+    }
+
+    .setup select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 2px solid var(--outline);
+      background: var(--surface);
+      color: var(--text);
       font-size: 1rem;
       margin-top: 6px;
     }
@@ -98,7 +165,7 @@
     }
 
     fieldset {
-      border: 1px solid #dedad1;
+      border: 1px solid var(--outline);
       border-radius: 12px;
       padding: 10px 12px 12px;
       margin: 0;
@@ -123,7 +190,8 @@
     .sound-option button {
       border: 2px solid var(--outline);
       border-radius: 999px;
-      background: #fff;
+      background: var(--surface);
+      color: var(--text);
       padding: 4px 12px;
       cursor: pointer;
       font-size: 0.85rem;
@@ -158,7 +226,8 @@
       border: 2px solid var(--outline);
       border-radius: 999px;
       padding: 6px 14px;
-      background: #fff;
+      background: var(--surface);
+      color: var(--text);
       font-size: 1rem;
       display: inline-flex;
       align-items: center;
@@ -175,7 +244,8 @@
       border: 3px solid var(--outline);
       border-radius: 999px;
       padding: 8px 16px;
-      background: #fff;
+      background: var(--surface);
+      color: var(--text);
       font-size: 1rem;
       font-weight: 600;
       display: inline-flex;
@@ -194,7 +264,8 @@
       border: 3px solid var(--outline);
       border-radius: 999px;
       padding: 10px 18px;
-      background: #fff;
+      background: var(--surface);
+      color: var(--text);
       font-size: 1.2rem;
       font-weight: 600;
       display: inline-flex;
@@ -220,7 +291,8 @@
       border: 3px solid var(--outline);
       border-radius: 999px;
       padding: 10px 18px;
-      background: #fff;
+      background: var(--surface);
+      color: var(--text);
       font-size: 1.2rem;
       font-weight: 600;
       display: inline-flex;
@@ -254,7 +326,7 @@
       border: 3px solid var(--outline);
       display: grid;
       place-items: center;
-      background: #fff;
+      background: var(--surface);
     }
 
     .marker-shape span {
@@ -270,12 +342,12 @@
     }
 
     .marker.complete .marker-shape span {
-      border-color: #fff;
-      background: #fff;
+      border-color: var(--surface);
+      background: var(--surface);
     }
 
     .marker.current .marker-shape {
-      background: #fff;
+      background: var(--surface);
       border-style: double;
     }
 
@@ -292,7 +364,8 @@
       margin: 0 auto;
       border-radius: 22px;
       border: 4px solid var(--outline);
-      background: #fff;
+      background: var(--surface);
+      color: var(--text);
       font-size: 1.4rem;
       font-weight: 600;
       letter-spacing: 0.08em;
@@ -302,24 +375,24 @@
 
     .action-btn.running {
       background: var(--accent);
-      color: #fff;
+      color: var(--accent-contrast);
       border-radius: 40px;
       border-style: double;
     }
 
     .action-btn.running.stage-start {
-      background: #1b1b1b;
-      color: #fff;
+      background: var(--stage-start-bg);
+      color: var(--stage-start-text);
     }
 
     .action-btn.running.stage-boundary {
-      background: #005a9c;
-      color: #fff;
+      background: var(--stage-boundary-bg);
+      color: var(--stage-boundary-text);
     }
 
     .action-btn.running.stage-finish {
-      background: #2f5d62;
-      color: #fff;
+      background: var(--stage-finish-bg);
+      color: var(--stage-finish-text);
     }
 
     .action-btn:disabled {
@@ -338,7 +411,7 @@
       border: 2px solid var(--outline);
       border-radius: 12px;
       padding: 10px 12px;
-      background: #fff;
+      background: var(--surface);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -359,7 +432,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
+      color: var(--accent-contrast);
       font-size: 0.75rem;
       font-weight: 700;
     }
@@ -381,7 +454,7 @@
     }
 
     .action-btn.flash {
-      box-shadow: 0 0 0 6px rgba(47, 93, 98, 0.35);
+      box-shadow: 0 0 0 6px var(--flash-shadow);
     }
 
     body[data-text-size="large"] {
@@ -394,10 +467,58 @@
 
     body.high-contrast {
       --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-alt: #ffffff;
       --text: #000000;
       --muted: #1a1a1a;
       --accent: #000000;
+      --accent-contrast: #ffffff;
       --outline: #000000;
+      --stage-start-bg: #000000;
+      --stage-start-text: #ffffff;
+      --stage-boundary-bg: #000000;
+      --stage-boundary-text: #ffffff;
+      --stage-finish-bg: #000000;
+      --stage-finish-text: #ffffff;
+      --flash-shadow: rgba(0, 0, 0, 0.5);
+    }
+
+    body.high-contrast[data-theme="dark"] {
+      --bg: #000000;
+      --surface: #0f0f0f;
+      --surface-alt: #171717;
+      --text: #ffffff;
+      --muted: #f0f0f0;
+      --accent: #ffffff;
+      --accent-contrast: #000000;
+      --outline: #ffffff;
+      --stage-start-bg: #ffffff;
+      --stage-start-text: #000000;
+      --stage-boundary-bg: #ffffff;
+      --stage-boundary-text: #000000;
+      --stage-finish-bg: #ffffff;
+      --stage-finish-text: #000000;
+      --flash-shadow: rgba(255, 255, 255, 0.45);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body.high-contrast[data-theme="auto"] {
+        --bg: #000000;
+        --surface: #0f0f0f;
+        --surface-alt: #171717;
+        --text: #ffffff;
+        --muted: #f0f0f0;
+        --accent: #ffffff;
+        --accent-contrast: #000000;
+        --outline: #ffffff;
+        --stage-start-bg: #ffffff;
+        --stage-start-text: #000000;
+        --stage-boundary-bg: #ffffff;
+        --stage-boundary-text: #000000;
+        --stage-finish-bg: #ffffff;
+        --stage-finish-text: #000000;
+        --flash-shadow: rgba(255, 255, 255, 0.45);
+      }
     }
 
     body.focus-boost :focus-visible {
@@ -408,7 +529,7 @@
 
     .debug {
       font-size: 0.95rem;
-      color: #000;
+      color: var(--text);
     }
 
     dialog {
@@ -424,7 +545,7 @@
     }
 
     .modal-card {
-      background: #fff;
+      background: var(--surface);
       border: 3px solid var(--outline);
       border-radius: 20px;
       padding: 20px;
@@ -442,7 +563,8 @@
 
     .close-modal {
       border: 2px solid var(--outline);
-      background: #fff;
+      background: var(--surface);
+      color: var(--text);
       border-radius: 999px;
       padding: 6px 12px;
       font-size: 1rem;
@@ -453,7 +575,8 @@
     .settings-action {
       border: 2px solid var(--outline);
       border-radius: 999px;
-      background: #fff;
+      background: var(--surface);
+      color: var(--text);
       padding: 6px 14px;
       cursor: pointer;
       font-size: 0.95rem;
@@ -461,7 +584,7 @@
     }
 
     button:focus-visible {
-      outline: 4px solid #000;
+      outline: 4px solid var(--outline);
       outline-offset: 2px;
     }
 
@@ -474,7 +597,7 @@
     /* A11Y ADDITIONS END */
   </style>
 </head>
-<body>
+<body data-theme="auto">
   <main class="panel">
     <!-- A11Y ADDITIONS START -->
     <div class="settings-actions">
@@ -588,6 +711,24 @@
           <label for="marginInput">Acceptable margin of error (seconds)</label>
           <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" aria-label="Acceptable margin of error in seconds" value="0.4" />
         </div>
+        <div class="setup-group" aria-label="Appearance preferences">
+          <h3>Appearance</h3>
+          <fieldset aria-label="Theme preference">
+            <legend>Theme</legend>
+            <label>
+              <input type="radio" name="themeMode" value="auto" checked />
+              Auto (follow system)
+            </label>
+            <label>
+              <input type="radio" name="themeMode" value="light" />
+              Light
+            </label>
+            <label>
+              <input type="radio" name="themeMode" value="dark" />
+              Dark
+            </label>
+          </fieldset>
+        </div>
         <div class="setup-group" aria-label="Debug options">
           <h3>Debug</h3>
           <label>
@@ -690,6 +831,7 @@
      * - om-a11y-high-contrast
      * - om-a11y-focus-boost
      * - om-a11y-announce-cues
+     * - om-theme
      * Supported cue types:
      * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled,
      *   exemplar_start, exemplar_stage, exemplar_end
@@ -734,6 +876,7 @@
     const acceptableInputs = [...document.querySelectorAll("input[name='acceptableSound']")];
     const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
     const previewButtons = [...document.querySelectorAll(".preview-btn")];
+    const themeInputs = [...document.querySelectorAll("input[name='themeMode']")];
     const setupControls = [
       settingsTrigger,
       previewUserSoundBtn,
@@ -744,6 +887,7 @@
       debugToggle,
       ...acceptableInputs,
       ...outsideInputs,
+      ...themeInputs,
       ...previewButtons
     ];
     /* A11Y ADDITIONS START */
@@ -778,6 +922,7 @@
     let exemplarTimeout;
     let replayUsesConfirmTone = false;
     let showDebug = false;
+    let themeMode = "auto";
     /* A11Y ADDITIONS START */
     let lastDialogTrigger = null;
     let flashTimeout;
@@ -856,7 +1001,11 @@
       /* A11Y ADDITIONS START */
       if (a11ySettings.outputMode === "visual-only") return;
       /* A11Y ADDITIONS END */
-      if (!soundEnabled && !allowMuted) return;
+      if (!soundEnabled && !allowMuted) {
+        soundEnabled = true;
+        soundToggle.setAttribute("aria-pressed", "true");
+        soundToggle.innerHTML = "<span aria-hidden=\"true\">🔊</span> Sound On";
+      }
       const context = ensureAudioContext();
       if (context.state === "suspended") {
         context.resume().then(() => {
@@ -1201,11 +1350,12 @@
       /* A11Y ADDITIONS END */
 
       markerTimes.forEach((time) => {
+        const startTime = time === 0 ? 0 : baseDelay + time;
         if (replayUsesConfirmTone) {
-          playConfirmTone(baseDelay + time);
+          playConfirmTone(startTime);
           return;
         }
-        playUserMarkerTone(baseDelay + time);
+        playUserMarkerTone(startTime);
       });
 
       if (showDebug) {
@@ -1216,21 +1366,22 @@
         debugText.textContent = "";
       }
 
-      reference.slice(1).forEach((time, index) => {
-        const userTime = markerTimes[index + 1] ?? 0;
+      reference.forEach((time, index) => {
+        const startTime = time === 0 ? 0 : baseDelay + time;
+        const userTime = markerTimes[index] ?? 0;
         const diff = Math.abs(userTime - time);
         const latency =
           (audioContext?.baseLatency || 0) + (audioContext?.outputLatency || 0);
         const timingEpsilon = Math.max(0.02, latency);
         const feedbackType = diff <= getMargin() + timingEpsilon ? "acceptable" : "outside";
         const pitch = tones.reference[feedbackType];
-        playReferenceTone(pitch, baseDelay + time);
+        playReferenceTone(pitch, startTime);
         /* A11Y ADDITIONS START */
-        const stageLabel = modes[currentMode].labels[index + 1] || "Reference";
+        const stageLabel = modes[currentMode].labels[index] || "Reference";
         const cueType = feedbackType === "acceptable" ? "reference_ok" : "reference_bad";
         setTimeout(() => {
           emitCue(cueType, { stageLabel, diff });
-        }, (baseDelay + time) * 1000);
+        }, startTime * 1000);
         /* A11Y ADDITIONS END */
       });
 
@@ -1257,13 +1408,14 @@
       emitCue("exemplar_start", { referenceTimes: reference, mode: currentMode });
       /* A11Y ADDITIONS END */
 
-      reference.slice(1).forEach((time, index) => {
-        const stageLabel = modes[currentMode].labels[index + 1] || "Reference";
-        playReferenceTone(tones.reference.acceptable, baseDelay + time);
+      reference.forEach((time, index) => {
+        const startTime = time === 0 ? 0 : baseDelay + time;
+        const stageLabel = modes[currentMode].labels[index] || "Reference";
+        playReferenceTone(tones.reference.acceptable, startTime);
         /* A11Y ADDITIONS START */
         setTimeout(() => {
           emitCue("exemplar_stage", { stageLabel });
-        }, (baseDelay + time) * 1000);
+        }, startTime * 1000);
         /* A11Y ADDITIONS END */
       });
 
@@ -1427,6 +1579,10 @@
       }
     }
 
+    function applyThemeMode() {
+      document.body.dataset.theme = themeMode;
+    }
+
     function emitCue(type, detail = {}) {
       const messages = {
         start: "Started.",
@@ -1485,6 +1641,7 @@
       const storedMode = localStorage.getItem("om-mode");
       const storedReplay = localStorage.getItem("om-replay-use-confirm");
       const storedDebug = localStorage.getItem("om-debug-replay");
+      const storedTheme = localStorage.getItem("om-theme");
       /* A11Y ADDITIONS START */
       const storedOutputMode = localStorage.getItem("om-a11y-output-mode");
       const storedShowBanner = localStorage.getItem("om-a11y-show-banner");
@@ -1517,6 +1674,12 @@
       replayUsesConfirm.checked = replayUsesConfirmTone;
       showDebug = storedDebug === "true";
       debugToggle.checked = showDebug;
+      if (storedTheme && ["auto", "light", "dark"].includes(storedTheme)) {
+        themeMode = storedTheme;
+      }
+      themeInputs.forEach((input) => {
+        input.checked = input.value === themeMode;
+      });
       /* A11Y ADDITIONS START */
       if (storedOutputMode) {
         a11ySettings.outputMode = storedOutputMode;
@@ -1560,7 +1723,13 @@
       a11yHighContrast.checked = a11ySettings.highContrast;
       a11yFocusBoost.checked = a11ySettings.focusBoost;
       a11yAnnounceCues.checked = a11ySettings.announceCues;
+      if (a11ySettings.outputMode !== "visual-only") {
+        soundEnabled = true;
+        soundToggle.setAttribute("aria-pressed", "true");
+        soundToggle.innerHTML = "<span aria-hidden=\"true\">🔊</span> Sound On";
+      }
       applyA11ySettings();
+      applyThemeMode();
       /* A11Y ADDITIONS END */
     }
 
@@ -1569,6 +1738,11 @@
       input.addEventListener("change", () => {
         a11ySettings.outputMode = input.value;
         localStorage.setItem("om-a11y-output-mode", input.value);
+        if (a11ySettings.outputMode !== "visual-only") {
+          soundEnabled = true;
+          soundToggle.setAttribute("aria-pressed", "true");
+          soundToggle.innerHTML = "<span aria-hidden=\"true\">🔊</span> Sound On";
+        }
         applyA11ySettings();
         emitCue("sound_toggled", { soundEnabled: a11ySettings.outputMode !== "visual-only" });
       });
@@ -1625,6 +1799,14 @@
       localStorage.setItem("om-a11y-announce-cues", String(a11ySettings.announceCues));
     });
     /* A11Y ADDITIONS END */
+
+    themeInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        themeMode = input.value;
+        localStorage.setItem("om-theme", themeMode);
+        applyThemeMode();
+      });
+    });
 
     applyStoredSelections();
     restoreStoredSettings();
