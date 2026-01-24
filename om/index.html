@@ -170,6 +170,25 @@
       opacity: 0.55;
     }
 
+    .secondary-btn {
+      align-self: center;
+      border: 3px solid var(--outline);
+      border-radius: 999px;
+      padding: 8px 16px;
+      background: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .secondary-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .settings-trigger {
       align-self: center;
       border: 3px solid var(--outline);
@@ -490,6 +509,11 @@
       Sound On
     </button>
 
+    <button class="secondary-btn" id="exemplarBtn" type="button" aria-label="Play exemplar cadence">
+      <span aria-hidden="true">🎯</span>
+      Play exemplar
+    </button>
+
     <section class="markers" id="markers"></section>
 
     <button class="action-btn" id="actionBtn" type="button">Begin</button>
@@ -667,7 +691,8 @@
      * - om-a11y-focus-boost
      * - om-a11y-announce-cues
      * Supported cue types:
-     * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled
+     * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled,
+     *   exemplar_start, exemplar_stage, exemplar_end
      * A11Y ADDITIONS END */
     const actionBtn = document.getElementById("actionBtn");
     const markersEl = document.getElementById("markers");
@@ -675,6 +700,7 @@
     const debugText = document.getElementById("debugText");
     const modeInputs = [...document.querySelectorAll("input[name='mode']")];
     const soundToggle = document.getElementById("soundToggle");
+    const exemplarBtn = document.getElementById("exemplarBtn");
     const settingsTrigger = document.getElementById("settingsTrigger");
     const settingsModal = document.getElementById("settingsModal");
     const closeSettings = document.getElementById("closeSettings");
@@ -749,6 +775,7 @@
     let stage = 0;
     let started = false;
     let replayTimeout;
+    let exemplarTimeout;
     let replayUsesConfirmTone = false;
     let showDebug = false;
     /* A11Y ADDITIONS START */
@@ -1081,6 +1108,7 @@
       stage = 0;
       started = false;
       actionBtn.disabled = false;
+      exemplarBtn.disabled = false;
       /* A11Y ADDITIONS START */
       setActionButtonLabel("Begin");
       /* A11Y ADDITIONS END */
@@ -1126,6 +1154,7 @@
         setActionButtonLabel("Mark");
         updateNextPrompt();
         /* A11Y ADDITIONS END */
+        exemplarBtn.disabled = true;
         playConfirmTone();
         actionBtn.classList.add("running");
         /* A11Y ADDITIONS START */
@@ -1214,6 +1243,40 @@
       }, (maxTime + baseDelay + 1.2) * 1000);
     }
 
+    function playExemplar() {
+      if (!validateSetup()) {
+        return;
+      }
+      ensureAudioContext();
+      exemplarBtn.disabled = true;
+      const reference = getReferenceTimes();
+      const baseDelay = 0.6;
+      const maxTime = Math.max(...reference);
+      setStatus("Playing exemplar cadence.");
+      /* A11Y ADDITIONS START */
+      emitCue("exemplar_start", { referenceTimes: reference, mode: currentMode });
+      /* A11Y ADDITIONS END */
+
+      reference.slice(1).forEach((time, index) => {
+        const stageLabel = modes[currentMode].labels[index + 1] || "Reference";
+        playReferenceTone(tones.reference.acceptable, baseDelay + time);
+        /* A11Y ADDITIONS START */
+        setTimeout(() => {
+          emitCue("exemplar_stage", { stageLabel });
+        }, (baseDelay + time) * 1000);
+        /* A11Y ADDITIONS END */
+      });
+
+      clearTimeout(exemplarTimeout);
+      exemplarTimeout = setTimeout(() => {
+        exemplarBtn.disabled = false;
+        setStatus("Ready to practice.");
+        /* A11Y ADDITIONS START */
+        emitCue("exemplar_end", { message: "Ready to practice." });
+        /* A11Y ADDITIONS END */
+      }, (maxTime + baseDelay + 0.8) * 1000);
+    }
+
     let startTimestamp = 0;
 
     actionBtn.addEventListener("click", () => {
@@ -1240,6 +1303,10 @@
       /* A11Y ADDITIONS START */
       emitCue("sound_toggled", { soundEnabled });
       /* A11Y ADDITIONS END */
+    });
+
+    exemplarBtn.addEventListener("click", () => {
+      playExemplar();
     });
 
     /* A11Y ADDITIONS START */
@@ -1369,7 +1436,10 @@
         validation_error: detail.message || "Need more information to start.",
         reference_ok: `Reference: acceptable${detail.stageLabel ? ` for ${detail.stageLabel}` : ""}.`,
         reference_bad: `Reference: outside tolerance${detail.stageLabel ? ` for ${detail.stageLabel}` : ""}.`,
-        sound_toggled: detail.soundEnabled ? "Sound on." : "Sound off."
+        sound_toggled: detail.soundEnabled ? "Sound on." : "Sound off.",
+        exemplar_start: "Playing exemplar cadence.",
+        exemplar_stage: `Exemplar cue${detail.stageLabel ? `: ${detail.stageLabel}` : ""}.`,
+        exemplar_end: detail.message || "Ready to practice."
       };
       const message = messages[type] || "Updated.";
       if (a11ySettings.showBanner) {
