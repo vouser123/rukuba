@@ -677,12 +677,17 @@
             font-weight: 500;
         }
 
+        .form-group input,
+        .form-group select,
         .form-group textarea {
             width: 100%;
             padding: 0.5rem;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 17px; /* >= 16px prevents iOS zoom */
+        }
+
+        .form-group textarea {
             min-height: 100px;
             resize: vertical;
         }
@@ -1025,8 +1030,39 @@
             try {
                 document.getElementById('exerciseList').innerHTML = '<div class="loading">Loading exercises...</div>';
 
-                const result = await fetchWithAuth('/api/exercises');
-                allExercises = result.exercises || [];
+                // Load patient's assigned programs (exercises with dosages)
+                const result = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
+                const programs = result.programs || [];
+
+                // Transform programs into exercise format with dosage data
+                allExercises = programs.map(program => {
+                    const exercise = program.exercises || {};
+                    return {
+                        // Exercise library fields
+                        id: exercise.id,
+                        canonical_name: exercise.canonical_name,
+                        description: exercise.description,
+                        pt_category: exercise.pt_category,
+                        pattern: exercise.pattern,
+                        pattern_modifiers: exercise.pattern_modifiers,
+                        archived: exercise.archived,
+
+                        // Patient dosage fields from patient_programs
+                        current_sets: program.current_sets,
+                        current_reps: program.current_reps,
+                        seconds_per_rep: program.seconds_per_rep,
+                        distance_per_rep: program.distance_per_rep,
+                        side: program.side,
+
+                        // Full nested data for reference
+                        equipment: exercise.equipment,
+                        primary_muscles: exercise.primary_muscles,
+                        secondary_muscles: exercise.secondary_muscles,
+                        form_parameters_required: exercise.form_parameters_required,
+                        guidance: exercise.guidance,
+                        roles: exercise.roles
+                    };
+                });
 
                 renderExerciseList(allExercises);
                 await loadHistory();
@@ -1346,7 +1382,7 @@
                 } else if (remaining === 1) {
                     speakText('1 second left');
                 } else if (remaining === 0) {
-                    playBeep();
+                    playCompletionSound();
                     speakText('Time');
                     pauseTimer(); // Auto-pause at target, but allow user to continue
                 }
@@ -1380,7 +1416,7 @@
          * Play a simple beep sound using Web Audio API.
          * iOS Safari requires user interaction before playing audio.
          */
-        function playBeep() {
+        function playBeep(frequency = 800, duration = 200) {
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
@@ -1389,14 +1425,29 @@
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
 
-                oscillator.frequency.value = 800; // 800 Hz beep
-                oscillator.type = 'sine';
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'square'; // More noticeable than sine
 
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                const durationInSeconds = duration / 1000;
+                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Louder
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + durationInSeconds);
 
                 oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.1);
+                oscillator.stop(audioContext.currentTime + durationInSeconds);
+            } catch (error) {
+                console.warn('Audio not available:', error);
+            }
+        }
+
+        /**
+         * Play triple beep completion sound.
+         * Three ascending beeps to indicate successful completion.
+         */
+        function playCompletionSound() {
+            try {
+                playBeep(1000, 150);  // First beep: 1000 Hz, 150ms
+                setTimeout(() => playBeep(1200, 150), 200);  // Second beep: 1200 Hz after 200ms
+                setTimeout(() => playBeep(1400, 200), 400);  // Third beep: 1400 Hz after 400ms
             } catch (error) {
                 console.warn('Audio not available:', error);
             }
