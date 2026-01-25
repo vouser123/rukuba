@@ -1,7 +1,7 @@
 const FALLBACK_SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
 const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
 
-let supabase = null;
+let supabaseClient = null;
 
 let currentUser = null;
 let authToken = null;
@@ -93,7 +93,7 @@ async function init() {
         throw new Error('Supabase SDK failed to load. Check CDN access or CSP.');
     }
 
-    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+    supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
     if (warning) {
         showBootError(warning);
@@ -103,7 +103,7 @@ async function init() {
     let sessionHandled = false;
 
     if (accessToken && refreshToken) {
-        const { data, error } = await supabase.auth.setSession({
+        const { data, error } = await supabaseClient.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
         });
@@ -130,7 +130,7 @@ async function init() {
     }
 
     // Check for existing session
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
 
     if (session && !sessionHandled) {
         await handleAuthSuccess(session);
@@ -160,7 +160,7 @@ async function signIn() {
     submitButton.textContent = 'Signing in...';
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email,
             password
         });
@@ -194,7 +194,7 @@ async function handleAuthSuccess(session) {
 
     try {
         // Verify therapist or admin role
-        const { data: userData, error: userError } = await supabase
+        const { data: userData, error: userError } = await supabaseClient
             .from('users')
             .select('role')
             .eq('auth_id', currentUser.id)
@@ -243,7 +243,7 @@ async function handleAuthSuccess(session) {
 }
 
 async function signOut() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     location.reload();
 }
 
