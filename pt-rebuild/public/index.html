@@ -1742,8 +1742,33 @@ ${queueData}
             let seconds = null;
 
             if (isTimerMode) {
-                seconds = value;
-                // Reset timer for next rep
+                // Timer mode: check if this is hold (per-rep) or duration (single timer)
+                const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+
+                if (hasHold) {
+                    // Hold exercise: track reps, create set only when all reps complete
+                    timerState.currentRep++;  // Increment rep count
+
+                    if (timerState.currentRep > timerState.totalReps) {
+                        // All reps complete - create the set
+                        reps = timerState.totalReps;  // Total reps performed
+                        seconds = timerState.targetSeconds;  // Seconds per rep
+                        // Don't add to currentSession.sets here - will be done below
+                    } else {
+                        // More reps to go - reset timer for next rep
+                        resetTimer();
+                        document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+                        closeLogSetModal();
+                        showToast(`Rep ${timerState.currentRep - 1} complete`, 'success', 2000);
+                        return;  // Don't create set yet
+                    }
+                } else {
+                    // Duration exercise: single set with just time
+                    reps = 1;  // Always 1 rep for duration
+                    seconds = value;
+                }
+
+                // Reset timer for next set
                 resetTimer();
             } else {
                 reps = value;
@@ -1806,7 +1831,7 @@ ${queueData}
 
             const set = {
                 set_number: currentSession.sets.length + 1,
-                reps: reps,
+                reps: reps,  // Always populated (never null)
                 seconds: seconds,
                 distance_feet: null, // TODO: Add distance mode
                 side: currentSide,
@@ -1817,6 +1842,12 @@ ${queueData}
             };
 
             currentSession.sets.push(set);
+
+            // Reset timer rep counter for next set (hold exercises)
+            if (isTimerMode && currentExercise.pattern_modifiers?.includes('hold_seconds')) {
+                timerState.currentRep = 1;
+                document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+            }
 
             // Update UI
             document.getElementById('totalSetsLogged').textContent = currentSession.sets.length;
