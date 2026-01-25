@@ -659,8 +659,10 @@
     <!-- Toast Container -->
     <div id="toast" class="toast"></div>
 
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const FALLBACK_SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
+        const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
 
         let supabase = null;
 
@@ -682,21 +684,38 @@
         let externalCues = [];
 
         async function loadSupabaseConfig() {
-            const response = await fetch('/api/env');
+            try {
+                const response = await fetch('/api/env');
 
-            if (!response.ok) {
-                throw new Error('Failed to load Supabase configuration.');
+                if (response.ok) {
+                    return response.json();
+                }
+            } catch (error) {
+                // Fall through to fallback values.
             }
 
-            return response.json();
+            return {
+                supabaseUrl: FALLBACK_SUPABASE_URL,
+                supabaseAnonKey: FALLBACK_SUPABASE_ANON_KEY,
+                warning: 'Using fallback Supabase credentials. If this persists, check /api/env.'
+            };
         }
 
         function readAuthParams() {
             const params = new URLSearchParams(window.location.search);
-            return {
-                accessToken: params.get('access_token'),
-                refreshToken: params.get('refresh_token')
-            };
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+
+            if (accessToken && refreshToken) {
+                return { accessToken, refreshToken, source: 'url' };
+            }
+
+            const storedAuth = readStoredAuth();
+            if (storedAuth?.accessToken && storedAuth?.refreshToken) {
+                return { ...storedAuth, source: 'storage' };
+            }
+
+            return { accessToken: null, refreshToken: null, source: null };
         }
 
         function clearAuthParams() {
@@ -707,12 +726,43 @@
             window.history.replaceState({}, '', newUrl);
         }
 
+        function readStoredAuth() {
+            try {
+                const raw = localStorage.getItem('pt_editor_auth');
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return {
+                    accessToken: parsed.access_token || parsed.accessToken || null,
+                    refreshToken: parsed.refresh_token || parsed.refreshToken || null
+                };
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function clearStoredAuth() {
+            try {
+                localStorage.removeItem('pt_editor_auth');
+            } catch (error) {
+                // Ignore storage errors
+            }
+        }
+
         // Initialize
         async function init() {
-            const { supabaseUrl, supabaseAnonKey } = await loadSupabaseConfig();
-            supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { supabaseUrl, supabaseAnonKey, warning } = await loadSupabaseConfig();
 
-            const { accessToken, refreshToken } = readAuthParams();
+            if (!window.supabase?.createClient) {
+                throw new Error('Supabase SDK failed to load. Check CDN access or CSP.');
+            }
+
+            supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+            if (warning) {
+                showBootError(warning);
+            }
+
+            const { accessToken, refreshToken, source } = readAuthParams();
             let sessionHandled = false;
 
             if (accessToken && refreshToken) {
@@ -720,7 +770,12 @@
                     access_token: accessToken,
                     refresh_token: refreshToken
                 });
-                clearAuthParams();
+                if (source === 'url') {
+                    clearAuthParams();
+                }
+                if (source === 'storage') {
+                    clearStoredAuth();
+                }
 
                 if (error) {
                     const errorDiv = document.getElementById('authError');
@@ -1388,8 +1443,30 @@
             }, 3000);
         }
 
+        function showBootError(error) {
+            const message = error?.message || String(error);
+            const errorDiv = document.getElementById('authError');
+
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+            }
+
+            toast(message, 'error');
+        }
+
+        window.addEventListener('error', (event) => {
+            if (event?.message) {
+                showBootError(event.message);
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            showBootError(event.reason || 'Unexpected error during initialization.');
+        });
+
         // Initialize on load
-        init();
+        init().catch(showBootError);
     </script>
 </body>
 </html>
