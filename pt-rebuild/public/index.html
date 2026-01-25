@@ -1163,11 +1163,24 @@
                 return;
             }
 
+            // Determine activity type from pattern modifiers
+            let activityType = 'reps'; // default
+            if (currentExercise.pattern_modifiers) {
+                if (currentExercise.pattern_modifiers.includes('distance_feet')) {
+                    activityType = 'distance';
+                } else if (currentExercise.pattern_modifiers.includes('hold_seconds')) {
+                    activityType = 'hold';
+                } else if (currentExercise.pattern_modifiers.includes('duration_seconds')) {
+                    activityType = 'duration';
+                }
+            }
+
             // Initialize new session
             currentSession = {
                 sessionId: generateSessionId(),
                 exerciseId: currentExercise.id,
                 exerciseName: currentExercise.canonical_name,
+                activityType: activityType,
                 sets: [],
                 date: new Date().toISOString()
             };
@@ -1935,15 +1948,14 @@ ${queueData}
 
             for (const session of [...offlineQueue]) {
                 try {
-                    // Determine activity type based on what data exists in sets
-                    let activityType = 'reps'; // default
-                    if (session.sets && session.sets.length > 0) {
+                    // Use stored activity type, or fallback to guessing from data
+                    let activityType = session.activityType || 'reps';
+                    if (!session.activityType && session.sets && session.sets.length > 0) {
+                        // Fallback for old sessions without activityType
                         const firstSet = session.sets[0];
                         if (firstSet.distance_feet != null && firstSet.distance_feet > 0) {
                             activityType = 'distance';
                         } else if (firstSet.seconds != null && firstSet.seconds > 0) {
-                            // If has both reps and seconds: hold (reps × Xs hold each)
-                            // If has seconds but no reps: duration (just timed)
                             activityType = (firstSet.reps != null && firstSet.reps > 0) ? 'hold' : 'duration';
                         }
                     }
