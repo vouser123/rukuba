@@ -122,6 +122,10 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+            min-height: 44px;
+            -webkit-appearance: none;
+            appearance: none;
+            touch-action: manipulation;
         }
 
         .auth-error {
@@ -194,28 +198,22 @@
             border: none;
             padding: 12px 24px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            font-family: inherit;
-            min-height: 48px;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+            transition: opacity 0.2s;
         }
 
         .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--ios-blue);
-            border: none;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
             padding: 12px 24px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            font-family: inherit;
+            transition: opacity 0.2s;
         }
 
         .btn-danger {
@@ -224,207 +222,146 @@
             border: none;
             padding: 12px 24px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            font-family: inherit;
         }
 
-        /* Form Styles */
+        .btn-primary:hover,
+        .btn-secondary:hover,
+        .btn-danger:hover {
+            opacity: 0.8;
+        }
+
+        /* Forms */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .form-label {
             display: block;
-            font-size: 15px;
             font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text-primary);
+            margin-bottom: 5px;
+            font-size: 14px;
         }
 
-        .form-input, .form-select {
+        .form-input,
+        .form-select,
+        .form-textarea {
             width: 100%;
-            padding: 14px 12px;
-            background: var(--bg-tertiary);
+            padding: 10px;
             border: 2px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 16px;
-            font-family: inherit;
-            transition: all 0.2s ease;
-        }
-
-        .form-input:hover, .form-select:hover {
-            border-color: var(--ios-blue);
-            background: var(--bg-secondary);
-        }
-
-        .form-input:focus, .form-select:focus {
-            outline: none;
-            border-color: var(--ios-blue);
-            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
-            background: var(--bg-secondary);
-        }
-
-        textarea.form-input {
-            resize: vertical;
-            min-height: 80px;
-            line-height: 1.5;
-        }
-
-        .form-select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 40px;
-            cursor: pointer;
-        }
-
-        /* Collapsible Details */
-        details {
+            border-radius: 6px;
+            font-size: 14px;
             background: var(--bg-tertiary);
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-
-        details summary {
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 15px;
-            color: var(--ios-blue);
-            margin-bottom: 12px;
-            list-style: none;
-        }
-
-        details summary::-webkit-details-marker {
-            display: none;
-        }
-
-        details summary::before {
-            content: '▶ ';
-            display: inline-block;
-            margin-right: 6px;
-            transition: transform 0.2s;
-        }
-
-        details[open] summary::before {
-            transform: rotate(90deg);
-        }
-
-        /* Section Styles */
-        .section {
-            background: var(--bg-secondary);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-        }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 15px;
             color: var(--text-primary);
+            font-family: inherit;
         }
 
-        /* Tag/Item Lists */
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        /* Tags */
         .tag-list {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .tag {
             background: var(--ios-blue);
             color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 14px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
         }
 
-        .tag button {
+        .tag-remove {
             background: none;
             border: none;
             color: white;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             padding: 0;
-            line-height: 1;
         }
 
-        .role-item {
+        /* Lists */
+        .list-container {
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
             background: var(--bg-tertiary);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .list-container ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .list-container li {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .role-item-info {
-            flex: 1;
+        .list-container li:last-child {
+            border-bottom: none;
         }
 
-        .role-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-secondary);
             font-weight: 600;
-            margin-right: 8px;
         }
 
-        .role-badge.high {
-            background: var(--ios-green);
-            color: white;
-        }
-
-        .role-badge.medium {
-            background: var(--ios-orange);
-            color: white;
-        }
-
-        .role-badge.low {
-            background: var(--ios-gray);
-            color: white;
-        }
-
-        /* Loading Spinner */
+        /* Loading */
         .loading {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: var(--text-secondary);
         }
 
         .spinner {
-            border: 3px solid var(--border-color);
-            border-top-color: var(--ios-blue);
+            border: 3px solid var(--bg-tertiary);
+            border-top: 3px solid var(--ios-blue);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 12px;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        /* Action Buttons */
+        /* Action buttons */
         .action-buttons {
             display: flex;
-            gap: 12px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid var(--border-color);
+            gap: 10px;
+            margin-top: 20px;
         }
 
         .action-buttons button {
@@ -452,6 +389,7 @@
     <div id="authModal" class="auth-modal">
         <div class="auth-content">
             <h2>PT Editor Sign In</h2>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-top: -6px;">Build: 2026.01.25-1</p>
             <p style="color: var(--text-secondary); margin-bottom: 20px;">Therapist or admin access required</p>
             <div id="authError" class="auth-error hidden" style="margin-bottom: 16px;"></div>
             <form id="authForm" class="auth-form">
@@ -480,1290 +418,259 @@
         <div class="header">
             <h1>PT Editor - Exercise Library Manager</h1>
             <div class="header-actions">
-                <button class="btn-secondary" onclick="clearForm()">New Exercise</button>
+                <button class="btn-secondary" onclick="clearForm()">➕ New Exercise</button>
                 <button class="btn-danger" onclick="signOut()">Sign Out</button>
             </div>
         </div>
 
-        <!-- SECTION 1: Add or Edit Exercise -->
-        <div class="section">
-            <h3 class="section-title">Add or Edit Exercise</h3>
+        <!-- Exercise Selector -->
+        <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px; font-size: 18px;">Select Exercise to Edit</h3>
 
-            <!-- Exercise Selector -->
             <div class="form-group">
-                <label class="form-label" for="exerciseSelect">Select Existing Exercise to Edit (optional)</label>
-                <input type="text" id="exerciseSearch" class="form-input" placeholder="Search exercises..." oninput="filterExercises()" style="margin-bottom: 8px;">
-                <select id="exerciseSelect" class="form-select" onchange="loadExerciseForEdit()">
-                    <option value="">-- Add new exercise (leave blank) --</option>
-                </select>
+                <input type="text" id="exerciseSearch" class="form-input" placeholder="🔍 Search exercises..." oninput="filterExercises()">
             </div>
 
-            <!-- Exercise Form -->
-            <form id="exerciseForm">
-                <!-- Basic Information (Always Visible) -->
-                <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                    <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">Basic Information</h4>
+            <div class="form-group">
+                <select id="exerciseSelect" class="form-select" onchange="loadExerciseForEdit()">
+                    <option value="">-- Add New Exercise (leave blank) --</option>
+                </select>
+            </div>
+        </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="canonicalName">Canonical Name *</label>
-                        <input type="text" id="canonicalName" class="form-input" placeholder="e.g., Single Leg Bridge" required>
-                    </div>
+        <!-- Exercise Form -->
+        <form id="exerciseForm">
+            <!-- Basic Information (Always Visible) -->
+            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📝 Basic Information</h4>
 
-                    <div class="form-group">
-                        <label class="form-label" for="description">Description *</label>
-                        <textarea id="description" class="form-input" rows="3" placeholder="Clear description of the exercise and how to perform it" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="ptCategory">PT Category *</label>
-                        <select id="ptCategory" class="form-select" required>
-                            <option value="">-- Select Category --</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="pattern">Movement Pattern *</label>
-                        <select id="pattern" class="form-select" required>
-                            <option value="">-- Select Pattern --</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Pattern Modifiers</label>
-                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                <input type="checkbox" id="modDuration" value="duration_seconds">
-                                <span>duration_seconds</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                <input type="checkbox" id="modHold" value="hold_seconds">
-                                <span>hold_seconds</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                                <input type="checkbox" id="modDistance" value="distance_feet">
-                                <span>distance_feet</span>
-                            </label>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="canonicalName">Canonical Name *</label>
+                    <input type="text" id="canonicalName" class="form-input" placeholder="e.g., Single Leg Bridge" required>
                 </div>
 
-                <!-- Muscles Section (Collapsible) -->
-                <details>
-                    <summary>Muscles</summary>
+                <div class="form-group">
+                    <label class="form-label" for="description">Description *</label>
+                    <textarea id="description" class="form-input" rows="3" placeholder="Clear description of the exercise and how to perform it" required></textarea>
+                </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Primary Muscles</label>
-                        <div id="primaryMusclesTags" class="tag-list"></div>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="primaryMusclesInput" class="form-input" placeholder="Enter muscle name">
-                            <button type="button" class="btn-secondary" onclick="addPrimaryMuscle()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="ptCategory">PT Category *</label>
+                    <select id="ptCategory" class="form-select" required>
+                        <option value="">-- Select Category --</option>
+                    </select>
+                </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Secondary Muscles</label>
-                        <div id="secondaryMusclesTags" class="tag-list"></div>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="secondaryMusclesInput" class="form-input" placeholder="Enter muscle name">
-                            <button type="button" class="btn-secondary" onclick="addSecondaryMuscle()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
-                </details>
+                <div class="form-group">
+                    <label class="form-label" for="pattern">Movement Pattern *</label>
+                    <select id="pattern" class="form-select" required>
+                        <option value="">-- Select Pattern --</option>
+                    </select>
+                </div>
 
-                <!-- Equipment (Collapsible) -->
-                <details>
-                    <summary>Equipment</summary>
-
-                    <div class="form-group">
-                        <label class="form-label">Required Equipment</label>
-                        <div id="requiredEquipmentTags" class="tag-list"></div>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="requiredEquipmentInput" class="form-input" placeholder="Enter equipment name">
-                            <button type="button" class="btn-secondary" onclick="addRequiredEquipment()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Optional Equipment</label>
-                        <div id="optionalEquipmentTags" class="tag-list"></div>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="optionalEquipmentInput" class="form-input" placeholder="Enter equipment name">
-                            <button type="button" class="btn-secondary" onclick="addOptionalEquipment()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
-                </details>
-
-                <!-- Form Parameters (Collapsible) -->
-                <details>
-                    <summary>Form Parameters</summary>
-
-                    <div class="form-group">
-                        <label class="form-label">Required Form Parameters</label>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
-                            Examples: band_resistance, surface, eyes, distance, weight
-                        </p>
-                        <div id="formParametersTags" class="tag-list"></div>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="formParametersInput" class="form-input" placeholder="Enter parameter name">
-                            <button type="button" class="btn-secondary" onclick="addFormParameter()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
-                </details>
-
-                <!-- Guidance (Collapsible) -->
-                <details>
-                    <summary>Guidance & Cues</summary>
-
-                    <div class="form-group">
-                        <label class="form-label">External Cues</label>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Visual checks, setup instructions</p>
-                        <div id="externalCuesList"></div>
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <input type="text" id="externalCuesInput" class="form-input" placeholder="Enter external cue">
-                            <button type="button" class="btn-secondary" onclick="addExternalCue()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Motor Cues</label>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Internal movement cues, what to feel</p>
-                        <div id="motorCuesList"></div>
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <input type="text" id="motorCuesInput" class="form-input" placeholder="Enter motor cue">
-                            <button type="button" class="btn-secondary" onclick="addMotorCue()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Compensation Warnings</label>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Common form breakdowns to watch for</p>
-                        <div id="compensationWarningsList"></div>
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <input type="text" id="compensationWarningsInput" class="form-input" placeholder="Enter warning">
-                            <button type="button" class="btn-secondary" onclick="addCompensationWarning()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Safety Flags</label>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">When to stop immediately</p>
-                        <div id="safetyFlagsList"></div>
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <input type="text" id="safetyFlagsInput" class="form-input" placeholder="Enter safety flag">
-                            <button type="button" class="btn-secondary" onclick="addSafetyFlag()" style="white-space: nowrap;">+ Add</button>
-                        </div>
-                    </div>
-                </details>
-
-                <!-- Lifecycle & Status (Collapsible) -->
-                <details>
-                    <summary>Lifecycle & Status</summary>
-
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="archived">
-                            <span class="form-label" style="margin: 0;">Archived</span>
+                <div class="form-group">
+                    <label class="form-label">Pattern Modifiers</label>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <input type="checkbox" id="modDuration" value="duration_seconds">
+                            <span>duration_seconds</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <input type="checkbox" id="modHold" value="hold_seconds">
+                            <span>hold_seconds</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <input type="checkbox" id="modDistance" value="distance_feet">
+                            <span>distance_feet</span>
                         </label>
                     </div>
+                </div>
+            </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="lifecycleStatus">Lifecycle Status</label>
-                        <select id="lifecycleStatus" class="form-select">
-                            <option value="">-- None --</option>
-                            <option value="active">Active</option>
-                            <option value="deprecated">Deprecated</option>
-                            <option value="archived">Archived</option>
-                        </select>
+            <!-- Equipment -->
+            <details>
+                <summary>🏋️ Equipment</summary>
+
+                <div class="form-group">
+                    <label class="form-label">Required Equipment</label>
+                    <div id="requiredEquipmentTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="requiredEquipmentInput" class="form-input" placeholder="Enter equipment name">
+                        <button type="button" class="btn-secondary" onclick="addRequiredEquipment()" style="white-space: nowrap;">Add</button>
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="effectiveStartDate">Effective Start Date</label>
-                        <input type="date" id="effectiveStartDate" class="form-input">
+                <div class="form-group">
+                    <label class="form-label">Optional Equipment</label>
+                    <div id="optionalEquipmentTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="optionalEquipmentInput" class="form-input" placeholder="Enter equipment name">
+                        <button type="button" class="btn-secondary" onclick="addOptionalEquipment()" style="white-space: nowrap;">Add</button>
                     </div>
+                </div>
+            </details>
 
-                    <div class="form-group">
-                        <label class="form-label" for="effectiveEndDate">Effective End Date</label>
-                        <input type="date" id="effectiveEndDate" class="form-input">
+            <!-- Muscles -->
+            <details>
+                <summary>💪 Muscles</summary>
+
+                <div class="form-group">
+                    <label class="form-label">Primary Muscles</label>
+                    <div id="primaryMusclesTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="primaryMusclesInput" class="form-input" placeholder="Enter muscle name">
+                        <button type="button" class="btn-secondary" onclick="addPrimaryMuscle()" style="white-space: nowrap;">Add</button>
                     </div>
-                </details>
-
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                    <button type="button" class="btn-secondary" onclick="clearForm()">Cancel</button>
-                    <button type="submit" class="btn-primary">Save Exercise</button>
                 </div>
-            </form>
-        </div>
 
-        <!-- SECTION 2: Assign Roles to Exercises -->
-        <div class="section">
-            <h3 class="section-title">Assign Roles to Exercises</h3>
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
-                <strong>Roles</strong> define how an exercise contributes to different movement capacities in different body regions.
-                One exercise can have multiple roles (e.g., Single Leg Bridge works hip extension AND core stability).
-            </p>
+                <div class="form-group">
+                    <label class="form-label">Secondary Muscles</label>
+                    <div id="secondaryMusclesTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="secondaryMusclesInput" class="form-input" placeholder="Enter muscle name">
+                        <button type="button" class="btn-secondary" onclick="addSecondaryMuscle()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+            </details>
 
-            <!-- Exercise Selector for Roles -->
-            <div class="form-group">
-                <label class="form-label" for="roleExerciseSelect">Select Exercise *</label>
-                <input type="text" id="roleExerciseSearch" class="form-input" placeholder="Search exercises..." oninput="filterRoleExercises()" style="margin-bottom: 8px;">
-                <select id="roleExerciseSelect" class="form-select" onchange="loadExerciseRoles()">
-                    <option value="">-- Choose an exercise --</option>
-                </select>
+            <!-- Form Parameters -->
+            <details>
+                <summary>📏 Form Parameters Required</summary>
+
+                <div class="form-group">
+                    <label class="form-label">Parameters</label>
+                    <div id="formParameterTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="formParameterInput" class="form-input" placeholder="e.g., band_resistance, surface, eyes">
+                        <button type="button" class="btn-secondary" onclick="addFormParameter()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Guidance -->
+            <details>
+                <summary>🧠 Guidance & Cues</summary>
+
+                <div class="form-group">
+                    <label class="form-label">Motor Cues</label>
+                    <div class="list-container">
+                        <ul id="motorCuesList"></ul>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="motorCuesInput" class="form-input" placeholder="Add motor cue">
+                        <button type="button" class="btn-secondary" onclick="addMotorCue()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Compensation Warnings</label>
+                    <div class="list-container">
+                        <ul id="compensationList"></ul>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="compensationInput" class="form-input" placeholder="Add compensation warning">
+                        <button type="button" class="btn-secondary" onclick="addCompensationWarning()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Safety Flags</label>
+                    <div class="list-container">
+                        <ul id="safetyList"></ul>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="safetyInput" class="form-input" placeholder="Add safety flag">
+                        <button type="button" class="btn-secondary" onclick="addSafetyFlag()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">External Cues</label>
+                    <div class="list-container">
+                        <ul id="externalCuesList"></ul>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="externalCuesInput" class="form-input" placeholder="Add external cue">
+                        <button type="button" class="btn-secondary" onclick="addExternalCue()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Roles -->
+            <details>
+                <summary>🎯 Exercise Roles</summary>
+
+                <table id="rolesTable">
+                    <thead>
+                        <tr>
+                            <th>Region</th>
+                            <th>Capacity</th>
+                            <th>Focus</th>
+                            <th>Contribution</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <button type="button" class="btn-secondary" onclick="addRoleRow()">Add Role</button>
+            </details>
+
+            <!-- Lifecycle & Status -->
+            <details>
+                <summary>📅 Lifecycle & Status</summary>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="archived">
+                        <span>Archived</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="lifecycleStatus">Lifecycle Status</label>
+                    <select id="lifecycleStatus" class="form-select">
+                        <option value="">-- None --</option>
+                        <option value="active">Active</option>
+                        <option value="deprecated">Deprecated</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="effectiveStartDate">Effective Start Date</label>
+                    <input type="date" id="effectiveStartDate" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="effectiveEndDate">Effective End Date</label>
+                    <input type="date" id="effectiveEndDate" class="form-input">
+                </div>
+            </details>
+
+            <!-- Vocabulary Reference -->
+            <details>
+                <summary>📚 Vocabulary Reference (Read-Only)</summary>
+
+                <div id="vocabReference" style="font-size: 14px; line-height: 1.6;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading vocabularies...
+                    </div>
+                </div>
+            </details>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button type="button" class="btn-secondary" onclick="clearForm()">Cancel</button>
+                <button type="submit" class="btn-primary">Save Exercise</button>
             </div>
-
-            <!-- Current Roles Display -->
-            <div id="currentRoles" style="margin: 15px 0;"></div>
-
-            <!-- Add Role Form -->
-            <div id="addRoleForm" class="hidden" style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
-                <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
-
-                <div class="form-group">
-                    <label class="form-label" for="newRoleRegion">Region *</label>
-                    <select id="newRoleRegion" class="form-select">
-                        <option value="">-- Select region --</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="newRoleCapacity">Capacity *</label>
-                    <select id="newRoleCapacity" class="form-select">
-                        <option value="">-- Select capacity --</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="newRoleFocus">Focus (optional)</label>
-                    <select id="newRoleFocus" class="form-select">
-                        <option value="">-- No focus (general) --</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="newRoleContribution">Contribution *</label>
-                    <select id="newRoleContribution" class="form-select">
-                        <option value="">-- Select --</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                </div>
-
-                <button class="btn-primary" onclick="addRoleToExercise()">Add Role</button>
-            </div>
-        </div>
-
-        <!-- SECTION 3: Manage Patient Dosages -->
-        <div class="section">
-            <h3 class="section-title">Manage Patient Dosages</h3>
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
-                <strong>Dosages</strong> are the prescribed sets, reps, and parameters for each exercise. Update these to change patient prescriptions.
-            </p>
-
-            <!-- Exercise Selector for Dosages -->
-            <div class="form-group">
-                <label class="form-label" for="dosageExerciseSelect">Select Exercise *</label>
-                <input type="text" id="dosageExerciseSearch" class="form-input" placeholder="Search exercises..." oninput="filterDosageExercises()" style="margin-bottom: 8px;">
-                <select id="dosageExerciseSelect" class="form-select" onchange="loadExerciseDosage()">
-                    <option value="">-- Choose an exercise --</option>
-                </select>
-            </div>
-
-            <!-- Current Dosage Display -->
-            <div id="currentDosageDisplay" style="margin: 15px 0;" class="hidden"></div>
-
-            <!-- Edit Dosage Form -->
-            <div id="editDosageForm" class="hidden" style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
-                <h4 style="margin-bottom: 10px; font-size: 16px;">Update Dosage</h4>
-
-                <div class="form-group">
-                    <label class="form-label" for="dosageSets">Sets *</label>
-                    <input type="number" id="dosageSets" class="form-input" placeholder="e.g., 3" min="1">
-                </div>
-
-                <div class="form-group" id="dosageRepsGroup">
-                    <label class="form-label" for="dosageReps">Reps (per set) *</label>
-                    <input type="number" id="dosageReps" class="form-input" placeholder="e.g., 10" min="1">
-                </div>
-
-                <div class="form-group hidden" id="dosageSecondsGroup">
-                    <label class="form-label" for="dosageSeconds" id="dosageSecondsLabel">Seconds</label>
-                    <input type="number" id="dosageSeconds" class="form-input" placeholder="e.g., 30" min="1">
-                </div>
-
-                <div class="form-group hidden" id="dosageDistanceGroup">
-                    <label class="form-label" for="dosageDistance">Distance (feet)</label>
-                    <input type="number" id="dosageDistance" class="form-input" placeholder="e.g., 100" min="1">
-                </div>
-
-                <div class="form-group hidden" id="dosageSideGroup">
-                    <label class="form-label" for="dosageSide">Side</label>
-                    <select id="dosageSide" class="form-select">
-                        <option value="both">Both</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
-                    </select>
-                </div>
-
-                <button class="btn-primary" onclick="updateDosage()">Update Dosage</button>
-            </div>
-        </div>
+        </form>
     </div>
 
     <!-- Toast Container -->
     <div id="toast" class="toast"></div>
 
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-        const SUPABASE_URL = 'https://gjslecebfpgefvqnhmbi.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdqc2xlY2ViZnBnZWZ2cW5obWJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ4ODA1MjUsImV4cCI6MjA1MDQ1NjUyNX0.pWYrK2RJvb9zzyx94oRm5GBJmTHSY_m0SxPvLRYLOuQ';
-
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let currentUser = null;
-        let authToken = null;
-        let allExercises = [];
-        let currentExercise = null;
-        let vocabularies = {};
-
-        // Tag arrays for Section 1
-        let requiredEquipment = [];
-        let optionalEquipment = [];
-        let primaryMuscles = [];
-        let secondaryMuscles = [];
-        let formParameters = [];
-        let motorCues = [];
-        let compensationWarnings = [];
-        let safetyFlags = [];
-        let externalCues = [];
-
-        // Role data for Section 2
-        let currentRoles = [];
-        let selectedExerciseForRoles = null;
-
-        // Dosage data for Section 3
-        let selectedExerciseForDosage = null;
-        let currentDosage = null;
-
-        // ========================================
-        // INITIALIZATION
-        // ========================================
-
-        async function init() {
-            // Check for existing session
-            const { data: { session } } = await supabase.auth.getSession();
-
-            if (session) {
-                await handleAuthSuccess(session);
-            }
-
-            // Set up auth form
-            document.getElementById('authForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await signIn();
-            });
-
-            // Set up exercise form
-            document.getElementById('exerciseForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await saveExercise();
-            });
-        }
-
-        async function signIn() {
-            const email = document.getElementById('emailInput').value;
-            const password = document.getElementById('passwordInput').value;
-            const errorDiv = document.getElementById('authError');
-            const submitButton = document.querySelector('#authForm button[type="submit"]');
-
-            errorDiv.classList.add('hidden');
-            submitButton.disabled = true;
-            submitButton.textContent = 'Signing in...';
-
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password
-                });
-
-                if (error) throw error;
-
-                await handleAuthSuccess(data.session);
-            } catch (error) {
-                const errorMessage = error.message || 'Sign in failed';
-                errorDiv.textContent = errorMessage;
-                errorDiv.classList.remove('hidden');
-                submitButton.disabled = false;
-                submitButton.textContent = 'Sign In';
-            }
-        }
-
-        async function handleAuthSuccess(session) {
-            const errorDiv = document.getElementById('authError');
-            currentUser = session.user;
-            authToken = session.access_token;
-
-            try {
-                // Verify therapist or admin role
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('auth_id', currentUser.id)
-                    .single();
-
-                if (userError) {
-                    throw new Error(`Database error: ${userError.message}`);
-                }
-
-                if (!userData) {
-                    throw new Error('User not found in database. Please contact administrator.');
-                }
-
-                if (userData.role !== 'therapist' && userData.role !== 'admin') {
-                    throw new Error(`Access denied. Your role is "${userData.role}". Required: therapist or admin.`);
-                }
-
-                // Success! Show main content
-                document.getElementById('authModal').classList.add('hidden');
-                document.getElementById('mainContent').classList.remove('hidden');
-
-                // Load data
-                await loadVocabularies();
-                await loadExercises();
-
-            } catch (error) {
-                // Show error - don't sign out, let them try again
-                errorDiv.textContent = error.message;
-                errorDiv.classList.remove('hidden');
-
-                // Reset form
-                const submitButton = document.querySelector('#authForm button[type="submit"]');
-                if (submitButton) {
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Sign In';
-                }
-
-                // Clear the password field
-                document.getElementById('passwordInput').value = '';
-            }
-        }
-
-        async function signOut() {
-            await supabase.auth.signOut();
-            location.reload();
-        }
-
-        window.signOut = signOut;
-
-        async function fetchWithAuth(url, options = {}) {
-            const headers = {
-                'Content-Type': 'application/json',
-                ...options.headers
-            };
-
-            if (authToken) {
-                headers['Authorization'] = `Bearer ${authToken}`;
-            }
-
-            const response = await fetch(url, {
-                ...options,
-                headers
-            });
-
-            if (!response.ok) {
-                let errorDetail = '';
-                try {
-                    const errorBody = await response.json();
-                    errorDetail = errorBody.error || errorBody.message || JSON.stringify(errorBody);
-                } catch (e) {
-                    errorDetail = await response.text();
-                }
-                throw new Error(`API error ${response.status}: ${errorDetail || response.statusText}`);
-            }
-
-            return response.json();
-        }
-
-        // ========================================
-        // VOCABULARY LOADING
-        // ========================================
-
-        async function loadVocabularies() {
-            try {
-                const result = await fetchWithAuth('/api/vocab');
-                vocabularies = result.vocabularies;
-
-                // Populate PT Category dropdown
-                const categorySelect = document.getElementById('ptCategory');
-                categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
-                if (vocabularies.pt_category) {
-                    vocabularies.pt_category.forEach(cat => {
-                        const option = document.createElement('option');
-                        option.value = cat.code;
-                        option.textContent = `${cat.code} - ${cat.definition}`;
-                        categorySelect.appendChild(option);
-                    });
-                }
-
-                // Populate Pattern dropdown
-                const patternSelect = document.getElementById('pattern');
-                patternSelect.innerHTML = '<option value="">-- Select Pattern --</option>';
-                if (vocabularies.pattern) {
-                    vocabularies.pattern.forEach(pat => {
-                        const option = document.createElement('option');
-                        option.value = pat.code;
-                        option.textContent = `${pat.code} - ${pat.definition}`;
-                        patternSelect.appendChild(option);
-                    });
-                }
-
-                // Populate Region dropdown for roles
-                const regionSelect = document.getElementById('newRoleRegion');
-                regionSelect.innerHTML = '<option value="">-- Select region --</option>';
-                if (vocabularies.region) {
-                    vocabularies.region.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.code;
-                        option.textContent = `${item.code} - ${item.definition}`;
-                        regionSelect.appendChild(option);
-                    });
-                }
-
-                // Populate Capacity dropdown for roles
-                const capacitySelect = document.getElementById('newRoleCapacity');
-                capacitySelect.innerHTML = '<option value="">-- Select capacity --</option>';
-                if (vocabularies.capacity) {
-                    vocabularies.capacity.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.code;
-                        option.textContent = `${item.code} - ${item.definition}`;
-                        capacitySelect.appendChild(option);
-                    });
-                }
-
-                // Populate Focus dropdown for roles
-                const focusSelect = document.getElementById('newRoleFocus');
-                focusSelect.innerHTML = '<option value="">-- No focus (general) --</option>';
-                if (vocabularies.focus) {
-                    vocabularies.focus.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.code;
-                        option.textContent = `${item.code} - ${item.definition}`;
-                        focusSelect.appendChild(option);
-                    });
-                }
-
-            } catch (error) {
-                console.error('Failed to load vocabularies:', error);
-                toast('Failed to load vocabularies', 'error');
-            }
-        }
-
-        // ========================================
-        // EXERCISE LOADING & MANAGEMENT
-        // ========================================
-
-        async function loadExercises() {
-            try {
-                const result = await fetchWithAuth('/api/exercises');
-                allExercises = result.exercises || [];
-
-                // Populate all three exercise dropdowns
-                populateExerciseDropdown('exerciseSelect', 'exerciseSearch');
-                populateExerciseDropdown('roleExerciseSelect', 'roleExerciseSearch');
-                populateExerciseDropdown('dosageExerciseSelect', 'dosageExerciseSearch');
-
-            } catch (error) {
-                console.error('Failed to load exercises:', error);
-                toast('Failed to load exercises', 'error');
-            }
-        }
-
-        function populateExerciseDropdown(selectId, searchId) {
-            const select = document.getElementById(selectId);
-            const firstOption = select.options[0].outerHTML;
-            select.innerHTML = firstOption;
-
-            allExercises
-                .filter(ex => !ex.archived)
-                .sort((a, b) => a.canonical_name.localeCompare(b.canonical_name))
-                .forEach(ex => {
-                    const option = document.createElement('option');
-                    option.value = ex.id;
-                    option.textContent = ex.canonical_name;
-                    select.appendChild(option);
-                });
-        }
-
-        function filterExercises() {
-            filterExerciseDropdown('exerciseSelect', 'exerciseSearch');
-        }
-
-        function filterRoleExercises() {
-            filterExerciseDropdown('roleExerciseSelect', 'roleExerciseSearch');
-        }
-
-        function filterDosageExercises() {
-            filterExerciseDropdown('dosageExerciseSelect', 'dosageExerciseSearch');
-        }
-
-        function filterExerciseDropdown(selectId, searchId) {
-            const searchTerm = document.getElementById(searchId).value.toLowerCase();
-            const select = document.getElementById(selectId);
-            const options = Array.from(select.options);
-
-            options.forEach((option, index) => {
-                if (index === 0) return; // Skip first option
-                const text = option.textContent.toLowerCase();
-                option.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        }
-
-        window.filterExercises = filterExercises;
-        window.filterRoleExercises = filterRoleExercises;
-        window.filterDosageExercises = filterDosageExercises;
-
-        function loadExerciseForEdit() {
-            const exerciseId = document.getElementById('exerciseSelect').value;
-
-            if (!exerciseId) {
-                clearForm();
-                return;
-            }
-
-            currentExercise = allExercises.find(ex => ex.id === exerciseId);
-            if (!currentExercise) return;
-
-            // Populate basic fields
-            document.getElementById('canonicalName').value = currentExercise.canonical_name || '';
-            document.getElementById('description').value = currentExercise.description || '';
-            document.getElementById('ptCategory').value = currentExercise.pt_category || '';
-            document.getElementById('pattern').value = currentExercise.pattern || '';
-
-            // Pattern modifiers
-            const modifiers = currentExercise.pattern_modifiers || [];
-            document.getElementById('modDuration').checked = modifiers.includes('duration_seconds');
-            document.getElementById('modHold').checked = modifiers.includes('hold_seconds');
-            document.getElementById('modDistance').checked = modifiers.includes('distance_feet');
-
-            // Equipment
-            requiredEquipment = currentExercise.equipment?.required || [];
-            optionalEquipment = currentExercise.equipment?.optional || [];
-            renderEquipmentTags();
-
-            // Muscles
-            primaryMuscles = currentExercise.primary_muscles || [];
-            secondaryMuscles = currentExercise.secondary_muscles || [];
-            renderMuscleTags();
-
-            // Form parameters
-            formParameters = currentExercise.form_parameters_required || [];
-            renderFormParameterTags();
-
-            // Guidance
-            const guidance = currentExercise.guidance || {};
-            motorCues = guidance.motor_cues || [];
-            compensationWarnings = guidance.compensation_warnings || [];
-            safetyFlags = guidance.safety_flags || [];
-            externalCues = guidance.external_cues || [];
-            renderGuidanceLists();
-
-            // Lifecycle
-            document.getElementById('archived').checked = currentExercise.archived || false;
-            document.getElementById('lifecycleStatus').value = currentExercise.lifecycle_status || '';
-            document.getElementById('effectiveStartDate').value = currentExercise.lifecycle_effective_start_date || '';
-            document.getElementById('effectiveEndDate').value = currentExercise.lifecycle_effective_end_date || '';
-
-            toast('Exercise loaded', 'success');
-        }
-
-        window.loadExerciseForEdit = loadExerciseForEdit;
-
-        function clearForm() {
-            currentExercise = null;
-            document.getElementById('exerciseSelect').value = '';
-            document.getElementById('exerciseSearch').value = '';
-            document.getElementById('exerciseForm').reset();
-
-            // Clear arrays
-            requiredEquipment = [];
-            optionalEquipment = [];
-            primaryMuscles = [];
-            secondaryMuscles = [];
-            formParameters = [];
-            motorCues = [];
-            compensationWarnings = [];
-            safetyFlags = [];
-            externalCues = [];
-
-            // Re-render all tags
-            renderEquipmentTags();
-            renderMuscleTags();
-            renderFormParameterTags();
-            renderGuidanceLists();
-
-            toast('Form cleared', 'success');
-        }
-
-        window.clearForm = clearForm;
-
-        // ========================================
-        // SECTION 1: EXERCISE EDITING - TAG MANAGEMENT
-        // ========================================
-
-        // Equipment functions
-        function addRequiredEquipment() {
-            const input = document.getElementById('requiredEquipmentInput');
-            const value = input.value.trim();
-            if (value && !requiredEquipment.includes(value)) {
-                requiredEquipment.push(value);
-                renderEquipmentTags();
-                input.value = '';
-            }
-        }
-
-        function addOptionalEquipment() {
-            const input = document.getElementById('optionalEquipmentInput');
-            const value = input.value.trim();
-            if (value && !optionalEquipment.includes(value)) {
-                optionalEquipment.push(value);
-                renderEquipmentTags();
-                input.value = '';
-            }
-        }
-
-        function removeRequiredEquipment(index) {
-            requiredEquipment.splice(index, 1);
-            renderEquipmentTags();
-        }
-
-        function removeOptionalEquipment(index) {
-            optionalEquipment.splice(index, 1);
-            renderEquipmentTags();
-        }
-
-        function renderEquipmentTags() {
-            const requiredContainer = document.getElementById('requiredEquipmentTags');
-            requiredContainer.innerHTML = requiredEquipment.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removeRequiredEquipment(${i})">×</button>
-                </div>
-            `).join('');
-
-            const optionalContainer = document.getElementById('optionalEquipmentTags');
-            optionalContainer.innerHTML = optionalEquipment.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removeOptionalEquipment(${i})">×</button>
-                </div>
-            `).join('');
-        }
-
-        window.addRequiredEquipment = addRequiredEquipment;
-        window.addOptionalEquipment = addOptionalEquipment;
-        window.removeRequiredEquipment = removeRequiredEquipment;
-        window.removeOptionalEquipment = removeOptionalEquipment;
-
-        // Muscle functions
-        function addPrimaryMuscle() {
-            const input = document.getElementById('primaryMusclesInput');
-            const value = input.value.trim();
-            if (value && !primaryMuscles.includes(value)) {
-                primaryMuscles.push(value);
-                renderMuscleTags();
-                input.value = '';
-            }
-        }
-
-        function addSecondaryMuscle() {
-            const input = document.getElementById('secondaryMusclesInput');
-            const value = input.value.trim();
-            if (value && !secondaryMuscles.includes(value)) {
-                secondaryMuscles.push(value);
-                renderMuscleTags();
-                input.value = '';
-            }
-        }
-
-        function removePrimaryMuscle(index) {
-            primaryMuscles.splice(index, 1);
-            renderMuscleTags();
-        }
-
-        function removeSecondaryMuscle(index) {
-            secondaryMuscles.splice(index, 1);
-            renderMuscleTags();
-        }
-
-        function renderMuscleTags() {
-            const primaryContainer = document.getElementById('primaryMusclesTags');
-            primaryContainer.innerHTML = primaryMuscles.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removePrimaryMuscle(${i})">×</button>
-                </div>
-            `).join('');
-
-            const secondaryContainer = document.getElementById('secondaryMusclesTags');
-            secondaryContainer.innerHTML = secondaryMuscles.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removeSecondaryMuscle(${i})">×</button>
-                </div>
-            `).join('');
-        }
-
-        window.addPrimaryMuscle = addPrimaryMuscle;
-        window.addSecondaryMuscle = addSecondaryMuscle;
-        window.removePrimaryMuscle = removePrimaryMuscle;
-        window.removeSecondaryMuscle = removeSecondaryMuscle;
-
-        // Form parameter functions
-        function addFormParameter() {
-            const input = document.getElementById('formParametersInput');
-            const value = input.value.trim();
-            if (value && !formParameters.includes(value)) {
-                formParameters.push(value);
-                renderFormParameterTags();
-                input.value = '';
-            }
-        }
-
-        function removeFormParameter(index) {
-            formParameters.splice(index, 1);
-            renderFormParameterTags();
-        }
-
-        function renderFormParameterTags() {
-            const container = document.getElementById('formParametersTags');
-            container.innerHTML = formParameters.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removeFormParameter(${i})">×</button>
-                </div>
-            `).join('');
-        }
-
-        window.addFormParameter = addFormParameter;
-        window.removeFormParameter = removeFormParameter;
-
-        // Guidance functions
-        function addMotorCue() {
-            const input = document.getElementById('motorCuesInput');
-            const value = input.value.trim();
-            if (value) {
-                motorCues.push(value);
-                renderGuidanceLists();
-                input.value = '';
-            }
-        }
-
-        function addCompensationWarning() {
-            const input = document.getElementById('compensationWarningsInput');
-            const value = input.value.trim();
-            if (value) {
-                compensationWarnings.push(value);
-                renderGuidanceLists();
-                input.value = '';
-            }
-        }
-
-        function addSafetyFlag() {
-            const input = document.getElementById('safetyFlagsInput');
-            const value = input.value.trim();
-            if (value) {
-                safetyFlags.push(value);
-                renderGuidanceLists();
-                input.value = '';
-            }
-        }
-
-        function addExternalCue() {
-            const input = document.getElementById('externalCuesInput');
-            const value = input.value.trim();
-            if (value) {
-                externalCues.push(value);
-                renderGuidanceLists();
-                input.value = '';
-            }
-        }
-
-        function removeMotorCue(index) {
-            motorCues.splice(index, 1);
-            renderGuidanceLists();
-        }
-
-        function removeCompensationWarning(index) {
-            compensationWarnings.splice(index, 1);
-            renderGuidanceLists();
-        }
-
-        function removeSafetyFlag(index) {
-            safetyFlags.splice(index, 1);
-            renderGuidanceLists();
-        }
-
-        function removeExternalCue(index) {
-            externalCues.splice(index, 1);
-            renderGuidanceLists();
-        }
-
-        function renderGuidanceLists() {
-            const renderList = (items, removeFunc) => {
-                return items.map((item, i) => `
-                    <div style="background: var(--bg-secondary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <span>${escapeHtml(item)}</span>
-                        <button type="button" class="btn-danger" onclick="${removeFunc}(${i})" style="padding: 4px 12px; min-height: auto;">×</button>
-                    </div>
-                `).join('');
-            };
-
-            document.getElementById('motorCuesList').innerHTML = renderList(motorCues, 'removeMotorCue');
-            document.getElementById('compensationWarningsList').innerHTML = renderList(compensationWarnings, 'removeCompensationWarning');
-            document.getElementById('safetyFlagsList').innerHTML = renderList(safetyFlags, 'removeSafetyFlag');
-            document.getElementById('externalCuesList').innerHTML = renderList(externalCues, 'removeExternalCue');
-        }
-
-        window.addMotorCue = addMotorCue;
-        window.addCompensationWarning = addCompensationWarning;
-        window.addSafetyFlag = addSafetyFlag;
-        window.addExternalCue = addExternalCue;
-        window.removeMotorCue = removeMotorCue;
-        window.removeCompensationWarning = removeCompensationWarning;
-        window.removeSafetyFlag = removeSafetyFlag;
-        window.removeExternalCue = removeExternalCue;
-
-        // ========================================
-        // SECTION 1: SAVE EXERCISE
-        // ========================================
-
-        async function saveExercise() {
-            try {
-                const canonicalName = document.getElementById('canonicalName').value.trim();
-                const description = document.getElementById('description').value.trim();
-                const ptCategory = document.getElementById('ptCategory').value;
-                const pattern = document.getElementById('pattern').value;
-
-                if (!canonicalName || !description || !ptCategory || !pattern) {
-                    toast('Please fill in all required fields', 'error');
-                    return;
-                }
-
-                // Generate ID from canonical name if creating new
-                const exerciseId = currentExercise ? currentExercise.id : generateExerciseId(canonicalName);
-
-                // Collect pattern modifiers
-                const patternModifiers = [];
-                if (document.getElementById('modDuration').checked) patternModifiers.push('duration_seconds');
-                if (document.getElementById('modHold').checked) patternModifiers.push('hold_seconds');
-                if (document.getElementById('modDistance').checked) patternModifiers.push('distance_feet');
-
-                // Build exercise payload
-                const exerciseData = {
-                    id: exerciseId,
-                    canonical_name: canonicalName,
-                    description: description,
-                    pt_category: ptCategory,
-                    pattern: pattern,
-                    archived: document.getElementById('archived').checked,
-                    pattern_modifiers: patternModifiers,
-                    equipment: {
-                        required: requiredEquipment,
-                        optional: optionalEquipment
-                    },
-                    primary_muscles: primaryMuscles,
-                    secondary_muscles: secondaryMuscles,
-                    form_parameters_required: formParameters,
-                    guidance: {
-                        motor_cues: motorCues,
-                        compensation_warnings: compensationWarnings,
-                        safety_flags: safetyFlags,
-                        external_cues: externalCues
-                    }
-                };
-
-                // Add lifecycle fields
-                exerciseData.lifecycle_status = document.getElementById('lifecycleStatus').value || null;
-                exerciseData.lifecycle_effective_start_date = document.getElementById('effectiveStartDate').value || null;
-                exerciseData.lifecycle_effective_end_date = document.getElementById('effectiveEndDate').value || null;
-
-                // Determine if creating or updating
-                const isUpdate = currentExercise !== null;
-                const method = isUpdate ? 'PUT' : 'POST';
-                const url = isUpdate ? `/api/exercises/${exerciseId}` : '/api/exercises';
-
-                const result = await fetchWithAuth(url, {
-                    method: method,
-                    body: JSON.stringify(exerciseData)
-                });
-
-                toast(`Exercise ${isUpdate ? 'updated' : 'created'} successfully!`, 'success');
-
-                // Reload exercises and select the saved one
-                await loadExercises();
-                document.getElementById('exerciseSelect').value = exerciseId;
-                loadExerciseForEdit();
-
-            } catch (error) {
-                console.error('Failed to save exercise:', error);
-                toast(error.message || 'Failed to save exercise', 'error');
-            }
-        }
-
-        function generateExerciseId(name) {
-            return name.toLowerCase()
-                .replace(/[^a-z0-9\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-')
-                .trim();
-        }
-
-        // ========================================
-        // SECTION 2: ROLES MANAGEMENT
-        // ========================================
-
-        async function loadExerciseRoles() {
-            const exerciseId = document.getElementById('roleExerciseSelect').value;
-
-            if (!exerciseId) {
-                document.getElementById('currentRoles').innerHTML = '';
-                document.getElementById('addRoleForm').classList.add('hidden');
-                selectedExerciseForRoles = null;
-                return;
-            }
-
-            selectedExerciseForRoles = allExercises.find(ex => ex.id === exerciseId);
-            if (!selectedExerciseForRoles) return;
-
-            try {
-                const result = await fetchWithAuth(`/api/roles?exercise_id=${exerciseId}`);
-                currentRoles = result.roles || [];
-
-                renderCurrentRoles();
-                document.getElementById('addRoleForm').classList.remove('hidden');
-
-            } catch (error) {
-                console.error('Failed to load roles:', error);
-                toast('Failed to load roles', 'error');
-            }
-        }
-
-        window.loadExerciseRoles = loadExerciseRoles;
-
-        function renderCurrentRoles() {
-            const container = document.getElementById('currentRoles');
-
-            if (currentRoles.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No roles assigned yet.</p>';
-                return;
-            }
-
-            container.innerHTML = '<h4 style="margin-bottom: 10px; font-size: 16px;">Current Roles:</h4>' +
-                currentRoles.map(role => `
-                    <div class="role-item">
-                        <div class="role-item-info">
-                            <span class="role-badge ${role.contribution}">${role.contribution.toUpperCase()}</span>
-                            <strong>${role.region}</strong> / ${role.capacity}${role.focus ? ' / ' + role.focus : ''}
-                        </div>
-                        <button type="button" class="btn-danger" onclick="removeRole('${role.id}')" style="padding: 6px 12px; min-height: auto;">Remove</button>
-                    </div>
-                `).join('');
-        }
-
-        async function addRoleToExercise() {
-            const region = document.getElementById('newRoleRegion').value;
-            const capacity = document.getElementById('newRoleCapacity').value;
-            const focus = document.getElementById('newRoleFocus').value || null;
-            const contribution = document.getElementById('newRoleContribution').value;
-
-            if (!selectedExerciseForRoles) {
-                toast('Please select an exercise first', 'error');
-                return;
-            }
-
-            if (!region || !capacity || !contribution) {
-                toast('Please fill in all required role fields', 'error');
-                return;
-            }
-
-            try {
-                const roleData = {
-                    exercise_id: selectedExerciseForRoles.id,
-                    region: region,
-                    capacity: capacity,
-                    focus: focus,
-                    contribution: contribution
-                };
-
-                await fetchWithAuth('/api/roles', {
-                    method: 'POST',
-                    body: JSON.stringify(roleData)
-                });
-
-                toast('Role added successfully!', 'success');
-
-                // Clear form
-                document.getElementById('newRoleRegion').value = '';
-                document.getElementById('newRoleCapacity').value = '';
-                document.getElementById('newRoleFocus').value = '';
-                document.getElementById('newRoleContribution').value = '';
-
-                // Reload roles
-                await loadExerciseRoles();
-
-            } catch (error) {
-                console.error('Failed to add role:', error);
-                toast(error.message || 'Failed to add role', 'error');
-            }
-        }
-
-        window.addRoleToExercise = addRoleToExercise;
-
-        async function removeRole(roleId) {
-            if (!confirm('Are you sure you want to remove this role?')) {
-                return;
-            }
-
-            try {
-                await fetchWithAuth(`/api/roles/${roleId}`, {
-                    method: 'DELETE'
-                });
-
-                toast('Role removed successfully!', 'success');
-                await loadExerciseRoles();
-
-            } catch (error) {
-                console.error('Failed to remove role:', error);
-                toast(error.message || 'Failed to remove role', 'error');
-            }
-        }
-
-        window.removeRole = removeRole;
-
-        // ========================================
-        // SECTION 3: DOSAGE MANAGEMENT
-        // ========================================
-
-        async function loadExerciseDosage() {
-            const exerciseId = document.getElementById('dosageExerciseSelect').value;
-
-            if (!exerciseId) {
-                document.getElementById('currentDosageDisplay').classList.add('hidden');
-                document.getElementById('editDosageForm').classList.add('hidden');
-                selectedExerciseForDosage = null;
-                return;
-            }
-
-            selectedExerciseForDosage = allExercises.find(ex => ex.id === exerciseId);
-            if (!selectedExerciseForDosage) return;
-
-            // Show/hide conditional fields based on pattern modifiers
-            const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
-            const hasHold = modifiers.includes('hold_seconds');
-            const hasDuration = modifiers.includes('duration_seconds');
-            const hasDistance = modifiers.includes('distance_feet');
-            const isUnilateral = selectedExerciseForDosage.pattern === 'side';
-
-            // Toggle visibility of conditional fields
-            document.getElementById('dosageSecondsGroup').classList.toggle('hidden', !(hasHold || hasDuration));
-            document.getElementById('dosageDistanceGroup').classList.toggle('hidden', !hasDistance);
-            document.getElementById('dosageSideGroup').classList.toggle('hidden', !isUnilateral);
-
-            // Update label based on modifier type
-            if (hasHold) {
-                document.getElementById('dosageSecondsLabel').textContent = 'Hold Seconds';
-            } else if (hasDuration) {
-                document.getElementById('dosageSecondsLabel').textContent = 'Duration Seconds';
-            }
-
-            // Show the form (this is a simplified version - in a real app, you'd load from /api/programs)
-            document.getElementById('editDosageForm').classList.remove('hidden');
-
-            // Clear/reset fields
-            document.getElementById('dosageSets').value = '';
-            document.getElementById('dosageReps').value = '';
-            document.getElementById('dosageSeconds').value = '';
-            document.getElementById('dosageDistance').value = '';
-            document.getElementById('dosageSide').value = 'both';
-
-            toast('Select dosage parameters below', 'success');
-        }
-
-        window.loadExerciseDosage = loadExerciseDosage;
-
-        async function updateDosage() {
-            const sets = document.getElementById('dosageSets').value;
-            const reps = document.getElementById('dosageReps').value;
-
-            if (!selectedExerciseForDosage) {
-                toast('Please select an exercise first', 'error');
-                return;
-            }
-
-            if (!sets || !reps) {
-                toast('Please fill in sets and reps', 'error');
-                return;
-            }
-
-            const dosageData = {
-                exercise_id: selectedExerciseForDosage.id,
-                sets: parseInt(sets),
-                reps: parseInt(reps)
-            };
-
-            // Add optional fields if visible
-            const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
-            if (modifiers.includes('hold_seconds') || modifiers.includes('duration_seconds')) {
-                const seconds = document.getElementById('dosageSeconds').value;
-                if (seconds) dosageData.seconds = parseInt(seconds);
-            }
-
-            if (modifiers.includes('distance_feet')) {
-                const distance = document.getElementById('dosageDistance').value;
-                if (distance) dosageData.distance_feet = parseInt(distance);
-            }
-
-            if (selectedExerciseForDosage.pattern === 'side') {
-                dosageData.side = document.getElementById('dosageSide').value;
-            }
-
-            // Note: This is a placeholder. In a real implementation, you'd need:
-            // 1. Patient selection
-            // 2. Program/prescription ID
-            // 3. Actual API endpoint for dosages (POST/PUT /api/programs)
-
-            console.log('Dosage data to save:', dosageData);
-            toast('Dosage updated! (Note: This is a demo - connect to patient programs)', 'success');
-        }
-
-        window.updateDosage = updateDosage;
-
-        // ========================================
-        // UTILITY FUNCTIONS
-        // ========================================
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function toast(message, type = 'success') {
-            const toastEl = document.getElementById('toast');
-            toastEl.textContent = message;
-            toastEl.className = `toast ${type}`;
-            toastEl.classList.add('show');
-
-            setTimeout(() => {
-                toastEl.classList.remove('show');
-            }, 3000);
-        }
-
-        // Initialize on load
-        init();
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/pt_editor.js"></script>
 </body>
 </html>
