@@ -1369,9 +1369,12 @@
                 document.getElementById('timerDisplay').textContent = formatTime(displayMs);
 
                 // Beep and voice warnings when approaching zero
+                // Countdown beeps at 3, 2, 1 (matching old app)
+                if (remaining <= 3 && remaining > 0) {
+                    playBeep(600, 100);
+                }
 
                 if (remaining === 5) {
-                    playBeep();
                     speakText('5 seconds left');
                 } else if (remaining === 4) {
                     speakText('4 seconds left');
