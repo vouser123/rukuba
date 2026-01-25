@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>O&M Timing Practice Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f4ef;
+      --text: #1b1b1b;
+      --muted: #6c6c6c;
+      --accent: #2f5d62;
+      --outline: #1b1b1b;
+      /* A11Y ADDITIONS START */
+      --base-font-size: 18px;
+      /* A11Y ADDITIONS END */
+    }
+
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: var(--base-font-size);
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .panel {
+      width: min(560px, 90vw);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .setup {
+      background: #fff;
+      border: 2px solid var(--outline);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
+    }
+
+    .setup h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .setup h3 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+    }
+
+    .setup-group {
+      border-top: 1px solid #dedad1;
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .setup-group:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .setup label {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .setup input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 2px solid var(--outline);
+      font-size: 1rem;
+      margin-top: 6px;
+    }
+
+    .sound-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    fieldset {
+      border: 1px solid #dedad1;
+      border-radius: 12px;
+      padding: 10px 12px 12px;
+      margin: 0;
+    }
+
+    legend {
+      padding: 0 6px;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .sound-option {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+
+    .sound-option button {
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      background: #fff;
+      padding: 4px 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .sound-option button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .mode-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .mode-toggle label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    .mode-toggle input[type="radio"] {
+      accent-color: var(--accent);
+    }
+
+    .sound-toggle {
+      align-self: center;
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      padding: 6px 14px;
+      background: #fff;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .sound-toggle[aria-pressed="false"] {
+      opacity: 0.55;
+    }
+
+    .settings-trigger {
+      align-self: center;
+      border: 3px solid var(--outline);
+      border-radius: 999px;
+      padding: 10px 18px;
+      background: #fff;
+      font-size: 1.2rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .settings-trigger span {
+      font-size: 1.5rem;
+    }
+
+    /* A11Y ADDITIONS START */
+    .settings-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .a11y-trigger {
+      align-self: center;
+      border: 3px solid var(--outline);
+      border-radius: 999px;
+      padding: 10px 18px;
+      background: #fff;
+      font-size: 1.2rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .a11y-trigger span {
+      font-size: 1.5rem;
+    }
+    /* A11Y ADDITIONS END */
+
+    .markers {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .marker-shape {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 3px solid var(--outline);
+      display: grid;
+      place-items: center;
+      background: #fff;
+    }
+
+    .marker-shape span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--outline);
+    }
+
+    .marker.complete .marker-shape {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .marker.complete .marker-shape span {
+      border-color: #fff;
+      background: #fff;
+    }
+
+    .marker.current .marker-shape {
+      background: #fff;
+      border-style: double;
+    }
+
+    .marker label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .action-btn {
+      width: min(320px, 80vw);
+      height: 220px;
+      margin: 0 auto;
+      border-radius: 22px;
+      border: 4px solid var(--outline);
+      background: #fff;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .action-btn.running {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 40px;
+      border-style: double;
+    }
+
+    .action-btn.running.stage-start {
+      background: #1b1b1b;
+      color: #fff;
+    }
+
+    .action-btn.running.stage-boundary {
+      background: #005a9c;
+      color: #fff;
+    }
+
+    .action-btn.running.stage-finish {
+      background: #2f5d62;
+      color: #fff;
+    }
+
+    .action-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 0.95rem;
+      color: var(--muted);
+      min-height: 1.2rem;
+    }
+
+    /* A11Y ADDITIONS START */
+    .cue-banner {
+      border: 2px solid var(--outline);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      min-height: 2.2rem;
+    }
+
+    .cue-banner[data-visible="false"] {
+      display: none;
+    }
+
+    .cue-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .cue-banner[data-color-icon="false"] .cue-icon {
+      display: none;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .action-btn.flash {
+      box-shadow: 0 0 0 6px rgba(47, 93, 98, 0.35);
+    }
+
+    body[data-text-size="large"] {
+      --base-font-size: 20px;
+    }
+
+    body[data-text-size="largest"] {
+      --base-font-size: 22px;
+    }
+
+    body.high-contrast {
+      --bg: #ffffff;
+      --text: #000000;
+      --muted: #1a1a1a;
+      --accent: #000000;
+      --outline: #000000;
+    }
+
+    body.focus-boost :focus-visible {
+      outline-width: 6px;
+      outline-offset: 4px;
+    }
+    /* A11Y ADDITIONS END */
+
+    .debug {
+      font-size: 0.95rem;
+      color: #000;
+    }
+
+    dialog {
+      border: none;
+      padding: 0;
+      background: transparent;
+      max-width: min(640px, 92vw);
+      width: 100%;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-card {
+      background: #fff;
+      border: 3px solid var(--outline);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .close-modal {
+      border: 2px solid var(--outline);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .preview-btn,
+    .settings-action {
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      background: #fff;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    button:focus-visible {
+      outline: 4px solid #000;
+      outline-offset: 2px;
+    }
+
+    /* A11Y ADDITIONS START */
+    @media (prefers-reduced-motion: reduce) {
+      .action-btn.flash {
+        box-shadow: none;
+      }
+    }
+    /* A11Y ADDITIONS END */
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <!-- A11Y ADDITIONS START -->
+    <div class="settings-actions">
+      <button class="settings-trigger" id="settingsTrigger" type="button" aria-label="Open settings">
+        <span aria-hidden="true">⚙️</span>
+        Settings
+      </button>
+      <button class="a11y-trigger" id="a11yTrigger" type="button" aria-label="Open accessibility settings">
+        <span aria-hidden="true">♿</span>
+        Accessibility
+      </button>
+    </div>
+    <!-- A11Y ADDITIONS END -->
+
+    <div class="mode-toggle" role="group" aria-label="Mode selection">
+      <label>
+        <input type="radio" name="mode" value="2" checked aria-label="Start to finish mode" />
+        Start → Finish
+      </label>
+      <label>
+        <input type="radio" name="mode" value="2b" aria-label="Start to boundary mode" />
+        Start → Boundary
+      </label>
+      <label>
+        <input type="radio" name="mode" value="3" aria-label="Start boundary finish mode" />
+        Start → Boundary → Finish
+      </label>
+    </div>
+
+    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true" aria-label="Toggle sound on or off">
+      <span aria-hidden="true">🔊</span>
+      Sound On
+    </button>
+
+    <section class="markers" id="markers"></section>
+
+    <button class="action-btn" id="actionBtn" type="button">Begin</button>
+
+    <div class="status" id="statusText">Ready.</div>
+    <!-- A11Y ADDITIONS START -->
+    <div class="cue-banner" id="cueBanner" data-visible="true" data-color-icon="true" aria-live="off">
+      <span class="cue-icon" id="cueIcon" aria-hidden="true">!</span>
+      <span class="cue-text" id="cueBannerText">Ready.</span>
+    </div>
+    <div id="srAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <!-- A11Y ADDITIONS END -->
+    <div class="status debug" id="debugText" aria-live="polite"></div>
+  </main>
+
+  <dialog id="settingsModal" aria-label="Settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="settingsTitle" tabindex="-1">Settings / Setup</h2>
+        <button class="close-modal" type="button" id="closeSettings">Close</button>
+      </div>
+      <section class="setup" aria-label="Settings and setup">
+        <div class="setup-group" aria-label="Sound calibration">
+          <h3>Sound Calibration</h3>
+          <fieldset aria-label="Acceptable feedback sounds">
+            <legend>Acceptable (within tolerance)</legend>
+            <div class="sound-options">
+              <div class="sound-option">
+                <input type="radio" id="acceptable-a" name="acceptableSound" value="acceptable-a" />
+                <label for="acceptable-a">Chime A</label>
+                <button type="button" class="preview-btn" data-sound="acceptable-a" aria-label="Play acceptable sound option A">Play</button>
+              </div>
+              <div class="sound-option">
+                <input type="radio" id="acceptable-b" name="acceptableSound" value="acceptable-b" />
+                <label for="acceptable-b">Chime B</label>
+                <button type="button" class="preview-btn" data-sound="acceptable-b" aria-label="Play acceptable sound option B">Play</button>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset aria-label="Out of bounds feedback sounds">
+            <legend>Out of bounds (outside tolerance)</legend>
+            <div class="sound-options">
+              <div class="sound-option">
+                <input type="radio" id="outside-a" name="outsideSound" value="outside-a" />
+                <label for="outside-a">Low Pulse A</label>
+                <button type="button" class="preview-btn" data-sound="outside-a" aria-label="Play out of bounds sound option A">Play</button>
+              </div>
+              <div class="sound-option">
+                <input type="radio" id="outside-b" name="outsideSound" value="outside-b" />
+                <label for="outside-b">Low Pulse B</label>
+                <button type="button" class="preview-btn" data-sound="outside-b" aria-label="Play out of bounds sound option B">Play</button>
+              </div>
+            </div>
+          </fieldset>
+          <button type="button" class="settings-action" id="previewUserSound">
+            Hear my sound
+          </button>
+          <label>
+            <input type="checkbox" id="replayUsesConfirm" />
+            Use button chime for replay marker sound
+          </label>
+        </div>
+        <div class="setup-group" aria-label="Time entry">
+          <h3>Time Entry</h3>
+          <label for="clearTime">Time to clear from left (seconds)</label>
+          <input id="clearTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Time to clear from left in seconds" />
+          <label for="fullTime">Full street time (seconds)</label>
+          <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Full street time in seconds" />
+        </div>
+        <div class="setup-group" aria-label="Margin of error">
+          <h3>Margin of Error</h3>
+          <label for="marginInput">Acceptable margin of error (seconds)</label>
+          <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" aria-label="Acceptable margin of error in seconds" value="0.4" />
+        </div>
+        <div class="setup-group" aria-label="Debug options">
+          <h3>Debug</h3>
+          <label>
+            <input type="checkbox" id="debugToggle" />
+            Show user times vs reference at replay start
+          </label>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
+  <!-- A11Y ADDITIONS START -->
+  <dialog id="a11yModal" aria-label="Accessibility settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="a11yTitle" tabindex="-1">Accessibility</h2>
+        <button class="close-modal" type="button" id="closeA11y">Close</button>
+      </div>
+      <section class="setup" aria-label="Accessibility options">
+        <div class="setup-group" aria-label="Output and feedback mode">
+          <h3>Output / Feedback Mode</h3>
+          <fieldset>
+            <legend>Preferred feedback</legend>
+            <label>
+              <input type="radio" name="a11yOutputMode" value="audio-visual" checked />
+              Audio + Visual (default)
+            </label>
+            <label>
+              <input type="radio" name="a11yOutputMode" value="visual-only" />
+              Visual only (no sounds)
+            </label>
+            <label>
+              <input type="radio" name="a11yOutputMode" value="audio-only" />
+              Audio only
+            </label>
+          </fieldset>
+        </div>
+        <div class="setup-group" aria-label="Visual feedback controls">
+          <h3>Visual Feedback</h3>
+          <label>
+            <input type="checkbox" id="a11yShowBanner" />
+            Show on-screen cue banner
+          </label>
+          <label>
+            <input type="checkbox" id="a11yFlashAction" />
+            Flash the action button briefly on cue
+          </label>
+          <label>
+            <input type="checkbox" id="a11yVibrate" />
+            Vibrate on cue (if supported)
+          </label>
+          <label>
+            <input type="checkbox" id="a11yUseColorIcon" />
+            Use color + icon
+          </label>
+          <label>
+            <input type="checkbox" id="a11yUseTextLabels" />
+            Use text labels
+          </label>
+        </div>
+        <div class="setup-group" aria-label="Vision preferences">
+          <h3>Vision Preferences</h3>
+          <label for="a11yTextSize">Text size</label>
+          <select id="a11yTextSize">
+            <option value="default">Default</option>
+            <option value="large">Large</option>
+            <option value="largest">Largest</option>
+          </select>
+          <label>
+            <input type="checkbox" id="a11yHighContrast" />
+            High contrast
+          </label>
+          <label>
+            <input type="checkbox" id="a11yFocusBoost" />
+            Focus boost
+          </label>
+        </div>
+        <div class="setup-group" aria-label="Screen reader and announcements">
+          <h3>Screen Reader / Announcements</h3>
+          <label>
+            <input type="checkbox" id="a11yAnnounceCues" />
+            Announce cues
+          </label>
+        </div>
+      </section>
+    </div>
+  </dialog>
+  <!-- A11Y ADDITIONS END -->
+
+  <script>
+    /* A11Y ADDITIONS START
+     * LocalStorage keys added:
+     * - om-a11y-output-mode
+     * - om-a11y-show-banner
+     * - om-a11y-flash-action
+     * - om-a11y-vibrate
+     * - om-a11y-use-color-icon
+     * - om-a11y-use-text-labels
+     * - om-a11y-text-size
+     * - om-a11y-high-contrast
+     * - om-a11y-focus-boost
+     * - om-a11y-announce-cues
+     * Supported cue types:
+     * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled
+     * A11Y ADDITIONS END */
+    const actionBtn = document.getElementById("actionBtn");
+    const markersEl = document.getElementById("markers");
+    const statusText = document.getElementById("statusText");
+    const debugText = document.getElementById("debugText");
+    const modeInputs = [...document.querySelectorAll("input[name='mode']")];
+    const soundToggle = document.getElementById("soundToggle");
+    const settingsTrigger = document.getElementById("settingsTrigger");
+    const settingsModal = document.getElementById("settingsModal");
+    const closeSettings = document.getElementById("closeSettings");
+    /* A11Y ADDITIONS START */
+    const a11yTrigger = document.getElementById("a11yTrigger");
+    const a11yModal = document.getElementById("a11yModal");
+    const closeA11y = document.getElementById("closeA11y");
+    const settingsTitle = document.getElementById("settingsTitle");
+    const a11yTitle = document.getElementById("a11yTitle");
+    const cueBanner = document.getElementById("cueBanner");
+    const cueBannerText = document.getElementById("cueBannerText");
+    const cueIcon = document.getElementById("cueIcon");
+    const srAnnouncer = document.getElementById("srAnnouncer");
+    const outputModeInputs = [...document.querySelectorAll("input[name='a11yOutputMode']")];
+    const a11yShowBanner = document.getElementById("a11yShowBanner");
+    const a11yFlashAction = document.getElementById("a11yFlashAction");
+    const a11yVibrate = document.getElementById("a11yVibrate");
+    const a11yUseColorIcon = document.getElementById("a11yUseColorIcon");
+    const a11yUseTextLabels = document.getElementById("a11yUseTextLabels");
+    const a11yTextSize = document.getElementById("a11yTextSize");
+    const a11yHighContrast = document.getElementById("a11yHighContrast");
+    const a11yFocusBoost = document.getElementById("a11yFocusBoost");
+    const a11yAnnounceCues = document.getElementById("a11yAnnounceCues");
+    /* A11Y ADDITIONS END */
+    const previewUserSoundBtn = document.getElementById("previewUserSound");
+    const replayUsesConfirm = document.getElementById("replayUsesConfirm");
+    const debugToggle = document.getElementById("debugToggle");
+    const clearTimeInput = document.getElementById("clearTime");
+    const fullTimeInput = document.getElementById("fullTime");
+    const marginInput = document.getElementById("marginInput");
+    const acceptableInputs = [...document.querySelectorAll("input[name='acceptableSound']")];
+    const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
+    const previewButtons = [...document.querySelectorAll(".preview-btn")];
+    const setupControls = [
+      settingsTrigger,
+      previewUserSoundBtn,
+      clearTimeInput,
+      fullTimeInput,
+      marginInput,
+      replayUsesConfirm,
+      debugToggle,
+      ...acceptableInputs,
+      ...outsideInputs,
+      ...previewButtons
+    ];
+    /* A11Y ADDITIONS START */
+    const a11yControls = [
+      a11yTrigger,
+      a11yShowBanner,
+      a11yFlashAction,
+      a11yVibrate,
+      a11yUseColorIcon,
+      a11yUseTextLabels,
+      a11yTextSize,
+      a11yHighContrast,
+      a11yFocusBoost,
+      a11yAnnounceCues,
+      ...outputModeInputs
+    ];
+    /* A11Y ADDITIONS END */
+
+    const modes = {
+      "2": { labels: ["Start", "Finish"] },
+      "2b": { labels: ["Start", "Boundary"] },
+      "3": { labels: ["Start", "Boundary", "Finish"] }
+    };
+
+    let audioContext;
+    let soundEnabled = true;
+    let markerTimes = [];
+    let currentMode = "2";
+    let stage = 0;
+    let started = false;
+    let replayTimeout;
+    let replayUsesConfirmTone = false;
+    let showDebug = false;
+    /* A11Y ADDITIONS START */
+    let lastDialogTrigger = null;
+    let flashTimeout;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const a11ySettings = {
+      outputMode: "audio-visual",
+      showBanner: true,
+      flashAction: false,
+      vibrate: false,
+      useColorIcon: true,
+      useTextLabels: true,
+      textSize: "default",
+      highContrast: false,
+      focusBoost: false,
+      announceCues: true
+    };
+    /* A11Y ADDITIONS END */
+
+    const tones = {
+      confirm: { base: 350, harmonic: 700 },
+      user: { base: 410 },
+      reference: { acceptable: 600, outside: 320 }
+    };
+
+    const feedbackOptions = {
+      acceptable: {
+        "acceptable-a": {
+          label: "Chime A",
+          partials: [
+            { freq: 540, gain: 0.22 },
+            { freq: 630, gain: 0.12 }
+          ]
+        },
+        "acceptable-b": {
+          label: "Chime B",
+          partials: [
+            { freq: 523, gain: 0.2 },
+            { freq: 659, gain: 0.1 }
+          ]
+        }
+      },
+      outside: {
+        "outside-a": {
+          label: "Low Pulse A",
+          partials: [
+            { freq: 240, gain: 0.2 },
+            { freq: 290, gain: 0.08 }
+          ]
+        },
+        "outside-b": {
+          label: "Low Pulse B",
+          partials: [
+            { freq: 260, gain: 0.18 },
+            { freq: 300, gain: 0.08 }
+          ]
+        }
+      }
+    };
+
+    function ensureAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      return audioContext;
+    }
+
+    function playCompositeTone(
+      partials,
+      duration = 0.16,
+      startTime = 0,
+      allowMuted = false
+    ) {
+      /* A11Y ADDITIONS START */
+      if (a11ySettings.outputMode === "visual-only") return;
+      /* A11Y ADDITIONS END */
+      if (!soundEnabled && !allowMuted) return;
+      const context = ensureAudioContext();
+      if (context.state === "suspended") {
+        context.resume().then(() => {
+          playCompositeTone(partials, duration, startTime, allowMuted);
+        });
+        return;
+      }
+      const now = context.currentTime + startTime;
+      const gain = context.createGain();
+      const attack = 0.01;
+      const release = 0.07;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + attack);
+      gain.gain.linearRampToValueAtTime(0, now + duration + release);
+      partials.forEach((partial) => {
+        const osc = context.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = partial.freq;
+        const oscGain = context.createGain();
+        oscGain.gain.setValueAtTime(partial.gain, now);
+        osc.connect(oscGain).connect(gain);
+        osc.start(now);
+        osc.stop(now + duration + release + 0.02);
+      });
+      gain.connect(context.destination);
+    }
+
+    function playConfirmTone(startTime = 0, allowMuted = false) {
+      playCompositeTone(
+        [
+          { freq: tones.confirm.base, gain: 0.22 },
+          { freq: tones.confirm.harmonic, gain: 0.1 }
+        ],
+        0.18,
+        startTime,
+        allowMuted
+      );
+    }
+
+    function playUserMarkerTone(startTime = 0, allowMuted = false) {
+      playCompositeTone([{ freq: tones.user.base, gain: 0.2 }], 0.14, startTime, allowMuted);
+    }
+
+    function playReferenceTone(pitch, startTime = 0) {
+      playCompositeTone([{ freq: pitch, gain: 0.18 }], 0.14, startTime);
+    }
+
+    function playFeedbackTone(type, startTime = 0) {
+      const selection =
+        type === "acceptable"
+          ? getSelectedSound("acceptable")
+          : getSelectedSound("outside");
+      const option = feedbackOptions[type][selection];
+      playCompositeTone(option.partials, 0.12, startTime);
+    }
+
+    function getSelectedSound(category) {
+      const key =
+        category === "acceptable"
+          ? "om-feedback-acceptable"
+          : "om-feedback-outside";
+      const inputs = category === "acceptable" ? acceptableInputs : outsideInputs;
+      const stored = localStorage.getItem(key);
+      const fallback = inputs[0]?.value;
+      return stored && feedbackOptions[category][stored] ? stored : fallback;
+    }
+
+    function applyStoredSelections() {
+      const acceptableSelection = getSelectedSound("acceptable");
+      const outsideSelection = getSelectedSound("outside");
+      acceptableInputs.forEach((input) => {
+        input.checked = input.value === acceptableSelection;
+      });
+      outsideInputs.forEach((input) => {
+        input.checked = input.value === outsideSelection;
+      });
+      if (acceptableSelection) {
+        storeSelection("acceptable", acceptableSelection);
+      }
+      if (outsideSelection) {
+        storeSelection("outside", outsideSelection);
+      }
+    }
+
+    function storeSelection(category, value) {
+      const key =
+        category === "acceptable"
+          ? "om-feedback-acceptable"
+          : "om-feedback-outside";
+      localStorage.setItem(key, value);
+    }
+
+    function lockSettings(lock) {
+      setupControls.forEach((control) => {
+        control.disabled = lock;
+      });
+      /* A11Y ADDITIONS START */
+      a11yControls.forEach((control) => {
+        control.disabled = lock;
+      });
+      /* A11Y ADDITIONS END */
+    }
+
+    function getTimingInputs() {
+      return {
+        clearTime: Number(clearTimeInput.value),
+        fullTime: Number(fullTimeInput.value)
+      };
+    }
+
+    function getMargin() {
+      return Number(marginInput.value);
+    }
+
+    function validateSetup() {
+      const { clearTime, fullTime } = getTimingInputs();
+      const margin = getMargin();
+      if (currentMode !== "2" && (!Number.isFinite(clearTime) || clearTime <= 0)) {
+        setStatus("Enter a time to clear from left before starting.");
+        /* A11Y ADDITIONS START */
+        emitCue("validation_error", {
+          message: "Need a time to clear from left before starting."
+        });
+        /* A11Y ADDITIONS END */
+        return false;
+      }
+      if (currentMode !== "2b" && (!Number.isFinite(fullTime) || fullTime <= 0)) {
+        setStatus("Enter a full street time before starting.");
+        /* A11Y ADDITIONS START */
+        emitCue("validation_error", {
+          message: "Need a full street time before starting."
+        });
+        /* A11Y ADDITIONS END */
+        return false;
+      }
+      if (!Number.isFinite(margin) || margin < 0) {
+        setStatus("Enter a margin of error before starting.");
+        /* A11Y ADDITIONS START */
+        emitCue("validation_error", {
+          message: "Need a margin of error before starting."
+        });
+        /* A11Y ADDITIONS END */
+        return false;
+      }
+      return true;
+    }
+
+    function getReferenceTimes() {
+      const { clearTime, fullTime } = getTimingInputs();
+      if (currentMode === "2") {
+        return [0, fullTime];
+      }
+      if (currentMode === "2b") {
+        return [0, clearTime];
+      }
+      return [0, clearTime, fullTime];
+    }
+
+    function updateMode() {
+      const selected = modeInputs.find((input) => input.checked);
+      currentMode = selected?.value || "2";
+      localStorage.setItem("om-mode", currentMode);
+      renderMarkers();
+      resetState();
+    }
+
+    function renderMarkers() {
+      markersEl.innerHTML = "";
+      const { labels } = modes[currentMode];
+      labels.forEach((label, index) => {
+        const item = document.createElement("div");
+        item.className = "marker";
+        item.dataset.index = String(index);
+        item.innerHTML = `
+          <div class="marker-shape"><span></span></div>
+          <label>${label} <span class="sr-only" data-marker-state></span></label>
+        `;
+        markersEl.appendChild(item);
+      });
+      updateMarkerStates();
+    }
+
+    function updateMarkerStates() {
+      const markerNodes = [...markersEl.querySelectorAll(".marker")];
+      markerNodes.forEach((node, index) => {
+        node.classList.toggle("complete", index < stage);
+        node.classList.toggle("current", index === stage && started);
+        const stateText = node.querySelector("[data-marker-state]");
+        if (stateText) {
+          if (index < stage) {
+            stateText.textContent = "(Complete)";
+          } else if (index === stage && started) {
+            stateText.textContent = "(Current)";
+          } else {
+            stateText.textContent = "(Not reached)";
+          }
+        }
+      });
+      updateMarkersSummary();
+      updateActionButtonStage();
+    }
+
+    /* A11Y ADDITIONS START */
+    function updateMarkersSummary() {
+      const markerNodes = [...markersEl.querySelectorAll(".marker")];
+      const summaries = markerNodes.map((node) => {
+        const label = node.querySelector("label")?.childNodes[0]?.textContent?.trim() || "";
+        if (node.classList.contains("complete")) {
+          return `${label} complete`;
+        }
+        if (node.classList.contains("current")) {
+          return `${label} current`;
+        }
+        return `${label} not reached`;
+      });
+      markersEl.setAttribute("aria-label", `Progress markers: ${summaries.join(", ")}`);
+    }
+    /* A11Y ADDITIONS END */
+
+    function updateActionButtonStage() {
+      actionBtn.classList.remove("stage-start", "stage-boundary", "stage-finish");
+      if (!started || currentMode !== "3") {
+        return;
+      }
+      if (stage === 1) {
+        actionBtn.classList.add("stage-start");
+      } else if (stage === 2) {
+        actionBtn.classList.add("stage-boundary");
+      } else if (stage >= 3) {
+        actionBtn.classList.add("stage-finish");
+      }
+    }
+
+    function setStatus(message) {
+      statusText.textContent = message;
+      /* A11Y ADDITIONS START */
+      cueBannerText.textContent = message;
+      /* A11Y ADDITIONS END */
+    }
+
+    function lockModeSelection(lock) {
+      modeInputs.forEach((input) => {
+        input.disabled = lock;
+      });
+    }
+
+    function resetState(message = "Ready.") {
+      markerTimes = [];
+      stage = 0;
+      started = false;
+      actionBtn.disabled = false;
+      /* A11Y ADDITIONS START */
+      setActionButtonLabel("Begin");
+      /* A11Y ADDITIONS END */
+      setStatus(message);
+      /* A11Y ADDITIONS START */
+      updateNextPrompt();
+      /* A11Y ADDITIONS END */
+      debugText.textContent = "";
+      updateMarkerStates();
+      lockModeSelection(false);
+      lockSettings(false);
+      actionBtn.classList.remove("running");
+    }
+
+    /* A11Y ADDITIONS START */
+    function setActionButtonLabel(label) {
+      actionBtn.textContent = label;
+      actionBtn.setAttribute("aria-label", label);
+    }
+
+    function updateNextPrompt() {
+      if (!started) {
+        setStatus("Press Begin to start.");
+        return;
+      }
+      const labels = modes[currentMode].labels;
+      const nextLabel = labels[stage] || "Next";
+      setStatus(`Press Mark for ${nextLabel}.`);
+    }
+    /* A11Y ADDITIONS END */
+
+    function recordMarker() {
+      if (!started) {
+        if (!validateSetup()) {
+          return;
+        }
+        started = true;
+        lockModeSelection(true);
+        lockSettings(true);
+        markerTimes = [0];
+        stage = 1;
+        /* A11Y ADDITIONS START */
+        setActionButtonLabel("Mark");
+        updateNextPrompt();
+        /* A11Y ADDITIONS END */
+        playConfirmTone();
+        actionBtn.classList.add("running");
+        /* A11Y ADDITIONS START */
+        emitCue("start", { mode: currentMode });
+        /* A11Y ADDITIONS END */
+        updateMarkerStates();
+        return;
+      }
+
+      const elapsed = (performance.now() - startTimestamp) / 1000;
+      markerTimes.push(elapsed);
+      playConfirmTone();
+      /* A11Y ADDITIONS START */
+      const stageLabel = modes[currentMode].labels[stage] || "Marker";
+      emitCue("marker", { stageIndex: stage, stageLabel, elapsed });
+      /* A11Y ADDITIONS END */
+      stage += 1;
+
+      if (stage >= modes[currentMode].labels.length) {
+        actionBtn.disabled = true;
+        /* A11Y ADDITIONS START */
+        setActionButtonLabel("Replay");
+        /* A11Y ADDITIONS END */
+        setStatus("Replaying your markers and the reference.");
+        updateMarkerStates();
+        beginReplay();
+      } else {
+        /* A11Y ADDITIONS START */
+        updateNextPrompt();
+        /* A11Y ADDITIONS END */
+        updateMarkerStates();
+      }
+    }
+
+    function beginReplay() {
+      const reference = getReferenceTimes();
+      const baseDelay = 0.6;
+      const maxTime = Math.max(
+        ...markerTimes,
+        ...reference
+      );
+      /* A11Y ADDITIONS START */
+      emitCue("replay_start", { referenceTimes: reference, markerTimes });
+      /* A11Y ADDITIONS END */
+
+      markerTimes.forEach((time) => {
+        if (replayUsesConfirmTone) {
+          playConfirmTone(baseDelay + time);
+          return;
+        }
+        playUserMarkerTone(baseDelay + time);
+      });
+
+      if (showDebug) {
+        const userTimes = markerTimes.map((time) => time.toFixed(2)).join(", ");
+        const refTimes = reference.map((time) => time.toFixed(2)).join(", ");
+        debugText.textContent = `User: ${userTimes}s | Ref: ${refTimes}s`;
+      } else {
+        debugText.textContent = "";
+      }
+
+      reference.slice(1).forEach((time, index) => {
+        const userTime = markerTimes[index + 1] ?? 0;
+        const diff = Math.abs(userTime - time);
+        const latency =
+          (audioContext?.baseLatency || 0) + (audioContext?.outputLatency || 0);
+        const timingEpsilon = Math.max(0.02, latency);
+        const feedbackType = diff <= getMargin() + timingEpsilon ? "acceptable" : "outside";
+        const pitch = tones.reference[feedbackType];
+        playReferenceTone(pitch, baseDelay + time);
+        /* A11Y ADDITIONS START */
+        const stageLabel = modes[currentMode].labels[index + 1] || "Reference";
+        const cueType = feedbackType === "acceptable" ? "reference_ok" : "reference_bad";
+        setTimeout(() => {
+          emitCue(cueType, { stageLabel, diff });
+        }, (baseDelay + time) * 1000);
+        /* A11Y ADDITIONS END */
+      });
+
+      clearTimeout(replayTimeout);
+      replayTimeout = setTimeout(() => {
+        resetState("Ready for another try.");
+        /* A11Y ADDITIONS START */
+        emitCue("replay_end", { message: "Ready for another try." });
+        /* A11Y ADDITIONS END */
+      }, (maxTime + baseDelay + 1.2) * 1000);
+    }
+
+    let startTimestamp = 0;
+
+    actionBtn.addEventListener("click", () => {
+      ensureAudioContext();
+      if (!started) {
+        startTimestamp = performance.now();
+      }
+      recordMarker();
+    });
+
+    modeInputs.forEach((input) => {
+      input.addEventListener("change", updateMode);
+    });
+
+    soundToggle.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+      soundToggle.innerHTML = soundEnabled
+        ? "<span aria-hidden=\"true\">🔊</span> Sound On"
+        : "<span aria-hidden=\"true\">🔇</span> Sound Off";
+      if (soundEnabled) {
+        playConfirmTone();
+      }
+      /* A11Y ADDITIONS START */
+      emitCue("sound_toggled", { soundEnabled });
+      /* A11Y ADDITIONS END */
+    });
+
+    /* A11Y ADDITIONS START */
+    settingsTrigger.addEventListener("click", () => {
+      lastDialogTrigger = settingsTrigger;
+      settingsModal.showModal();
+      settingsTitle.focus();
+    });
+    /* A11Y ADDITIONS END */
+
+    closeSettings.addEventListener("click", () => {
+      settingsModal.close();
+    });
+
+    settingsModal.addEventListener("click", (event) => {
+      if (event.target === settingsModal) {
+        settingsModal.close();
+      }
+    });
+
+    /* A11Y ADDITIONS START */
+    a11yTrigger.addEventListener("click", () => {
+      lastDialogTrigger = a11yTrigger;
+      a11yModal.showModal();
+      a11yTitle.focus();
+    });
+
+    closeA11y.addEventListener("click", () => {
+      a11yModal.close();
+    });
+
+    a11yModal.addEventListener("click", (event) => {
+      if (event.target === a11yModal) {
+        a11yModal.close();
+      }
+    });
+
+    settingsModal.addEventListener("close", () => {
+      lastDialogTrigger?.focus();
+    });
+
+    a11yModal.addEventListener("close", () => {
+      lastDialogTrigger?.focus();
+    });
+    /* A11Y ADDITIONS END */
+
+    acceptableInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        storeSelection("acceptable", input.value);
+      });
+    });
+
+    outsideInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        storeSelection("outside", input.value);
+      });
+    });
+
+    previewButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        ensureAudioContext();
+        const soundId = button.dataset.sound;
+        if (feedbackOptions.acceptable[soundId]) {
+          playCompositeTone(feedbackOptions.acceptable[soundId].partials, 0.16, 0, true);
+          return;
+        }
+        if (feedbackOptions.outside[soundId]) {
+          playCompositeTone(feedbackOptions.outside[soundId].partials, 0.16, 0, true);
+        }
+      });
+    });
+
+    previewUserSoundBtn.addEventListener("click", () => {
+      ensureAudioContext();
+      if (replayUsesConfirmTone) {
+        playConfirmTone(0, true);
+        return;
+      }
+      playUserMarkerTone(0, true);
+    });
+
+    replayUsesConfirm.addEventListener("change", () => {
+      replayUsesConfirmTone = replayUsesConfirm.checked;
+      localStorage.setItem("om-replay-use-confirm", String(replayUsesConfirmTone));
+    });
+
+    debugToggle.addEventListener("change", () => {
+      showDebug = debugToggle.checked;
+      localStorage.setItem("om-debug-replay", String(showDebug));
+    });
+
+    clearTimeInput.addEventListener("change", () => {
+      localStorage.setItem("om-clear-time", clearTimeInput.value);
+    });
+
+    fullTimeInput.addEventListener("change", () => {
+      localStorage.setItem("om-full-time", fullTimeInput.value);
+    });
+
+    marginInput.addEventListener("change", () => {
+      localStorage.setItem("om-margin", marginInput.value);
+    });
+
+    /* A11Y ADDITIONS START */
+    function applyA11ySettings() {
+      cueBanner.dataset.visible = String(a11ySettings.showBanner);
+      cueBanner.dataset.colorIcon = String(a11ySettings.useColorIcon);
+      cueBannerText.classList.toggle("sr-only", !a11ySettings.useTextLabels);
+      document.body.dataset.textSize = a11ySettings.textSize;
+      document.body.classList.toggle("high-contrast", a11ySettings.highContrast);
+      document.body.classList.toggle("focus-boost", a11ySettings.focusBoost);
+      if (a11ySettings.outputMode === "visual-only") {
+        soundToggle.setAttribute("aria-pressed", "false");
+        soundToggle.innerHTML = "<span aria-hidden=\"true\">🔇</span> Sound Off";
+      } else if (soundEnabled) {
+        soundToggle.setAttribute("aria-pressed", "true");
+        soundToggle.innerHTML = "<span aria-hidden=\"true\">🔊</span> Sound On";
+      }
+    }
+
+    function emitCue(type, detail = {}) {
+      const messages = {
+        start: "Started.",
+        marker: `Marker recorded${detail.stageLabel ? `: ${detail.stageLabel}` : ""}.`,
+        replay_start: "Replaying your markers and reference.",
+        replay_end: detail.message || "Ready for another try.",
+        validation_error: detail.message || "Need more information to start.",
+        reference_ok: `Reference: acceptable${detail.stageLabel ? ` for ${detail.stageLabel}` : ""}.`,
+        reference_bad: `Reference: outside tolerance${detail.stageLabel ? ` for ${detail.stageLabel}` : ""}.`,
+        sound_toggled: detail.soundEnabled ? "Sound on." : "Sound off."
+      };
+      const message = messages[type] || "Updated.";
+      if (a11ySettings.showBanner) {
+        cueBannerText.textContent = message;
+      }
+      if (a11ySettings.announceCues) {
+        srAnnouncer.textContent = message;
+      }
+      if (a11ySettings.vibrate && navigator.vibrate) {
+        const patterns = {
+          marker: [40],
+          reference_ok: [30, 30, 30],
+          reference_bad: [120]
+        };
+        const pattern = patterns[type];
+        if (pattern) {
+          navigator.vibrate(pattern);
+        }
+      }
+      if (a11ySettings.flashAction && !prefersReducedMotion.matches) {
+        actionBtn.classList.add("flash");
+        clearTimeout(flashTimeout);
+        flashTimeout = setTimeout(() => {
+          actionBtn.classList.remove("flash");
+        }, 160);
+      }
+    }
+    /* A11Y ADDITIONS END */
+
+    const unlockAudio = () => {
+      ensureAudioContext();
+      document.removeEventListener("pointerdown", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+    };
+
+    document.addEventListener("pointerdown", unlockAudio, { once: true });
+    document.addEventListener("keydown", unlockAudio, { once: true });
+
+    function restoreStoredSettings() {
+      const storedClear = localStorage.getItem("om-clear-time");
+      const storedFull = localStorage.getItem("om-full-time");
+      const storedMargin = localStorage.getItem("om-margin");
+      const storedMode = localStorage.getItem("om-mode");
+      const storedReplay = localStorage.getItem("om-replay-use-confirm");
+      const storedDebug = localStorage.getItem("om-debug-replay");
+      /* A11Y ADDITIONS START */
+      const storedOutputMode = localStorage.getItem("om-a11y-output-mode");
+      const storedShowBanner = localStorage.getItem("om-a11y-show-banner");
+      const storedFlashAction = localStorage.getItem("om-a11y-flash-action");
+      const storedVibrate = localStorage.getItem("om-a11y-vibrate");
+      const storedUseColorIcon = localStorage.getItem("om-a11y-use-color-icon");
+      const storedUseTextLabels = localStorage.getItem("om-a11y-use-text-labels");
+      const storedTextSize = localStorage.getItem("om-a11y-text-size");
+      const storedHighContrast = localStorage.getItem("om-a11y-high-contrast");
+      const storedFocusBoost = localStorage.getItem("om-a11y-focus-boost");
+      const storedAnnounceCues = localStorage.getItem("om-a11y-announce-cues");
+      /* A11Y ADDITIONS END */
+
+      if (storedClear) {
+        clearTimeInput.value = storedClear;
+      }
+      if (storedFull) {
+        fullTimeInput.value = storedFull;
+      }
+      if (storedMargin) {
+        marginInput.value = storedMargin;
+      }
+      if (storedMode && modes[storedMode]) {
+        currentMode = storedMode;
+        modeInputs.forEach((input) => {
+          input.checked = input.value === storedMode;
+        });
+      }
+      replayUsesConfirmTone = storedReplay === "true";
+      replayUsesConfirm.checked = replayUsesConfirmTone;
+      showDebug = storedDebug === "true";
+      debugToggle.checked = showDebug;
+      /* A11Y ADDITIONS START */
+      if (storedOutputMode) {
+        a11ySettings.outputMode = storedOutputMode;
+        outputModeInputs.forEach((input) => {
+          input.checked = input.value === storedOutputMode;
+        });
+      }
+      if (storedShowBanner) {
+        a11ySettings.showBanner = storedShowBanner === "true";
+      }
+      if (storedFlashAction) {
+        a11ySettings.flashAction = storedFlashAction === "true";
+      }
+      if (storedVibrate) {
+        a11ySettings.vibrate = storedVibrate === "true";
+      }
+      if (storedUseColorIcon) {
+        a11ySettings.useColorIcon = storedUseColorIcon === "true";
+      }
+      if (storedUseTextLabels) {
+        a11ySettings.useTextLabels = storedUseTextLabels === "true";
+      }
+      if (storedTextSize) {
+        a11ySettings.textSize = storedTextSize;
+      }
+      if (storedHighContrast) {
+        a11ySettings.highContrast = storedHighContrast === "true";
+      }
+      if (storedFocusBoost) {
+        a11ySettings.focusBoost = storedFocusBoost === "true";
+      }
+      if (storedAnnounceCues) {
+        a11ySettings.announceCues = storedAnnounceCues === "true";
+      }
+      a11yShowBanner.checked = a11ySettings.showBanner;
+      a11yFlashAction.checked = a11ySettings.flashAction;
+      a11yVibrate.checked = a11ySettings.vibrate;
+      a11yUseColorIcon.checked = a11ySettings.useColorIcon;
+      a11yUseTextLabels.checked = a11ySettings.useTextLabels;
+      a11yTextSize.value = a11ySettings.textSize;
+      a11yHighContrast.checked = a11ySettings.highContrast;
+      a11yFocusBoost.checked = a11ySettings.focusBoost;
+      a11yAnnounceCues.checked = a11ySettings.announceCues;
+      applyA11ySettings();
+      /* A11Y ADDITIONS END */
+    }
+
+    /* A11Y ADDITIONS START */
+    outputModeInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        a11ySettings.outputMode = input.value;
+        localStorage.setItem("om-a11y-output-mode", input.value);
+        applyA11ySettings();
+        emitCue("sound_toggled", { soundEnabled: a11ySettings.outputMode !== "visual-only" });
+      });
+    });
+
+    a11yShowBanner.addEventListener("change", () => {
+      a11ySettings.showBanner = a11yShowBanner.checked;
+      localStorage.setItem("om-a11y-show-banner", String(a11ySettings.showBanner));
+      applyA11ySettings();
+    });
+
+    a11yFlashAction.addEventListener("change", () => {
+      a11ySettings.flashAction = a11yFlashAction.checked;
+      localStorage.setItem("om-a11y-flash-action", String(a11ySettings.flashAction));
+    });
+
+    a11yVibrate.addEventListener("change", () => {
+      a11ySettings.vibrate = a11yVibrate.checked;
+      localStorage.setItem("om-a11y-vibrate", String(a11ySettings.vibrate));
+    });
+
+    a11yUseColorIcon.addEventListener("change", () => {
+      a11ySettings.useColorIcon = a11yUseColorIcon.checked;
+      localStorage.setItem("om-a11y-use-color-icon", String(a11ySettings.useColorIcon));
+      applyA11ySettings();
+    });
+
+    a11yUseTextLabels.addEventListener("change", () => {
+      a11ySettings.useTextLabels = a11yUseTextLabels.checked;
+      localStorage.setItem("om-a11y-use-text-labels", String(a11ySettings.useTextLabels));
+      applyA11ySettings();
+    });
+
+    a11yTextSize.addEventListener("change", () => {
+      a11ySettings.textSize = a11yTextSize.value;
+      localStorage.setItem("om-a11y-text-size", a11ySettings.textSize);
+      applyA11ySettings();
+    });
+
+    a11yHighContrast.addEventListener("change", () => {
+      a11ySettings.highContrast = a11yHighContrast.checked;
+      localStorage.setItem("om-a11y-high-contrast", String(a11ySettings.highContrast));
+      applyA11ySettings();
+    });
+
+    a11yFocusBoost.addEventListener("change", () => {
+      a11ySettings.focusBoost = a11yFocusBoost.checked;
+      localStorage.setItem("om-a11y-focus-boost", String(a11ySettings.focusBoost));
+      applyA11ySettings();
+    });
+
+    a11yAnnounceCues.addEventListener("change", () => {
+      a11ySettings.announceCues = a11yAnnounceCues.checked;
+      localStorage.setItem("om-a11y-announce-cues", String(a11ySettings.announceCues));
+    });
+    /* A11Y ADDITIONS END */
+
+    applyStoredSelections();
+    restoreStoredSettings();
+    renderMarkers();
+    /* A11Y ADDITIONS START */
+    updateNextPrompt();
+    /* A11Y ADDITIONS END */
+  </script>
+</body>
+</html>
