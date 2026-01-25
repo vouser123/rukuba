@@ -1271,11 +1271,19 @@
             const newValue = current + 1;
             display.textContent = newValue;
 
-            // Voice countdown when approaching target (5 reps left, 4 reps left, etc.)
+            // Voice announcements at milestones (matching old app)
             if (currentExercise && currentExercise.current_reps) {
-                const remaining = currentExercise.current_reps - newValue;
-                if (remaining <= 5 && remaining > 0) {
-                    speakText(`${remaining} reps left`);
+                const repsLeft = currentExercise.current_reps - newValue;
+
+                if (repsLeft === 5) {
+                    speakText('5 reps left');
+                } else if (repsLeft === 3) {
+                    speakText('3 reps left');
+                } else if (repsLeft === 1) {
+                    speakText('Last rep');
+                } else if (repsLeft === 0) {
+                    playCompletionSound();
+                    speakText('Set complete');
                 }
             }
         }
@@ -1386,8 +1394,22 @@
                     speakText('1 second left');
                 } else if (remaining === 0) {
                     playCompletionSound();
-                    speakText('Time');
                     pauseTimer(); // Auto-pause at target, but allow user to continue
+
+                    // Announce reps remaining for hold exercises
+                    const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+                    if (hasHold && timerState.totalReps > 1) {
+                        const repsLeft = timerState.totalReps - timerState.currentRep;
+                        if (repsLeft === 0) {
+                            speakText('Set complete');
+                        } else if (repsLeft === 1) {
+                            speakText('Last rep');
+                        } else {
+                            speakText(`${repsLeft} reps left`);
+                        }
+                    } else {
+                        speakText('Time');
+                    }
                 }
             }, 100); // Update every 100ms for smooth display
 
