@@ -198,28 +198,22 @@
             border: none;
             padding: 12px 24px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            font-family: inherit;
-            min-height: 48px;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+            transition: opacity 0.2s;
         }
 
         .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--ios-blue);
-            border: none;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
             padding: 12px 24px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            font-family: inherit;
+            transition: opacity 0.2s;
         }
 
         .btn-danger {
@@ -228,154 +222,146 @@
             border: none;
             padding: 12px 24px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            font-family: inherit;
         }
 
-        /* Form Styles */
+        .btn-primary:hover,
+        .btn-secondary:hover,
+        .btn-danger:hover {
+            opacity: 0.8;
+        }
+
+        /* Forms */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .form-label {
             display: block;
-            font-size: 15px;
             font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text-primary);
+            margin-bottom: 5px;
+            font-size: 14px;
         }
 
-        .form-input, .form-select {
+        .form-input,
+        .form-select,
+        .form-textarea {
             width: 100%;
-            padding: 14px 12px;
-            background: var(--bg-tertiary);
+            padding: 10px;
             border: 2px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 16px;
-            font-family: inherit;
-            transition: all 0.2s ease;
-        }
-
-        .form-input:hover, .form-select:hover {
-            border-color: var(--ios-blue);
-            background: var(--bg-secondary);
-        }
-
-        .form-input:focus, .form-select:focus {
-            outline: none;
-            border-color: var(--ios-blue);
-            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
-            background: var(--bg-secondary);
-        }
-
-        textarea.form-input {
-            resize: vertical;
-            min-height: 80px;
-            line-height: 1.5;
-        }
-
-        .form-select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 40px;
-            cursor: pointer;
-        }
-
-        /* Collapsible Details */
-        details {
+            border-radius: 6px;
+            font-size: 14px;
             background: var(--bg-tertiary);
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
+            color: var(--text-primary);
+            font-family: inherit;
         }
 
-        details summary {
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 15px;
-            color: var(--ios-blue);
-            margin-bottom: 12px;
-            list-style: none;
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
         }
 
-        details summary::-webkit-details-marker {
-            display: none;
-        }
-
-        details summary::before {
-            content: '▶ ';
-            display: inline-block;
-            margin-right: 6px;
-            transition: transform 0.2s;
-        }
-
-        details[open] summary::before {
-            transform: rotate(90deg);
-        }
-
-        /* Tag Input */
+        /* Tags */
         .tag-list {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .tag {
             background: var(--ios-blue);
             color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 14px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
         }
 
-        .tag button {
+        .tag-remove {
             background: none;
             border: none;
             color: white;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             padding: 0;
-            line-height: 1;
         }
 
-        /* Loading Spinner */
+        /* Lists */
+        .list-container {
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .list-container ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .list-container li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .list-container li:last-child {
+            border-bottom: none;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+        }
+
+        /* Loading */
         .loading {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: var(--text-secondary);
         }
 
         .spinner {
-            border: 3px solid var(--border-color);
-            border-top-color: var(--ios-blue);
+            border: 3px solid var(--bg-tertiary);
+            border-top: 3px solid var(--ios-blue);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 12px;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        /* Action Buttons */
+        /* Action buttons */
         .action-buttons {
             display: flex;
-            gap: 12px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid var(--border-color);
+            gap: 10px;
+            margin-top: 20px;
         }
 
         .action-buttons button {
@@ -403,6 +389,7 @@
     <div id="authModal" class="auth-modal">
         <div class="auth-content">
             <h2>PT Editor Sign In</h2>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-top: -6px;">Build: 2026.01.25-1</p>
             <p style="color: var(--text-secondary); margin-bottom: 20px;">Therapist or admin access required</p>
             <div id="authError" class="auth-error hidden" style="margin-bottom: 16px;"></div>
             <form id="authForm" class="auth-form">
@@ -548,16 +535,13 @@
 
             <!-- Form Parameters -->
             <details>
-                <summary>📋 Form Parameters</summary>
+                <summary>📏 Form Parameters Required</summary>
 
                 <div class="form-group">
-                    <label class="form-label">Required Form Parameters</label>
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
-                        Examples: band_resistance, surface, eyes, distance, weight
-                    </p>
-                    <div id="formParametersTags" class="tag-list"></div>
+                    <label class="form-label">Parameters</label>
+                    <div id="formParameterTags" class="tag-list"></div>
                     <div style="display: flex; gap: 8px;">
-                        <input type="text" id="formParametersInput" class="form-input" placeholder="Enter parameter name">
+                        <input type="text" id="formParameterInput" class="form-input" placeholder="e.g., band_resistance, surface, eyes">
                         <button type="button" class="btn-secondary" onclick="addFormParameter()" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
@@ -565,53 +549,80 @@
 
             <!-- Guidance -->
             <details>
-                <summary>🎯 Guidance</summary>
+                <summary>🧠 Guidance & Cues</summary>
 
                 <div class="form-group">
                     <label class="form-label">Motor Cues</label>
-                    <div id="motorCuesList"></div>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <input type="text" id="motorCuesInput" class="form-input" placeholder="Enter motor cue">
+                    <div class="list-container">
+                        <ul id="motorCuesList"></ul>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="motorCuesInput" class="form-input" placeholder="Add motor cue">
                         <button type="button" class="btn-secondary" onclick="addMotorCue()" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Compensation Warnings</label>
-                    <div id="compensationWarningsList"></div>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <input type="text" id="compensationWarningsInput" class="form-input" placeholder="Enter warning">
+                    <div class="list-container">
+                        <ul id="compensationList"></ul>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="compensationInput" class="form-input" placeholder="Add compensation warning">
                         <button type="button" class="btn-secondary" onclick="addCompensationWarning()" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Safety Flags</label>
-                    <div id="safetyFlagsList"></div>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <input type="text" id="safetyFlagsInput" class="form-input" placeholder="Enter safety flag">
+                    <div class="list-container">
+                        <ul id="safetyList"></ul>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="safetyInput" class="form-input" placeholder="Add safety flag">
                         <button type="button" class="btn-secondary" onclick="addSafetyFlag()" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">External Cues</label>
-                    <div id="externalCuesList"></div>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <input type="text" id="externalCuesInput" class="form-input" placeholder="Enter external cue">
+                    <div class="list-container">
+                        <ul id="externalCuesList"></ul>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="externalCuesInput" class="form-input" placeholder="Add external cue">
                         <button type="button" class="btn-secondary" onclick="addExternalCue()" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
             </details>
 
+            <!-- Roles -->
+            <details>
+                <summary>🎯 Exercise Roles</summary>
+
+                <table id="rolesTable">
+                    <thead>
+                        <tr>
+                            <th>Region</th>
+                            <th>Capacity</th>
+                            <th>Focus</th>
+                            <th>Contribution</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <button type="button" class="btn-secondary" onclick="addRoleRow()">Add Role</button>
+            </details>
+
             <!-- Lifecycle & Status -->
             <details>
-                <summary>🔄 Lifecycle & Status</summary>
+                <summary>📅 Lifecycle & Status</summary>
 
                 <div class="form-group">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                         <input type="checkbox" id="archived">
-                        <span class="form-label" style="margin: 0;">Archived</span>
+                        <span>Archived</span>
                     </label>
                 </div>
 
@@ -659,737 +670,7 @@
     <!-- Toast Container -->
     <div id="toast" class="toast"></div>
 
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-        let supabase = null;
-
-        let currentUser = null;
-        let authToken = null;
-        let allExercises = [];
-        let currentExercise = null;
-        let vocabularies = {};
-
-        // Tag arrays
-        let requiredEquipment = [];
-        let optionalEquipment = [];
-        let primaryMuscles = [];
-        let secondaryMuscles = [];
-        let formParameters = [];
-        let motorCues = [];
-        let compensationWarnings = [];
-        let safetyFlags = [];
-        let externalCues = [];
-
-        async function loadSupabaseConfig() {
-            const response = await fetch('/api/env');
-
-            if (!response.ok) {
-                throw new Error('Failed to load Supabase configuration.');
-            }
-
-            return response.json();
-        }
-
-        function readAuthParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                accessToken: params.get('access_token'),
-                refreshToken: params.get('refresh_token')
-            };
-        }
-
-        function clearAuthParams() {
-            const url = new URL(window.location.href);
-            url.searchParams.delete('access_token');
-            url.searchParams.delete('refresh_token');
-            const newUrl = url.pathname + url.search + url.hash;
-            window.history.replaceState({}, '', newUrl);
-        }
-
-        // Initialize
-        async function init() {
-            const { supabaseUrl, supabaseAnonKey } = await loadSupabaseConfig();
-            supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-            const { accessToken, refreshToken } = readAuthParams();
-            let sessionHandled = false;
-
-            if (accessToken && refreshToken) {
-                const { data, error } = await supabase.auth.setSession({
-                    access_token: accessToken,
-                    refresh_token: refreshToken
-                });
-                clearAuthParams();
-
-                if (error) {
-                    const errorDiv = document.getElementById('authError');
-                    errorDiv.textContent = `Token sign-in failed: ${error.message}`;
-                    errorDiv.classList.remove('hidden');
-                } else if (data.session) {
-                    await handleAuthSuccess(data.session);
-                    sessionHandled = true;
-                }
-            }
-
-            // Check for existing session
-            const { data: { session } } = await supabase.auth.getSession();
-
-            if (session && !sessionHandled) {
-                await handleAuthSuccess(session);
-            }
-
-            // Set up auth form
-            document.getElementById('authForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await signIn();
-            });
-
-            // Set up exercise form
-            document.getElementById('exerciseForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await saveExercise();
-            });
-        }
-
-        async function signIn() {
-            const email = document.getElementById('emailInput').value;
-            const password = document.getElementById('passwordInput').value;
-            const errorDiv = document.getElementById('authError');
-            const submitButton = document.querySelector('#authForm button[type="submit"]');
-
-            errorDiv.classList.add('hidden');
-            submitButton.disabled = true;
-            submitButton.textContent = 'Signing in...';
-
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password
-                });
-
-                if (error) throw error;
-
-                await handleAuthSuccess(data.session);
-            } catch (error) {
-                const errorMessage = error.message || 'Sign in failed';
-                errorDiv.textContent = errorMessage;
-                errorDiv.classList.remove('hidden');
-                submitButton.disabled = false;
-                submitButton.textContent = 'Sign In';
-            }
-        }
-
-        async function handleAuthSuccess(session) {
-            const errorDiv = document.getElementById('authError');
-            currentUser = session.user;
-            authToken = session.access_token;
-
-            try {
-                // Verify therapist or admin role
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('auth_id', currentUser.id)
-                    .single();
-
-                if (userError) {
-                    throw new Error(`Database error: ${userError.message}`);
-                }
-
-                if (!userData) {
-                    throw new Error('User not found in database. Please contact administrator.');
-                }
-
-                if (userData.role !== 'therapist' && userData.role !== 'admin') {
-                    throw new Error(`Access denied. Your role is "${userData.role}". Required: therapist or admin.`);
-                }
-
-                // Success! Show main content
-                document.getElementById('authModal').classList.add('hidden');
-                document.getElementById('mainContent').classList.remove('hidden');
-
-                // Load data
-                await loadVocabularies();
-                await loadExercises();
-
-            } catch (error) {
-                // Show error - don't sign out, let them try again
-                errorDiv.textContent = error.message;
-                errorDiv.classList.remove('hidden');
-
-                // Reset form
-                const submitButton = document.querySelector('#authForm button[type="submit"]');
-                if (submitButton) {
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Sign In';
-                }
-
-                // Clear the password field
-                document.getElementById('passwordInput').value = '';
-            }
-        }
-
-        async function signOut() {
-            await supabase.auth.signOut();
-            location.reload();
-        }
-
-        window.signOut = signOut;
-
-        async function fetchWithAuth(url, options = {}) {
-            const headers = {
-                'Content-Type': 'application/json',
-                ...options.headers
-            };
-
-            if (authToken) {
-                headers['Authorization'] = `Bearer ${authToken}`;
-            }
-
-            const response = await fetch(url, {
-                ...options,
-                headers
-            });
-
-            if (!response.ok) {
-                let errorDetail = '';
-                try {
-                    const errorBody = await response.json();
-                    errorDetail = errorBody.error || errorBody.message || JSON.stringify(errorBody);
-                } catch (e) {
-                    errorDetail = await response.text();
-                }
-                throw new Error(`API error ${response.status}: ${errorDetail || response.statusText}`);
-            }
-
-            return response.json();
-        }
-
-        async function loadVocabularies() {
-            try {
-                const result = await fetchWithAuth('/api/vocab');
-                vocabularies = result.vocabularies;
-
-                // Populate category select
-                const categorySelect = document.getElementById('ptCategory');
-                categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
-                if (vocabularies.pt_category) {
-                    vocabularies.pt_category.forEach(cat => {
-                        const option = document.createElement('option');
-                        option.value = cat.code;
-                        option.textContent = `${cat.code} - ${cat.definition}`;
-                        categorySelect.appendChild(option);
-                    });
-                }
-
-                // Populate pattern select
-                const patternSelect = document.getElementById('pattern');
-                patternSelect.innerHTML = '<option value="">-- Select Pattern --</option>';
-                if (vocabularies.pattern) {
-                    vocabularies.pattern.forEach(pat => {
-                        const option = document.createElement('option');
-                        option.value = pat.code;
-                        option.textContent = `${pat.code} - ${pat.definition}`;
-                        patternSelect.appendChild(option);
-                    });
-                }
-
-                // Render vocabulary reference
-                renderVocabularyReference();
-            } catch (error) {
-                console.error('Failed to load vocabularies:', error);
-                toast('Failed to load vocabularies', 'error');
-            }
-        }
-
-        function renderVocabularyReference() {
-            const container = document.getElementById('vocabReference');
-            let html = '';
-
-            const sections = [
-                { key: 'region', title: 'Regions', emoji: '🗺️' },
-                { key: 'capacity', title: 'Capacities', emoji: '⚡' },
-                { key: 'focus', title: 'Focus Areas', emoji: '🎯' },
-                { key: 'contribution', title: 'Contributions', emoji: '📊' },
-                { key: 'pt_category', title: 'PT Categories', emoji: '📂' },
-                { key: 'pattern', title: 'Movement Patterns', emoji: '🔄' }
-            ];
-
-            sections.forEach(section => {
-                if (vocabularies[section.key]) {
-                    html += `
-                        <div style="margin-bottom: 20px;">
-                            <h5 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--ios-blue);">
-                                ${section.emoji} ${section.title}
-                            </h5>
-                            <ul style="margin-left: 20px;">
-                                ${vocabularies[section.key].map(item => `
-                                    <li style="margin-bottom: 4px;">
-                                        <strong>${item.code}</strong>: ${item.definition}
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-                    `;
-                }
-            });
-
-            container.innerHTML = html;
-        }
-
-        async function loadExercises() {
-            try {
-                const result = await fetchWithAuth('/api/exercises');
-                allExercises = result.exercises || [];
-
-                // Populate exercise select
-                const select = document.getElementById('exerciseSelect');
-                select.innerHTML = '<option value="">-- Add New Exercise (leave blank) --</option>';
-
-                allExercises
-                    .filter(ex => !ex.archived)
-                    .sort((a, b) => a.canonical_name.localeCompare(b.canonical_name))
-                    .forEach(ex => {
-                        const option = document.createElement('option');
-                        option.value = ex.id;
-                        option.textContent = ex.canonical_name;
-                        select.appendChild(option);
-                    });
-            } catch (error) {
-                console.error('Failed to load exercises:', error);
-                toast('Failed to load exercises', 'error');
-            }
-        }
-
-        function filterExercises() {
-            const searchTerm = document.getElementById('exerciseSearch').value.toLowerCase();
-            const select = document.getElementById('exerciseSelect');
-            const options = Array.from(select.options);
-
-            options.forEach((option, index) => {
-                if (index === 0) return; // Skip first "Add New" option
-                const text = option.textContent.toLowerCase();
-                option.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        }
-
-        window.filterExercises = filterExercises;
-
-        function loadExerciseForEdit() {
-            const exerciseId = document.getElementById('exerciseSelect').value;
-
-            if (!exerciseId) {
-                clearForm();
-                return;
-            }
-
-            currentExercise = allExercises.find(ex => ex.id === exerciseId);
-            if (!currentExercise) return;
-
-            // Populate basic fields
-            document.getElementById('canonicalName').value = currentExercise.canonical_name || '';
-            document.getElementById('description').value = currentExercise.description || '';
-            document.getElementById('ptCategory').value = currentExercise.pt_category || '';
-            document.getElementById('pattern').value = currentExercise.pattern || '';
-
-            // Pattern modifiers
-            const modifiers = currentExercise.pattern_modifiers || [];
-            document.getElementById('modDuration').checked = modifiers.includes('duration_seconds');
-            document.getElementById('modHold').checked = modifiers.includes('hold_seconds');
-            document.getElementById('modDistance').checked = modifiers.includes('distance_feet');
-
-            // Equipment
-            requiredEquipment = currentExercise.equipment?.required || [];
-            optionalEquipment = currentExercise.equipment?.optional || [];
-            renderEquipmentTags();
-
-            // Muscles
-            primaryMuscles = currentExercise.primary_muscles || [];
-            secondaryMuscles = currentExercise.secondary_muscles || [];
-            renderMuscleTags();
-
-            // Form parameters
-            formParameters = currentExercise.form_parameters_required || [];
-            renderFormParameterTags();
-
-            // Guidance
-            const guidance = currentExercise.guidance || {};
-            motorCues = guidance.motor_cues || [];
-            compensationWarnings = guidance.compensation_warnings || [];
-            safetyFlags = guidance.safety_flags || [];
-            externalCues = guidance.external_cues || [];
-            renderGuidanceLists();
-
-            // Lifecycle
-            document.getElementById('archived').checked = currentExercise.archived || false;
-            document.getElementById('lifecycleStatus').value = currentExercise.lifecycle?.status || '';
-            document.getElementById('effectiveStartDate').value = currentExercise.lifecycle?.effective_start_date || '';
-            document.getElementById('effectiveEndDate').value = currentExercise.lifecycle?.effective_end_date || '';
-
-            toast('Exercise loaded', 'success');
-        }
-
-        window.loadExerciseForEdit = loadExerciseForEdit;
-
-        function clearForm() {
-            currentExercise = null;
-            document.getElementById('exerciseSelect').value = '';
-            document.getElementById('exerciseSearch').value = '';
-            document.getElementById('exerciseForm').reset();
-
-            // Clear arrays
-            requiredEquipment = [];
-            optionalEquipment = [];
-            primaryMuscles = [];
-            secondaryMuscles = [];
-            formParameters = [];
-            motorCues = [];
-            compensationWarnings = [];
-            safetyFlags = [];
-            externalCues = [];
-
-            // Re-render all tags
-            renderEquipmentTags();
-            renderMuscleTags();
-            renderFormParameterTags();
-            renderGuidanceLists();
-
-            toast('Form cleared', 'success');
-        }
-
-        window.clearForm = clearForm;
-
-        // Equipment functions
-        function addRequiredEquipment() {
-            const input = document.getElementById('requiredEquipmentInput');
-            const value = input.value.trim();
-            if (value && !requiredEquipment.includes(value)) {
-                requiredEquipment.push(value);
-                renderEquipmentTags();
-                input.value = '';
-            }
-        }
-
-        function addOptionalEquipment() {
-            const input = document.getElementById('optionalEquipmentInput');
-            const value = input.value.trim();
-            if (value && !optionalEquipment.includes(value)) {
-                optionalEquipment.push(value);
-                renderEquipmentTags();
-                input.value = '';
-            }
-        }
-
-        function removeRequiredEquipment(index) {
-            requiredEquipment.splice(index, 1);
-            renderEquipmentTags();
-        }
-
-        function removeOptionalEquipment(index) {
-            optionalEquipment.splice(index, 1);
-            renderEquipmentTags();
-        }
-
-        function renderEquipmentTags() {
-            const requiredContainer = document.getElementById('requiredEquipmentTags');
-            requiredContainer.innerHTML = requiredEquipment.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removeRequiredEquipment(${i})">×</button>
-                </div>
-            `).join('');
-
-            const optionalContainer = document.getElementById('optionalEquipmentTags');
-            optionalContainer.innerHTML = optionalEquipment.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removeOptionalEquipment(${i})">×</button>
-                </div>
-            `).join('');
-        }
-
-        window.addRequiredEquipment = addRequiredEquipment;
-        window.addOptionalEquipment = addOptionalEquipment;
-        window.removeRequiredEquipment = removeRequiredEquipment;
-        window.removeOptionalEquipment = removeOptionalEquipment;
-
-        // Muscle functions
-        function addPrimaryMuscle() {
-            const input = document.getElementById('primaryMusclesInput');
-            const value = input.value.trim();
-            if (value && !primaryMuscles.includes(value)) {
-                primaryMuscles.push(value);
-                renderMuscleTags();
-                input.value = '';
-            }
-        }
-
-        function addSecondaryMuscle() {
-            const input = document.getElementById('secondaryMusclesInput');
-            const value = input.value.trim();
-            if (value && !secondaryMuscles.includes(value)) {
-                secondaryMuscles.push(value);
-                renderMuscleTags();
-                input.value = '';
-            }
-        }
-
-        function removePrimaryMuscle(index) {
-            primaryMuscles.splice(index, 1);
-            renderMuscleTags();
-        }
-
-        function removeSecondaryMuscle(index) {
-            secondaryMuscles.splice(index, 1);
-            renderMuscleTags();
-        }
-
-        function renderMuscleTags() {
-            const primaryContainer = document.getElementById('primaryMusclesTags');
-            primaryContainer.innerHTML = primaryMuscles.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removePrimaryMuscle(${i})">×</button>
-                </div>
-            `).join('');
-
-            const secondaryContainer = document.getElementById('secondaryMusclesTags');
-            secondaryContainer.innerHTML = secondaryMuscles.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removeSecondaryMuscle(${i})">×</button>
-                </div>
-            `).join('');
-        }
-
-        window.addPrimaryMuscle = addPrimaryMuscle;
-        window.addSecondaryMuscle = addSecondaryMuscle;
-        window.removePrimaryMuscle = removePrimaryMuscle;
-        window.removeSecondaryMuscle = removeSecondaryMuscle;
-
-        // Form parameter functions
-        function addFormParameter() {
-            const input = document.getElementById('formParametersInput');
-            const value = input.value.trim();
-            if (value && !formParameters.includes(value)) {
-                formParameters.push(value);
-                renderFormParameterTags();
-                input.value = '';
-            }
-        }
-
-        function removeFormParameter(index) {
-            formParameters.splice(index, 1);
-            renderFormParameterTags();
-        }
-
-        function renderFormParameterTags() {
-            const container = document.getElementById('formParametersTags');
-            container.innerHTML = formParameters.map((item, i) => `
-                <div class="tag">
-                    ${escapeHtml(item)}
-                    <button type="button" onclick="removeFormParameter(${i})">×</button>
-                </div>
-            `).join('');
-        }
-
-        window.addFormParameter = addFormParameter;
-        window.removeFormParameter = removeFormParameter;
-
-        // Guidance functions
-        function addMotorCue() {
-            const input = document.getElementById('motorCuesInput');
-            const value = input.value.trim();
-            if (value) {
-                motorCues.push(value);
-                renderGuidanceLists();
-                input.value = '';
-            }
-        }
-
-        function addCompensationWarning() {
-            const input = document.getElementById('compensationWarningsInput');
-            const value = input.value.trim();
-            if (value) {
-                compensationWarnings.push(value);
-                renderGuidanceLists();
-                input.value = '';
-            }
-        }
-
-        function addSafetyFlag() {
-            const input = document.getElementById('safetyFlagsInput');
-            const value = input.value.trim();
-            if (value) {
-                safetyFlags.push(value);
-                renderGuidanceLists();
-                input.value = '';
-            }
-        }
-
-        function addExternalCue() {
-            const input = document.getElementById('externalCuesInput');
-            const value = input.value.trim();
-            if (value) {
-                externalCues.push(value);
-                renderGuidanceLists();
-                input.value = '';
-            }
-        }
-
-        function removeMotorCue(index) {
-            motorCues.splice(index, 1);
-            renderGuidanceLists();
-        }
-
-        function removeCompensationWarning(index) {
-            compensationWarnings.splice(index, 1);
-            renderGuidanceLists();
-        }
-
-        function removeSafetyFlag(index) {
-            safetyFlags.splice(index, 1);
-            renderGuidanceLists();
-        }
-
-        function removeExternalCue(index) {
-            externalCues.splice(index, 1);
-            renderGuidanceLists();
-        }
-
-        function renderGuidanceLists() {
-            const renderList = (items, removeFunc) => {
-                return items.map((item, i) => `
-                    <div style="background: var(--bg-secondary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <span>${escapeHtml(item)}</span>
-                        <button type="button" class="btn-danger" onclick="${removeFunc}(${i})" style="padding: 4px 12px; min-height: auto;">×</button>
-                    </div>
-                `).join('');
-            };
-
-            document.getElementById('motorCuesList').innerHTML = renderList(motorCues, 'removeMotorCue');
-            document.getElementById('compensationWarningsList').innerHTML = renderList(compensationWarnings, 'removeCompensationWarning');
-            document.getElementById('safetyFlagsList').innerHTML = renderList(safetyFlags, 'removeSafetyFlag');
-            document.getElementById('externalCuesList').innerHTML = renderList(externalCues, 'removeExternalCue');
-        }
-
-        window.addMotorCue = addMotorCue;
-        window.addCompensationWarning = addCompensationWarning;
-        window.addSafetyFlag = addSafetyFlag;
-        window.addExternalCue = addExternalCue;
-        window.removeMotorCue = removeMotorCue;
-        window.removeCompensationWarning = removeCompensationWarning;
-        window.removeSafetyFlag = removeSafetyFlag;
-        window.removeExternalCue = removeExternalCue;
-
-        // Save exercise
-        async function saveExercise() {
-            try {
-                const canonicalName = document.getElementById('canonicalName').value.trim();
-                const description = document.getElementById('description').value.trim();
-                const ptCategory = document.getElementById('ptCategory').value;
-                const pattern = document.getElementById('pattern').value;
-
-                if (!canonicalName || !description || !ptCategory || !pattern) {
-                    toast('Please fill in all required fields', 'error');
-                    return;
-                }
-
-                // Generate ID from canonical name if creating new
-                const exerciseId = currentExercise ? currentExercise.id : generateExerciseId(canonicalName);
-
-                // Collect pattern modifiers
-                const patternModifiers = [];
-                if (document.getElementById('modDuration').checked) patternModifiers.push('duration_seconds');
-                if (document.getElementById('modHold').checked) patternModifiers.push('hold_seconds');
-                if (document.getElementById('modDistance').checked) patternModifiers.push('distance_feet');
-
-                // Build exercise payload
-                const exerciseData = {
-                    id: exerciseId,
-                    canonical_name: canonicalName,
-                    description: description,
-                    pt_category: ptCategory,
-                    pattern: pattern,
-                    archived: document.getElementById('archived').checked,
-                    pattern_modifiers: patternModifiers,
-                    equipment: {
-                        required: requiredEquipment,
-                        optional: optionalEquipment
-                    },
-                    primary_muscles: primaryMuscles,
-                    secondary_muscles: secondaryMuscles,
-                    form_parameters_required: formParameters,
-                    guidance: {
-                        motor_cues: motorCues,
-                        compensation_warnings: compensationWarnings,
-                        safety_flags: safetyFlags,
-                        external_cues: externalCues
-                    }
-                };
-
-                // Add lifecycle if any field is set
-                const lifecycleStatus = document.getElementById('lifecycleStatus').value;
-                const effectiveStartDate = document.getElementById('effectiveStartDate').value;
-                const effectiveEndDate = document.getElementById('effectiveEndDate').value;
-
-                if (lifecycleStatus || effectiveStartDate || effectiveEndDate) {
-                    exerciseData.lifecycle_status = lifecycleStatus || null;
-                    exerciseData.lifecycle_effective_start_date = effectiveStartDate || null;
-                    exerciseData.lifecycle_effective_end_date = effectiveEndDate || null;
-                }
-
-                // Determine if creating or updating
-                const isUpdate = currentExercise !== null;
-                const method = isUpdate ? 'PUT' : 'POST';
-                const url = isUpdate ? `/api/exercises/${exerciseId}` : '/api/exercises';
-
-                const result = await fetchWithAuth(url, {
-                    method: method,
-                    body: JSON.stringify(exerciseData)
-                });
-
-                toast(`Exercise ${isUpdate ? 'updated' : 'created'} successfully!`, 'success');
-
-                // Reload exercises and select the saved one
-                await loadExercises();
-                document.getElementById('exerciseSelect').value = exerciseId;
-                loadExerciseForEdit();
-
-            } catch (error) {
-                console.error('Failed to save exercise:', error);
-                toast(error.message || 'Failed to save exercise', 'error');
-            }
-        }
-
-        function generateExerciseId(name) {
-            return name.toLowerCase()
-                .replace(/[^a-z0-9\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-')
-                .trim();
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function toast(message, type = 'success') {
-            const toastEl = document.getElementById('toast');
-            toastEl.textContent = message;
-            toastEl.className = `toast ${type}`;
-            toastEl.classList.add('show');
-
-            setTimeout(() => {
-                toastEl.classList.remove('show');
-            }, 3000);
-        }
-
-        // Initialize on load
-        init();
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/pt_editor.js"></script>
 </body>
 </html>
