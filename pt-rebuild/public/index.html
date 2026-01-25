@@ -1910,7 +1910,16 @@ ${queueData}
                 try {
                     const rawQueue = JSON.parse(stored);
 
-                    // Migrate old session format to new format (PRESERVE DATA, don't delete)
+                    /**
+                     * MIGRATION CODE - CAN BE REMOVED AFTER ALL USERS MIGRATED (est. 2026-03)
+                     *
+                     * Migrates old session format to new format.
+                     * Old bug: Hold exercises created multiple sets (one per rep) with reps=null.
+                     * Fix: Collapse into single set with correct rep count.
+                     *
+                     * This migration preserves all clinical data that was logged before the fix.
+                     * Once all users have migrated their offline queues, this code can be safely removed.
+                     */
                     offlineQueue = rawQueue.map((session, sessionIdx) => {
                         // Check if this is an old format session (missing set_number)
                         if (session.sets && session.sets.length > 0) {
@@ -1979,6 +1988,7 @@ ${queueData}
                         saveOfflineQueue();
                         console.log('Migrated old sessions to new format');
                     }
+                    // END MIGRATION CODE - Can be removed after all users migrated (est. 2026-03)
                 } catch (e) {
                     console.error('Error loading offline queue:', e);
                     offlineQueue = [];
