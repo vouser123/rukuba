@@ -1942,7 +1942,9 @@ ${queueData}
                         if (firstSet.distance_feet != null && firstSet.distance_feet > 0) {
                             activityType = 'distance';
                         } else if (firstSet.seconds != null && firstSet.seconds > 0) {
-                            activityType = 'timed';
+                            // If has both reps and seconds: hold (reps × Xs hold each)
+                            // If has seconds but no reps: duration (just timed)
+                            activityType = (firstSet.reps != null && firstSet.reps > 0) ? 'hold' : 'duration';
                         }
                     }
 
