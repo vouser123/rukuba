@@ -122,6 +122,10 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+            min-height: 44px;
+            -webkit-appearance: none;
+            appearance: none;
+            touch-action: manipulation;
         }
 
         .auth-error {
@@ -658,10 +662,7 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-        const SUPABASE_URL = 'https://gjslecebfpgefvqnhmbi.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdqc2xlY2ViZnBnZWZ2cW5obWJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ4ODA1MjUsImV4cCI6MjA1MDQ1NjUyNX0.pWYrK2RJvb9zzyx94oRm5GBJmTHSY_m0SxPvLRYLOuQ';
-
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supabase = null;
 
         let currentUser = null;
         let authToken = null;
@@ -680,12 +681,61 @@
         let safetyFlags = [];
         let externalCues = [];
 
+        async function loadSupabaseConfig() {
+            const response = await fetch('/api/env');
+
+            if (!response.ok) {
+                throw new Error('Failed to load Supabase configuration.');
+            }
+
+            return response.json();
+        }
+
+        function readAuthParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                accessToken: params.get('access_token'),
+                refreshToken: params.get('refresh_token')
+            };
+        }
+
+        function clearAuthParams() {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('access_token');
+            url.searchParams.delete('refresh_token');
+            const newUrl = url.pathname + url.search + url.hash;
+            window.history.replaceState({}, '', newUrl);
+        }
+
         // Initialize
         async function init() {
+            const { supabaseUrl, supabaseAnonKey } = await loadSupabaseConfig();
+            supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+            const { accessToken, refreshToken } = readAuthParams();
+            let sessionHandled = false;
+
+            if (accessToken && refreshToken) {
+                const { data, error } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken
+                });
+                clearAuthParams();
+
+                if (error) {
+                    const errorDiv = document.getElementById('authError');
+                    errorDiv.textContent = `Token sign-in failed: ${error.message}`;
+                    errorDiv.classList.remove('hidden');
+                } else if (data.session) {
+                    await handleAuthSuccess(data.session);
+                    sessionHandled = true;
+                }
+            }
+
             // Check for existing session
             const { data: { session } } = await supabase.auth.getSession();
 
-            if (session) {
+            if (session && !sessionHandled) {
                 await handleAuthSuccess(session);
             }
 

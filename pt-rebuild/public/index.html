@@ -787,7 +787,7 @@
             <button class="hamburger-close" data-action="toggle-hamburger">Close</button>
         </div>
         <div>
-            <a href="pt_editor.html" class="hamburger-item">
+            <a href="pt_editor.html" class="hamburger-item" id="ptEditorLink">
                 <span class="hamburger-icon">✏️</span>
                 <span>Exercise Editor</span>
             </a>
@@ -952,13 +952,12 @@
 
     <script>
         // Supabase initialization
-        const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supabaseClient = null;
 
         // State
         let currentUser = null;
         let authToken = null;
+        let refreshToken = null;
         let allExercises = [];
         let allHistory = []; // All activity logs for smart dropdowns
         let currentExercise = null;
@@ -967,18 +966,34 @@
         let currentSide = 'right'; // Default side: right
         const CUSTOM_PARAM_VALUE = '__custom__'; // Special value for "Other" option
 
+        async function loadSupabaseConfig() {
+            const response = await fetch('/api/env');
+
+            if (!response.ok) {
+                throw new Error('Failed to load Supabase configuration.');
+            }
+
+            return response.json();
+        }
+
         // Initialize app
         async function init() {
+            const { supabaseUrl, supabaseAnonKey } = await loadSupabaseConfig();
+            supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
             // Check auth state
             const { data: { session } } = await supabaseClient.auth.getSession();
 
             if (session) {
                 currentUser = session.user;
                 authToken = session.access_token;
+                refreshToken = session.refresh_token;
                 hideAuthModal();
+                updateEditorLink();
                 await loadData();
             } else {
                 showAuthModal();
+                updateEditorLink();
             }
 
             // Auth state listener
@@ -986,12 +1001,16 @@
                 if (event === 'SIGNED_IN') {
                     currentUser = session.user;
                     authToken = session.access_token;
+                    refreshToken = session.refresh_token;
                     hideAuthModal();
+                    updateEditorLink();
                     loadData();
                 } else if (event === 'SIGNED_OUT') {
                     currentUser = null;
                     authToken = null;
+                    refreshToken = null;
                     showAuthModal();
+                    updateEditorLink();
                 }
             });
 
@@ -1001,6 +1020,7 @@
 
             // Bind event handlers
             bindEventHandlers();
+            updateEditorLink();
         }
 
         // Auth functions
@@ -1023,6 +1043,20 @@
             }
 
             return data;
+        }
+
+        function updateEditorLink() {
+            const editorLink = document.getElementById('ptEditorLink');
+            if (!editorLink) return;
+
+            const params = new URLSearchParams();
+            if (authToken && refreshToken) {
+                params.set('access_token', authToken);
+                params.set('refresh_token', refreshToken);
+            }
+
+            const query = params.toString();
+            editorLink.href = query ? `pt_editor.html?${query}` : 'pt_editor.html';
         }
 
         // Data loading
