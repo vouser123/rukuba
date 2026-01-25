@@ -16,7 +16,7 @@ CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   auth_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('patient', 'therapist')),
+  role TEXT NOT NULL CHECK (role IN ('patient', 'therapist', 'admin')),
   therapist_id UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -417,35 +417,44 @@ ALTER TABLE offline_mutations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY users_select_own ON users FOR SELECT
   USING (auth_id = auth.uid());
 
--- Exercises: All authenticated users can read and modify
+-- Exercises: Public read, admin/therapist write
 CREATE POLICY exercises_select_all ON exercises FOR SELECT TO authenticated
   USING (true);
 
-CREATE POLICY exercises_modify_all ON exercises FOR ALL TO authenticated
-  USING (true);
+CREATE POLICY exercises_modify_admin ON exercises FOR ALL TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('admin', 'therapist')
+  ));
 
--- Exercise attributes: All authenticated users can read and modify
+-- Exercise attributes: Public read, admin/therapist write
 CREATE POLICY exercise_equipment_select ON exercise_equipment FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_equipment_modify ON exercise_equipment FOR ALL TO authenticated USING (true);
+CREATE POLICY exercise_equipment_modify ON exercise_equipment FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('admin', 'therapist')));
 
 CREATE POLICY exercise_muscles_select ON exercise_muscles FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_muscles_modify ON exercise_muscles FOR ALL TO authenticated USING (true);
+CREATE POLICY exercise_muscles_modify ON exercise_muscles FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('admin', 'therapist')));
 
 CREATE POLICY exercise_pattern_modifiers_select ON exercise_pattern_modifiers FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_pattern_modifiers_modify ON exercise_pattern_modifiers FOR ALL TO authenticated USING (true);
+CREATE POLICY exercise_pattern_modifiers_modify ON exercise_pattern_modifiers FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('admin', 'therapist')));
 
 CREATE POLICY exercise_form_parameters_select ON exercise_form_parameters FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_form_parameters_modify ON exercise_form_parameters FOR ALL TO authenticated USING (true);
+CREATE POLICY exercise_form_parameters_modify ON exercise_form_parameters FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('admin', 'therapist')));
 
 CREATE POLICY exercise_guidance_select ON exercise_guidance FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_guidance_modify ON exercise_guidance FOR ALL TO authenticated USING (true);
+CREATE POLICY exercise_guidance_modify ON exercise_guidance FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('admin', 'therapist')));
 
--- Exercise Roles: All authenticated users can read and modify
+-- Exercise Roles: Public read, admin/therapist write
 CREATE POLICY exercise_roles_select_all ON exercise_roles FOR SELECT TO authenticated
   USING (true);
 
-CREATE POLICY exercise_roles_modify_all ON exercise_roles FOR ALL TO authenticated
-  USING (true);
+CREATE POLICY exercise_roles_modify_admin ON exercise_roles FOR ALL TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM users WHERE auth_id = auth.uid() AND role IN ('admin', 'therapist')
+  ));
 
 -- Patient Programs: Patients see own, therapists see their patients'
 CREATE POLICY programs_select_own ON patient_programs FOR SELECT TO authenticated
@@ -461,9 +470,11 @@ CREATE POLICY programs_select_own ON patient_programs FOR SELECT TO authenticate
     )
   );
 
-CREATE POLICY programs_modify_all ON patient_programs FOR ALL TO authenticated
+CREATE POLICY programs_modify_own ON patient_programs FOR ALL TO authenticated
   USING (
+    -- Patients can modify their own programs
     patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    -- Therapists can modify their patients' programs
     OR EXISTS (
       SELECT 1 FROM users u
       WHERE u.auth_id = auth.uid()
@@ -471,6 +482,10 @@ CREATE POLICY programs_modify_all ON patient_programs FOR ALL TO authenticated
         AND patient_programs.patient_id IN (
           SELECT id FROM users WHERE therapist_id = u.id
         )
+    )
+    -- Admins can modify all programs
+    OR EXISTS (
+      SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin'
     )
   );
 
@@ -486,9 +501,12 @@ CREATE POLICY program_history_select ON patient_program_history FOR SELECT TO au
           SELECT id FROM users WHERE therapist_id = u.id
         )
     )
+    OR EXISTS (
+      SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin'
+    )
   );
 
--- Activity Logs: Patients CRUD own, therapists SELECT their patients'
+-- Activity Logs: Patients CRUD own, therapists SELECT their patients', admins full access
 CREATE POLICY activity_logs_select_own ON patient_activity_logs FOR SELECT TO authenticated
   USING (
     patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
@@ -500,10 +518,16 @@ CREATE POLICY activity_logs_select_own ON patient_activity_logs FOR SELECT TO au
           SELECT id FROM users WHERE therapist_id = u.id
         )
     )
+    OR EXISTS (
+      SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin'
+    )
   );
 
 CREATE POLICY activity_logs_insert_own ON patient_activity_logs FOR INSERT TO authenticated
-  WITH CHECK (patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
+  WITH CHECK (
+    patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
 
 -- Activity Sets: Cascade from activity logs
 CREATE POLICY activity_sets_select ON patient_activity_sets FOR SELECT TO authenticated
@@ -512,6 +536,7 @@ CREATE POLICY activity_sets_select ON patient_activity_sets FOR SELECT TO authen
       SELECT id FROM patient_activity_logs
       WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
     )
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
   );
 
 CREATE POLICY activity_sets_insert ON patient_activity_sets FOR INSERT TO authenticated
@@ -520,6 +545,7 @@ CREATE POLICY activity_sets_insert ON patient_activity_sets FOR INSERT TO authen
       SELECT id FROM patient_activity_logs
       WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
     )
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
   );
 
 -- Activity Set Form Data: Cascade from activity sets
@@ -532,6 +558,7 @@ CREATE POLICY set_form_data_select ON patient_activity_set_form_data FOR SELECT 
         WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
       )
     )
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
   );
 
 CREATE POLICY set_form_data_insert ON patient_activity_set_form_data FOR INSERT TO authenticated
@@ -543,18 +570,26 @@ CREATE POLICY set_form_data_insert ON patient_activity_set_form_data FOR INSERT 
         WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
       )
     )
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
   );
 
--- Clinical Messages: Sender and recipient can read
+-- Clinical Messages: Sender and recipient can read, admins see all
 CREATE POLICY messages_select ON clinical_messages FOR SELECT TO authenticated
   USING (
     sender_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
     OR recipient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
   );
 
 CREATE POLICY messages_insert ON clinical_messages FOR INSERT TO authenticated
-  WITH CHECK (sender_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
+  WITH CHECK (
+    sender_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
 
--- Offline Mutations: Users manage their own queue
+-- Offline Mutations: Users manage their own queue, admins see all
 CREATE POLICY mutations_own ON offline_mutations FOR ALL TO authenticated
-  USING (user_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
+  USING (
+    user_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
