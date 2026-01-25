@@ -1920,23 +1920,55 @@ ${queueData}
                             if (firstSet.timestamp && !firstSet.set_number) {
                                 console.log('Migrating old format session:', session.sessionId);
 
-                                // Migrate sets to new format
-                                const migratedSets = session.sets.map((set, idx) => ({
-                                    set_number: idx + 1,
-                                    reps: set.reps || null,
-                                    seconds: set.seconds || null,
-                                    distance_feet: null,
-                                    side: null, // Old sessions don't have side tracking
-                                    form_data: null, // Old sessions don't have form data
-                                    manual_log: false,
-                                    partial_rep: false,
-                                    performed_at: set.timestamp || session.date
-                                }));
+                                // Check if this is a hold exercise (multiple sets with reps: null, seconds: X)
+                                // This was the bug - each hold created a separate set
+                                const allSetsHaveNullRepsAndSeconds = session.sets.every(s =>
+                                    (s.reps === null || s.reps === undefined) &&
+                                    (s.seconds !== null && s.seconds !== undefined && s.seconds > 0)
+                                );
 
-                                return {
-                                    ...session,
-                                    sets: migratedSets
-                                };
+                                if (allSetsHaveNullRepsAndSeconds) {
+                                    // COLLAPSE: multiple sets → 1 set with reps = count
+                                    const holdSeconds = session.sets[0].seconds;
+                                    const totalReps = session.sets.length;
+
+                                    console.log(`Collapsing ${totalReps} hold sets into 1 set (${totalReps} reps × ${holdSeconds}s)`);
+
+                                    const migratedSets = [{
+                                        set_number: 1,
+                                        reps: totalReps,
+                                        seconds: holdSeconds,
+                                        distance_feet: null,
+                                        side: session.sets[0].side || null,
+                                        form_data: null,
+                                        manual_log: false,
+                                        partial_rep: false,
+                                        performed_at: session.sets[0].timestamp || session.date
+                                    }];
+
+                                    return {
+                                        ...session,
+                                        sets: migratedSets
+                                    };
+                                } else {
+                                    // Normal migration: just add new fields
+                                    const migratedSets = session.sets.map((set, idx) => ({
+                                        set_number: idx + 1,
+                                        reps: set.reps || null,
+                                        seconds: set.seconds || null,
+                                        distance_feet: null,
+                                        side: set.side || null,
+                                        form_data: null,
+                                        manual_log: false,
+                                        partial_rep: false,
+                                        performed_at: set.timestamp || session.date
+                                    }));
+
+                                    return {
+                                        ...session,
+                                        sets: migratedSets
+                                    };
+                                }
                             }
                         }
                         return session; // Return unchanged if already in new format
