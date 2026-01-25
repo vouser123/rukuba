@@ -973,9 +973,9 @@
 
             // Lifecycle
             document.getElementById('archived').checked = currentExercise.archived || false;
-            document.getElementById('lifecycleStatus').value = currentExercise.lifecycle?.status || '';
-            document.getElementById('effectiveStartDate').value = currentExercise.lifecycle?.effective_start_date || '';
-            document.getElementById('effectiveEndDate').value = currentExercise.lifecycle?.effective_end_date || '';
+            document.getElementById('lifecycleStatus').value = currentExercise.lifecycle_status || '';
+            document.getElementById('effectiveStartDate').value = currentExercise.lifecycle_effective_start_date || '';
+            document.getElementById('effectiveEndDate').value = currentExercise.lifecycle_effective_end_date || '';
 
             toast('Exercise loaded', 'success');
         }
@@ -1279,16 +1279,10 @@
                     }
                 };
 
-                // Add lifecycle if any field is set
-                const lifecycleStatus = document.getElementById('lifecycleStatus').value;
-                const effectiveStartDate = document.getElementById('effectiveStartDate').value;
-                const effectiveEndDate = document.getElementById('effectiveEndDate').value;
-
-                if (lifecycleStatus || effectiveStartDate || effectiveEndDate) {
-                    exerciseData.lifecycle_status = lifecycleStatus || null;
-                    exerciseData.lifecycle_effective_start_date = effectiveStartDate || null;
-                    exerciseData.lifecycle_effective_end_date = effectiveEndDate || null;
-                }
+                // Add lifecycle fields (always include them, even if null)
+                exerciseData.lifecycle_status = document.getElementById('lifecycleStatus').value || null;
+                exerciseData.lifecycle_effective_start_date = document.getElementById('effectiveStartDate').value || null;
+                exerciseData.lifecycle_effective_end_date = document.getElementById('effectiveEndDate').value || null;
 
                 // Determine if creating or updating
                 const isUpdate = currentExercise !== null;
