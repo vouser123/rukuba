@@ -1053,6 +1053,20 @@
             if (authToken && refreshToken) {
                 params.set('access_token', authToken);
                 params.set('refresh_token', refreshToken);
+                try {
+                    localStorage.setItem('pt_editor_auth', JSON.stringify({
+                        access_token: authToken,
+                        refresh_token: refreshToken
+                    }));
+                } catch (error) {
+                    // Ignore storage errors
+                }
+            } else {
+                try {
+                    localStorage.removeItem('pt_editor_auth');
+                } catch (error) {
+                    // Ignore storage errors
+                }
             }
 
             const query = params.toString();
