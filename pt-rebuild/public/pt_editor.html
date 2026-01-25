@@ -679,11 +679,18 @@
 
         // Initialize
         async function init() {
+            console.log('[pt_editor] Initializing...');
+
             // Check for existing session
             const { data: { session } } = await supabase.auth.getSession();
 
+            console.log('[pt_editor] Existing session:', session ? 'Found' : 'None');
+
             if (session) {
+                console.log('[pt_editor] Auto-login with existing session');
                 await handleAuthSuccess(session);
+            } else {
+                console.log('[pt_editor] No session - showing login form');
             }
 
             // Set up auth form
@@ -704,6 +711,7 @@
             const password = document.getElementById('passwordInput').value;
             const errorDiv = document.getElementById('authError');
 
+            console.log('[pt_editor] Attempting sign in:', email);
             errorDiv.classList.add('hidden');
 
             try {
@@ -712,46 +720,67 @@
                     password
                 });
 
+                console.log('[pt_editor] Sign in response:', { data, error });
+
                 if (error) throw error;
 
+                console.log('[pt_editor] Sign in successful, calling handleAuthSuccess');
                 await handleAuthSuccess(data.session);
             } catch (error) {
-                console.error('Sign in error:', error);
-                errorDiv.textContent = error.message || 'Sign in failed';
+                console.error('[pt_editor] Sign in error:', error);
+                const errorMessage = error.message || 'Sign in failed';
+                errorDiv.textContent = errorMessage;
                 errorDiv.classList.remove('hidden');
+                toast(errorMessage, 'error');
             }
         }
 
         async function handleAuthSuccess(session) {
+            console.log('[pt_editor] handleAuthSuccess called');
             currentUser = session.user;
             authToken = session.access_token;
 
+            console.log('[pt_editor] User:', {
+                id: currentUser.id,
+                email: currentUser.email
+            });
+
             try {
                 // Verify therapist or admin role
+                console.log('[pt_editor] Looking up user role in database...');
                 const { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('role')
                     .eq('auth_id', currentUser.id)
                     .single();
 
+                console.log('[pt_editor] User lookup result:', { userData, userError });
+
                 if (userError) {
-                    console.error('User lookup error:', userError);
-                    toast(`Database error: ${userError.message}`, 'error');
+                    console.error('[pt_editor] User lookup error:', userError);
+                    const errorMsg = `Database error: ${userError.message}`;
+                    toast(errorMsg, 'error');
                     await supabase.auth.signOut();
                     return;
                 }
 
                 if (!userData) {
+                    console.error('[pt_editor] User not found in database');
                     toast('User not found in database. Contact administrator.', 'error');
                     await supabase.auth.signOut();
                     return;
                 }
 
+                console.log('[pt_editor] User role:', userData.role);
+
                 if (userData.role !== 'therapist' && userData.role !== 'admin') {
+                    console.error('[pt_editor] Role check failed:', userData.role);
                     toast(`Access denied. Your role: ${userData.role}. Required: therapist or admin.`, 'error');
                     await supabase.auth.signOut();
                     return;
                 }
+
+                console.log('[pt_editor] Role check passed! Loading app...');
 
                 // Show main content
                 document.getElementById('authModal').classList.add('hidden');
@@ -760,8 +789,10 @@
                 // Load data
                 await loadVocabularies();
                 await loadExercises();
+
+                console.log('[pt_editor] App loaded successfully');
             } catch (error) {
-                console.error('Authentication error:', error);
+                console.error('[pt_editor] Authentication error:', error);
                 toast(`Error: ${error.message}`, 'error');
                 await supabase.auth.signOut();
             }
