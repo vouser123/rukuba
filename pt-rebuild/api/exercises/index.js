@@ -7,14 +7,14 @@
  * DELETE /api/exercises/:id - Archive exercise (therapist only)
  */
 
-import { getSupabaseAdmin } from '../../lib/db.js';
+import { getSupabaseAdmin, getSupabaseWithAuth } from '../../lib/db.js';
 import { requireAuth, requireTherapist } from '../../lib/auth.js';
 
 /**
  * Route handler - delegates to GET/POST based on method
  */
 async function handler(req, res) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseWithAuth(req.accessToken);
 
   if (req.method === 'GET') {
     return handleGet(req, res, supabase);

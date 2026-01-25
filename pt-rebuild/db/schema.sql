@@ -417,44 +417,35 @@ ALTER TABLE offline_mutations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY users_select_own ON users FOR SELECT
   USING (auth_id = auth.uid());
 
--- Exercises: Public read for authenticated users, therapist-only write
+-- Exercises: All authenticated users can read and modify
 CREATE POLICY exercises_select_all ON exercises FOR SELECT TO authenticated
   USING (true);
 
-CREATE POLICY exercises_modify_therapist ON exercises FOR ALL TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'therapist'
-  ));
+CREATE POLICY exercises_modify_all ON exercises FOR ALL TO authenticated
+  USING (true);
 
--- Exercise attributes: Same as exercises (public read, therapist write)
+-- Exercise attributes: All authenticated users can read and modify
 CREATE POLICY exercise_equipment_select ON exercise_equipment FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_equipment_modify ON exercise_equipment FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'therapist'));
+CREATE POLICY exercise_equipment_modify ON exercise_equipment FOR ALL TO authenticated USING (true);
 
 CREATE POLICY exercise_muscles_select ON exercise_muscles FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_muscles_modify ON exercise_muscles FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'therapist'));
+CREATE POLICY exercise_muscles_modify ON exercise_muscles FOR ALL TO authenticated USING (true);
 
 CREATE POLICY exercise_pattern_modifiers_select ON exercise_pattern_modifiers FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_pattern_modifiers_modify ON exercise_pattern_modifiers FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'therapist'));
+CREATE POLICY exercise_pattern_modifiers_modify ON exercise_pattern_modifiers FOR ALL TO authenticated USING (true);
 
 CREATE POLICY exercise_form_parameters_select ON exercise_form_parameters FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_form_parameters_modify ON exercise_form_parameters FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'therapist'));
+CREATE POLICY exercise_form_parameters_modify ON exercise_form_parameters FOR ALL TO authenticated USING (true);
 
 CREATE POLICY exercise_guidance_select ON exercise_guidance FOR SELECT TO authenticated USING (true);
-CREATE POLICY exercise_guidance_modify ON exercise_guidance FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'therapist'));
+CREATE POLICY exercise_guidance_modify ON exercise_guidance FOR ALL TO authenticated USING (true);
 
--- Exercise Roles: Public read, therapist-only write
+-- Exercise Roles: All authenticated users can read and modify
 CREATE POLICY exercise_roles_select_all ON exercise_roles FOR SELECT TO authenticated
   USING (true);
 
-CREATE POLICY exercise_roles_modify_therapist ON exercise_roles FOR ALL TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'therapist'
-  ));
+CREATE POLICY exercise_roles_modify_all ON exercise_roles FOR ALL TO authenticated
+  USING (true);
 
 -- Patient Programs: Patients see own, therapists see their patients'
 CREATE POLICY programs_select_own ON patient_programs FOR SELECT TO authenticated
@@ -470,10 +461,18 @@ CREATE POLICY programs_select_own ON patient_programs FOR SELECT TO authenticate
     )
   );
 
-CREATE POLICY programs_modify_therapist ON patient_programs FOR ALL TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'therapist'
-  ));
+CREATE POLICY programs_modify_all ON patient_programs FOR ALL TO authenticated
+  USING (
+    patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM users u
+      WHERE u.auth_id = auth.uid()
+        AND u.role = 'therapist'
+        AND patient_programs.patient_id IN (
+          SELECT id FROM users WHERE therapist_id = u.id
+        )
+    )
+  );
 
 -- Program History: Same as programs
 CREATE POLICY program_history_select ON patient_program_history FOR SELECT TO authenticated

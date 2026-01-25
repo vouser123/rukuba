@@ -8,7 +8,7 @@
  * GET enforces: patients see own logs only, therapists see their patients' logs.
  */
 
-import { getSupabaseWithAuth, getSupabaseAdmin } from '../lib/db.js';
+import { getSupabaseWithAuth } from '../lib/db.js';
 import { requireAuth, requirePatient } from '../lib/auth.js';
 
 /**

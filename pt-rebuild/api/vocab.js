@@ -7,7 +7,7 @@
  * Returns vocabulary definitions for controlled vocabularies
  */
 
-import { getSupabaseAdmin } from '../lib/db.js';
+import { getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
 import { requireAuth } from '../lib/auth.js';
 
 const VOCAB_TABLES = [
@@ -20,7 +20,7 @@ const VOCAB_TABLES = [
 ];
 
 async function getVocabularies(req, res) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseWithAuth(req.accessToken);
   const { table } = req.query;
 
   try {

@@ -17,7 +17,7 @@
  * Public to authenticated users (both patients and therapists).
  */
 
-import { getSupabaseClient, getSupabaseAdmin } from '../lib/db.js';
+import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
 import { requireAuth } from '../lib/auth.js';
 
 // Valid enum values from schema
@@ -34,7 +34,7 @@ const MAX_ARRAY_SIZE = 100;
 const MAX_GUIDANCE_ITEM_LENGTH = 500;
 
 async function getExercises(req, res) {
-  const supabase = getSupabaseAdmin(); // Use admin to bypass RLS
+  const supabase = getSupabaseWithAuth(req.accessToken);
 
   try {
     // Fetch exercises
@@ -304,7 +304,7 @@ function validateExerciseData(data, isUpdate = false) {
  * POST /api/exercises - Create new exercise
  */
 async function createExercise(req, res) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseWithAuth(req.accessToken);
 
   const {
     id,
@@ -463,7 +463,7 @@ async function createExercise(req, res) {
  * PUT /api/exercises/:id - Update exercise
  */
 async function updateExercise(req, res, exerciseId) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseWithAuth(req.accessToken);
 
   const {
     canonical_name,
@@ -649,7 +649,7 @@ async function updateExercise(req, res, exerciseId) {
  * DELETE /api/exercises/:id - Archive exercise (soft delete)
  */
 async function deleteExercise(req, res, exerciseId) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseWithAuth(req.accessToken);
 
   try {
     const { data: exercise, error } = await supabase
