@@ -126,8 +126,11 @@
 
         .auth-error {
             color: var(--ios-red);
-            margin-top: 12px;
+            background: rgba(255, 69, 58, 0.1);
+            padding: 12px;
+            border-radius: 8px;
             font-size: 14px;
+            border: 1px solid var(--ios-red);
         }
 
         /* Toast */
@@ -396,7 +399,8 @@
     <div id="authModal" class="auth-modal">
         <div class="auth-content">
             <h2>PT Editor Sign In</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">Therapists only</p>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Therapist or admin access required</p>
+            <div id="authError" class="auth-error hidden" style="margin-bottom: 16px;"></div>
             <form id="authForm" class="auth-form">
                 <input
                     type="email"
@@ -413,7 +417,6 @@
                     autocomplete="current-password"
                 >
                 <button type="submit">Sign In</button>
-                <div id="authError" class="auth-error hidden"></div>
             </form>
         </div>
     </div>
@@ -703,8 +706,11 @@
             const email = document.getElementById('emailInput').value;
             const password = document.getElementById('passwordInput').value;
             const errorDiv = document.getElementById('authError');
+            const submitButton = document.querySelector('#authForm button[type="submit"]');
 
             errorDiv.classList.add('hidden');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Signing in...';
 
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({
@@ -716,13 +722,16 @@
 
                 await handleAuthSuccess(data.session);
             } catch (error) {
-                console.error('Sign in error:', error);
-                errorDiv.textContent = error.message || 'Sign in failed';
+                const errorMessage = error.message || 'Sign in failed';
+                errorDiv.textContent = errorMessage;
                 errorDiv.classList.remove('hidden');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Sign In';
             }
         }
 
         async function handleAuthSuccess(session) {
+            const errorDiv = document.getElementById('authError');
             currentUser = session.user;
             authToken = session.access_token;
 
@@ -735,35 +744,39 @@
                     .single();
 
                 if (userError) {
-                    console.error('User lookup error:', userError);
-                    toast(`Database error: ${userError.message}`, 'error');
-                    await supabase.auth.signOut();
-                    return;
+                    throw new Error(`Database error: ${userError.message}`);
                 }
 
                 if (!userData) {
-                    toast('User not found in database. Contact administrator.', 'error');
-                    await supabase.auth.signOut();
-                    return;
+                    throw new Error('User not found in database. Please contact administrator.');
                 }
 
                 if (userData.role !== 'therapist' && userData.role !== 'admin') {
-                    toast(`Access denied. Your role: ${userData.role}. Required: therapist or admin.`, 'error');
-                    await supabase.auth.signOut();
-                    return;
+                    throw new Error(`Access denied. Your role is "${userData.role}". Required: therapist or admin.`);
                 }
 
-                // Show main content
+                // Success! Show main content
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
 
                 // Load data
                 await loadVocabularies();
                 await loadExercises();
+
             } catch (error) {
-                console.error('Authentication error:', error);
-                toast(`Error: ${error.message}`, 'error');
-                await supabase.auth.signOut();
+                // Show error - don't sign out, let them try again
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+
+                // Reset form
+                const submitButton = document.querySelector('#authForm button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Sign In';
+                }
+
+                // Clear the password field
+                document.getElementById('passwordInput').value = '';
             }
         }
 
