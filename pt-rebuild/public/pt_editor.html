@@ -726,15 +726,15 @@
             currentUser = session.user;
             authToken = session.access_token;
 
-            // Verify therapist role
+            // Verify therapist or admin role
             const { data: userData } = await supabase
                 .from('users')
                 .select('role')
                 .eq('auth_id', currentUser.id)
                 .single();
 
-            if (!userData || userData.role !== 'therapist') {
-                toast('Access denied. Therapists only.', 'error');
+            if (!userData || (userData.role !== 'therapist' && userData.role !== 'admin')) {
+                toast('Access denied. Therapist or admin access required.', 'error');
                 await supabase.auth.signOut();
                 return;
             }
