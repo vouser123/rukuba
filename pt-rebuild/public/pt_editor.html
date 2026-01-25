@@ -726,26 +726,45 @@
             currentUser = session.user;
             authToken = session.access_token;
 
-            // Verify therapist or admin role
-            const { data: userData } = await supabase
-                .from('users')
-                .select('role')
-                .eq('auth_id', currentUser.id)
-                .single();
+            try {
+                // Verify therapist or admin role
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('auth_id', currentUser.id)
+                    .single();
 
-            if (!userData || (userData.role !== 'therapist' && userData.role !== 'admin')) {
-                toast('Access denied. Therapist or admin access required.', 'error');
+                if (userError) {
+                    console.error('User lookup error:', userError);
+                    toast(`Database error: ${userError.message}`, 'error');
+                    await supabase.auth.signOut();
+                    return;
+                }
+
+                if (!userData) {
+                    toast('User not found in database. Contact administrator.', 'error');
+                    await supabase.auth.signOut();
+                    return;
+                }
+
+                if (userData.role !== 'therapist' && userData.role !== 'admin') {
+                    toast(`Access denied. Your role: ${userData.role}. Required: therapist or admin.`, 'error');
+                    await supabase.auth.signOut();
+                    return;
+                }
+
+                // Show main content
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+
+                // Load data
+                await loadVocabularies();
+                await loadExercises();
+            } catch (error) {
+                console.error('Authentication error:', error);
+                toast(`Error: ${error.message}`, 'error');
                 await supabase.auth.signOut();
-                return;
             }
-
-            // Show main content
-            document.getElementById('authModal').classList.add('hidden');
-            document.getElementById('mainContent').classList.remove('hidden');
-
-            // Load data
-            await loadVocabularies();
-            await loadExercises();
         }
 
         async function signOut() {
