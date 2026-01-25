@@ -659,8 +659,8 @@
     <!-- Toast Container -->
     <div id="toast" class="toast"></div>
 
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
 
         let supabase = null;
 
@@ -741,7 +741,7 @@
         // Initialize
         async function init() {
             const { supabaseUrl, supabaseAnonKey } = await loadSupabaseConfig();
-            supabase = createClient(supabaseUrl, supabaseAnonKey);
+            supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
             const { accessToken, refreshToken, source } = readAuthParams();
             let sessionHandled = false;
