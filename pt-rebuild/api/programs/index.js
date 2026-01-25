@@ -7,11 +7,11 @@
  * DELETE /api/programs/:id - Remove assignment
  */
 
-import { getSupabaseAdmin } from '../../lib/db.js';
+import { getSupabaseAdmin, getSupabaseWithAuth } from '../../lib/db.js';
 import { requireAuth } from '../../lib/auth.js';
 
 async function handler(req, res) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseWithAuth(req.accessToken);
 
   if (req.method === 'GET') {
     return handleGet(req, res, supabase);

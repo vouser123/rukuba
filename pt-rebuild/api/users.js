@@ -1,12 +1,12 @@
 /**
- * Users API - Get list of users (therapist only for now)
+ * Users API - Get list of users
  */
 
-import { getSupabaseAdmin } from '../lib/db.js';
-import { requireTherapist } from '../lib/auth.js';
+import { getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
+import { requireAuth } from '../lib/auth.js';
 
 async function getUsers(req, res) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseWithAuth(req.accessToken);
 
   try {
     const { data: users, error } = await supabase
@@ -27,4 +27,4 @@ async function getUsers(req, res) {
   }
 }
 
-export default requireTherapist(getUsers);
+export default requireAuth(getUsers);

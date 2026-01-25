@@ -3,14 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>PT Editor - Exercise Library Manager</title>
-    <link rel="stylesheet" href="main.css">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        /* CSS Variables - Light Mode (Default) */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f2f2f7;
+            --bg-tertiary: #e5e5ea;
+            --text-primary: #000000;
+            --text-secondary: #3c3c43;
+            --border-color: #c6c6c8;
+            --ios-blue: #007aff;
+            --ios-green: #28a745;
+            --ios-orange: #d68000;
+            --ios-red: #d70015;
+            --ios-yellow: #b8860b;
+            --ios-gray: #8e8e93;
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #000000;
+                --bg-secondary: #1c1c1e;
+                --bg-tertiary: #2c2c2e;
+                --text-primary: #ffffff;
+                --text-secondary: #8e8e93;
+                --border-color: #38383a;
+                --ios-blue: #0a84ff;
+                --ios-green: #30d158;
+                --ios-orange: #ff9f0a;
+                --ios-red: #ff453a;
+                --ios-yellow: #ffd60a;
+                --ios-gray: #636366;
+            }
+        }
+
+        * {
             margin: 0;
             padding: 0;
-            background: #f5f5f5;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            line-height: 1.6;
+            touch-action: manipulation;
         }
 
         /* Auth Modal */
@@ -20,11 +66,13 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--bg-primary);
+            z-index: 10000;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            padding: 20px;
         }
 
         .auth-modal.hidden {
@@ -32,278 +80,323 @@
         }
 
         .auth-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
             max-width: 400px;
-            width: 90%;
+            width: 100%;
+            text-align: center;
         }
 
         .auth-content h2 {
-            margin: 0 0 1.5rem 0;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .auth-form {
+            margin-top: 20px;
         }
 
         .auth-form input {
             width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
             font-size: 16px;
-            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .auth-form input:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
         }
 
         .auth-form button {
             width: 100%;
-            padding: 0.75rem;
-            background: #007bff;
+            padding: 14px;
+            background: var(--ios-blue);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
         }
 
-        .auth-form button:active {
-            background: #0056b3;
+        .auth-error {
+            color: var(--ios-red);
+            margin-top: 12px;
+            font-size: 14px;
         }
 
-        .auth-error {
-            color: #d32f2f;
-            margin-top: 1rem;
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ios-blue);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
             font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10001;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--ios-green);
+        }
+
+        .toast.error {
+            background: var(--ios-red);
         }
 
         /* Header */
         .header {
-            background: white;
-            padding: 1rem;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .header h1 {
-            margin: 0;
-            font-size: 1.5rem;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
         }
 
         .header-actions {
+            margin-top: 12px;
             display: flex;
-            gap: 0.5rem;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
-        .btn {
-            padding: 0.5rem 1rem;
-            background: #007bff;
+        /* Buttons */
+        .btn-primary {
+            background: var(--ios-blue);
             color: white;
             border: none;
-            border-radius: 4px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 14px;
+            font-family: inherit;
+            min-height: 48px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
         }
 
         .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn:active {
-            opacity: 0.8;
-        }
-
-        /* Search Bar */
-        .search-container {
-            padding: 1rem;
-            background: white;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            background: var(--bg-secondary);
+            color: var(--ios-blue);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
             font-size: 16px;
-            box-sizing: border-box;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
         }
 
-        /* Exercise List */
-        .exercise-list {
-            padding: 1rem;
+        .btn-danger {
+            background: var(--ios-red);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
         }
 
-        .exercise-card {
-            background: white;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 14px 12px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:hover, .form-select:hover {
+            border-color: var(--ios-blue);
+            background: var(--bg-secondary);
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+            background: var(--bg-secondary);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.5;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
             cursor: pointer;
         }
 
-        .exercise-card:active {
-            background: #f0f0f0;
+        /* Collapsible Details */
+        details {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
         }
 
-        .exercise-name {
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 0.25rem;
+        details summary {
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--ios-blue);
+            margin-bottom: 12px;
+            list-style: none;
         }
 
-        .exercise-meta {
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .exercise-actions {
-            margin-top: 0.5rem;
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-small {
-            padding: 0.25rem 0.75rem;
-            font-size: 12px;
-        }
-
-        /* Modal */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        .modal.hidden {
+        details summary::-webkit-details-marker {
             display: none;
         }
 
-        .modal-content {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
+        details summary::before {
+            content: '▶ ';
+            display: inline-block;
+            margin-right: 6px;
+            transition: transform 0.2s;
         }
 
-        .modal-header {
+        details[open] summary::before {
+            transform: rotate(90deg);
+        }
+
+        /* Tag Input */
+        .tag-list {
             display: flex;
-            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tag {
+            background: var(--ios-blue);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: flex;
             align-items: center;
-            margin-bottom: 1rem;
+            gap: 8px;
         }
 
-        .modal-header h2 {
-            margin: 0;
-        }
-
-        .close-btn {
+        .tag button {
             background: none;
             border: none;
-            font-size: 1.5rem;
+            color: white;
             cursor: pointer;
+            font-size: 16px;
             padding: 0;
-            width: 2rem;
-            height: 2rem;
+            line-height: 1;
         }
 
-        .form-group {
-            margin-bottom: 1rem;
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 0.25rem;
-            font-weight: 500;
+        .spinner {
+            border: 3px solid var(--border-color);
+            border-top-color: var(--ios-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
         }
 
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .form-group textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .form-actions {
+        /* Action Buttons */
+        .action-buttons {
             display: flex;
-            gap: 0.5rem;
-            margin-top: 1.5rem;
+            gap: 12px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-color);
         }
 
-        .form-actions button {
+        .action-buttons button {
             flex: 1;
         }
 
-        /* Loading indicator */
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: #666;
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
         }
 
-        /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: #666;
-        }
-
-        .vocab-panel {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-top: 1rem;
-        }
-
-        .vocab-section {
-            margin-bottom: 1rem;
-        }
-
-        .vocab-section h4 {
-            margin: 0 0 0.5rem 0;
-            font-size: 0.9rem;
-        }
-
-        .vocab-items {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.25rem;
-        }
-
-        .vocab-tag {
-            background: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 3px;
-            font-size: 0.85rem;
-            border: 1px solid #ddd;
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <!-- Auth Modal (blocking until signed in) -->
+    <!-- Auth Modal -->
     <div id="authModal" class="auth-modal">
         <div class="auth-content">
             <h2>PT Editor Sign In</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Therapists only</p>
             <form id="authForm" class="auth-form">
                 <input
                     type="email"
@@ -320,185 +413,347 @@
                     autocomplete="current-password"
                 >
                 <button type="submit">Sign In</button>
-                <div id="authError" class="auth-error"></div>
+                <div id="authError" class="auth-error hidden"></div>
             </form>
         </div>
     </div>
 
-    <!-- Header -->
-    <div class="header">
-        <h1>PT Editor</h1>
-        <div class="header-actions">
-            <button class="btn" data-action="new-exercise">+ New Exercise</button>
-            <button class="btn btn-secondary" data-action="sign-out">Sign Out</button>
-        </div>
-    </div>
-
-    <!-- Search -->
-    <div class="search-container">
-        <input
-            type="text"
-            id="searchInput"
-            class="search-input"
-            placeholder="Search exercises..."
-        >
-    </div>
-
-    <!-- Exercise List -->
-    <div id="exerciseList" class="exercise-list">
-        <div class="loading">Loading exercises...</div>
-    </div>
-
-    <!-- Edit Exercise Modal -->
-    <div id="editModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Edit Exercise</h2>
-                <button class="close-btn" data-action="close-modal">&times;</button>
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+        <!-- Header -->
+        <div class="header">
+            <h1>PT Editor - Exercise Library Manager</h1>
+            <div class="header-actions">
+                <button class="btn-secondary" onclick="clearForm()">➕ New Exercise</button>
+                <button class="btn-danger" onclick="signOut()">Sign Out</button>
             </div>
-            <form id="exerciseForm">
+        </div>
+
+        <!-- Exercise Selector -->
+        <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px; font-size: 18px;">Select Exercise to Edit</h3>
+
+            <div class="form-group">
+                <input type="text" id="exerciseSearch" class="form-input" placeholder="🔍 Search exercises..." oninput="filterExercises()">
+            </div>
+
+            <div class="form-group">
+                <select id="exerciseSelect" class="form-select" onchange="loadExerciseForEdit()">
+                    <option value="">-- Add New Exercise (leave blank) --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Exercise Form -->
+        <form id="exerciseForm">
+            <!-- Basic Information (Always Visible) -->
+            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <h4 style="margin-bottom: 12px; font-size: 16px; color: var(--ios-blue);">📝 Basic Information</h4>
+
                 <div class="form-group">
-                    <label for="exerciseName">Exercise Name *</label>
-                    <input type="text" id="exerciseName" required>
+                    <label class="form-label" for="canonicalName">Canonical Name *</label>
+                    <input type="text" id="canonicalName" class="form-input" placeholder="e.g., Single Leg Bridge" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="exerciseDescription">Description *</label>
-                    <textarea id="exerciseDescription" required></textarea>
+                    <label class="form-label" for="description">Description *</label>
+                    <textarea id="description" class="form-input" rows="3" placeholder="Clear description of the exercise and how to perform it" required></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label for="exerciseCategory">PT Category *</label>
-                    <select id="exerciseCategory" required>
-                        <option value="">Select category...</option>
+                    <label class="form-label" for="ptCategory">PT Category *</label>
+                    <select id="ptCategory" class="form-select" required>
+                        <option value="">-- Select Category --</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="exercisePattern">Pattern *</label>
-                    <select id="exercisePattern" required>
-                        <option value="">Select pattern...</option>
+                    <label class="form-label" for="pattern">Movement Pattern *</label>
+                    <select id="pattern" class="form-select" required>
+                        <option value="">-- Select Pattern --</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="exerciseArchived">
-                        Archived
+                    <label class="form-label">Pattern Modifiers</label>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <input type="checkbox" id="modDuration" value="duration_seconds">
+                            <span>duration_seconds</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <input type="checkbox" id="modHold" value="hold_seconds">
+                            <span>hold_seconds</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <input type="checkbox" id="modDistance" value="distance_feet">
+                            <span>distance_feet</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment -->
+            <details>
+                <summary>🏋️ Equipment</summary>
+
+                <div class="form-group">
+                    <label class="form-label">Required Equipment</label>
+                    <div id="requiredEquipmentTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="requiredEquipmentInput" class="form-input" placeholder="Enter equipment name">
+                        <button type="button" class="btn-secondary" onclick="addRequiredEquipment()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Optional Equipment</label>
+                    <div id="optionalEquipmentTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="optionalEquipmentInput" class="form-input" placeholder="Enter equipment name">
+                        <button type="button" class="btn-secondary" onclick="addOptionalEquipment()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Muscles -->
+            <details>
+                <summary>💪 Muscles</summary>
+
+                <div class="form-group">
+                    <label class="form-label">Primary Muscles</label>
+                    <div id="primaryMusclesTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="primaryMusclesInput" class="form-input" placeholder="Enter muscle name">
+                        <button type="button" class="btn-secondary" onclick="addPrimaryMuscle()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Secondary Muscles</label>
+                    <div id="secondaryMusclesTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="secondaryMusclesInput" class="form-input" placeholder="Enter muscle name">
+                        <button type="button" class="btn-secondary" onclick="addSecondaryMuscle()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Form Parameters -->
+            <details>
+                <summary>📋 Form Parameters</summary>
+
+                <div class="form-group">
+                    <label class="form-label">Required Form Parameters</label>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                        Examples: band_resistance, surface, eyes, distance, weight
+                    </p>
+                    <div id="formParametersTags" class="tag-list"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="formParametersInput" class="form-input" placeholder="Enter parameter name">
+                        <button type="button" class="btn-secondary" onclick="addFormParameter()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Guidance -->
+            <details>
+                <summary>🎯 Guidance</summary>
+
+                <div class="form-group">
+                    <label class="form-label">Motor Cues</label>
+                    <div id="motorCuesList"></div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="text" id="motorCuesInput" class="form-input" placeholder="Enter motor cue">
+                        <button type="button" class="btn-secondary" onclick="addMotorCue()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Compensation Warnings</label>
+                    <div id="compensationWarningsList"></div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="text" id="compensationWarningsInput" class="form-input" placeholder="Enter warning">
+                        <button type="button" class="btn-secondary" onclick="addCompensationWarning()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Safety Flags</label>
+                    <div id="safetyFlagsList"></div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="text" id="safetyFlagsInput" class="form-input" placeholder="Enter safety flag">
+                        <button type="button" class="btn-secondary" onclick="addSafetyFlag()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">External Cues</label>
+                    <div id="externalCuesList"></div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="text" id="externalCuesInput" class="form-input" placeholder="Enter external cue">
+                        <button type="button" class="btn-secondary" onclick="addExternalCue()" style="white-space: nowrap;">Add</button>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Lifecycle & Status -->
+            <details>
+                <summary>🔄 Lifecycle & Status</summary>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="archived">
+                        <span class="form-label" style="margin: 0;">Archived</span>
                     </label>
                 </div>
 
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
-                    <button type="submit" class="btn">Save Exercise</button>
+                <div class="form-group">
+                    <label class="form-label" for="lifecycleStatus">Lifecycle Status</label>
+                    <select id="lifecycleStatus" class="form-select">
+                        <option value="">-- None --</option>
+                        <option value="active">Active</option>
+                        <option value="deprecated">Deprecated</option>
+                        <option value="archived">Archived</option>
+                    </select>
                 </div>
-            </form>
 
-            <div class="vocab-panel">
-                <h3>Reference: Vocabulary</h3>
-                <div id="vocabReference"></div>
+                <div class="form-group">
+                    <label class="form-label" for="effectiveStartDate">Effective Start Date</label>
+                    <input type="date" id="effectiveStartDate" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="effectiveEndDate">Effective End Date</label>
+                    <input type="date" id="effectiveEndDate" class="form-input">
+                </div>
+            </details>
+
+            <!-- Vocabulary Reference -->
+            <details>
+                <summary>📚 Vocabulary Reference (Read-Only)</summary>
+
+                <div id="vocabReference" style="font-size: 14px; line-height: 1.6;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading vocabularies...
+                    </div>
+                </div>
+            </details>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button type="button" class="btn-secondary" onclick="clearForm()">Cancel</button>
+                <button type="submit" class="btn-primary">Save Exercise</button>
             </div>
-        </div>
+        </form>
     </div>
 
-    <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Toast Container -->
+    <div id="toast" class="toast"></div>
 
-    <script>
-        // Supabase initialization
-        const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-        // State
+        const SUPABASE_URL = 'https://gjslecebfpgefvqnhmbi.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdqc2xlY2ViZnBnZWZ2cW5obWJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ4ODA1MjUsImV4cCI6MjA1MDQ1NjUyNX0.pWYrK2RJvb9zzyx94oRm5GBJmTHSY_m0SxPvLRYLOuQ';
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         let currentUser = null;
         let authToken = null;
         let allExercises = [];
+        let currentExercise = null;
         let vocabularies = {};
-        let editingExerciseId = null;
 
-        // Initialize app
+        // Tag arrays
+        let requiredEquipment = [];
+        let optionalEquipment = [];
+        let primaryMuscles = [];
+        let secondaryMuscles = [];
+        let formParameters = [];
+        let motorCues = [];
+        let compensationWarnings = [];
+        let safetyFlags = [];
+        let externalCues = [];
+
+        // Initialize
         async function init() {
-            // Check auth state
-            const { data: { session } } = await supabaseClient.auth.getSession();
+            // Check for existing session
+            const { data: { session } } = await supabase.auth.getSession();
 
             if (session) {
-                currentUser = session.user;
-                authToken = session.access_token;
-                hideAuthModal();
-                await loadData();
-            } else {
-                showAuthModal();
+                await handleAuthSuccess(session);
             }
 
-            // Auth state listener
-            supabaseClient.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_IN') {
-                    currentUser = session.user;
-                    authToken = session.access_token;
-                    hideAuthModal();
-                    loadData();
-                } else if (event === 'SIGNED_OUT') {
-                    currentUser = null;
-                    authToken = null;
-                    showAuthModal();
-                }
+            // Set up auth form
+            document.getElementById('authForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await signIn();
             });
 
-            // Bind event handlers
-            bindEventHandlers();
+            // Set up exercise form
+            document.getElementById('exerciseForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await saveExercise();
+            });
         }
 
-        // Auth functions
-        function showAuthModal() {
-            document.getElementById('authModal').classList.remove('hidden');
+        async function signIn() {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const errorDiv = document.getElementById('authError');
+
+            errorDiv.classList.add('hidden');
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) throw error;
+
+                await handleAuthSuccess(data.session);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                errorDiv.textContent = error.message || 'Sign in failed';
+                errorDiv.classList.remove('hidden');
+            }
         }
 
-        function hideAuthModal() {
+        async function handleAuthSuccess(session) {
+            currentUser = session.user;
+            authToken = session.access_token;
+
+            // Verify therapist role
+            const { data: userData } = await supabase
+                .from('users')
+                .select('role')
+                .eq('auth_id', currentUser.id)
+                .single();
+
+            if (!userData || userData.role !== 'therapist') {
+                toast('Access denied. Therapists only.', 'error');
+                await supabase.auth.signOut();
+                return;
+            }
+
+            // Show main content
             document.getElementById('authModal').classList.add('hidden');
-        }
+            document.getElementById('mainContent').classList.remove('hidden');
 
-        async function signIn(email, password) {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email,
-                password
-            });
-
-            if (error) {
-                throw error;
-            }
-
-            return data;
+            // Load data
+            await loadVocabularies();
+            await loadExercises();
         }
 
         async function signOut() {
-            await supabaseClient.auth.signOut();
+            await supabase.auth.signOut();
+            location.reload();
         }
 
-        // Data loading functions
-        async function loadData() {
-            try {
-                document.getElementById('exerciseList').innerHTML = '<div class="loading">Loading exercises...</div>';
-
-                // Load exercises and vocabularies in parallel
-                const [exercisesResult, vocabResult] = await Promise.all([
-                    fetchWithAuth('/api/exercises'),
-                    fetchWithAuth('/api/vocab')
-                ]);
-
-                allExercises = exercisesResult.exercises || [];
-                vocabularies = vocabResult.vocabularies || {};
-
-                renderExerciseList(allExercises);
-                populateVocabularySelects();
-                renderVocabularyReference();
-
-            } catch (error) {
-                console.error('Failed to load data:', error);
-                document.getElementById('exerciseList').innerHTML =
-                    '<div class="empty-state">Failed to load exercises. Please try again.</div>';
-            }
-        }
+        window.signOut = signOut;
 
         async function fetchWithAuth(url, options = {}) {
             const headers = {
@@ -516,267 +771,542 @@
             });
 
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                let errorDetail = '';
+                try {
+                    const errorBody = await response.json();
+                    errorDetail = errorBody.error || errorBody.message || JSON.stringify(errorBody);
+                } catch (e) {
+                    errorDetail = await response.text();
+                }
+                throw new Error(`API error ${response.status}: ${errorDetail || response.statusText}`);
             }
 
             return response.json();
         }
 
-        // Render functions
-        function renderExerciseList(exercises) {
-            const listEl = document.getElementById('exerciseList');
+        async function loadVocabularies() {
+            try {
+                const result = await fetchWithAuth('/api/vocab');
+                vocabularies = result.vocabularies;
 
-            if (exercises.length === 0) {
-                listEl.innerHTML = '<div class="empty-state">No exercises found. Create your first exercise!</div>';
-                return;
-            }
+                // Populate category select
+                const categorySelect = document.getElementById('ptCategory');
+                categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
+                if (vocabularies.pt_category) {
+                    vocabularies.pt_category.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.code;
+                        option.textContent = `${cat.code} - ${cat.definition}`;
+                        categorySelect.appendChild(option);
+                    });
+                }
 
-            const html = exercises.map(ex => `
-                <div class="exercise-card" data-id="${ex.id}">
-                    <div class="exercise-name">${escapeHtml(ex.canonical_name)}</div>
-                    <div class="exercise-meta">
-                        ${escapeHtml(ex.pt_category)} • ${escapeHtml(ex.pattern)}
-                        ${ex.archived ? ' • <strong>ARCHIVED</strong>' : ''}
-                    </div>
-                    <div class="exercise-actions">
-                        <button class="btn btn-small" data-action="edit-exercise" data-id="${ex.id}">Edit</button>
-                        <button class="btn btn-small btn-secondary" data-action="toggle-archive" data-id="${ex.id}">
-                            ${ex.archived ? 'Unarchive' : 'Archive'}
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                // Populate pattern select
+                const patternSelect = document.getElementById('pattern');
+                patternSelect.innerHTML = '<option value="">-- Select Pattern --</option>';
+                if (vocabularies.pattern) {
+                    vocabularies.pattern.forEach(pat => {
+                        const option = document.createElement('option');
+                        option.value = pat.code;
+                        option.textContent = `${pat.code} - ${pat.definition}`;
+                        patternSelect.appendChild(option);
+                    });
+                }
 
-            listEl.innerHTML = html;
-        }
-
-        function populateVocabularySelects() {
-            const categorySelect = document.getElementById('exerciseCategory');
-            const patternSelect = document.getElementById('exercisePattern');
-
-            // Populate PT Categories
-            if (vocabularies.pt_category) {
-                categorySelect.innerHTML = '<option value="">Select category...</option>' +
-                    vocabularies.pt_category.map(item =>
-                        `<option value="${escapeHtml(item.term)}">${escapeHtml(item.term)}</option>`
-                    ).join('');
-            }
-
-            // Populate Patterns
-            if (vocabularies.pattern) {
-                patternSelect.innerHTML = '<option value="">Select pattern...</option>' +
-                    vocabularies.pattern.map(item =>
-                        `<option value="${escapeHtml(item.term)}">${escapeHtml(item.term)}</option>`
-                    ).join('');
+                // Render vocabulary reference
+                renderVocabularyReference();
+            } catch (error) {
+                console.error('Failed to load vocabularies:', error);
+                toast('Failed to load vocabularies', 'error');
             }
         }
 
         function renderVocabularyReference() {
             const container = document.getElementById('vocabReference');
+            let html = '';
 
             const sections = [
-                { key: 'region', label: 'Regions' },
-                { key: 'capacity', label: 'Capacities' },
-                { key: 'focus', label: 'Focus Areas' },
-                { key: 'contribution', label: 'Contributions' }
+                { key: 'region', title: 'Regions', emoji: '🗺️' },
+                { key: 'capacity', title: 'Capacities', emoji: '⚡' },
+                { key: 'focus', title: 'Focus Areas', emoji: '🎯' },
+                { key: 'contribution', title: 'Contributions', emoji: '📊' },
+                { key: 'pt_category', title: 'PT Categories', emoji: '📂' },
+                { key: 'pattern', title: 'Movement Patterns', emoji: '🔄' }
             ];
 
-            const html = sections.map(section => {
-                const items = vocabularies[section.key] || [];
-                return `
-                    <div class="vocab-section">
-                        <h4>${section.label}</h4>
-                        <div class="vocab-items">
-                            ${items.map(item =>
-                                `<span class="vocab-tag" title="${escapeHtml(item.definition || '')}">${escapeHtml(item.term)}</span>`
-                            ).join('')}
+            sections.forEach(section => {
+                if (vocabularies[section.key]) {
+                    html += `
+                        <div style="margin-bottom: 20px;">
+                            <h5 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--ios-blue);">
+                                ${section.emoji} ${section.title}
+                            </h5>
+                            <ul style="margin-left: 20px;">
+                                ${vocabularies[section.key].map(item => `
+                                    <li style="margin-bottom: 4px;">
+                                        <strong>${item.code}</strong>: ${item.definition}
+                                    </li>
+                                `).join('')}
+                            </ul>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }
+            });
 
             container.innerHTML = html;
         }
 
-        // Exercise editing functions
-        function openNewExerciseModal() {
-            editingExerciseId = null;
-            document.getElementById('modalTitle').textContent = 'New Exercise';
-            document.getElementById('exerciseForm').reset();
-            document.getElementById('editModal').classList.remove('hidden');
+        async function loadExercises() {
+            try {
+                const result = await fetchWithAuth('/api/exercises');
+                allExercises = result.exercises || [];
+
+                // Populate exercise select
+                const select = document.getElementById('exerciseSelect');
+                select.innerHTML = '<option value="">-- Add New Exercise (leave blank) --</option>';
+
+                allExercises
+                    .filter(ex => !ex.archived)
+                    .sort((a, b) => a.canonical_name.localeCompare(b.canonical_name))
+                    .forEach(ex => {
+                        const option = document.createElement('option');
+                        option.value = ex.id;
+                        option.textContent = ex.canonical_name;
+                        select.appendChild(option);
+                    });
+            } catch (error) {
+                console.error('Failed to load exercises:', error);
+                toast('Failed to load exercises', 'error');
+            }
         }
 
-        function openEditExerciseModal(exerciseId) {
-            editingExerciseId = exerciseId;
-            const exercise = allExercises.find(ex => ex.id === exerciseId);
+        function filterExercises() {
+            const searchTerm = document.getElementById('exerciseSearch').value.toLowerCase();
+            const select = document.getElementById('exerciseSelect');
+            const options = Array.from(select.options);
 
-            if (!exercise) {
-                alert('Exercise not found');
+            options.forEach((option, index) => {
+                if (index === 0) return; // Skip first "Add New" option
+                const text = option.textContent.toLowerCase();
+                option.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        window.filterExercises = filterExercises;
+
+        function loadExerciseForEdit() {
+            const exerciseId = document.getElementById('exerciseSelect').value;
+
+            if (!exerciseId) {
+                clearForm();
                 return;
             }
 
-            document.getElementById('modalTitle').textContent = 'Edit Exercise';
-            document.getElementById('exerciseName').value = exercise.canonical_name;
-            document.getElementById('exerciseDescription').value = exercise.description;
-            document.getElementById('exerciseCategory').value = exercise.pt_category;
-            document.getElementById('exercisePattern').value = exercise.pattern;
-            document.getElementById('exerciseArchived').checked = exercise.archived || false;
+            currentExercise = allExercises.find(ex => ex.id === exerciseId);
+            if (!currentExercise) return;
 
-            document.getElementById('editModal').classList.remove('hidden');
+            // Populate basic fields
+            document.getElementById('canonicalName').value = currentExercise.canonical_name || '';
+            document.getElementById('description').value = currentExercise.description || '';
+            document.getElementById('ptCategory').value = currentExercise.pt_category || '';
+            document.getElementById('pattern').value = currentExercise.pattern || '';
+
+            // Pattern modifiers
+            const modifiers = currentExercise.pattern_modifiers || [];
+            document.getElementById('modDuration').checked = modifiers.includes('duration_seconds');
+            document.getElementById('modHold').checked = modifiers.includes('hold_seconds');
+            document.getElementById('modDistance').checked = modifiers.includes('distance_feet');
+
+            // Equipment
+            requiredEquipment = currentExercise.equipment?.required || [];
+            optionalEquipment = currentExercise.equipment?.optional || [];
+            renderEquipmentTags();
+
+            // Muscles
+            primaryMuscles = currentExercise.primary_muscles || [];
+            secondaryMuscles = currentExercise.secondary_muscles || [];
+            renderMuscleTags();
+
+            // Form parameters
+            formParameters = currentExercise.form_parameters_required || [];
+            renderFormParameterTags();
+
+            // Guidance
+            const guidance = currentExercise.guidance || {};
+            motorCues = guidance.motor_cues || [];
+            compensationWarnings = guidance.compensation_warnings || [];
+            safetyFlags = guidance.safety_flags || [];
+            externalCues = guidance.external_cues || [];
+            renderGuidanceLists();
+
+            // Lifecycle
+            document.getElementById('archived').checked = currentExercise.archived || false;
+            document.getElementById('lifecycleStatus').value = currentExercise.lifecycle?.status || '';
+            document.getElementById('effectiveStartDate').value = currentExercise.lifecycle?.effective_start_date || '';
+            document.getElementById('effectiveEndDate').value = currentExercise.lifecycle?.effective_end_date || '';
+
+            toast('Exercise loaded', 'success');
         }
 
-        function closeModal() {
-            document.getElementById('editModal').classList.add('hidden');
-            editingExerciseId = null;
+        window.loadExerciseForEdit = loadExerciseForEdit;
+
+        function clearForm() {
+            currentExercise = null;
+            document.getElementById('exerciseSelect').value = '';
+            document.getElementById('exerciseSearch').value = '';
+            document.getElementById('exerciseForm').reset();
+
+            // Clear arrays
+            requiredEquipment = [];
+            optionalEquipment = [];
+            primaryMuscles = [];
+            secondaryMuscles = [];
+            formParameters = [];
+            motorCues = [];
+            compensationWarnings = [];
+            safetyFlags = [];
+            externalCues = [];
+
+            // Re-render all tags
+            renderEquipmentTags();
+            renderMuscleTags();
+            renderFormParameterTags();
+            renderGuidanceLists();
+
+            toast('Form cleared', 'success');
         }
 
-        async function saveExercise(formData) {
+        window.clearForm = clearForm;
+
+        // Equipment functions
+        function addRequiredEquipment() {
+            const input = document.getElementById('requiredEquipmentInput');
+            const value = input.value.trim();
+            if (value && !requiredEquipment.includes(value)) {
+                requiredEquipment.push(value);
+                renderEquipmentTags();
+                input.value = '';
+            }
+        }
+
+        function addOptionalEquipment() {
+            const input = document.getElementById('optionalEquipmentInput');
+            const value = input.value.trim();
+            if (value && !optionalEquipment.includes(value)) {
+                optionalEquipment.push(value);
+                renderEquipmentTags();
+                input.value = '';
+            }
+        }
+
+        function removeRequiredEquipment(index) {
+            requiredEquipment.splice(index, 1);
+            renderEquipmentTags();
+        }
+
+        function removeOptionalEquipment(index) {
+            optionalEquipment.splice(index, 1);
+            renderEquipmentTags();
+        }
+
+        function renderEquipmentTags() {
+            const requiredContainer = document.getElementById('requiredEquipmentTags');
+            requiredContainer.innerHTML = requiredEquipment.map((item, i) => `
+                <div class="tag">
+                    ${escapeHtml(item)}
+                    <button type="button" onclick="removeRequiredEquipment(${i})">×</button>
+                </div>
+            `).join('');
+
+            const optionalContainer = document.getElementById('optionalEquipmentTags');
+            optionalContainer.innerHTML = optionalEquipment.map((item, i) => `
+                <div class="tag">
+                    ${escapeHtml(item)}
+                    <button type="button" onclick="removeOptionalEquipment(${i})">×</button>
+                </div>
+            `).join('');
+        }
+
+        window.addRequiredEquipment = addRequiredEquipment;
+        window.addOptionalEquipment = addOptionalEquipment;
+        window.removeRequiredEquipment = removeRequiredEquipment;
+        window.removeOptionalEquipment = removeOptionalEquipment;
+
+        // Muscle functions
+        function addPrimaryMuscle() {
+            const input = document.getElementById('primaryMusclesInput');
+            const value = input.value.trim();
+            if (value && !primaryMuscles.includes(value)) {
+                primaryMuscles.push(value);
+                renderMuscleTags();
+                input.value = '';
+            }
+        }
+
+        function addSecondaryMuscle() {
+            const input = document.getElementById('secondaryMusclesInput');
+            const value = input.value.trim();
+            if (value && !secondaryMuscles.includes(value)) {
+                secondaryMuscles.push(value);
+                renderMuscleTags();
+                input.value = '';
+            }
+        }
+
+        function removePrimaryMuscle(index) {
+            primaryMuscles.splice(index, 1);
+            renderMuscleTags();
+        }
+
+        function removeSecondaryMuscle(index) {
+            secondaryMuscles.splice(index, 1);
+            renderMuscleTags();
+        }
+
+        function renderMuscleTags() {
+            const primaryContainer = document.getElementById('primaryMusclesTags');
+            primaryContainer.innerHTML = primaryMuscles.map((item, i) => `
+                <div class="tag">
+                    ${escapeHtml(item)}
+                    <button type="button" onclick="removePrimaryMuscle(${i})">×</button>
+                </div>
+            `).join('');
+
+            const secondaryContainer = document.getElementById('secondaryMusclesTags');
+            secondaryContainer.innerHTML = secondaryMuscles.map((item, i) => `
+                <div class="tag">
+                    ${escapeHtml(item)}
+                    <button type="button" onclick="removeSecondaryMuscle(${i})">×</button>
+                </div>
+            `).join('');
+        }
+
+        window.addPrimaryMuscle = addPrimaryMuscle;
+        window.addSecondaryMuscle = addSecondaryMuscle;
+        window.removePrimaryMuscle = removePrimaryMuscle;
+        window.removeSecondaryMuscle = removeSecondaryMuscle;
+
+        // Form parameter functions
+        function addFormParameter() {
+            const input = document.getElementById('formParametersInput');
+            const value = input.value.trim();
+            if (value && !formParameters.includes(value)) {
+                formParameters.push(value);
+                renderFormParameterTags();
+                input.value = '';
+            }
+        }
+
+        function removeFormParameter(index) {
+            formParameters.splice(index, 1);
+            renderFormParameterTags();
+        }
+
+        function renderFormParameterTags() {
+            const container = document.getElementById('formParametersTags');
+            container.innerHTML = formParameters.map((item, i) => `
+                <div class="tag">
+                    ${escapeHtml(item)}
+                    <button type="button" onclick="removeFormParameter(${i})">×</button>
+                </div>
+            `).join('');
+        }
+
+        window.addFormParameter = addFormParameter;
+        window.removeFormParameter = removeFormParameter;
+
+        // Guidance functions
+        function addMotorCue() {
+            const input = document.getElementById('motorCuesInput');
+            const value = input.value.trim();
+            if (value) {
+                motorCues.push(value);
+                renderGuidanceLists();
+                input.value = '';
+            }
+        }
+
+        function addCompensationWarning() {
+            const input = document.getElementById('compensationWarningsInput');
+            const value = input.value.trim();
+            if (value) {
+                compensationWarnings.push(value);
+                renderGuidanceLists();
+                input.value = '';
+            }
+        }
+
+        function addSafetyFlag() {
+            const input = document.getElementById('safetyFlagsInput');
+            const value = input.value.trim();
+            if (value) {
+                safetyFlags.push(value);
+                renderGuidanceLists();
+                input.value = '';
+            }
+        }
+
+        function addExternalCue() {
+            const input = document.getElementById('externalCuesInput');
+            const value = input.value.trim();
+            if (value) {
+                externalCues.push(value);
+                renderGuidanceLists();
+                input.value = '';
+            }
+        }
+
+        function removeMotorCue(index) {
+            motorCues.splice(index, 1);
+            renderGuidanceLists();
+        }
+
+        function removeCompensationWarning(index) {
+            compensationWarnings.splice(index, 1);
+            renderGuidanceLists();
+        }
+
+        function removeSafetyFlag(index) {
+            safetyFlags.splice(index, 1);
+            renderGuidanceLists();
+        }
+
+        function removeExternalCue(index) {
+            externalCues.splice(index, 1);
+            renderGuidanceLists();
+        }
+
+        function renderGuidanceLists() {
+            const renderList = (items, removeFunc) => {
+                return items.map((item, i) => `
+                    <div style="background: var(--bg-secondary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>${escapeHtml(item)}</span>
+                        <button type="button" class="btn-danger" onclick="${removeFunc}(${i})" style="padding: 4px 12px; min-height: auto;">×</button>
+                    </div>
+                `).join('');
+            };
+
+            document.getElementById('motorCuesList').innerHTML = renderList(motorCues, 'removeMotorCue');
+            document.getElementById('compensationWarningsList').innerHTML = renderList(compensationWarnings, 'removeCompensationWarning');
+            document.getElementById('safetyFlagsList').innerHTML = renderList(safetyFlags, 'removeSafetyFlag');
+            document.getElementById('externalCuesList').innerHTML = renderList(externalCues, 'removeExternalCue');
+        }
+
+        window.addMotorCue = addMotorCue;
+        window.addCompensationWarning = addCompensationWarning;
+        window.addSafetyFlag = addSafetyFlag;
+        window.addExternalCue = addExternalCue;
+        window.removeMotorCue = removeMotorCue;
+        window.removeCompensationWarning = removeCompensationWarning;
+        window.removeSafetyFlag = removeSafetyFlag;
+        window.removeExternalCue = removeExternalCue;
+
+        // Save exercise
+        async function saveExercise() {
             try {
-                const payload = {
-                    canonical_name: formData.get('name'),
-                    description: formData.get('description'),
-                    pt_category: formData.get('category'),
-                    pattern: formData.get('pattern'),
-                    archived: formData.get('archived') === 'on'
-                };
+                const canonicalName = document.getElementById('canonicalName').value.trim();
+                const description = document.getElementById('description').value.trim();
+                const ptCategory = document.getElementById('ptCategory').value;
+                const pattern = document.getElementById('pattern').value;
 
-                let result;
-                if (editingExerciseId) {
-                    // Update existing exercise
-                    result = await fetchWithAuth(`/api/exercises/${editingExerciseId}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(payload)
-                    });
-                } else {
-                    // Create new exercise
-                    payload.id = generateExerciseId(payload.canonical_name);
-                    result = await fetchWithAuth('/api/exercises', {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
+                if (!canonicalName || !description || !ptCategory || !pattern) {
+                    toast('Please fill in all required fields', 'error');
+                    return;
                 }
 
-                // Reload data
-                await loadData();
-                closeModal();
+                // Generate ID from canonical name if creating new
+                const exerciseId = currentExercise ? currentExercise.id : generateExerciseId(canonicalName);
+
+                // Collect pattern modifiers
+                const patternModifiers = [];
+                if (document.getElementById('modDuration').checked) patternModifiers.push('duration_seconds');
+                if (document.getElementById('modHold').checked) patternModifiers.push('hold_seconds');
+                if (document.getElementById('modDistance').checked) patternModifiers.push('distance_feet');
+
+                // Build exercise payload
+                const exerciseData = {
+                    id: exerciseId,
+                    canonical_name: canonicalName,
+                    description: description,
+                    pt_category: ptCategory,
+                    pattern: pattern,
+                    archived: document.getElementById('archived').checked,
+                    pattern_modifiers: patternModifiers,
+                    equipment: {
+                        required: requiredEquipment,
+                        optional: optionalEquipment
+                    },
+                    primary_muscles: primaryMuscles,
+                    secondary_muscles: secondaryMuscles,
+                    form_parameters_required: formParameters,
+                    guidance: {
+                        motor_cues: motorCues,
+                        compensation_warnings: compensationWarnings,
+                        safety_flags: safetyFlags,
+                        external_cues: externalCues
+                    }
+                };
+
+                // Add lifecycle if any field is set
+                const lifecycleStatus = document.getElementById('lifecycleStatus').value;
+                const effectiveStartDate = document.getElementById('effectiveStartDate').value;
+                const effectiveEndDate = document.getElementById('effectiveEndDate').value;
+
+                if (lifecycleStatus || effectiveStartDate || effectiveEndDate) {
+                    exerciseData.lifecycle_status = lifecycleStatus || null;
+                    exerciseData.lifecycle_effective_start_date = effectiveStartDate || null;
+                    exerciseData.lifecycle_effective_end_date = effectiveEndDate || null;
+                }
+
+                // Determine if creating or updating
+                const isUpdate = currentExercise !== null;
+                const method = isUpdate ? 'PUT' : 'POST';
+                const url = isUpdate ? `/api/exercises/${exerciseId}` : '/api/exercises';
+
+                const result = await fetchWithAuth(url, {
+                    method: method,
+                    body: JSON.stringify(exerciseData)
+                });
+
+                toast(`Exercise ${isUpdate ? 'updated' : 'created'} successfully!`, 'success');
+
+                // Reload exercises and select the saved one
+                await loadExercises();
+                document.getElementById('exerciseSelect').value = exerciseId;
+                loadExerciseForEdit();
 
             } catch (error) {
                 console.error('Failed to save exercise:', error);
-                alert('Failed to save exercise. Please try again.');
+                toast(error.message || 'Failed to save exercise', 'error');
             }
         }
 
-        async function toggleArchive(exerciseId) {
-            const exercise = allExercises.find(ex => ex.id === exerciseId);
-            if (!exercise) return;
-
-            try {
-                await fetchWithAuth(`/api/exercises/${exerciseId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        archived: !exercise.archived
-                    })
-                });
-
-                // Reload data
-                await loadData();
-
-            } catch (error) {
-                console.error('Failed to toggle archive:', error);
-                alert('Failed to update exercise. Please try again.');
-            }
+        function generateExerciseId(name) {
+            return name.toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .trim();
         }
 
-        // Search function
-        function handleSearch(query) {
-            if (!query.trim()) {
-                renderExerciseList(allExercises);
-                return;
-            }
-
-            const lowerQuery = query.toLowerCase();
-            const filtered = allExercises.filter(ex =>
-                ex.canonical_name.toLowerCase().includes(lowerQuery) ||
-                ex.description.toLowerCase().includes(lowerQuery) ||
-                ex.pt_category.toLowerCase().includes(lowerQuery)
-            );
-
-            renderExerciseList(filtered);
-        }
-
-        // Event handlers
-        function bindEventHandlers() {
-            // Auth form
-            document.getElementById('authForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('emailInput').value;
-                const password = document.getElementById('passwordInput').value;
-                const errorEl = document.getElementById('authError');
-
-                try {
-                    await signIn(email, password);
-                    errorEl.textContent = '';
-                } catch (error) {
-                    errorEl.textContent = error.message;
-                }
-            });
-
-            // Search input
-            document.getElementById('searchInput').addEventListener('input', (e) => {
-                handleSearch(e.target.value);
-            });
-
-            // Exercise form
-            document.getElementById('exerciseForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                formData.set('name', document.getElementById('exerciseName').value);
-                formData.set('description', document.getElementById('exerciseDescription').value);
-                formData.set('category', document.getElementById('exerciseCategory').value);
-                formData.set('pattern', document.getElementById('exercisePattern').value);
-                formData.set('archived', document.getElementById('exerciseArchived').checked ? 'on' : 'off');
-                saveExercise(formData);
-            });
-
-            // Pointer events (iOS-safe)
-            document.body.addEventListener('pointerup', (e) => {
-                const action = e.target.dataset.action;
-                if (!action) return;
-
-                switch (action) {
-                    case 'new-exercise':
-                        openNewExerciseModal();
-                        break;
-                    case 'sign-out':
-                        signOut();
-                        break;
-                    case 'edit-exercise':
-                        openEditExerciseModal(e.target.dataset.id);
-                        break;
-                    case 'toggle-archive':
-                        toggleArchive(e.target.dataset.id);
-                        break;
-                    case 'close-modal':
-                        closeModal();
-                        break;
-                }
-            });
-        }
-
-        // Utility functions
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        function generateExerciseId(name) {
-            return name.toLowerCase()
-                .replace(/[^a-z0-9]+/g, '_')
-                .replace(/^_+|_+$/g, '');
+        function toast(message, type = 'success') {
+            const toastEl = document.getElementById('toast');
+            toastEl.textContent = message;
+            toastEl.className = `toast ${type}`;
+            toastEl.classList.add('show');
+
+            setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, 3000);
         }
 
-        // Start the app
+        // Initialize on load
         init();
     </script>
 </body>

@@ -7,11 +7,11 @@
  * Patients see own programs, therapists see their patients' programs.
  */
 
-import { getSupabaseClient, getSupabaseAdmin } from '../lib/db.js';
+import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
 import { requireAuth } from '../lib/auth.js';
 
 async function getPrograms(req, res) {
-  const supabase = getSupabaseAdmin(); // Use admin to bypass RLS
+  const supabase = getSupabaseWithAuth(req.accessToken);
   const { patient_id } = req.query;
 
   if (!patient_id) {

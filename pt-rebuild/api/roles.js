@@ -7,11 +7,11 @@
  * Returns exercise roles (region × capacity × focus × contribution)
  */
 
-import { getSupabaseAdmin } from '../lib/db.js';
+import { getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
 import { requireAuth } from '../lib/auth.js';
 
 async function getRoles(req, res) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseWithAuth(req.accessToken);
   const { exercise_id } = req.query;
 
   try {
