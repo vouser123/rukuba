@@ -1163,11 +1163,24 @@
                 return;
             }
 
+            // Determine activity type from pattern modifiers
+            let activityType = 'reps'; // default
+            if (currentExercise.pattern_modifiers) {
+                if (currentExercise.pattern_modifiers.includes('distance_feet')) {
+                    activityType = 'distance';
+                } else if (currentExercise.pattern_modifiers.includes('hold_seconds')) {
+                    activityType = 'hold';
+                } else if (currentExercise.pattern_modifiers.includes('duration_seconds')) {
+                    activityType = 'duration';
+                }
+            }
+
             // Initialize new session
             currentSession = {
                 sessionId: generateSessionId(),
                 exerciseId: currentExercise.id,
                 exerciseName: currentExercise.canonical_name,
+                activityType: activityType,
                 sets: [],
                 date: new Date().toISOString()
             };
@@ -1729,8 +1742,33 @@ ${queueData}
             let seconds = null;
 
             if (isTimerMode) {
-                seconds = value;
-                // Reset timer for next rep
+                // Timer mode: check if this is hold (per-rep) or duration (single timer)
+                const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+
+                if (hasHold) {
+                    // Hold exercise: track reps, create set only when all reps complete
+                    timerState.currentRep++;  // Increment rep count
+
+                    if (timerState.currentRep > timerState.totalReps) {
+                        // All reps complete - create the set
+                        reps = timerState.totalReps;  // Total reps performed
+                        seconds = timerState.targetSeconds;  // Seconds per rep
+                        // Don't add to currentSession.sets here - will be done below
+                    } else {
+                        // More reps to go - reset timer for next rep
+                        resetTimer();
+                        document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+                        closeLogSetModal();
+                        showToast(`Rep ${timerState.currentRep - 1} complete`, 'success', 2000);
+                        return;  // Don't create set yet
+                    }
+                } else {
+                    // Duration exercise: single set with just time
+                    reps = 1;  // Always 1 rep for duration
+                    seconds = value;
+                }
+
+                // Reset timer for next set
                 resetTimer();
             } else {
                 reps = value;
@@ -1793,7 +1831,7 @@ ${queueData}
 
             const set = {
                 set_number: currentSession.sets.length + 1,
-                reps: reps,
+                reps: reps,  // Always populated (never null)
                 seconds: seconds,
                 distance_feet: null, // TODO: Add distance mode
                 side: currentSide,
@@ -1804,6 +1842,12 @@ ${queueData}
             };
 
             currentSession.sets.push(set);
+
+            // Reset timer rep counter for next set (hold exercises)
+            if (isTimerMode && currentExercise.pattern_modifiers?.includes('hold_seconds')) {
+                timerState.currentRep = 1;
+                document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+            }
 
             // Update UI
             document.getElementById('totalSetsLogged').textContent = currentSession.sets.length;
@@ -1864,8 +1908,89 @@ ${queueData}
             const stored = localStorage.getItem('pt_offline_queue');
             if (stored) {
                 try {
-                    offlineQueue = JSON.parse(stored);
+                    const rawQueue = JSON.parse(stored);
+
+                    /**
+                     * MIGRATION CODE - CAN BE REMOVED AFTER ALL USERS MIGRATED (est. 2026-03)
+                     *
+                     * Migrates old session format to new format.
+                     * Old bug: Hold exercises created multiple sets (one per rep) with reps=null.
+                     * Fix: Collapse into single set with correct rep count.
+                     *
+                     * This migration preserves all clinical data that was logged before the fix.
+                     * Once all users have migrated their offline queues, this code can be safely removed.
+                     */
+                    offlineQueue = rawQueue.map((session, sessionIdx) => {
+                        // Check if this is an old format session (missing set_number)
+                        if (session.sets && session.sets.length > 0) {
+                            const firstSet = session.sets[0];
+
+                            // Old format: has "timestamp" instead of "performed_at", missing "set_number"
+                            if (firstSet.timestamp && !firstSet.set_number) {
+                                console.log('Migrating old format session:', session.sessionId);
+
+                                // Check if this is a hold exercise (multiple sets with reps: null, seconds: X)
+                                // This was the bug - each hold created a separate set
+                                const allSetsHaveNullRepsAndSeconds = session.sets.every(s =>
+                                    (s.reps === null || s.reps === undefined) &&
+                                    (s.seconds !== null && s.seconds !== undefined && s.seconds > 0)
+                                );
+
+                                if (allSetsHaveNullRepsAndSeconds) {
+                                    // COLLAPSE: multiple sets → 1 set with reps = count
+                                    const holdSeconds = session.sets[0].seconds;
+                                    const totalReps = session.sets.length;
+
+                                    console.log(`Collapsing ${totalReps} hold sets into 1 set (${totalReps} reps × ${holdSeconds}s)`);
+
+                                    const migratedSets = [{
+                                        set_number: 1,
+                                        reps: totalReps,
+                                        seconds: holdSeconds,
+                                        distance_feet: null,
+                                        side: session.sets[0].side || null,
+                                        form_data: null,
+                                        manual_log: false,
+                                        partial_rep: false,
+                                        performed_at: session.sets[0].timestamp || session.date
+                                    }];
+
+                                    return {
+                                        ...session,
+                                        sets: migratedSets
+                                    };
+                                } else {
+                                    // Normal migration: just add new fields
+                                    const migratedSets = session.sets.map((set, idx) => ({
+                                        set_number: idx + 1,
+                                        reps: set.reps || null,
+                                        seconds: set.seconds || null,
+                                        distance_feet: null,
+                                        side: set.side || null,
+                                        form_data: null,
+                                        manual_log: false,
+                                        partial_rep: false,
+                                        performed_at: set.timestamp || session.date
+                                    }));
+
+                                    return {
+                                        ...session,
+                                        sets: migratedSets
+                                    };
+                                }
+                            }
+                        }
+                        return session; // Return unchanged if already in new format
+                    });
+
+                    // Save migrated queue
+                    if (JSON.stringify(rawQueue) !== JSON.stringify(offlineQueue)) {
+                        saveOfflineQueue();
+                        console.log('Migrated old sessions to new format');
+                    }
+                    // END MIGRATION CODE - Can be removed after all users migrated (est. 2026-03)
                 } catch (e) {
+                    console.error('Error loading offline queue:', e);
                     offlineQueue = [];
                 }
             }
@@ -1896,14 +2021,15 @@ ${queueData}
 
             for (const session of [...offlineQueue]) {
                 try {
-                    // Determine activity type based on what data exists in sets
-                    let activityType = 'reps'; // default
-                    if (session.sets && session.sets.length > 0) {
+                    // Use stored activity type, or fallback to guessing from data
+                    let activityType = session.activityType || 'reps';
+                    if (!session.activityType && session.sets && session.sets.length > 0) {
+                        // Fallback for old sessions without activityType
                         const firstSet = session.sets[0];
                         if (firstSet.distance_feet != null && firstSet.distance_feet > 0) {
                             activityType = 'distance';
                         } else if (firstSet.seconds != null && firstSet.seconds > 0) {
-                            activityType = 'timed';
+                            activityType = (firstSet.reps != null && firstSet.reps > 0) ? 'hold' : 'duration';
                         }
                     }
 
@@ -1938,9 +2064,17 @@ ${queueData}
 
                 } catch (error) {
                     console.error('Failed to sync session:', session.sessionId, error);
-                    // Show detailed error in toast for debugging
-                    showToast(`Sync error: ${error.message || error}`, 'error', 5000);
-                    failCount++;
+
+                    // Handle 409 duplicate as success (session already exists in DB)
+                    if (error.message && error.message.includes('409')) {
+                        offlineQueue = offlineQueue.filter(s => s.sessionId !== session.sessionId);
+                        successCount++;
+                        console.log('Removed duplicate session from queue:', session.sessionId);
+                    } else {
+                        // Show detailed error in toast for debugging
+                        showToast(`Sync error: ${error.message || error}`, 'error', 5000);
+                        failCount++;
+                    }
                 }
             }
 
