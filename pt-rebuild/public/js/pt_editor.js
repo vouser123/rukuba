@@ -309,6 +309,42 @@ async function loadVocabularies() {
             });
         }
 
+        // Populate Region dropdown for roles
+        const regionSelect = document.getElementById('newRoleRegion');
+        regionSelect.innerHTML = '<option value="">-- Select region --</option>';
+        if (vocabularies.region) {
+            vocabularies.region.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.code;
+                option.textContent = `${item.code} - ${item.definition}`;
+                regionSelect.appendChild(option);
+            });
+        }
+
+        // Populate Capacity dropdown for roles
+        const capacitySelect = document.getElementById('newRoleCapacity');
+        capacitySelect.innerHTML = '<option value="">-- Select capacity --</option>';
+        if (vocabularies.capacity) {
+            vocabularies.capacity.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.code;
+                option.textContent = `${item.code} - ${item.definition}`;
+                capacitySelect.appendChild(option);
+            });
+        }
+
+        // Populate Focus dropdown for roles
+        const focusSelect = document.getElementById('newRoleFocus');
+        focusSelect.innerHTML = '<option value="">-- No focus (general) --</option>';
+        if (vocabularies.focus) {
+            vocabularies.focus.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.code;
+                option.textContent = `${item.code} - ${item.definition}`;
+                focusSelect.appendChild(option);
+            });
+        }
+
         updateVocabReference();
 
     } catch (error) {
@@ -375,7 +411,6 @@ async function loadExercises() {
         // Populate roles and dosage section dropdowns
         populateRoleExerciseDropdown();
         populateDosageExerciseDropdown();
-        populateRoleVocabDropdowns();
 
     } catch (error) {
         console.error('Failed to load exercises:', error);
@@ -385,7 +420,7 @@ async function loadExercises() {
 
 function populateRoleExerciseDropdown() {
     const select = document.getElementById('roleExerciseSelect');
-    select.innerHTML = '<option value="">-- Select Exercise --</option>';
+    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
     allExercises.forEach(exercise => {
         const option = document.createElement('option');
         option.value = exercise.id;
@@ -396,51 +431,13 @@ function populateRoleExerciseDropdown() {
 
 function populateDosageExerciseDropdown() {
     const select = document.getElementById('dosageExerciseSelect');
-    select.innerHTML = '<option value="">-- Select Exercise --</option>';
+    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
     allExercises.forEach(exercise => {
         const option = document.createElement('option');
         option.value = exercise.id;
         option.textContent = exercise.canonical_name;
         select.appendChild(option);
     });
-}
-
-function populateRoleVocabDropdowns() {
-    // Populate region dropdown
-    const regionSelect = document.getElementById('roleRegion');
-    regionSelect.innerHTML = '<option value="">-- Select Region --</option>';
-    if (vocabularies.region) {
-        vocabularies.region.forEach(region => {
-            const option = document.createElement('option');
-            option.value = region;
-            option.textContent = region;
-            regionSelect.appendChild(option);
-        });
-    }
-
-    // Populate capacity dropdown
-    const capacitySelect = document.getElementById('roleCapacity');
-    capacitySelect.innerHTML = '<option value="">-- Select Capacity --</option>';
-    if (vocabularies.capacity) {
-        vocabularies.capacity.forEach(capacity => {
-            const option = document.createElement('option');
-            option.value = capacity;
-            option.textContent = capacity;
-            capacitySelect.appendChild(option);
-        });
-    }
-
-    // Populate focus dropdown
-    const focusSelect = document.getElementById('roleFocus');
-    focusSelect.innerHTML = '<option value="">-- No specific focus --</option>';
-    if (vocabularies.focus) {
-        vocabularies.focus.forEach(focus => {
-            const option = document.createElement('option');
-            option.value = focus;
-            option.textContent = focus;
-            focusSelect.appendChild(option);
-        });
-    }
 }
 
 function filterExercises() {
@@ -956,236 +953,252 @@ function showBootError(error) {
 }
 
 // ========================================
-// ROLES SECTION
+// SECTION 2: ROLES MANAGEMENT
 // ========================================
 
-async function loadRolesForExercise() {
+let selectedExerciseForRoles = null;
+let currentRoles = [];
+
+function filterRoleExercises() {
+    filterExerciseDropdown('roleExerciseSelect', 'roleExerciseSearch');
+}
+
+window.filterRoleExercises = filterRoleExercises;
+
+function filterDosageExercises() {
+    filterExerciseDropdown('dosageExerciseSelect', 'dosageExerciseSearch');
+}
+
+window.filterDosageExercises = filterDosageExercises;
+
+function filterExerciseDropdown(selectId, searchId) {
+    const searchTerm = document.getElementById(searchId).value.toLowerCase();
+    const select = document.getElementById(selectId);
+
+    // Clear and repopulate
+    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
+    allExercises.filter(ex => ex.canonical_name.toLowerCase().includes(searchTerm))
+        .forEach(exercise => {
+            const option = document.createElement('option');
+            option.value = exercise.id;
+            option.textContent = exercise.canonical_name;
+            select.appendChild(option);
+        });
+}
+
+async function loadExerciseRoles() {
     const exerciseId = document.getElementById('roleExerciseSelect').value;
-    const formSection = document.getElementById('roleFormSection');
-    const rolesDisplay = document.getElementById('currentRoles');
 
     if (!exerciseId) {
-        formSection.style.display = 'none';
+        document.getElementById('currentRoles').innerHTML = '';
+        document.getElementById('addRoleForm').classList.add('hidden');
+        selectedExerciseForRoles = null;
         return;
     }
 
-    formSection.style.display = 'block';
+    selectedExerciseForRoles = allExercises.find(ex => ex.id === exerciseId);
+    if (!selectedExerciseForRoles) return;
 
     try {
-        const response = await fetchWithAuth(`/api/roles?exercise_id=${exerciseId}`);
-        const roles = response.roles || [];
+        const result = await fetchWithAuth(`/api/roles?exercise_id=${exerciseId}`);
+        currentRoles = result.roles || [];
 
-        if (roles.length === 0) {
-            rolesDisplay.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No roles assigned yet.</p>';
-        } else {
-            rolesDisplay.innerHTML = '<h4 style="font-size: 14px; margin-bottom: 10px;">Current Roles:</h4>' +
-                roles.map(role => `
-                    <div style="background: var(--bg-tertiary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>${role.region}</strong> × ${role.capacity}
-                            ${role.focus ? ` (${role.focus})` : ''}
-                            <span style="color: var(--ios-blue);">[${role.contribution}]</span>
-                        </div>
-                        <button type="button" class="btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="deleteRole('${role.id}')">Remove</button>
-                    </div>
-                `).join('');
-        }
+        renderCurrentRoles();
+        document.getElementById('addRoleForm').classList.remove('hidden');
+
     } catch (error) {
-        console.error('Error loading roles:', error);
+        console.error('Failed to load roles:', error);
         toast('Failed to load roles', 'error');
     }
 }
 
-async function saveRole() {
-    const exerciseId = document.getElementById('roleExerciseSelect').value;
-    const region = document.getElementById('roleRegion').value;
-    const capacity = document.getElementById('roleCapacity').value;
-    const focus = document.getElementById('roleFocus').value || null;
-    const contribution = document.getElementById('roleContribution').value;
+window.loadExerciseRoles = loadExerciseRoles;
 
-    if (!exerciseId || !region || !capacity || !contribution) {
-        toast('Please fill in all required fields', 'error');
+function renderCurrentRoles() {
+    const container = document.getElementById('currentRoles');
+
+    if (currentRoles.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No roles assigned yet.</p>';
+        return;
+    }
+
+    container.innerHTML = '<h4 style="margin-bottom: 10px; font-size: 16px;">Current Roles:</h4>' +
+        currentRoles.map(role => `
+            <div style="background: var(--bg-tertiary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--ios-blue); color: white; font-size: 11px; font-weight: 600; margin-right: 8px;">${role.contribution.toUpperCase()}</span>
+                    <strong>${role.region}</strong> / ${role.capacity}${role.focus ? ' / ' + role.focus : ''}
+                </div>
+                <button type="button" class="btn-danger" onclick="removeRole('${role.id}')" style="padding: 6px 12px; font-size: 12px;">Remove</button>
+            </div>
+        `).join('');
+}
+
+async function addRoleToExercise() {
+    const region = document.getElementById('newRoleRegion').value;
+    const capacity = document.getElementById('newRoleCapacity').value;
+    const focus = document.getElementById('newRoleFocus').value || null;
+    const contribution = document.getElementById('newRoleContribution').value;
+
+    if (!selectedExerciseForRoles) {
+        toast('Please select an exercise first', 'error');
+        return;
+    }
+
+    if (!region || !capacity || !contribution) {
+        toast('Please fill in all required role fields', 'error');
         return;
     }
 
     try {
+        const roleData = {
+            exercise_id: selectedExerciseForRoles.id,
+            region: region,
+            capacity: capacity,
+            focus: focus,
+            contribution: contribution
+        };
+
         await fetchWithAuth('/api/roles', {
             method: 'POST',
-            body: JSON.stringify({
-                exercise_id: exerciseId,
-                region,
-                capacity,
-                focus,
-                contribution
-            })
+            body: JSON.stringify(roleData)
         });
 
-        toast('Role added successfully', 'success');
+        toast('Role added successfully!', 'success');
 
         // Clear form
-        document.getElementById('roleRegion').value = '';
-        document.getElementById('roleCapacity').value = '';
-        document.getElementById('roleFocus').value = '';
-        document.getElementById('roleContribution').value = '';
+        document.getElementById('newRoleRegion').value = '';
+        document.getElementById('newRoleCapacity').value = '';
+        document.getElementById('newRoleFocus').value = '';
+        document.getElementById('newRoleContribution').value = '';
 
         // Reload roles
-        await loadRolesForExercise();
+        await loadExerciseRoles();
+
     } catch (error) {
-        console.error('Error saving role:', error);
-        toast(error.message || 'Failed to save role', 'error');
+        console.error('Failed to add role:', error);
+        toast(error.message || 'Failed to add role', 'error');
     }
 }
 
-async function deleteRole(roleId) {
-    if (!confirm('Remove this role assignment?')) return;
+window.addRoleToExercise = addRoleToExercise;
+
+async function removeRole(roleId) {
+    if (!confirm('Are you sure you want to remove this role?')) {
+        return;
+    }
 
     try {
         await fetchWithAuth(`/api/roles/${roleId}`, {
             method: 'DELETE'
         });
 
-        toast('Role removed', 'success');
-        await loadRolesForExercise();
+        toast('Role removed successfully!', 'success');
+        await loadExerciseRoles();
+
     } catch (error) {
-        console.error('Error deleting role:', error);
-        toast('Failed to delete role', 'error');
+        console.error('Failed to remove role:', error);
+        toast(error.message || 'Failed to remove role', 'error');
     }
 }
 
+window.removeRole = removeRole;
+
 // ========================================
-// DOSAGE SECTION
+// SECTION 3: DOSAGE MANAGEMENT
 // ========================================
 
-async function loadDosageForExercise() {
+let selectedExerciseForDosage = null;
+
+async function loadExerciseDosage() {
     const exerciseId = document.getElementById('dosageExerciseSelect').value;
-    const formSection = document.getElementById('dosageFormSection');
-    const dosageDisplay = document.getElementById('currentDosage');
 
     if (!exerciseId) {
-        formSection.style.display = 'none';
+        document.getElementById('currentDosageDisplay').classList.add('hidden');
+        document.getElementById('editDosageForm').classList.add('hidden');
+        selectedExerciseForDosage = null;
         return;
     }
 
-    formSection.style.display = 'block';
+    selectedExerciseForDosage = allExercises.find(ex => ex.id === exerciseId);
+    if (!selectedExerciseForDosage) return;
 
-    // Find the exercise to check modifiers
-    const exercise = allExercises.find(ex => ex.id === exerciseId);
-    if (exercise) {
-        const modifiers = exercise.pattern_modifiers || [];
-        const hasHold = modifiers.includes('hold_seconds');
-        const hasDuration = modifiers.includes('duration_seconds');
-        const hasDistance = modifiers.includes('distance_feet');
+    // Show/hide conditional fields based on pattern modifiers
+    const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
+    const hasHold = modifiers.includes('hold_seconds');
+    const hasDuration = modifiers.includes('duration_seconds');
+    const hasDistance = modifiers.includes('distance_feet');
+    const isUnilateral = selectedExerciseForDosage.pattern === 'side';
 
-        // Show/hide conditional fields
-        document.getElementById('dosageSecondsGroup').style.display = (hasHold || hasDuration) ? 'block' : 'none';
-        document.getElementById('dosageDistanceGroup').style.display = hasDistance ? 'block' : 'none';
-        document.getElementById('dosageSideGroup').style.display = (exercise.pattern === 'side') ? 'block' : 'none';
+    // Toggle visibility of conditional fields
+    document.getElementById('dosageSecondsGroup').classList.toggle('hidden', !(hasHold || hasDuration));
+    document.getElementById('dosageDistanceGroup').classList.toggle('hidden', !hasDistance);
+    document.getElementById('dosageSideGroup').classList.toggle('hidden', !isUnilateral);
 
-        // Update label
-        if (hasHold) {
-            document.getElementById('dosageSecondsLabel').textContent = 'Hold Seconds';
-        } else if (hasDuration) {
-            document.getElementById('dosageSecondsLabel').textContent = 'Duration Seconds';
-        }
+    // Update label based on modifier type
+    if (hasHold) {
+        document.getElementById('dosageSecondsLabel').textContent = 'Hold Seconds';
+    } else if (hasDuration) {
+        document.getElementById('dosageSecondsLabel').textContent = 'Duration Seconds';
     }
 
-    try {
-        const response = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
-        const programs = response.programs || [];
-        const program = programs.find(p => p.exercise_id === exerciseId);
+    // Show the form
+    document.getElementById('editDosageForm').classList.remove('hidden');
 
-        if (program) {
-            dosageDisplay.innerHTML = `
-                <div style="background: var(--bg-tertiary); padding: 10px; border-radius: 6px;">
-                    <h4 style="font-size: 14px; margin-bottom: 8px;">Current Dosage:</h4>
-                    <p>${program.current_sets} sets × ${program.current_reps} reps</p>
-                    ${program.seconds_per_rep ? `<p>Seconds: ${program.seconds_per_rep}</p>` : ''}
-                    ${program.distance_per_rep ? `<p>Distance: ${program.distance_per_rep} ft</p>` : ''}
-                    ${program.side ? `<p>Side: ${program.side}</p>` : ''}
-                </div>
-            `;
+    // Clear/reset fields
+    document.getElementById('dosageSets').value = '';
+    document.getElementById('dosageReps').value = '';
+    document.getElementById('dosageSeconds').value = '';
+    document.getElementById('dosageDistance').value = '';
+    document.getElementById('dosageSide').value = 'both';
 
-            // Pre-fill form
-            document.getElementById('dosageSets').value = program.current_sets || '';
-            document.getElementById('dosageReps').value = program.current_reps || '';
-            document.getElementById('dosageSeconds').value = program.seconds_per_rep || '';
-            document.getElementById('dosageDistance').value = program.distance_per_rep || '';
-            document.getElementById('dosageSide').value = program.side || 'both';
-        } else {
-            dosageDisplay.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No dosage set yet.</p>';
-            // Clear form
-            document.getElementById('dosageSets').value = '';
-            document.getElementById('dosageReps').value = '';
-            document.getElementById('dosageSeconds').value = '';
-            document.getElementById('dosageDistance').value = '';
-            document.getElementById('dosageSide').value = 'both';
-        }
-    } catch (error) {
-        console.error('Error loading dosage:', error);
-        toast('Failed to load dosage', 'error');
-    }
+    toast('Select dosage parameters below', 'success');
 }
 
-async function saveDosage() {
-    const exerciseId = document.getElementById('dosageExerciseSelect').value;
-    const sets = parseInt(document.getElementById('dosageSets').value);
-    const reps = parseInt(document.getElementById('dosageReps').value);
+window.loadExerciseDosage = loadExerciseDosage;
 
-    if (!exerciseId || !sets || !reps) {
+async function updateDosage() {
+    const sets = document.getElementById('dosageSets').value;
+    const reps = document.getElementById('dosageReps').value;
+
+    if (!selectedExerciseForDosage) {
+        toast('Please select an exercise first', 'error');
+        return;
+    }
+
+    if (!sets || !reps) {
         toast('Please fill in sets and reps', 'error');
         return;
     }
 
     const dosageData = {
-        patient_id: currentUser.id,
-        exercise_id: exerciseId,
-        current_sets: sets,
-        current_reps: reps
+        exercise_id: selectedExerciseForDosage.id,
+        sets: parseInt(sets),
+        reps: parseInt(reps)
     };
 
-    // Add conditional fields if visible
-    if (document.getElementById('dosageSecondsGroup').style.display !== 'none') {
-        const seconds = parseInt(document.getElementById('dosageSeconds').value);
-        if (seconds) dosageData.seconds_per_rep = seconds;
+    // Add optional fields if visible
+    const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
+    if (modifiers.includes('hold_seconds') || modifiers.includes('duration_seconds')) {
+        const seconds = document.getElementById('dosageSeconds').value;
+        if (seconds) dosageData.seconds = parseInt(seconds);
     }
 
-    if (document.getElementById('dosageDistanceGroup').style.display !== 'none') {
-        const distance = parseInt(document.getElementById('dosageDistance').value);
-        if (distance) dosageData.distance_per_rep = distance;
+    if (modifiers.includes('distance_feet')) {
+        const distance = document.getElementById('dosageDistance').value;
+        if (distance) dosageData.distance_feet = parseInt(distance);
     }
 
-    if (document.getElementById('dosageSideGroup').style.display !== 'none') {
+    if (selectedExerciseForDosage.pattern === 'side') {
         dosageData.side = document.getElementById('dosageSide').value;
     }
 
-    try {
-        // Check if program exists
-        const response = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
-        const programs = response.programs || [];
-        const existing = programs.find(p => p.exercise_id === exerciseId);
-
-        if (existing) {
-            // Update
-            await fetchWithAuth(`/api/programs/${existing.id}`, {
-                method: 'PUT',
-                body: JSON.stringify(dosageData)
-            });
-            toast('Dosage updated', 'success');
-        } else {
-            // Create
-            await fetchWithAuth('/api/programs', {
-                method: 'POST',
-                body: JSON.stringify(dosageData)
-            });
-            toast('Dosage created', 'success');
-        }
-
-        await loadDosageForExercise();
-    } catch (error) {
-        console.error('Error saving dosage:', error);
-        toast(error.message || 'Failed to save dosage', 'error');
-    }
+    // Note: This is a placeholder demo
+    console.log('Dosage data to save:', dosageData);
+    toast('Dosage updated! (Note: This is a demo - connect to patient programs)', 'success');
 }
+
+window.updateDosage = updateDosage;
 
 window.addEventListener('error', (event) => {
     if (event?.message) {
