@@ -8,6 +8,7 @@ let authToken = null;
 let allExercises = [];
 let currentExercise = null;
 let vocabularies = {};
+let referenceData = { equipment: [], muscles: [], formParameters: [] };
 
 // Tag arrays
 let requiredEquipment = [];
@@ -218,6 +219,7 @@ async function handleAuthSuccess(session) {
 
         // Load data
         await loadVocabularies();
+        await loadReferenceData();
         await loadExercises();
 
     } catch (error) {
@@ -351,6 +353,78 @@ async function loadVocabularies() {
         console.error('Failed to load vocabularies:', error);
         toast('Failed to load vocabularies', 'error');
     }
+}
+
+async function loadReferenceData() {
+    try {
+        const result = await fetchWithAuth('/api/reference-data');
+        referenceData = result;
+
+        // Populate Equipment dropdowns
+        populateReferenceDropdown('requiredEquipmentSelect', referenceData.equipment, 'Equipment');
+        populateReferenceDropdown('optionalEquipmentSelect', referenceData.equipment, 'Equipment');
+
+        // Populate Muscle dropdowns
+        populateReferenceDropdown('primaryMusclesSelect', referenceData.muscles, 'Muscle');
+        populateReferenceDropdown('secondaryMusclesSelect', referenceData.muscles, 'Muscle');
+
+        // Populate Form Parameter dropdown
+        populateReferenceDropdown('formParameterSelect', referenceData.formParameters, 'Parameter');
+
+        // Add change listeners for "Other" option handling
+        setupOtherOptionHandlers();
+
+    } catch (error) {
+        console.error('Failed to load reference data:', error);
+        toast('Failed to load reference data', 'error');
+    }
+}
+
+function populateReferenceDropdown(selectId, items, label) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.innerHTML = `<option value="">-- Select ${label} --</option>`;
+
+    items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.textContent = item;
+        select.appendChild(option);
+    });
+
+    // Add "Other" option
+    const otherOption = document.createElement('option');
+    otherOption.value = '__other__';
+    otherOption.textContent = '-- Other (enter custom) --';
+    select.appendChild(otherOption);
+}
+
+function setupOtherOptionHandlers() {
+    const selects = [
+        { selectId: 'requiredEquipmentSelect', inputId: 'requiredEquipmentOtherInput' },
+        { selectId: 'optionalEquipmentSelect', inputId: 'optionalEquipmentOtherInput' },
+        { selectId: 'primaryMusclesSelect', inputId: 'primaryMusclesOtherInput' },
+        { selectId: 'secondaryMusclesSelect', inputId: 'secondaryMusclesOtherInput' },
+        { selectId: 'formParameterSelect', inputId: 'formParameterOtherInput' }
+    ];
+
+    selects.forEach(({ selectId, inputId }) => {
+        const select = document.getElementById(selectId);
+        const input = document.getElementById(inputId);
+
+        if (select && input) {
+            select.addEventListener('change', () => {
+                if (select.value === '__other__') {
+                    input.style.display = 'block';
+                    input.focus();
+                } else {
+                    input.style.display = 'none';
+                    input.value = '';
+                }
+            });
+        }
+    });
 }
 
 function updateVocabReference() {
@@ -617,60 +691,150 @@ function removeTag(containerId, index) {
 window.removeTag = removeTag;
 
 function addRequiredEquipment() {
-    const input = document.getElementById('requiredEquipmentInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('requiredEquipmentSelect');
+    const otherInput = document.getElementById('requiredEquipmentOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter equipment', 'error');
+        return;
+    }
+
+    if (requiredEquipment.includes(value)) {
+        toast('Equipment already added', 'error');
+        return;
+    }
 
     requiredEquipment.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('requiredEquipmentTags', requiredEquipment);
 }
 
 window.addRequiredEquipment = addRequiredEquipment;
 
 function addOptionalEquipment() {
-    const input = document.getElementById('optionalEquipmentInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('optionalEquipmentSelect');
+    const otherInput = document.getElementById('optionalEquipmentOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter equipment', 'error');
+        return;
+    }
+
+    if (optionalEquipment.includes(value)) {
+        toast('Equipment already added', 'error');
+        return;
+    }
 
     optionalEquipment.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('optionalEquipmentTags', optionalEquipment);
 }
 
 window.addOptionalEquipment = addOptionalEquipment;
 
 function addPrimaryMuscle() {
-    const input = document.getElementById('primaryMusclesInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('primaryMusclesSelect');
+    const otherInput = document.getElementById('primaryMusclesOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter muscle', 'error');
+        return;
+    }
+
+    if (primaryMuscles.includes(value)) {
+        toast('Muscle already added', 'error');
+        return;
+    }
 
     primaryMuscles.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('primaryMusclesTags', primaryMuscles);
 }
 
 window.addPrimaryMuscle = addPrimaryMuscle;
 
 function addSecondaryMuscle() {
-    const input = document.getElementById('secondaryMusclesInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('secondaryMusclesSelect');
+    const otherInput = document.getElementById('secondaryMusclesOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter muscle', 'error');
+        return;
+    }
+
+    if (secondaryMuscles.includes(value)) {
+        toast('Muscle already added', 'error');
+        return;
+    }
 
     secondaryMuscles.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('secondaryMusclesTags', secondaryMuscles);
 }
 
 window.addSecondaryMuscle = addSecondaryMuscle;
 
 function addFormParameter() {
-    const input = document.getElementById('formParameterInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('formParameterSelect');
+    const otherInput = document.getElementById('formParameterOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter parameter', 'error');
+        return;
+    }
+
+    if (formParameters.includes(value)) {
+        toast('Parameter already added', 'error');
+        return;
+    }
 
     formParameters.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('formParameterTags', formParameters);
 }
 
