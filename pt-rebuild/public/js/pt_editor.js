@@ -25,7 +25,7 @@ async function loadSupabaseConfig() {
         const response = await fetch('/api/env');
 
         if (response.ok) {
-            return response.json();
+            return await response.json();
         }
     } catch (error) {
         // Fall through to fallback values.
@@ -281,7 +281,7 @@ async function fetchWithAuth(url, options = {}) {
 async function loadVocabularies() {
     try {
         const result = await fetchWithAuth('/api/vocab');
-        vocabularies = result;
+        vocabularies = result.vocabularies;
 
         // Populate category dropdown
         const categorySelect = document.getElementById('ptCategory');
@@ -306,6 +306,42 @@ async function loadVocabularies() {
                 option.value = item.code;
                 option.textContent = `${item.code} - ${item.definition}`;
                 patternSelect.appendChild(option);
+            });
+        }
+
+        // Populate Region dropdown for roles
+        const regionSelect = document.getElementById('newRoleRegion');
+        regionSelect.innerHTML = '<option value="">-- Select region --</option>';
+        if (vocabularies.region) {
+            vocabularies.region.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.code;
+                option.textContent = `${item.code} - ${item.definition}`;
+                regionSelect.appendChild(option);
+            });
+        }
+
+        // Populate Capacity dropdown for roles
+        const capacitySelect = document.getElementById('newRoleCapacity');
+        capacitySelect.innerHTML = '<option value="">-- Select capacity --</option>';
+        if (vocabularies.capacity) {
+            vocabularies.capacity.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.code;
+                option.textContent = `${item.code} - ${item.definition}`;
+                capacitySelect.appendChild(option);
+            });
+        }
+
+        // Populate Focus dropdown for roles
+        const focusSelect = document.getElementById('newRoleFocus');
+        focusSelect.innerHTML = '<option value="">-- No focus (general) --</option>';
+        if (vocabularies.focus) {
+            vocabularies.focus.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.code;
+                option.textContent = `${item.code} - ${item.definition}`;
+                focusSelect.appendChild(option);
             });
         }
 
@@ -372,10 +408,36 @@ async function loadExercises() {
             exerciseSelect.appendChild(option);
         });
 
+        // Populate roles and dosage section dropdowns
+        populateRoleExerciseDropdown();
+        populateDosageExerciseDropdown();
+
     } catch (error) {
         console.error('Failed to load exercises:', error);
         toast('Failed to load exercises', 'error');
     }
+}
+
+function populateRoleExerciseDropdown() {
+    const select = document.getElementById('roleExerciseSelect');
+    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
+    allExercises.forEach(exercise => {
+        const option = document.createElement('option');
+        option.value = exercise.id;
+        option.textContent = exercise.canonical_name;
+        select.appendChild(option);
+    });
+}
+
+function populateDosageExerciseDropdown() {
+    const select = document.getElementById('dosageExerciseSelect');
+    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
+    allExercises.forEach(exercise => {
+        const option = document.createElement('option');
+        option.value = exercise.id;
+        option.textContent = exercise.canonical_name;
+        select.appendChild(option);
+    });
 }
 
 function filterExercises() {
@@ -889,6 +951,274 @@ function showBootError(error) {
 
     showAuthAlert('PT Editor boot error', message);
 }
+
+// ========================================
+// SECTION 2: ROLES MANAGEMENT
+// ========================================
+
+let selectedExerciseForRoles = null;
+let currentRoles = [];
+
+function filterRoleExercises() {
+    filterExerciseDropdown('roleExerciseSelect', 'roleExerciseSearch');
+}
+
+window.filterRoleExercises = filterRoleExercises;
+
+function filterDosageExercises() {
+    filterExerciseDropdown('dosageExerciseSelect', 'dosageExerciseSearch');
+}
+
+window.filterDosageExercises = filterDosageExercises;
+
+function filterExerciseDropdown(selectId, searchId) {
+    const searchTerm = document.getElementById(searchId).value.toLowerCase();
+    const select = document.getElementById(selectId);
+
+    // Clear and repopulate
+    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
+    allExercises.filter(ex => ex.canonical_name.toLowerCase().includes(searchTerm))
+        .forEach(exercise => {
+            const option = document.createElement('option');
+            option.value = exercise.id;
+            option.textContent = exercise.canonical_name;
+            select.appendChild(option);
+        });
+}
+
+async function loadExerciseRoles() {
+    const exerciseId = document.getElementById('roleExerciseSelect').value;
+
+    if (!exerciseId) {
+        document.getElementById('currentRoles').innerHTML = '';
+        document.getElementById('addRoleForm').classList.add('hidden');
+        selectedExerciseForRoles = null;
+        return;
+    }
+
+    selectedExerciseForRoles = allExercises.find(ex => ex.id === exerciseId);
+    if (!selectedExerciseForRoles) return;
+
+    try {
+        const result = await fetchWithAuth(`/api/roles?exercise_id=${exerciseId}`);
+        currentRoles = result.roles || [];
+
+        renderCurrentRoles();
+        document.getElementById('addRoleForm').classList.remove('hidden');
+
+    } catch (error) {
+        console.error('Failed to load roles:', error);
+        toast('Failed to load roles', 'error');
+    }
+}
+
+window.loadExerciseRoles = loadExerciseRoles;
+
+function renderCurrentRoles() {
+    const container = document.getElementById('currentRoles');
+
+    if (currentRoles.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No roles assigned yet.</p>';
+        return;
+    }
+
+    container.innerHTML = '<h4 style="margin-bottom: 10px; font-size: 16px;">Current Roles:</h4>' +
+        currentRoles.map(role => `
+            <div style="background: var(--bg-tertiary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--ios-blue); color: white; font-size: 11px; font-weight: 600; margin-right: 8px;">${role.contribution.toUpperCase()}</span>
+                    <strong>${role.region}</strong> / ${role.capacity}${role.focus ? ' / ' + role.focus : ''}
+                </div>
+                <button type="button" class="btn-danger" onclick="removeRole('${role.id}')" style="padding: 6px 12px; font-size: 12px;">Remove</button>
+            </div>
+        `).join('');
+}
+
+async function addRoleToExercise() {
+    const region = document.getElementById('newRoleRegion').value;
+    const capacity = document.getElementById('newRoleCapacity').value;
+    const focus = document.getElementById('newRoleFocus').value || null;
+    const contribution = document.getElementById('newRoleContribution').value;
+
+    if (!selectedExerciseForRoles) {
+        toast('Please select an exercise first', 'error');
+        return;
+    }
+
+    if (!region || !capacity || !contribution) {
+        toast('Please fill in all required role fields', 'error');
+        return;
+    }
+
+    try {
+        const roleData = {
+            exercise_id: selectedExerciseForRoles.id,
+            region: region,
+            capacity: capacity,
+            focus: focus,
+            contribution: contribution
+        };
+
+        await fetchWithAuth('/api/roles', {
+            method: 'POST',
+            body: JSON.stringify(roleData)
+        });
+
+        toast('Role added successfully!', 'success');
+
+        // Clear form
+        document.getElementById('newRoleRegion').value = '';
+        document.getElementById('newRoleCapacity').value = '';
+        document.getElementById('newRoleFocus').value = '';
+        document.getElementById('newRoleContribution').value = '';
+
+        // Reload roles
+        await loadExerciseRoles();
+
+    } catch (error) {
+        console.error('Failed to add role:', error);
+        toast(error.message || 'Failed to add role', 'error');
+    }
+}
+
+window.addRoleToExercise = addRoleToExercise;
+
+async function removeRole(roleId) {
+    if (!confirm('Are you sure you want to remove this role?')) {
+        return;
+    }
+
+    try {
+        await fetchWithAuth(`/api/roles/${roleId}`, {
+            method: 'DELETE'
+        });
+
+        toast('Role removed successfully!', 'success');
+        await loadExerciseRoles();
+
+    } catch (error) {
+        console.error('Failed to remove role:', error);
+        toast(error.message || 'Failed to remove role', 'error');
+    }
+}
+
+window.removeRole = removeRole;
+
+// ========================================
+// SECTION 3: DOSAGE MANAGEMENT
+// ========================================
+
+let selectedExerciseForDosage = null;
+
+async function loadExerciseDosage() {
+    const exerciseId = document.getElementById('dosageExerciseSelect').value;
+
+    if (!exerciseId) {
+        document.getElementById('currentDosageDisplay').classList.add('hidden');
+        document.getElementById('editDosageForm').classList.add('hidden');
+        selectedExerciseForDosage = null;
+        return;
+    }
+
+    selectedExerciseForDosage = allExercises.find(ex => ex.id === exerciseId);
+    if (!selectedExerciseForDosage) return;
+
+    // Show/hide conditional fields based on pattern modifiers
+    const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
+    const hasHold = modifiers.includes('hold_seconds');
+    const hasDuration = modifiers.includes('duration_seconds');
+    const hasDistance = modifiers.includes('distance_feet');
+    const isUnilateral = selectedExerciseForDosage.pattern === 'side';
+
+    // Toggle visibility of conditional fields
+    document.getElementById('dosageSecondsGroup').classList.toggle('hidden', !(hasHold || hasDuration));
+    document.getElementById('dosageDistanceGroup').classList.toggle('hidden', !hasDistance);
+
+    // Update label based on modifier type
+    if (hasHold) {
+        document.getElementById('dosageSecondsLabel').textContent = 'Hold Seconds';
+    } else if (hasDuration) {
+        document.getElementById('dosageSecondsLabel').textContent = 'Duration Seconds';
+    }
+
+    // Show the form
+    document.getElementById('editDosageForm').classList.remove('hidden');
+
+    // Clear/reset fields
+    document.getElementById('dosageSets').value = '';
+    document.getElementById('dosageReps').value = '';
+    document.getElementById('dosageSeconds').value = '';
+    document.getElementById('dosageDistance').value = '';
+
+    toast('Select dosage parameters below', 'success');
+}
+
+window.loadExerciseDosage = loadExerciseDosage;
+
+async function updateDosage() {
+    const sets = document.getElementById('dosageSets').value;
+    const reps = document.getElementById('dosageReps').value;
+
+    if (!selectedExerciseForDosage) {
+        toast('Please select an exercise first', 'error');
+        return;
+    }
+
+    if (!sets || !reps) {
+        toast('Please fill in sets and reps', 'error');
+        return;
+    }
+
+    const dosageData = {
+        patient_id: currentUser.id,
+        exercise_id: selectedExerciseForDosage.id,
+        sets: parseInt(sets),
+        reps_per_set: parseInt(reps)
+    };
+
+    // Add optional fields if visible
+    const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
+    if (modifiers.includes('hold_seconds') || modifiers.includes('duration_seconds')) {
+        const seconds = document.getElementById('dosageSeconds').value;
+        if (seconds) dosageData.seconds_per_rep = parseInt(seconds);
+    }
+
+    if (modifiers.includes('distance_feet')) {
+        const distance = document.getElementById('dosageDistance').value;
+        if (distance) dosageData.distance_feet = parseInt(distance);
+    }
+
+    try {
+        // Check if program exists
+        const response = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
+        const programs = response.programs || [];
+        const existing = programs.find(p => p.exercise_id === selectedExerciseForDosage.id);
+
+        if (existing) {
+            // Update existing program
+            await fetchWithAuth(`/api/programs/${existing.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(dosageData)
+            });
+            toast('Dosage updated successfully!', 'success');
+        } else {
+            // Create new program
+            await fetchWithAuth('/api/programs', {
+                method: 'POST',
+                body: JSON.stringify(dosageData)
+            });
+            toast('Dosage created successfully!', 'success');
+        }
+
+        // Reload to show updated dosage
+        await loadExerciseDosage();
+    } catch (error) {
+        console.error('Error saving dosage:', error);
+        toast(error.message || 'Failed to save dosage', 'error');
+    }
+}
+
+window.updateDosage = updateDosage;
 
 window.addEventListener('error', (event) => {
     if (event?.message) {

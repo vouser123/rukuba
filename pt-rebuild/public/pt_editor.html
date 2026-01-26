@@ -665,6 +665,112 @@
                 <button type="submit" class="btn-primary">Save Exercise</button>
             </div>
         </form>
+
+        <!-- SECTION 2: Assign Roles to Exercises -->
+        <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px; font-size: 18px;">Assign Roles to Exercises</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px;">
+                <strong>Roles</strong> define how an exercise contributes to different movement capacities in different body regions.
+                One exercise can have multiple roles (e.g., Single Leg Bridge works hip extension AND core stability).
+            </p>
+
+            <!-- Exercise Selector for Roles -->
+            <div class="form-group">
+                <label class="form-label" for="roleExerciseSelect">Select Exercise *</label>
+                <input type="text" id="roleExerciseSearch" class="form-input" placeholder="Search exercises..." oninput="filterRoleExercises()" style="margin-bottom: 8px;">
+                <select id="roleExerciseSelect" class="form-select" onchange="loadExerciseRoles()">
+                    <option value="">-- Choose an exercise --</option>
+                </select>
+            </div>
+
+            <!-- Current Roles Display -->
+            <div id="currentRoles" style="margin: 15px 0;"></div>
+
+            <!-- Add Role Form -->
+            <div id="addRoleForm" class="hidden" style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                <h4 style="margin-bottom: 10px; font-size: 16px;">Add New Role</h4>
+
+                <div class="form-group">
+                    <label class="form-label" for="newRoleRegion">Region *</label>
+                    <select id="newRoleRegion" class="form-select">
+                        <option value="">-- Select region --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="newRoleCapacity">Capacity *</label>
+                    <select id="newRoleCapacity" class="form-select">
+                        <option value="">-- Select capacity --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="newRoleFocus">Focus (optional)</label>
+                    <select id="newRoleFocus" class="form-select">
+                        <option value="">-- No focus (general) --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="newRoleContribution">Contribution *</label>
+                    <select id="newRoleContribution" class="form-select">
+                        <option value="">-- Select --</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+
+                <button class="btn-primary" onclick="addRoleToExercise()">Add Role</button>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Manage Patient Dosages -->
+        <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px; font-size: 18px;">Manage Patient Dosages</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px;">
+                <strong>Dosages</strong> are the prescribed sets, reps, and parameters for each exercise. Update these to change patient prescriptions.
+            </p>
+
+            <!-- Exercise Selector for Dosages -->
+            <div class="form-group">
+                <label class="form-label" for="dosageExerciseSelect">Select Exercise *</label>
+                <input type="text" id="dosageExerciseSearch" class="form-input" placeholder="Search exercises..." oninput="filterDosageExercises()" style="margin-bottom: 8px;">
+                <select id="dosageExerciseSelect" class="form-select" onchange="loadExerciseDosage()">
+                    <option value="">-- Choose an exercise --</option>
+                </select>
+            </div>
+
+            <!-- Current Dosage Display -->
+            <div id="currentDosageDisplay" style="margin: 15px 0;" class="hidden"></div>
+
+            <!-- Edit Dosage Form -->
+            <div id="editDosageForm" class="hidden" style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                <h4 style="margin-bottom: 10px; font-size: 16px;">Update Dosage</h4>
+
+                <div class="form-group">
+                    <label class="form-label" for="dosageSets">Sets *</label>
+                    <input type="number" id="dosageSets" class="form-input" placeholder="e.g., 3" min="1">
+                </div>
+
+                <div class="form-group" id="dosageRepsGroup">
+                    <label class="form-label" for="dosageReps">Reps (per set) *</label>
+                    <input type="number" id="dosageReps" class="form-input" placeholder="e.g., 10" min="1">
+                </div>
+
+                <div class="form-group hidden" id="dosageSecondsGroup">
+                    <label class="form-label" for="dosageSeconds" id="dosageSecondsLabel">Seconds</label>
+                    <input type="number" id="dosageSeconds" class="form-input" placeholder="e.g., 30" min="1">
+                </div>
+
+                <div class="form-group hidden" id="dosageDistanceGroup">
+                    <label class="form-label" for="dosageDistance">Distance (feet)</label>
+                    <input type="number" id="dosageDistance" class="form-input" placeholder="e.g., 100" min="1">
+                </div>
+
+                <button class="btn-primary" onclick="updateDosage()">Update Dosage</button>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Container -->
