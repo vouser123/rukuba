@@ -25,7 +25,7 @@ async function loadSupabaseConfig() {
         const response = await fetch('/api/env');
 
         if (response.ok) {
-            return response.json();
+            return await response.json();
         }
     } catch (error) {
         // Fall through to fallback values.
@@ -1172,30 +1172,56 @@ async function updateDosage() {
     }
 
     const dosageData = {
+        patient_id: currentUser.id,
         exercise_id: selectedExerciseForDosage.id,
-        sets: parseInt(sets),
-        reps: parseInt(reps)
+        current_sets: parseInt(sets),
+        current_reps: parseInt(reps)
     };
 
     // Add optional fields if visible
     const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
     if (modifiers.includes('hold_seconds') || modifiers.includes('duration_seconds')) {
         const seconds = document.getElementById('dosageSeconds').value;
-        if (seconds) dosageData.seconds = parseInt(seconds);
+        if (seconds) dosageData.seconds_per_rep = parseInt(seconds);
     }
 
     if (modifiers.includes('distance_feet')) {
         const distance = document.getElementById('dosageDistance').value;
-        if (distance) dosageData.distance_feet = parseInt(distance);
+        if (distance) dosageData.distance_per_rep = parseInt(distance);
     }
 
     if (selectedExerciseForDosage.pattern === 'side') {
         dosageData.side = document.getElementById('dosageSide').value;
     }
 
-    // Note: This is a placeholder demo
-    console.log('Dosage data to save:', dosageData);
-    toast('Dosage updated! (Note: This is a demo - connect to patient programs)', 'success');
+    try {
+        // Check if program exists
+        const response = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
+        const programs = response.programs || [];
+        const existing = programs.find(p => p.exercise_id === selectedExerciseForDosage.id);
+
+        if (existing) {
+            // Update existing program
+            await fetchWithAuth(`/api/programs/${existing.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(dosageData)
+            });
+            toast('Dosage updated successfully!', 'success');
+        } else {
+            // Create new program
+            await fetchWithAuth('/api/programs', {
+                method: 'POST',
+                body: JSON.stringify(dosageData)
+            });
+            toast('Dosage created successfully!', 'success');
+        }
+
+        // Reload to show updated dosage
+        await loadExerciseDosage();
+    } catch (error) {
+        console.error('Error saving dosage:', error);
+        toast(error.message || 'Failed to save dosage', 'error');
+    }
 }
 
 window.updateDosage = updateDosage;

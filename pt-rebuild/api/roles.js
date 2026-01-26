@@ -61,6 +61,14 @@ async function createRole(req, res) {
     });
   }
 
+  // Validate contribution value
+  const validContributions = ['high', 'medium', 'low'];
+  if (!validContributions.includes(contribution)) {
+    return res.status(400).json({
+      error: `contribution must be one of: ${validContributions.join(', ')}`
+    });
+  }
+
   // Only therapists and admins can create roles
   if (req.user.role !== 'therapist' && req.user.role !== 'admin') {
     return res.status(403).json({
@@ -69,6 +77,22 @@ async function createRole(req, res) {
   }
 
   try {
+    // Check for duplicate role
+    const { data: existing } = await supabase
+      .from('exercise_roles')
+      .select('id')
+      .eq('exercise_id', exercise_id)
+      .eq('region', region)
+      .eq('capacity', capacity)
+      .eq('focus', focus || null)
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(409).json({
+        error: 'This role assignment already exists for this exercise'
+      });
+    }
+
     const { data: role, error } = await supabase
       .from('exercise_roles')
       .insert([{

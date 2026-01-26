@@ -47,8 +47,8 @@ async function getPrograms(req, res) {
   }
 
   try {
-    // Use users.id for the query (in case frontend passed auth_id)
-    const actualPatientId = req.user.id;
+    // Use the provided patient_id (validated above)
+    const actualPatientId = patient_id;
 
     // Fetch patient programs with exercise details
     const { data: programs, error } = await supabase
@@ -95,6 +95,27 @@ async function createProgram(req, res) {
     });
   }
 
+  // Validate numeric values
+  if (!Number.isInteger(current_sets) || current_sets < 1) {
+    return res.status(400).json({ error: 'current_sets must be a positive integer' });
+  }
+  if (!Number.isInteger(current_reps) || current_reps < 1) {
+    return res.status(400).json({ error: 'current_reps must be a positive integer' });
+  }
+  if (seconds_per_rep !== undefined && seconds_per_rep !== null) {
+    if (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 1) {
+      return res.status(400).json({ error: 'seconds_per_rep must be a positive integer or null' });
+    }
+  }
+  if (distance_per_rep !== undefined && distance_per_rep !== null) {
+    if (!Number.isInteger(distance_per_rep) || distance_per_rep < 1) {
+      return res.status(400).json({ error: 'distance_per_rep must be a positive integer or null' });
+    }
+  }
+  if (side !== undefined && side !== null && !['left', 'right', 'both'].includes(side)) {
+    return res.status(400).json({ error: 'side must be "left", "right", "both", or null' });
+  }
+
   // Only therapists and admins can create programs
   if (req.user.role !== 'therapist' && req.user.role !== 'admin') {
     return res.status(403).json({
@@ -103,6 +124,21 @@ async function createProgram(req, res) {
   }
 
   try {
+    // Check for existing program
+    const { data: existing } = await supabase
+      .from('patient_programs')
+      .select('id')
+      .eq('patient_id', patient_id)
+      .eq('exercise_id', exercise_id)
+      .is('archived_at', null)
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(409).json({
+        error: 'This exercise is already assigned to this patient. Use PUT to update instead.'
+      });
+    }
+
     const programData = {
       patient_id,
       exercise_id,
@@ -144,12 +180,61 @@ async function updateProgram(req, res, programId) {
   }
 
   try {
+    // First fetch the program to check ownership
+    const { data: existingProgram, error: fetchError } = await supabase
+      .from('patient_programs')
+      .select('patient_id')
+      .eq('id', programId)
+      .single();
+
+    if (fetchError || !existingProgram) {
+      return res.status(404).json({ error: 'Program not found' });
+    }
+
+    // Verify the patient belongs to this therapist
+    if (req.user.role === 'therapist') {
+      const { data: patient } = await supabase
+        .from('users')
+        .select('therapist_id')
+        .eq('id', existingProgram.patient_id)
+        .single();
+
+      if (!patient || patient.therapist_id !== req.user.id) {
+        return res.status(403).json({ error: 'Cannot update programs for patients not assigned to you' });
+      }
+    }
+
     const updateData = {};
-    if (current_sets !== undefined) updateData.current_sets = current_sets;
-    if (current_reps !== undefined) updateData.current_reps = current_reps;
-    if (seconds_per_rep !== undefined) updateData.seconds_per_rep = seconds_per_rep;
-    if (distance_per_rep !== undefined) updateData.distance_per_rep = distance_per_rep;
-    if (side !== undefined) updateData.side = side;
+    if (current_sets !== undefined) {
+      if (!Number.isInteger(current_sets) || current_sets < 1) {
+        return res.status(400).json({ error: 'current_sets must be a positive integer' });
+      }
+      updateData.current_sets = current_sets;
+    }
+    if (current_reps !== undefined) {
+      if (!Number.isInteger(current_reps) || current_reps < 1) {
+        return res.status(400).json({ error: 'current_reps must be a positive integer' });
+      }
+      updateData.current_reps = current_reps;
+    }
+    if (seconds_per_rep !== undefined) {
+      if (seconds_per_rep !== null && (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 1)) {
+        return res.status(400).json({ error: 'seconds_per_rep must be a positive integer or null' });
+      }
+      updateData.seconds_per_rep = seconds_per_rep;
+    }
+    if (distance_per_rep !== undefined) {
+      if (distance_per_rep !== null && (!Number.isInteger(distance_per_rep) || distance_per_rep < 1)) {
+        return res.status(400).json({ error: 'distance_per_rep must be a positive integer or null' });
+      }
+      updateData.distance_per_rep = distance_per_rep;
+    }
+    if (side !== undefined) {
+      if (side !== null && !['left', 'right', 'both'].includes(side)) {
+        return res.status(400).json({ error: 'side must be "left", "right", "both", or null' });
+      }
+      updateData.side = side;
+    }
 
     const { data: program, error } = await supabase
       .from('patient_programs')
