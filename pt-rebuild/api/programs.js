@@ -12,6 +12,53 @@
 import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
 import { requireAuth } from '../lib/auth.js';
 
+/**
+ * Resolve a patient identifier that may be either users.id or auth.users.id.
+ * This keeps API inputs flexible while ensuring we always query patient_programs
+ * using the canonical users.id value.
+ */
+async function resolvePatientId(req, patientId) {
+  if (!patientId) {
+    return { actualPatientId: null, patientRecord: null, source: 'missing' };
+  }
+
+  // Fast path: patient_id already matches the authenticated user record.
+  if (patientId === req.user.id) {
+    return { actualPatientId: req.user.id, patientRecord: req.user, source: 'users.id' };
+  }
+
+  // Fast path: patient_id matches auth_id for the current user.
+  if (patientId === req.user.auth_id) {
+    return { actualPatientId: req.user.id, patientRecord: req.user, source: 'auth_id:self' };
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+
+  // Attempt a direct users.id lookup.
+  const { data: userById } = await supabaseAdmin
+    .from('users')
+    .select('id, auth_id, therapist_id')
+    .eq('id', patientId)
+    .maybeSingle();
+
+  if (userById) {
+    return { actualPatientId: userById.id, patientRecord: userById, source: 'users.id' };
+  }
+
+  // Fallback: treat incoming ID as auth.users.id and map to users.id.
+  const { data: userByAuthId } = await supabaseAdmin
+    .from('users')
+    .select('id, auth_id, therapist_id')
+    .eq('auth_id', patientId)
+    .maybeSingle();
+
+  if (userByAuthId) {
+    return { actualPatientId: userByAuthId.id, patientRecord: userByAuthId, source: 'auth_id:lookup' };
+  }
+
+  return { actualPatientId: null, patientRecord: null, source: 'not_found' };
+}
+
 async function getPrograms(req, res) {
   const supabase = getSupabaseWithAuth(req.accessToken);
   const { patient_id } = req.query;
@@ -20,9 +67,15 @@ async function getPrograms(req, res) {
     return res.status(400).json({ error: 'patient_id query parameter required' });
   }
 
+  const { actualPatientId, patientRecord } = await resolvePatientId(req, patient_id);
+
+  if (!actualPatientId) {
+    return res.status(404).json({ error: 'Patient not found' });
+  }
+
   // Authorization: patients see own programs, therapists see their patients' programs
   // Accept either users.id or auth_id for patient_id parameter
-  const isOwnAccount = req.user.id === patient_id || req.user.auth_id === patient_id;
+  const isOwnAccount = req.user.id === actualPatientId;
 
   if (req.user.role === 'patient' && !isOwnAccount) {
     console.error('Access denied:', {
@@ -35,11 +88,13 @@ async function getPrograms(req, res) {
 
   if (req.user.role === 'therapist') {
     // Verify patient belongs to this therapist
-    const { data: patient } = await supabase
-      .from('users')
-      .select('therapist_id')
-      .eq('id', patient_id)
-      .single();
+    const patient = patientRecord?.id
+      ? patientRecord
+      : (await supabase
+        .from('users')
+        .select('therapist_id')
+        .eq('id', actualPatientId)
+        .single()).data;
 
     if (!patient || patient.therapist_id !== req.user.id) {
       return res.status(403).json({ error: 'Patient does not belong to this therapist' });
@@ -48,7 +103,7 @@ async function getPrograms(req, res) {
 
   try {
     // Use the provided patient_id (validated above)
-    const actualPatientId = patient_id;
+    const resolvedPatientId = actualPatientId;
 
     // Fetch patient programs with exercise details
     const { data: programs, error } = await supabase
@@ -64,7 +119,7 @@ async function getPrograms(req, res) {
           archived
         )
       `)
-      .eq('patient_id', actualPatientId)
+      .eq('patient_id', resolvedPatientId)
       .is('archived_at', null)
       .order('created_at', { ascending: false });
 
@@ -114,10 +169,16 @@ async function createProgram(req, res) {
   }
 
   try {
+    const { actualPatientId, patientRecord } = await resolvePatientId(req, patient_id);
+
+    if (!actualPatientId) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
     // Authorization: therapists/admins can create for their patients, patients can create for themselves
     if (req.user.role === 'patient') {
       // Patients can only create programs for themselves
-      const isOwnAccount = req.user.id === patient_id || req.user.auth_id === patient_id;
+      const isOwnAccount = req.user.id === actualPatientId;
       if (!isOwnAccount) {
         return res.status(403).json({
           error: 'Patients can only create programs for themselves'
@@ -125,15 +186,18 @@ async function createProgram(req, res) {
       }
     } else if (req.user.role === 'therapist') {
       // Therapists can only create programs for their assigned patients
-      const { data: patient, error: patientError } = await supabase
-        .from('users')
-        .select('therapist_id')
-        .eq('id', patient_id)
-        .single();
+      const patientLookup = patientRecord?.id
+        ? { data: patientRecord, error: null }
+        : await supabase
+          .from('users')
+          .select('therapist_id')
+          .eq('id', actualPatientId)
+          .single();
+      const { data: patient, error: patientError } = patientLookup;
 
       console.log('Therapist verification:', {
         therapist_id: req.user.id,
-        patient_id,
+        patient_id: actualPatientId,
         patient_data: patient,
         patient_error: patientError
       });
@@ -165,7 +229,7 @@ async function createProgram(req, res) {
     const { data: existing } = await supabase
       .from('patient_programs')
       .select('id')
-      .eq('patient_id', patient_id)
+      .eq('patient_id', actualPatientId)
       .eq('exercise_id', exercise_id)
       .is('archived_at', null)
       .maybeSingle();
@@ -177,7 +241,7 @@ async function createProgram(req, res) {
     }
 
     const programData = {
-      patient_id,
+      patient_id: actualPatientId,
       exercise_id,
       dosage_type: 'reps', // Default dosage type
       sets,
