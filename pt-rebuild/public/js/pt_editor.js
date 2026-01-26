@@ -8,6 +8,7 @@ let authToken = null;
 let allExercises = [];
 let currentExercise = null;
 let vocabularies = {};
+let referenceData = { equipment: [], muscles: [], formParameters: [] };
 
 // Tag arrays
 let requiredEquipment = [];
@@ -218,6 +219,7 @@ async function handleAuthSuccess(session) {
 
         // Load data
         await loadVocabularies();
+        await loadReferenceData();
         await loadExercises();
 
     } catch (error) {
@@ -351,6 +353,78 @@ async function loadVocabularies() {
         console.error('Failed to load vocabularies:', error);
         toast('Failed to load vocabularies', 'error');
     }
+}
+
+async function loadReferenceData() {
+    try {
+        const result = await fetchWithAuth('/api/reference-data');
+        referenceData = result;
+
+        // Populate Equipment dropdowns
+        populateReferenceDropdown('requiredEquipmentSelect', referenceData.equipment, 'Equipment');
+        populateReferenceDropdown('optionalEquipmentSelect', referenceData.equipment, 'Equipment');
+
+        // Populate Muscle dropdowns
+        populateReferenceDropdown('primaryMusclesSelect', referenceData.muscles, 'Muscle');
+        populateReferenceDropdown('secondaryMusclesSelect', referenceData.muscles, 'Muscle');
+
+        // Populate Form Parameter dropdown
+        populateReferenceDropdown('formParameterSelect', referenceData.formParameters, 'Parameter');
+
+        // Add change listeners for "Other" option handling
+        setupOtherOptionHandlers();
+
+    } catch (error) {
+        console.error('Failed to load reference data:', error);
+        toast('Failed to load reference data', 'error');
+    }
+}
+
+function populateReferenceDropdown(selectId, items, label) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    select.innerHTML = `<option value="">-- Select ${label} --</option>`;
+
+    items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.textContent = item;
+        select.appendChild(option);
+    });
+
+    // Add "Other" option
+    const otherOption = document.createElement('option');
+    otherOption.value = '__other__';
+    otherOption.textContent = '-- Other (enter custom) --';
+    select.appendChild(otherOption);
+}
+
+function setupOtherOptionHandlers() {
+    const selects = [
+        { selectId: 'requiredEquipmentSelect', inputId: 'requiredEquipmentOtherInput' },
+        { selectId: 'optionalEquipmentSelect', inputId: 'optionalEquipmentOtherInput' },
+        { selectId: 'primaryMusclesSelect', inputId: 'primaryMusclesOtherInput' },
+        { selectId: 'secondaryMusclesSelect', inputId: 'secondaryMusclesOtherInput' },
+        { selectId: 'formParameterSelect', inputId: 'formParameterOtherInput' }
+    ];
+
+    selects.forEach(({ selectId, inputId }) => {
+        const select = document.getElementById(selectId);
+        const input = document.getElementById(inputId);
+
+        if (select && input) {
+            select.addEventListener('change', () => {
+                if (select.value === '__other__') {
+                    input.style.display = 'block';
+                    input.focus();
+                } else {
+                    input.style.display = 'none';
+                    input.value = '';
+                }
+            });
+        }
+    });
 }
 
 function updateVocabReference() {
@@ -517,11 +591,22 @@ function loadExerciseForEdit() {
     document.getElementById('lifecycleStatus').value = exercise.lifecycle_status || '';
     document.getElementById('effectiveStartDate').value = exercise.lifecycle_effective_start_date || '';
     document.getElementById('effectiveEndDate').value = exercise.lifecycle_effective_end_date || '';
-    document.getElementById('supersedesExercise').value = exercise.supersedes_exercise_id || '';
-    document.getElementById('supersededByExercise').value = exercise.superseded_by_exercise_id || '';
-    document.getElementById('supersededDate').value = exercise.superseded_date || '';
-    document.getElementById('addedDate').value = exercise.added_date || '';
-    document.getElementById('updatedDate').value = exercise.updated_date || '';
+
+    // Optional lifecycle fields (may not exist in UI)
+    const supersedesEl = document.getElementById('supersedesExercise');
+    if (supersedesEl) supersedesEl.value = exercise.supersedes_exercise_id || '';
+
+    const supersededByEl = document.getElementById('supersededByExercise');
+    if (supersededByEl) supersededByEl.value = exercise.superseded_by_exercise_id || '';
+
+    const supersededDateEl = document.getElementById('supersededDate');
+    if (supersededDateEl) supersededDateEl.value = exercise.superseded_date || '';
+
+    const addedDateEl = document.getElementById('addedDate');
+    if (addedDateEl) addedDateEl.value = exercise.added_date || '';
+
+    const updatedDateEl = document.getElementById('updatedDate');
+    if (updatedDateEl) updatedDateEl.value = exercise.updated_date || '';
 
     // Update buttons
     document.querySelector('#exerciseForm button[type="submit"]').textContent = 'Update Exercise';
@@ -606,60 +691,150 @@ function removeTag(containerId, index) {
 window.removeTag = removeTag;
 
 function addRequiredEquipment() {
-    const input = document.getElementById('requiredEquipmentInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('requiredEquipmentSelect');
+    const otherInput = document.getElementById('requiredEquipmentOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter equipment', 'error');
+        return;
+    }
+
+    if (requiredEquipment.includes(value)) {
+        toast('Equipment already added', 'error');
+        return;
+    }
 
     requiredEquipment.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('requiredEquipmentTags', requiredEquipment);
 }
 
 window.addRequiredEquipment = addRequiredEquipment;
 
 function addOptionalEquipment() {
-    const input = document.getElementById('optionalEquipmentInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('optionalEquipmentSelect');
+    const otherInput = document.getElementById('optionalEquipmentOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter equipment', 'error');
+        return;
+    }
+
+    if (optionalEquipment.includes(value)) {
+        toast('Equipment already added', 'error');
+        return;
+    }
 
     optionalEquipment.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('optionalEquipmentTags', optionalEquipment);
 }
 
 window.addOptionalEquipment = addOptionalEquipment;
 
 function addPrimaryMuscle() {
-    const input = document.getElementById('primaryMusclesInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('primaryMusclesSelect');
+    const otherInput = document.getElementById('primaryMusclesOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter muscle', 'error');
+        return;
+    }
+
+    if (primaryMuscles.includes(value)) {
+        toast('Muscle already added', 'error');
+        return;
+    }
 
     primaryMuscles.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('primaryMusclesTags', primaryMuscles);
 }
 
 window.addPrimaryMuscle = addPrimaryMuscle;
 
 function addSecondaryMuscle() {
-    const input = document.getElementById('secondaryMusclesInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('secondaryMusclesSelect');
+    const otherInput = document.getElementById('secondaryMusclesOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter muscle', 'error');
+        return;
+    }
+
+    if (secondaryMuscles.includes(value)) {
+        toast('Muscle already added', 'error');
+        return;
+    }
 
     secondaryMuscles.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('secondaryMusclesTags', secondaryMuscles);
 }
 
 window.addSecondaryMuscle = addSecondaryMuscle;
 
 function addFormParameter() {
-    const input = document.getElementById('formParameterInput');
-    const value = input.value.trim();
-    if (!value) return;
+    const select = document.getElementById('formParameterSelect');
+    const otherInput = document.getElementById('formParameterOtherInput');
+
+    let value = '';
+    if (select.value === '__other__') {
+        value = otherInput.value.trim();
+        otherInput.value = '';
+        otherInput.style.display = 'none';
+    } else {
+        value = select.value.trim();
+    }
+
+    if (!value) {
+        toast('Please select or enter parameter', 'error');
+        return;
+    }
+
+    if (formParameters.includes(value)) {
+        toast('Parameter already added', 'error');
+        return;
+    }
 
     formParameters.push(value);
-    input.value = '';
+    select.value = '';
     renderTagList('formParameterTags', formParameters);
 }
 
@@ -773,11 +948,11 @@ function collectFormData() {
         lifecycle_status: document.getElementById('lifecycleStatus').value || null,
         lifecycle_effective_start_date: document.getElementById('effectiveStartDate').value || null,
         lifecycle_effective_end_date: document.getElementById('effectiveEndDate').value || null,
-        supersedes_exercise_id: document.getElementById('supersedesExercise').value || null,
-        superseded_by_exercise_id: document.getElementById('supersededByExercise').value || null,
-        superseded_date: document.getElementById('supersededDate').value || null,
-        added_date: document.getElementById('addedDate').value || null,
-        updated_date: document.getElementById('updatedDate').value || null,
+        supersedes_exercise_id: document.getElementById('supersedesExercise')?.value || null,
+        superseded_by_exercise_id: document.getElementById('supersededByExercise')?.value || null,
+        superseded_date: document.getElementById('supersededDate')?.value || null,
+        added_date: document.getElementById('addedDate')?.value || null,
+        updated_date: document.getElementById('updatedDate')?.value || null,
         pattern_modifiers: [
             ...(document.getElementById('modDuration').checked ? ['duration_seconds'] : []),
             ...(document.getElementById('modHold').checked ? ['hold_seconds'] : []),
