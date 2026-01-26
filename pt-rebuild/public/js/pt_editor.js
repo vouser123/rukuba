@@ -517,11 +517,22 @@ function loadExerciseForEdit() {
     document.getElementById('lifecycleStatus').value = exercise.lifecycle_status || '';
     document.getElementById('effectiveStartDate').value = exercise.lifecycle_effective_start_date || '';
     document.getElementById('effectiveEndDate').value = exercise.lifecycle_effective_end_date || '';
-    document.getElementById('supersedesExercise').value = exercise.supersedes_exercise_id || '';
-    document.getElementById('supersededByExercise').value = exercise.superseded_by_exercise_id || '';
-    document.getElementById('supersededDate').value = exercise.superseded_date || '';
-    document.getElementById('addedDate').value = exercise.added_date || '';
-    document.getElementById('updatedDate').value = exercise.updated_date || '';
+
+    // Optional lifecycle fields (may not exist in UI)
+    const supersedesEl = document.getElementById('supersedesExercise');
+    if (supersedesEl) supersedesEl.value = exercise.supersedes_exercise_id || '';
+
+    const supersededByEl = document.getElementById('supersededByExercise');
+    if (supersededByEl) supersededByEl.value = exercise.superseded_by_exercise_id || '';
+
+    const supersededDateEl = document.getElementById('supersededDate');
+    if (supersededDateEl) supersededDateEl.value = exercise.superseded_date || '';
+
+    const addedDateEl = document.getElementById('addedDate');
+    if (addedDateEl) addedDateEl.value = exercise.added_date || '';
+
+    const updatedDateEl = document.getElementById('updatedDate');
+    if (updatedDateEl) updatedDateEl.value = exercise.updated_date || '';
 
     // Update buttons
     document.querySelector('#exerciseForm button[type="submit"]').textContent = 'Update Exercise';
@@ -773,11 +784,11 @@ function collectFormData() {
         lifecycle_status: document.getElementById('lifecycleStatus').value || null,
         lifecycle_effective_start_date: document.getElementById('effectiveStartDate').value || null,
         lifecycle_effective_end_date: document.getElementById('effectiveEndDate').value || null,
-        supersedes_exercise_id: document.getElementById('supersedesExercise').value || null,
-        superseded_by_exercise_id: document.getElementById('supersededByExercise').value || null,
-        superseded_date: document.getElementById('supersededDate').value || null,
-        added_date: document.getElementById('addedDate').value || null,
-        updated_date: document.getElementById('updatedDate').value || null,
+        supersedes_exercise_id: document.getElementById('supersedesExercise')?.value || null,
+        superseded_by_exercise_id: document.getElementById('supersededByExercise')?.value || null,
+        superseded_date: document.getElementById('supersededDate')?.value || null,
+        added_date: document.getElementById('addedDate')?.value || null,
+        updated_date: document.getElementById('updatedDate')?.value || null,
         pattern_modifiers: [
             ...(document.getElementById('modDuration').checked ? ['duration_seconds'] : []),
             ...(document.getElementById('modHold').checked ? ['hold_seconds'] : []),

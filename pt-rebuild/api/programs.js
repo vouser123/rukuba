@@ -113,14 +113,54 @@ async function createProgram(req, res) {
     }
   }
 
-  // Only therapists and admins can create programs
-  if (req.user.role !== 'therapist' && req.user.role !== 'admin') {
-    return res.status(403).json({
-      error: 'Only therapists and admins can create patient programs'
-    });
-  }
-
   try {
+    // Authorization: therapists/admins can create for their patients, patients can create for themselves
+    if (req.user.role === 'patient') {
+      // Patients can only create programs for themselves
+      const isOwnAccount = req.user.id === patient_id || req.user.auth_id === patient_id;
+      if (!isOwnAccount) {
+        return res.status(403).json({
+          error: 'Patients can only create programs for themselves'
+        });
+      }
+    } else if (req.user.role === 'therapist') {
+      // Therapists can only create programs for their assigned patients
+      const { data: patient, error: patientError } = await supabase
+        .from('users')
+        .select('therapist_id')
+        .eq('id', patient_id)
+        .single();
+
+      console.log('Therapist verification:', {
+        therapist_id: req.user.id,
+        patient_id,
+        patient_data: patient,
+        patient_error: patientError
+      });
+
+      if (patientError) {
+        console.error('Error fetching patient:', patientError);
+        return res.status(500).json({
+          error: 'Failed to verify patient relationship',
+          details: patientError.message
+        });
+      }
+
+      if (!patient || patient.therapist_id !== req.user.id) {
+        console.log('Authorization failed:', {
+          patient_therapist_id: patient?.therapist_id,
+          current_therapist_id: req.user.id
+        });
+        return res.status(403).json({
+          error: 'Patient does not belong to this therapist'
+        });
+      }
+    } else if (req.user.role !== 'admin') {
+      // Only admins, therapists, and patients allowed
+      return res.status(403).json({
+        error: 'Unauthorized to create patient programs'
+      });
+    }
     // Check for existing program
     const { data: existing } = await supabase
       .from('patient_programs')
@@ -169,13 +209,6 @@ async function updateProgram(req, res, programId) {
   const supabase = getSupabaseWithAuth(req.accessToken);
   const { sets, reps_per_set, seconds_per_rep, distance_feet } = req.body;
 
-  // Only therapists and admins can update programs
-  if (req.user.role !== 'therapist' && req.user.role !== 'admin') {
-    return res.status(403).json({
-      error: 'Only therapists and admins can update patient programs'
-    });
-  }
-
   try {
     // First fetch the program to check ownership
     const { data: existingProgram, error: fetchError } = await supabase
@@ -188,17 +221,52 @@ async function updateProgram(req, res, programId) {
       return res.status(404).json({ error: 'Program not found' });
     }
 
-    // Verify the patient belongs to this therapist
-    if (req.user.role === 'therapist') {
-      const { data: patient } = await supabase
+    // Authorization: therapists can update their patients' programs, patients can update their own
+    if (req.user.role === 'patient') {
+      // Patients can only update their own programs
+      const isOwnAccount = req.user.id === existingProgram.patient_id || req.user.auth_id === existingProgram.patient_id;
+      if (!isOwnAccount) {
+        return res.status(403).json({
+          error: 'Patients can only update their own programs'
+        });
+      }
+    } else if (req.user.role === 'therapist') {
+      // Therapists can only update programs for their assigned patients
+      const { data: patient, error: patientError } = await supabase
         .from('users')
         .select('therapist_id')
         .eq('id', existingProgram.patient_id)
         .single();
 
-      if (!patient || patient.therapist_id !== req.user.id) {
-        return res.status(403).json({ error: 'Cannot update programs for patients not assigned to you' });
+      console.log('Therapist verification for update:', {
+        therapist_id: req.user.id,
+        patient_id: existingProgram.patient_id,
+        patient_data: patient,
+        patient_error: patientError
+      });
+
+      if (patientError) {
+        console.error('Error fetching patient for update:', patientError);
+        return res.status(500).json({
+          error: 'Failed to verify patient relationship',
+          details: patientError.message
+        });
       }
+
+      if (!patient || patient.therapist_id !== req.user.id) {
+        console.log('Authorization failed for update:', {
+          patient_therapist_id: patient?.therapist_id,
+          current_therapist_id: req.user.id
+        });
+        return res.status(403).json({
+          error: 'Patient does not belong to this therapist'
+        });
+      }
+    } else if (req.user.role !== 'admin') {
+      // Only admins, therapists, and patients allowed
+      return res.status(403).json({
+        error: 'Unauthorized to update patient programs'
+      });
     }
 
     const updateData = {};
