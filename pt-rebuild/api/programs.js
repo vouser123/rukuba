@@ -2,6 +2,8 @@
  * Patient Programs API
  *
  * GET /api/programs?patient_id=X - Get patient's assigned exercises with dosages
+ * POST /api/programs - Create new program (assign exercise to patient)
+ * PUT /api/programs/:id - Update program dosage
  *
  * Returns patient's "current" prescriptions (what therapist assigned them to do).
  * Patients see own programs, therapists see their patients' programs.
@@ -82,4 +84,112 @@ async function getPrograms(req, res) {
   }
 }
 
-export default requireAuth(getPrograms);
+async function createProgram(req, res) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+  const { patient_id, exercise_id, current_sets, current_reps, seconds_per_rep, distance_per_rep, side } = req.body;
+
+  // Validate required fields
+  if (!patient_id || !exercise_id || !current_sets || !current_reps) {
+    return res.status(400).json({
+      error: 'Missing required fields: patient_id, exercise_id, current_sets, current_reps'
+    });
+  }
+
+  // Only therapists and admins can create programs
+  if (req.user.role !== 'therapist' && req.user.role !== 'admin') {
+    return res.status(403).json({
+      error: 'Only therapists and admins can create patient programs'
+    });
+  }
+
+  try {
+    const programData = {
+      patient_id,
+      exercise_id,
+      current_sets,
+      current_reps,
+      seconds_per_rep: seconds_per_rep || null,
+      distance_per_rep: distance_per_rep || null,
+      side: side || null
+    };
+
+    const { data: program, error } = await supabase
+      .from('patient_programs')
+      .insert([programData])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(201).json({ program });
+
+  } catch (error) {
+    console.error('Error creating program:', error);
+    return res.status(500).json({
+      error: 'Failed to create program',
+      details: error.message
+    });
+  }
+}
+
+async function updateProgram(req, res, programId) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+  const { current_sets, current_reps, seconds_per_rep, distance_per_rep, side } = req.body;
+
+  // Only therapists and admins can update programs
+  if (req.user.role !== 'therapist' && req.user.role !== 'admin') {
+    return res.status(403).json({
+      error: 'Only therapists and admins can update patient programs'
+    });
+  }
+
+  try {
+    const updateData = {};
+    if (current_sets !== undefined) updateData.current_sets = current_sets;
+    if (current_reps !== undefined) updateData.current_reps = current_reps;
+    if (seconds_per_rep !== undefined) updateData.seconds_per_rep = seconds_per_rep;
+    if (distance_per_rep !== undefined) updateData.distance_per_rep = distance_per_rep;
+    if (side !== undefined) updateData.side = side;
+
+    const { data: program, error } = await supabase
+      .from('patient_programs')
+      .update(updateData)
+      .eq('id', programId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(200).json({ program });
+
+  } catch (error) {
+    console.error('Error updating program:', error);
+    return res.status(500).json({
+      error: 'Failed to update program',
+      details: error.message
+    });
+  }
+}
+
+/**
+ * Request router
+ */
+async function handler(req, res) {
+  // Parse program ID from URL for PUT
+  const urlParts = req.url.split('?')[0].split('/');
+  const programId = urlParts[urlParts.length - 1];
+
+  if (req.method === 'GET') {
+    return getPrograms(req, res);
+  } else if (req.method === 'POST') {
+    return createProgram(req, res);
+  } else if (req.method === 'PUT' && programId && programId !== 'programs') {
+    return updateProgram(req, res, programId);
+  } else {
+    return res.status(405).json({
+      error: 'Method not allowed'
+    });
+  }
+}
+
+export default requireAuth(handler);

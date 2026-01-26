@@ -281,7 +281,7 @@ async function fetchWithAuth(url, options = {}) {
 async function loadVocabularies() {
     try {
         const result = await fetchWithAuth('/api/vocab');
-        vocabularies = result;
+        vocabularies = result.vocabularies;
 
         // Populate category dropdown
         const categorySelect = document.getElementById('ptCategory');
