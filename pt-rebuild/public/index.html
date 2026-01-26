@@ -1152,14 +1152,19 @@
             });
 
             if (!response.ok) {
-                // Try to get error details from response body
-                let errorDetail = '';
-                try {
-                    const errorBody = await response.json();
-                    errorDetail = errorBody.error || errorBody.message || JSON.stringify(errorBody);
-                } catch (e) {
-                    errorDetail = await response.text();
+                // Read once to avoid "Body is disturbed or locked" errors.
+                const responseText = await response.text();
+                let errorDetail = responseText;
+
+                if (responseText) {
+                    try {
+                        const errorBody = JSON.parse(responseText);
+                        errorDetail = errorBody.error || errorBody.message || JSON.stringify(errorBody);
+                    } catch (e) {
+                        // Keep raw response text for non-JSON errors.
+                    }
                 }
+
                 throw new Error(`API error ${response.status}: ${errorDetail || response.statusText}`);
             }
 

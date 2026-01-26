@@ -267,13 +267,19 @@ async function fetchWithAuth(url, options = {}) {
     });
 
     if (!response.ok) {
-        let errorDetail = '';
-        try {
-            const errorBody = await response.json();
-            errorDetail = errorBody.error || errorBody.message || JSON.stringify(errorBody);
-        } catch (e) {
-            errorDetail = await response.text();
+        // Read the body once to avoid "Body is disturbed or locked" errors.
+        const responseText = await response.text();
+        let errorDetail = responseText;
+
+        if (responseText) {
+            try {
+                const errorBody = JSON.parse(responseText);
+                errorDetail = errorBody.error || errorBody.message || JSON.stringify(errorBody);
+            } catch (e) {
+                // Keep the raw response text for non-JSON errors.
+            }
         }
+
         throw new Error(errorDetail || `Request failed: ${response.status}`);
     }
 
