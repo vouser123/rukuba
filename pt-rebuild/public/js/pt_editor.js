@@ -1133,7 +1133,6 @@ async function loadExerciseDosage() {
     // Toggle visibility of conditional fields
     document.getElementById('dosageSecondsGroup').classList.toggle('hidden', !(hasHold || hasDuration));
     document.getElementById('dosageDistanceGroup').classList.toggle('hidden', !hasDistance);
-    document.getElementById('dosageSideGroup').classList.toggle('hidden', !isUnilateral);
 
     // Update label based on modifier type
     if (hasHold) {
@@ -1150,7 +1149,6 @@ async function loadExerciseDosage() {
     document.getElementById('dosageReps').value = '';
     document.getElementById('dosageSeconds').value = '';
     document.getElementById('dosageDistance').value = '';
-    document.getElementById('dosageSide').value = 'both';
 
     toast('Select dosage parameters below', 'success');
 }
@@ -1174,8 +1172,8 @@ async function updateDosage() {
     const dosageData = {
         patient_id: currentUser.id,
         exercise_id: selectedExerciseForDosage.id,
-        current_sets: parseInt(sets),
-        current_reps: parseInt(reps)
+        sets: parseInt(sets),
+        reps_per_set: parseInt(reps)
     };
 
     // Add optional fields if visible
@@ -1187,11 +1185,7 @@ async function updateDosage() {
 
     if (modifiers.includes('distance_feet')) {
         const distance = document.getElementById('dosageDistance').value;
-        if (distance) dosageData.distance_per_rep = parseInt(distance);
-    }
-
-    if (selectedExerciseForDosage.pattern === 'side') {
-        dosageData.side = document.getElementById('dosageSide').value;
+        if (distance) dosageData.distance_feet = parseInt(distance);
     }
 
     try {

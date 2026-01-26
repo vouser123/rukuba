@@ -86,34 +86,31 @@ async function getPrograms(req, res) {
 
 async function createProgram(req, res) {
   const supabase = getSupabaseWithAuth(req.accessToken);
-  const { patient_id, exercise_id, current_sets, current_reps, seconds_per_rep, distance_per_rep, side } = req.body;
+  const { patient_id, exercise_id, sets, reps_per_set, seconds_per_rep, distance_feet } = req.body;
 
   // Validate required fields
-  if (!patient_id || !exercise_id || !current_sets || !current_reps) {
+  if (!patient_id || !exercise_id || !sets || !reps_per_set) {
     return res.status(400).json({
-      error: 'Missing required fields: patient_id, exercise_id, current_sets, current_reps'
+      error: 'Missing required fields: patient_id, exercise_id, sets, reps_per_set'
     });
   }
 
   // Validate numeric values
-  if (!Number.isInteger(current_sets) || current_sets < 1) {
-    return res.status(400).json({ error: 'current_sets must be a positive integer' });
+  if (!Number.isInteger(sets) || sets < 1) {
+    return res.status(400).json({ error: 'sets must be a positive integer' });
   }
-  if (!Number.isInteger(current_reps) || current_reps < 1) {
-    return res.status(400).json({ error: 'current_reps must be a positive integer' });
+  if (!Number.isInteger(reps_per_set) || reps_per_set < 1) {
+    return res.status(400).json({ error: 'reps_per_set must be a positive integer' });
   }
   if (seconds_per_rep !== undefined && seconds_per_rep !== null) {
-    if (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 1) {
-      return res.status(400).json({ error: 'seconds_per_rep must be a positive integer or null' });
+    if (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 0) {
+      return res.status(400).json({ error: 'seconds_per_rep must be a non-negative integer or null' });
     }
   }
-  if (distance_per_rep !== undefined && distance_per_rep !== null) {
-    if (!Number.isInteger(distance_per_rep) || distance_per_rep < 1) {
-      return res.status(400).json({ error: 'distance_per_rep must be a positive integer or null' });
+  if (distance_feet !== undefined && distance_feet !== null) {
+    if (!Number.isInteger(distance_feet) || distance_feet < 1) {
+      return res.status(400).json({ error: 'distance_feet must be a positive integer or null' });
     }
-  }
-  if (side !== undefined && side !== null && !['left', 'right', 'both'].includes(side)) {
-    return res.status(400).json({ error: 'side must be "left", "right", "both", or null' });
   }
 
   // Only therapists and admins can create programs
@@ -142,11 +139,11 @@ async function createProgram(req, res) {
     const programData = {
       patient_id,
       exercise_id,
-      current_sets,
-      current_reps,
+      dosage_type: 'reps', // Default dosage type
+      sets,
+      reps_per_set,
       seconds_per_rep: seconds_per_rep || null,
-      distance_per_rep: distance_per_rep || null,
-      side: side || null
+      distance_feet: distance_feet || null
     };
 
     const { data: program, error } = await supabase
@@ -170,7 +167,7 @@ async function createProgram(req, res) {
 
 async function updateProgram(req, res, programId) {
   const supabase = getSupabaseWithAuth(req.accessToken);
-  const { current_sets, current_reps, seconds_per_rep, distance_per_rep, side } = req.body;
+  const { sets, reps_per_set, seconds_per_rep, distance_feet } = req.body;
 
   // Only therapists and admins can update programs
   if (req.user.role !== 'therapist' && req.user.role !== 'admin') {
@@ -205,35 +202,29 @@ async function updateProgram(req, res, programId) {
     }
 
     const updateData = {};
-    if (current_sets !== undefined) {
-      if (!Number.isInteger(current_sets) || current_sets < 1) {
-        return res.status(400).json({ error: 'current_sets must be a positive integer' });
+    if (sets !== undefined) {
+      if (!Number.isInteger(sets) || sets < 1) {
+        return res.status(400).json({ error: 'sets must be a positive integer' });
       }
-      updateData.current_sets = current_sets;
+      updateData.sets = sets;
     }
-    if (current_reps !== undefined) {
-      if (!Number.isInteger(current_reps) || current_reps < 1) {
-        return res.status(400).json({ error: 'current_reps must be a positive integer' });
+    if (reps_per_set !== undefined) {
+      if (!Number.isInteger(reps_per_set) || reps_per_set < 1) {
+        return res.status(400).json({ error: 'reps_per_set must be a positive integer' });
       }
-      updateData.current_reps = current_reps;
+      updateData.reps_per_set = reps_per_set;
     }
     if (seconds_per_rep !== undefined) {
-      if (seconds_per_rep !== null && (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 1)) {
-        return res.status(400).json({ error: 'seconds_per_rep must be a positive integer or null' });
+      if (seconds_per_rep !== null && (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 0)) {
+        return res.status(400).json({ error: 'seconds_per_rep must be a non-negative integer or null' });
       }
       updateData.seconds_per_rep = seconds_per_rep;
     }
-    if (distance_per_rep !== undefined) {
-      if (distance_per_rep !== null && (!Number.isInteger(distance_per_rep) || distance_per_rep < 1)) {
-        return res.status(400).json({ error: 'distance_per_rep must be a positive integer or null' });
+    if (distance_feet !== undefined) {
+      if (distance_feet !== null && (!Number.isInteger(distance_feet) || distance_feet < 1)) {
+        return res.status(400).json({ error: 'distance_feet must be a positive integer or null' });
       }
-      updateData.distance_per_rep = distance_per_rep;
-    }
-    if (side !== undefined) {
-      if (side !== null && !['left', 'right', 'both'].includes(side)) {
-        return res.status(400).json({ error: 'side must be "left", "right", "both", or null' });
-      }
-      updateData.side = side;
+      updateData.distance_feet = distance_feet;
     }
 
     const { data: program, error } = await supabase
