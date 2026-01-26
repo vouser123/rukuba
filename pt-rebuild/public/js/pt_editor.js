@@ -372,9 +372,74 @@ async function loadExercises() {
             exerciseSelect.appendChild(option);
         });
 
+        // Populate roles and dosage section dropdowns
+        populateRoleExerciseDropdown();
+        populateDosageExerciseDropdown();
+        populateRoleVocabDropdowns();
+
     } catch (error) {
         console.error('Failed to load exercises:', error);
         toast('Failed to load exercises', 'error');
+    }
+}
+
+function populateRoleExerciseDropdown() {
+    const select = document.getElementById('roleExerciseSelect');
+    select.innerHTML = '<option value="">-- Select Exercise --</option>';
+    allExercises.forEach(exercise => {
+        const option = document.createElement('option');
+        option.value = exercise.id;
+        option.textContent = exercise.canonical_name;
+        select.appendChild(option);
+    });
+}
+
+function populateDosageExerciseDropdown() {
+    const select = document.getElementById('dosageExerciseSelect');
+    select.innerHTML = '<option value="">-- Select Exercise --</option>';
+    allExercises.forEach(exercise => {
+        const option = document.createElement('option');
+        option.value = exercise.id;
+        option.textContent = exercise.canonical_name;
+        select.appendChild(option);
+    });
+}
+
+function populateRoleVocabDropdowns() {
+    // Populate region dropdown
+    const regionSelect = document.getElementById('roleRegion');
+    regionSelect.innerHTML = '<option value="">-- Select Region --</option>';
+    if (vocabularies.region) {
+        vocabularies.region.forEach(region => {
+            const option = document.createElement('option');
+            option.value = region;
+            option.textContent = region;
+            regionSelect.appendChild(option);
+        });
+    }
+
+    // Populate capacity dropdown
+    const capacitySelect = document.getElementById('roleCapacity');
+    capacitySelect.innerHTML = '<option value="">-- Select Capacity --</option>';
+    if (vocabularies.capacity) {
+        vocabularies.capacity.forEach(capacity => {
+            const option = document.createElement('option');
+            option.value = capacity;
+            option.textContent = capacity;
+            capacitySelect.appendChild(option);
+        });
+    }
+
+    // Populate focus dropdown
+    const focusSelect = document.getElementById('roleFocus');
+    focusSelect.innerHTML = '<option value="">-- No specific focus --</option>';
+    if (vocabularies.focus) {
+        vocabularies.focus.forEach(focus => {
+            const option = document.createElement('option');
+            option.value = focus;
+            option.textContent = focus;
+            focusSelect.appendChild(option);
+        });
     }
 }
 
