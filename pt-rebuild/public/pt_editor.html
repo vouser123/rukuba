@@ -665,6 +665,104 @@
                 <button type="submit" class="btn-primary">Save Exercise</button>
             </div>
         </form>
+
+        <!-- Roles/Rehab Coverage Section -->
+        <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px; font-size: 18px;">Assign Roles to Exercises</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px;">Define rehabilitation coverage (region × capacity × focus × contribution)</p>
+
+            <div class="form-group">
+                <label class="form-label">Exercise</label>
+                <select id="roleExerciseSelect" class="form-select">
+                    <option value="">-- Select Exercise --</option>
+                </select>
+            </div>
+
+            <div id="roleFormSection" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Region *</label>
+                    <select id="roleRegion" class="form-select">
+                        <option value="">-- Select Region --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Capacity *</label>
+                    <select id="roleCapacity" class="form-select">
+                        <option value="">-- Select Capacity --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Focus (optional)</label>
+                    <select id="roleFocus" class="form-select">
+                        <option value="">-- No specific focus --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Contribution *</label>
+                    <select id="roleContribution" class="form-select">
+                        <option value="">-- Select --</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+
+                <button type="button" class="btn-primary" onclick="saveRole()">Add Role</button>
+
+                <div id="currentRoles" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <!-- Dosage/Patient Programs Section -->
+        <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px; font-size: 18px;">Manage Patient Dosages</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px;">Set exercise prescriptions (sets × reps)</p>
+
+            <div class="form-group">
+                <label class="form-label">Exercise</label>
+                <select id="dosageExerciseSelect" class="form-select">
+                    <option value="">-- Select Exercise --</option>
+                </select>
+            </div>
+
+            <div id="dosageFormSection" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Sets *</label>
+                    <input type="number" id="dosageSets" class="form-input" placeholder="e.g., 3" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Reps (per set) *</label>
+                    <input type="number" id="dosageReps" class="form-input" placeholder="e.g., 10" min="1">
+                </div>
+
+                <div class="form-group" id="dosageSecondsGroup" style="display: none;">
+                    <label class="form-label" id="dosageSecondsLabel">Seconds</label>
+                    <input type="number" id="dosageSeconds" class="form-input" placeholder="e.g., 30" min="1">
+                </div>
+
+                <div class="form-group" id="dosageDistanceGroup" style="display: none;">
+                    <label class="form-label">Distance (feet)</label>
+                    <input type="number" id="dosageDistance" class="form-input" placeholder="e.g., 100" min="1">
+                </div>
+
+                <div class="form-group" id="dosageSideGroup" style="display: none;">
+                    <label class="form-label">Side</label>
+                    <select id="dosageSide" class="form-select">
+                        <option value="both">Both</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+
+                <button type="button" class="btn-primary" onclick="saveDosage()">Update Dosage</button>
+
+                <div id="currentDosage" style="margin-top: 20px;"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Container -->
