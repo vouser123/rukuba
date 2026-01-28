@@ -1272,10 +1272,12 @@
                         archived: exercise.archived,
 
                         // Patient dosage fields from patient_programs
-                        current_sets: program.current_sets,
-                        current_reps: program.current_reps,
+                        current_sets: program.current_sets ?? program.sets,
+                        current_reps: program.current_reps ?? program.reps_per_set,
                         seconds_per_rep: program.seconds_per_rep,
-                        distance_per_rep: program.distance_per_rep,
+                        seconds_per_set: program.seconds_per_set,
+                        dosage_type: program.dosage_type,
+                        distance_feet: program.distance_feet,
                         side: program.side,
 
                         // Full nested data for reference
@@ -1354,19 +1356,21 @@
         function formatDosage(exercise) {
             const sets = exercise.current_sets || 0;
             const reps = exercise.current_reps || 0;
-            const seconds = exercise.seconds_per_rep || 0;
-            const distance = exercise.distance_target || 0;
+            const holdSeconds = exercise.seconds_per_rep || 0;
+            const durationSeconds = exercise.seconds_per_set || 0;
+            const distance = exercise.distance_feet || 0;
+            const dosageType = exercise.dosage_type;
 
-            const hasDuration = exercise.pattern_modifiers?.includes('duration_seconds');
-            const hasHold = exercise.pattern_modifiers?.includes('hold_seconds');
-            const hasDistance = exercise.pattern_modifiers?.includes('distance_feet');
+            const hasDuration = exercise.pattern_modifiers?.includes('duration_seconds') || dosageType === 'duration';
+            const hasHold = exercise.pattern_modifiers?.includes('hold_seconds') || dosageType === 'hold';
+            const hasDistance = exercise.pattern_modifiers?.includes('distance_feet') || dosageType === 'distance';
 
             if (hasDistance && distance > 0) {
                 return `${distance} feet`;
-            } else if (hasDuration && seconds > 0) {
-                return `${sets} × ${seconds} sec`;
-            } else if (hasHold && seconds > 0 && reps > 0) {
-                return `${sets} × ${reps} reps (${seconds} sec hold)`;
+            } else if (hasDuration && durationSeconds > 0) {
+                return `${sets} × ${durationSeconds} sec`;
+            } else if (hasHold && holdSeconds > 0 && reps > 0) {
+                return `${sets} × ${reps} reps (${holdSeconds} sec hold)`;
             } else if (reps > 0) {
                 return `${sets} × ${reps} reps`;
             } else {
@@ -1436,7 +1440,7 @@
 
             // Determine activity type from pattern modifiers
             let activityType = 'reps'; // default
-            if (currentExercise.pattern_modifiers) {
+            if (currentExercise.pattern_modifiers && currentExercise.pattern_modifiers.length > 0) {
                 if (currentExercise.pattern_modifiers.includes('distance_feet')) {
                     activityType = 'distance';
                 } else if (currentExercise.pattern_modifiers.includes('hold_seconds')) {
@@ -1444,6 +1448,8 @@
                 } else if (currentExercise.pattern_modifiers.includes('duration_seconds')) {
                     activityType = 'duration';
                 }
+            } else if (currentExercise.dosage_type) {
+                activityType = currentExercise.dosage_type;
             }
 
             // Initialize new session
@@ -1479,7 +1485,8 @@
 
             // Determine which mode to show: timer mode or counter mode
             const hasTimerModifier = currentExercise.pattern_modifiers?.includes('duration_seconds') ||
-                                      currentExercise.pattern_modifiers?.includes('hold_seconds');
+                                      currentExercise.pattern_modifiers?.includes('hold_seconds') ||
+                                      ['duration', 'hold'].includes(currentExercise.dosage_type);
 
             const counterMode = document.getElementById('counterMode');
             const timerMode = document.getElementById('timerMode');
@@ -1551,8 +1558,10 @@
          */
         function initTimerMode() {
             // Determine if this is hold (per-rep timer) or duration (single long timer)
-            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
-            const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds');
+            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds')
+                || currentExercise.dosage_type === 'hold';
+            const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds')
+                || currentExercise.dosage_type === 'duration';
 
             if (hasHold) {
                 // Hold = timer per rep (e.g., 10 reps × 10 seconds each)
@@ -1562,7 +1571,7 @@
                 document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
             } else if (hasDuration) {
                 // Duration = single long timer (e.g., 60 seconds plank)
-                timerState.targetSeconds = currentExercise.seconds_per_rep || 60;
+                timerState.targetSeconds = currentExercise.seconds_per_set || currentExercise.seconds_per_rep || 60;
                 timerState.totalReps = 1;
                 timerState.currentRep = 1;
                 document.getElementById('timerRepInfo').textContent = `Duration Exercise`;

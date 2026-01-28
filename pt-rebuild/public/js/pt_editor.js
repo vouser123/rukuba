@@ -1345,7 +1345,10 @@ async function loadExerciseDosage() {
 
         if (currentProgramForDosage) {
             const spec = currentProgramForDosage;
-            const secondsValue = spec.seconds_per_rep || spec.seconds_per_set || '';
+            const dosageType = spec.dosage_type;
+            const usesHold = dosageType === 'hold' || (!dosageType && hasHold);
+            const usesDuration = dosageType === 'duration' || (!dosageType && hasDuration);
+            const secondsValue = usesDuration ? (spec.seconds_per_set || '') : (usesHold ? (spec.seconds_per_rep || '') : '');
             const distanceValue = spec.distance_feet || '';
             const repsValue = spec.reps_per_set || '';
 
@@ -1356,10 +1359,10 @@ async function loadExerciseDosage() {
             if (!replacesReps && repsValue) {
                 summaryParts.push(`${repsValue} reps`);
             }
-            if (spec.seconds_per_rep) {
+            if (usesHold && spec.seconds_per_rep) {
                 summaryParts.push(`${spec.seconds_per_rep}s hold`);
             }
-            if (spec.seconds_per_set) {
+            if (usesDuration && spec.seconds_per_set) {
                 summaryParts.push(`${spec.seconds_per_set}s duration`);
             }
             if (spec.distance_feet) {
@@ -1438,6 +1441,7 @@ async function updateDosage() {
             return;
         }
         dosageData.seconds_per_rep = seconds;
+        dosageData.seconds_per_set = null;
         dosageData.dosage_type = 'hold';
     } else if (modifiers.includes('duration_seconds')) {
         const seconds = parseInt(document.getElementById('dosageSeconds').value, 10);
@@ -1446,6 +1450,7 @@ async function updateDosage() {
             return;
         }
         dosageData.seconds_per_set = seconds;
+        dosageData.seconds_per_rep = null;
         dosageData.dosage_type = 'duration';
     } else if (!replacesReps) {
         dosageData.dosage_type = 'reps';
