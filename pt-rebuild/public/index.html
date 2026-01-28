@@ -1549,7 +1549,8 @@
             isRunning: false,
             currentRep: 1,
             targetSeconds: 10,
-            totalReps: 1
+            totalReps: 1,
+            lastAnnouncedSecond: null
         };
 
         /**
@@ -1582,6 +1583,7 @@
             document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
             timerState.elapsedMs = 0;
             timerState.isRunning = false;
+            timerState.lastAnnouncedSecond = null;
             updateTimerButton();
         }
 
@@ -1608,6 +1610,10 @@
         }
 
         function startTimer() {
+            if (timerState.intervalId) {
+                return;
+            }
+            ensureAudioReady();
             timerState.isRunning = true;
             timerState.startTime = Date.now() - timerState.elapsedMs;
 
@@ -1615,45 +1621,51 @@
                 timerState.elapsedMs = Date.now() - timerState.startTime;
                 const elapsedSeconds = Math.floor(timerState.elapsedMs / 1000);
                 const remaining = timerState.targetSeconds - elapsedSeconds;
+                const clampedRemaining = Math.max(0, remaining);
 
                 // Display countdown (remaining time)
-                const displayMs = Math.max(0, remaining * 1000);
+                const displayMs = clampedRemaining * 1000;
                 document.getElementById('timerDisplay').textContent = formatTime(displayMs);
 
                 // Beep and voice warnings when approaching zero
                 // Countdown beeps at 3, 2, 1 (matching old app)
-                if (remaining <= 3 && remaining > 0) {
-                    playBeep(600, 100);
-                }
-
-                if (remaining === 5) {
-                    speakText('5 seconds left');
-                } else if (remaining === 4) {
-                    speakText('4 seconds left');
-                } else if (remaining === 3) {
-                    speakText('3 seconds left');
-                } else if (remaining === 2) {
-                    speakText('2 seconds left');
-                } else if (remaining === 1) {
-                    speakText('1 second left');
-                } else if (remaining === 0) {
-                    playCompletionSound();
-                    pauseTimer(); // Auto-pause at target, but allow user to continue
-
-                    // Announce reps remaining for hold exercises
-                    const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
-                    if (hasHold && timerState.totalReps > 1) {
-                        const repsLeft = timerState.totalReps - timerState.currentRep;
-                        if (repsLeft === 0) {
-                            speakText('Set complete');
-                        } else if (repsLeft === 1) {
-                            speakText('Last rep');
-                        } else {
-                            speakText(`${repsLeft} reps left`);
-                        }
-                    } else {
-                        speakText('Time');
+                if (clampedRemaining !== timerState.lastAnnouncedSecond) {
+                    if (clampedRemaining <= 3 && clampedRemaining > 0) {
+                        playBeep(600, 100);
                     }
+
+                    if (clampedRemaining === 0) {
+                        playCompletionSound();
+                        pauseTimer(); // Auto-pause at target, but allow user to continue
+
+                        // Announce reps remaining for hold exercises
+                        const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+                        if (hasHold) {
+                            const repsLeft = timerState.totalReps - timerState.currentRep;
+                            if (repsLeft <= 0) {
+                                speakText('Set complete');
+                            } else if (repsLeft === 1) {
+                                speakText('Last rep');
+                            } else {
+                                speakText(`${repsLeft} reps left`);
+                            }
+
+                            timerState.currentRep = Math.min(timerState.currentRep + 1, timerState.totalReps);
+                            timerState.elapsedMs = 0;
+                            timerState.lastAnnouncedSecond = null;
+                            if (repsLeft > 0) {
+                                document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+                            }
+                            document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
+                        } else {
+                            speakText('Time');
+                            timerState.elapsedMs = 0;
+                            timerState.lastAnnouncedSecond = null;
+                            document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
+                        }
+                    }
+
+                    timerState.lastAnnouncedSecond = clampedRemaining;
                 }
             }, 100); // Update every 100ms for smooth display
 
@@ -1672,6 +1684,7 @@
         function resetTimer() {
             pauseTimer();
             timerState.elapsedMs = 0;
+            timerState.lastAnnouncedSecond = null;
             // Reset to target time (countdown starts from target)
             document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
         }
@@ -1681,13 +1694,32 @@
             btn.textContent = timerState.isRunning ? 'Pause' : 'Start';
         }
 
+        let audioContext = null;
+
+        function ensureAudioReady() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            } catch (error) {
+                console.warn('Audio not available:', error);
+                audioContext = null;
+            }
+        }
+
         /**
          * Play a simple beep sound using Web Audio API.
          * iOS Safari requires user interaction before playing audio.
          */
         function playBeep(frequency = 800, duration = 200) {
             try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                ensureAudioReady();
+                if (!audioContext) {
+                    return;
+                }
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
 
