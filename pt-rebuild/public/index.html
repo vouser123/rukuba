@@ -1405,7 +1405,13 @@
 
             const html = logs.map(log => {
                 const date = new Date(log.performed_at);
-                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                const dateStr = formatDateTimeWithZone(date, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
                 const setsCount = log.sets ? log.sets.length : 0;
 
                 return `
@@ -2423,7 +2429,28 @@ ${queueData}
             if (diffHours < 24) return `${diffHours}h ago`;
             if (diffDays < 7) return `${diffDays}d ago`;
 
-            return date.toLocaleDateString();
+            return formatDateWithZone(date);
+        }
+
+        function formatDateTimeWithZone(date, options = {}) {
+            const baseOptions = { timeZoneName: 'short', ...options };
+            try {
+                return new Intl.DateTimeFormat(undefined, baseOptions).format(date);
+            } catch (error) {
+                return new Intl.DateTimeFormat('en-US', {
+                    ...baseOptions,
+                    timeZone: 'America/New_York'
+                }).format(date);
+            }
+        }
+
+        function formatDateWithZone(date, options = {}) {
+            return formatDateTimeWithZone(date, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                ...options
+            });
         }
 
         function escapeHtml(text) {
