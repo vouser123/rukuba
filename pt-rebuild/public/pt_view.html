@@ -112,6 +112,15 @@
             opacity: 0.8;
         }
 
+        .btn,
+        .hamburger-btn,
+        .hamburger-item,
+        .exercise-card,
+        .close-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         /* Summary Cards */
         .summary-section {
             padding: 1rem;
@@ -258,6 +267,73 @@
             color: #666;
         }
 
+        /* Messages Badge */
+        .messages-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #dc3545;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            min-width: 16px;
+            text-align: center;
+        }
+
+        .messages-badge.hidden {
+            display: none;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
         .grouped-by-date {
             margin-bottom: 1.5rem;
         }
@@ -269,6 +345,274 @@
             border-radius: 4px;
             font-weight: bold;
             margin-bottom: 0.5rem;
+        }
+
+        /* Top Exercises Section */
+        .section {
+            padding: 0 1rem 1rem 1rem;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .top-exercises-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .exercise-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+
+        .exercise-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .exercise-card-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .exercise-card-meta {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Exercise History Modal */
+        .exercise-history-content {
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .exercise-history-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .exercise-history-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Hamburger Menu */
+        .hamburger-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .hamburger-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        }
+
+        .hamburger-overlay.active {
+            display: block;
+        }
+
+        .hamburger-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 280px;
+            background: white;
+            z-index: 9999;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+
+        .hamburger-menu.active {
+            display: block;
+        }
+
+        .hamburger-header {
+            padding: 1rem;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hamburger-close {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #007bff;
+        }
+
+        .hamburger-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .hamburger-item:hover {
+            background: #f5f5f5;
+        }
+
+        .hamburger-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .user-info {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .user-email {
+            font-size: 14px;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .user-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                color-scheme: dark;
+            }
+
+            body {
+                background: #0f1115;
+                color: #f5f5f5;
+            }
+
+            .auth-modal {
+                background: rgba(0, 0, 0, 0.85);
+            }
+
+            .auth-content,
+            .header,
+            .hamburger-menu,
+            .summary-card,
+            .filters-section,
+            .session-card,
+            .exercise-card,
+            .modal-content {
+                background: #1c1f26;
+                border-color: #2a2f3a;
+            }
+
+            .header {
+                border-bottom-color: #4c8dff;
+            }
+
+            .header h1,
+            .hamburger-close {
+                color: #4c8dff;
+            }
+
+            .auth-form input,
+            .filter-group input,
+            .filter-group select,
+            #newMessageText,
+            #exercise-history-search {
+                background: #1b1f27;
+                border-color: #2a2f3a;
+                color: #f5f5f5;
+            }
+
+            .hamburger-header,
+            .hamburger-item,
+            .user-info {
+                border-color: #2a2f3a;
+            }
+
+            .hamburger-item:active,
+            .exercise-card:hover {
+                background: #232836;
+            }
+
+            .summary-value {
+                color: #4c8dff;
+            }
+
+            .summary-label,
+            .filter-group label,
+            .session-time,
+            .exercise-card-meta,
+            .loading,
+            .empty-state {
+                color: #b5b5b5;
+            }
+
+            .session-exercise,
+            .exercise-card-title,
+            .section-title {
+                color: #f5f5f5;
+            }
+
+            .session-sets {
+                background: #232836;
+            }
+
+            .session-notes {
+                background: #3a3520;
+                border-left-color: #ffc107;
+            }
+
+            .date-group-header {
+                background: #4c8dff;
+            }
+
+            .modal {
+                background: rgba(0, 0, 0, 0.7);
+            }
+
+            .user-info {
+                background: #1b1f27;
+            }
+
+            .user-email {
+                color: #f5f5f5;
+            }
+
+            .user-label {
+                color: #b5b5b5;
+            }
+
+            .hamburger-item {
+                color: #f5f5f5;
+            }
         }
     </style>
 </head>
@@ -302,7 +646,50 @@
     <div class="header">
         <h1>PT History</h1>
         <div class="header-actions">
-            <button class="btn" data-action="refresh-data">↻ Refresh</button>
+            <button class="btn" data-action="refresh-data">↻</button>
+            <button class="hamburger-btn" data-action="toggle-hamburger">☰</button>
+        </div>
+    </div>
+
+    <!-- Hamburger Menu -->
+    <div class="hamburger-overlay" id="hamburgerOverlay" data-action="toggle-hamburger"></div>
+    <div class="hamburger-menu" id="hamburgerMenu">
+        <div class="hamburger-header">
+            <h3>Menu</h3>
+            <button class="hamburger-close" data-action="toggle-hamburger">Close</button>
+        </div>
+        <div class="user-info">
+            <div class="user-label">Signed in as</div>
+            <div class="user-email" id="userEmail">-</div>
+        </div>
+        <div>
+            <div class="hamburger-item" data-action="show-messages">
+                <span class="hamburger-icon" style="position: relative;">
+                    💬
+                    <span id="messagesBadge" class="messages-badge hidden"></span>
+                </span>
+                <span>Messages</span>
+            </div>
+            <a href="index.html" class="hamburger-item">
+                <span class="hamburger-icon">🏠</span>
+                <span>PT Tracker</span>
+            </a>
+            <a href="pt_editor.html" class="hamburger-item" id="ptEditorLink">
+                <span class="hamburger-icon">✏️</span>
+                <span>Exercise Editor</span>
+            </a>
+            <a href="rehab_coverage.html" class="hamburger-item">
+                <span class="hamburger-icon">📈</span>
+                <span>Coverage Analysis</span>
+            </a>
+            <div class="hamburger-item" data-action="reload">
+                <span class="hamburger-icon">🔄</span>
+                <span>Reload</span>
+            </div>
+            <div class="hamburger-item" data-action="sign-out">
+                <span class="hamburger-icon">🚪</span>
+                <span>Sign Out</span>
+            </div>
         </div>
     </div>
 
@@ -319,6 +706,14 @@
         <div class="summary-card">
             <div class="summary-label">Last 7 Days</div>
             <div class="summary-value" id="recentSessions">0</div>
+        </div>
+    </div>
+
+    <!-- Top Exercises -->
+    <div class="section">
+        <div class="section-title">Top Exercises</div>
+        <div id="topExercises" class="top-exercises-grid">
+            <div class="loading">Loading...</div>
         </div>
     </div>
 
@@ -354,23 +749,70 @@
         </div>
     </div>
 
+    <!-- Exercise History Modal -->
+    <div id="exerciseHistoryModal" class="modal hidden">
+        <div class="modal-content exercise-history-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="exerciseHistoryTitle">Exercise History</h2>
+                    <div id="exerciseHistorySubtitle" style="font-size: 13px; color: #666; margin-top: 4px;"></div>
+                </div>
+                <button class="close-btn" data-action="close-exercise-history">&times;</button>
+            </div>
+            <input type="text" id="exerciseHistorySearch" placeholder="Search by date or notes..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem;">
+            <div id="exerciseHistoryList" style="flex: 1; overflow-y: auto;">
+                <!-- History loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages Modal -->
+    <div id="messagesModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Messages</h2>
+                <button class="close-btn" data-action="close-messages-modal">&times;</button>
+            </div>
+            <div id="messagesList" style="flex: 1; overflow-y: auto; padding: 1rem 0; min-height: 200px;">
+                <!-- Messages loaded here -->
+            </div>
+            <div style="border-top: 1px solid #ddd; padding-top: 1rem;">
+                <textarea id="newMessageText" placeholder="Write a message..." style="width: 100%; min-height: 80px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; resize: vertical; margin-bottom: 12px;"></textarea>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button class="btn btn-secondary" data-action="close-messages-modal">Cancel</button>
+                    <button class="btn" data-action="send-message">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         // Supabase initialization
-        const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supabaseClient = null;
 
         // State
         let currentUser = null;
         let authToken = null;
         let allLogs = [];
         let filteredLogs = [];
+        let lastReadMessageTime = localStorage.getItem('lastReadMessageTime') || new Date(0).toISOString();
+
+        async function loadSupabaseConfig() {
+            const response = await fetch('/api/env');
+            if (!response.ok) {
+                throw new Error('Failed to load Supabase configuration.');
+            }
+            return response.json();
+        }
 
         // Initialize app
         async function init() {
+            const { supabaseUrl, supabaseAnonKey } = await loadSupabaseConfig();
+            supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
             // Check auth state
             const { data: { session } } = await supabaseClient.auth.getSession();
 
@@ -378,7 +820,9 @@
                 currentUser = session.user;
                 authToken = session.access_token;
                 hideAuthModal();
+                updateUserDisplay();
                 await loadData();
+                checkForNewMessages();
             } else {
                 showAuthModal();
             }
@@ -389,7 +833,9 @@
                     currentUser = session.user;
                     authToken = session.access_token;
                     hideAuthModal();
+                    updateUserDisplay();
                     loadData();
+                    checkForNewMessages();
                 } else if (event === 'SIGNED_OUT') {
                     currentUser = null;
                     authToken = null;
@@ -408,6 +854,29 @@
 
         function hideAuthModal() {
             document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function updateUserDisplay() {
+            const emailEl = document.getElementById('userEmail');
+            if (emailEl && currentUser) {
+                emailEl.textContent = currentUser.email || '-';
+            }
+        }
+
+        // Hamburger menu
+        function toggleHamburger() {
+            const menu = document.getElementById('hamburgerMenu');
+            const overlay = document.getElementById('hamburgerOverlay');
+            menu.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        async function signOut() {
+            await supabaseClient.auth.signOut();
+            currentUser = null;
+            authToken = null;
+            showAuthModal();
+            toggleHamburger();
         }
 
         async function signIn(email, password) {
@@ -484,6 +953,59 @@
             document.getElementById('totalSessions').textContent = totalSessions;
             document.getElementById('totalSets').textContent = totalSets;
             document.getElementById('recentSessions').textContent = recentSessions;
+
+            // Render top exercises
+            renderTopExercises();
+        }
+
+        // Top exercises
+        function renderTopExercises() {
+            const container = document.getElementById('topExercises');
+
+            if (allLogs.length === 0) {
+                container.innerHTML = '<div style="color: #666; font-size: 13px; padding: 12px;">No exercises recorded yet</div>';
+                return;
+            }
+
+            // Group by exercise
+            const exerciseGroups = {};
+            allLogs.forEach(log => {
+                const id = log.exercise_id || log.exercise_name;
+                const name = log.exercise_name;
+
+                if (!exerciseGroups[id]) {
+                    exerciseGroups[id] = { id, name, sessions: [], totalSets: 0 };
+                }
+                exerciseGroups[id].sessions.push(log);
+                exerciseGroups[id].totalSets += (log.sets || []).length;
+            });
+
+            // Sort by session count and take top 10
+            const topExercises = Object.values(exerciseGroups)
+                .sort((a, b) => b.sessions.length - a.sessions.length)
+                .slice(0, 10);
+
+            let html = '';
+            topExercises.forEach(ex => {
+                const lastSession = ex.sessions[0]; // Already sorted desc by performed_at
+                const lastDate = new Date(lastSession.performed_at);
+                const timeAgo = formatTimeAgo(lastDate);
+                const hasNotes = ex.sessions.some(s => s.notes);
+
+                html += `
+                    <div class="exercise-card" data-action="show-exercise-history" data-exercise-id="${ex.id}" data-exercise-name="${ex.name}">
+                        <div class="exercise-card-title">
+                            ${escapeHtml(ex.name)}
+                            ${hasNotes ? '<span style="color: #007bff; margin-left: 6px;" title="Has notes">📝</span>' : ''}
+                        </div>
+                        <div class="exercise-card-meta">
+                            ${ex.sessions.length} logs • ${ex.totalSets} sets • Last: ${timeAgo}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
         }
 
         // Exercise filter
@@ -638,13 +1160,52 @@
 
             // Pointer events (iOS-safe)
             document.body.addEventListener('pointerup', (e) => {
-                const action = e.target.dataset.action;
-                if (!action) return;
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
 
-                if (action === 'refresh-data') {
-                    loadData();
+                const action = target.dataset.action;
+
+                switch (action) {
+                    case 'refresh-data':
+                        loadData();
+                        break;
+                    case 'toggle-hamburger':
+                        toggleHamburger();
+                        break;
+                    case 'sign-out':
+                        signOut();
+                        break;
+                    case 'reload':
+                        toggleHamburger();
+                        window.location.reload();
+                        break;
+                    case 'show-messages':
+                        toggleHamburger();
+                        showMessagesModal();
+                        break;
+                    case 'close-messages-modal':
+                        closeMessagesModal();
+                        break;
+                    case 'send-message':
+                        sendMessage();
+                        break;
+                    case 'archive-message':
+                        archiveMessage(target.dataset.id);
+                        break;
+                    case 'undo-send-message':
+                        undoSendMessage(target.dataset.id);
+                        break;
+                    case 'show-exercise-history':
+                        showExerciseHistory(target.dataset.exerciseId, target.dataset.exerciseName);
+                        break;
+                    case 'close-exercise-history':
+                        closeExerciseHistory();
+                        break;
                 }
             });
+
+            // Exercise history search
+            document.getElementById('exerciseHistorySearch').addEventListener('input', renderExerciseHistory);
         }
 
         // Utility functions
@@ -653,6 +1214,319 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function formatTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+
+            return date.toLocaleDateString();
+        }
+
+        // ============================================================================
+        // EXERCISE HISTORY MODAL
+        // ============================================================================
+
+        let currentExerciseHistory = [];
+        let currentExerciseId = null;
+
+        function showExerciseHistory(exerciseId, exerciseName) {
+            currentExerciseId = exerciseId;
+
+            // Get all sessions for this exercise
+            currentExerciseHistory = allLogs.filter(log =>
+                (log.exercise_id || log.exercise_name) === exerciseId
+            );
+
+            document.getElementById('exerciseHistoryTitle').textContent = exerciseName;
+            document.getElementById('exerciseHistorySubtitle').textContent =
+                `${currentExerciseHistory.length} logs • ${currentExerciseHistory.reduce((sum, log) => sum + (log.sets || []).length, 0)} total sets`;
+            document.getElementById('exerciseHistorySearch').value = '';
+
+            renderExerciseHistory();
+            document.getElementById('exerciseHistoryModal').classList.remove('hidden');
+        }
+
+        function closeExerciseHistory() {
+            document.getElementById('exerciseHistoryModal').classList.add('hidden');
+            currentExerciseHistory = [];
+            currentExerciseId = null;
+        }
+
+        function renderExerciseHistory() {
+            const searchQuery = document.getElementById('exerciseHistorySearch').value.toLowerCase();
+            const container = document.getElementById('exerciseHistoryList');
+
+            let filtered = currentExerciseHistory;
+            if (searchQuery) {
+                filtered = currentExerciseHistory.filter(log => {
+                    const dateStr = new Date(log.performed_at).toLocaleDateString();
+                    const matchesDate = dateStr.toLowerCase().includes(searchQuery);
+                    const matchesNotes = log.notes && log.notes.toLowerCase().includes(searchQuery);
+                    return matchesDate || matchesNotes;
+                });
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No matching logs found</div>';
+                return;
+            }
+
+            const html = filtered.map(log => {
+                const date = new Date(log.performed_at);
+                const dateStr = date.toLocaleDateString();
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const setsHtml = log.sets ? log.sets.map((set, idx) => {
+                    let setInfo = `Set ${set.set_number || idx + 1}: `;
+                    if (set.reps) setInfo += `${set.reps} reps`;
+                    if (set.seconds) setInfo += `${set.seconds}s`;
+                    if (set.distance_feet) setInfo += `${set.distance_feet} ft`;
+                    if (set.side) setInfo += ` (${set.side})`;
+                    return `<div style="padding: 2px 0;">${setInfo}</div>`;
+                }).join('') : '';
+
+                const notesHtml = log.notes ? `
+                    <div style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-top: 8px; border-left: 3px solid #ffc107; font-size: 13px;">
+                        <strong>Notes:</strong> ${escapeHtml(log.notes)}
+                    </div>
+                ` : '';
+
+                return `
+                    <div class="exercise-history-item">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-weight: 600;">${dateStr}</span>
+                            <span style="color: #666; font-size: 13px;">${timeStr}</span>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 13px;">
+                            ${setsHtml}
+                        </div>
+                        ${notesHtml}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        // ============================================================================
+        // MESSAGES FUNCTIONALITY
+        // ============================================================================
+
+        function showMessagesModal() {
+            if (!currentUser) {
+                alert('Please sign in to view messages');
+                return;
+            }
+
+            document.getElementById('messagesModal').classList.remove('hidden');
+            loadMessages();
+
+            // Mark messages as read
+            lastReadMessageTime = new Date().toISOString();
+            localStorage.setItem('lastReadMessageTime', lastReadMessageTime);
+
+            // Hide badge
+            const badge = document.getElementById('messagesBadge');
+            if (badge) badge.classList.add('hidden');
+        }
+
+        function closeMessagesModal() {
+            document.getElementById('messagesModal').classList.add('hidden');
+        }
+
+        async function loadMessages() {
+            if (!currentUser || !authToken) return;
+
+            const messagesList = document.getElementById('messagesList');
+            messagesList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">Loading messages...</div>';
+
+            try {
+                const response = await fetch('/api/logs?type=messages', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch messages');
+
+                const { messages } = await response.json();
+
+                if (messages.length === 0) {
+                    messagesList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No messages yet.</div>';
+                    return;
+                }
+
+                let html = '';
+                messages.forEach(msg => {
+                    const isFromPatient = msg.sender_id !== currentUser.id;
+                    const createdAt = new Date(msg.created_at);
+                    const timeAgo = formatTimeAgo(createdAt);
+
+                    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+                    const canUndo = !isFromPatient && createdAt > oneHourAgo;
+
+                    html += `
+                        <div style="
+                            padding: 12px;
+                            margin-bottom: 8px;
+                            border-radius: 12px;
+                            border-left: 4px solid ${isFromPatient ? '#28a745' : '#007bff'};
+                            background: ${isFromPatient ? '#f0fff0' : '#f0f7ff'};
+                        ">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-weight: 600; font-size: 13px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
+                                    ${isFromPatient ? 'Patient' : 'You'}
+                                </span>
+                                <span style="font-size: 11px; color: #888;">${timeAgo}</span>
+                            </div>
+                            <div style="font-size: 14px; color: #333; white-space: pre-wrap;">${escapeHtml(msg.body)}</div>
+                            <div style="margin-top: 8px; display: flex; gap: 8px;">
+                                <button data-action="archive-message" data-id="${msg.id}" style="background: transparent; border: none; color: #888; cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
+                                ${canUndo ? `<button data-action="undo-send-message" data-id="${msg.id}" style="background: transparent; border: none; color: #dc3545; cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                messagesList.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                messagesList.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 2rem;">Failed to load messages</div>';
+            }
+        }
+
+        async function sendMessage() {
+            const textEl = document.getElementById('newMessageText');
+            const text = textEl.value.trim();
+
+            if (!text) {
+                alert('Please enter a message');
+                return;
+            }
+
+            if (!currentUser || !authToken) {
+                alert('Please sign in to send messages');
+                return;
+            }
+
+            // Get recipient from logs data - find the patient whose logs we're viewing
+            // If current user is patient, they don't have anyone to message from pt_view
+            // If current user is therapist, get patient_id from logs
+            let recipientId = null;
+            if (allLogs.length > 0) {
+                recipientId = allLogs[0].patient_id;
+            }
+
+            if (!recipientId || recipientId === currentUser.id) {
+                alert('No recipient available for messaging from this view.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/logs?type=messages', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        recipient_id: recipientId,
+                        body: text
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to send message');
+
+                textEl.value = '';
+                await loadMessages();
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message');
+            }
+        }
+
+        async function archiveMessage(messageId) {
+            if (!authToken) return;
+
+            try {
+                const response = await fetch(`/api/logs?type=messages&id=${messageId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ archived: true })
+                });
+
+                if (!response.ok) throw new Error('Failed to archive message');
+                await loadMessages();
+
+            } catch (error) {
+                console.error('Error archiving message:', error);
+                alert('Failed to hide message');
+            }
+        }
+
+        async function undoSendMessage(messageId) {
+            if (!authToken) return;
+
+            if (!confirm('Delete this message?')) return;
+
+            try {
+                const response = await fetch(`/api/logs?type=messages&id=${messageId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to delete message');
+                await loadMessages();
+
+            } catch (error) {
+                console.error('Error deleting message:', error);
+                alert('Failed to delete message');
+            }
+        }
+
+        async function checkForNewMessages() {
+            if (!currentUser || !authToken) return;
+
+            try {
+                const response = await fetch('/api/logs?type=messages', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) return;
+
+                const { messages } = await response.json();
+
+                const unreadCount = messages.filter(msg => {
+                    const isFromOther = msg.sender_id !== currentUser.id;
+                    const isNew = new Date(msg.created_at) > new Date(lastReadMessageTime);
+                    return isFromOther && isNew;
+                }).length;
+
+                const badge = document.getElementById('messagesBadge');
+                if (badge) {
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error checking for new messages:', error);
+            }
         }
 
         // Start the app

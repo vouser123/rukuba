@@ -35,6 +35,7 @@ These API routes are the public surface area for the frontend. Keep route count 
 - `GET/POST/PUT/DELETE /api/exercises` → manage exercises + related metadata.
 - `GET/POST/PUT /api/programs` → manage patient programs (dosages/prescriptions).
 - `GET/POST /api/logs` → manage activity logs + sets + form data.
+- `GET/POST/PATCH/DELETE /api/logs?type=messages` → clinical messages (PT-patient communication).
 - `GET/POST/DELETE /api/roles` → exercise roles/coverage.
 - `GET /api/reference-data` → reference tables (equipment, muscles, form params).
 - `GET /api/vocab` → vocabulary tables.
@@ -51,6 +52,7 @@ Core tables used by the API layer:
 - `exercise_roles` — rehab coverage roles/regions.
 - `patient_programs` — assigned exercises + dosage.
 - `patient_activity_logs`, `patient_activity_sets`, `patient_activity_set_form_data` — logged activity history.
+- `clinical_messages` — bidirectional PT-patient messaging.
 
 ## Auth + security
 

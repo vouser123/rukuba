@@ -4,6 +4,12 @@
  * GET /api/logs?patient_id=X - List activity logs for a patient
  * POST /api/logs - Create new activity log with sets
  *
+ * Messages API (type=messages):
+ * GET /api/logs?type=messages - List clinical messages for current user
+ * POST /api/logs?type=messages - Create new message
+ * PATCH /api/logs?type=messages&id=X - Update message (mark read/archive)
+ * DELETE /api/logs?type=messages&id=X - Soft delete message
+ *
  * Patient-only endpoint (therapists cannot log on behalf of patients).
  * GET enforces: patients see own logs only, therapists see their patients' logs.
  */
@@ -241,8 +247,249 @@ async function createActivityLog(req, res) {
   }
 }
 
+// ============================================================================
+// CLINICAL MESSAGES HANDLERS
+// ============================================================================
+
+/**
+ * GET /api/logs?type=messages
+ *
+ * Returns clinical messages for the current user.
+ * Filters out soft-deleted messages.
+ */
+async function getMessages(req, res) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+
+  try {
+    // Filter by current user - must be sender or recipient
+    const { data: messages, error } = await supabase
+      .from('clinical_messages')
+      .select('*')
+      .is('deleted_at', null)
+      .or(`sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      messages,
+      count: messages.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch messages',
+      details: error.message
+    });
+  }
+}
+
+/**
+ * POST /api/logs?type=messages
+ *
+ * Create a new clinical message.
+ * Body: { recipient_id, subject?, body }
+ */
+async function createMessage(req, res) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+  const { recipient_id, subject, body } = req.body;
+
+  if (!recipient_id || !body) {
+    return res.status(400).json({
+      error: 'Missing required fields: recipient_id, body'
+    });
+  }
+
+  try {
+    // For patient-to-therapist messages, patient_id is the sender (current user)
+    // For therapist-to-patient messages, patient_id is the recipient
+    // We'll use the current user's ID as patient_id if they're a patient,
+    // otherwise use the recipient_id
+    const patientId = req.user.role === 'patient' ? req.user.id : recipient_id;
+
+    const { data: message, error } = await supabase
+      .from('clinical_messages')
+      .insert({
+        patient_id: patientId,
+        sender_id: req.user.id,
+        recipient_id,
+        subject: subject || null,
+        body
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(201).json({ message });
+
+  } catch (error) {
+    console.error('Error creating message:', error);
+    return res.status(500).json({
+      error: 'Failed to create message',
+      details: error.message
+    });
+  }
+}
+
+/**
+ * PATCH /api/logs?type=messages&id=X
+ *
+ * Update a message (mark as read or archive).
+ * Body: { read?: boolean, archived?: boolean }
+ */
+async function updateMessage(req, res) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+  const { id } = req.query;
+  const { read, archived } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Missing message id' });
+  }
+
+  try {
+    // First fetch the message to determine user's role (sender or recipient)
+    const { data: existing, error: fetchError } = await supabase
+      .from('clinical_messages')
+      .select('sender_id, recipient_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!existing) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    const isSender = existing.sender_id === req.user.id;
+    const isRecipient = existing.recipient_id === req.user.id;
+
+    if (!isSender && !isRecipient) {
+      return res.status(403).json({ error: 'Not authorized to update this message' });
+    }
+
+    // Build update object based on user's role
+    const updates = { updated_at: new Date().toISOString() };
+
+    if (read !== undefined && isRecipient) {
+      updates.read_by_recipient = read;
+    }
+
+    if (archived !== undefined) {
+      if (isSender) {
+        updates.archived_by_sender = archived;
+      } else if (isRecipient) {
+        updates.archived_by_recipient = archived;
+      }
+    }
+
+    const { data: message, error } = await supabase
+      .from('clinical_messages')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(200).json({ message });
+
+  } catch (error) {
+    console.error('Error updating message:', error);
+    return res.status(500).json({
+      error: 'Failed to update message',
+      details: error.message
+    });
+  }
+}
+
+/**
+ * DELETE /api/logs?type=messages&id=X
+ *
+ * Soft delete a message (sets deleted_at, deleted_by).
+ * Only the sender can delete within 1-hour window.
+ */
+async function deleteMessage(req, res) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Missing message id' });
+  }
+
+  try {
+    // Fetch message to verify ownership and check time window
+    const { data: existing, error: fetchError } = await supabase
+      .from('clinical_messages')
+      .select('sender_id, created_at')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!existing) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Only sender can delete
+    if (existing.sender_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the sender can delete a message' });
+    }
+
+    // Check 1-hour window
+    const createdAt = new Date(existing.created_at);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+    if (createdAt < oneHourAgo) {
+      return res.status(403).json({ error: 'Cannot delete message after 1 hour' });
+    }
+
+    // Soft delete
+    const { data: message, error } = await supabase
+      .from('clinical_messages')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: req.user.id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(200).json({ message, deleted: true });
+
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    return res.status(500).json({
+      error: 'Failed to delete message',
+      details: error.message
+    });
+  }
+}
+
 // Export with method routing
 export default async function handler(req, res) {
+  const { type } = req.query;
+
+  // Route to messages handlers if type=messages
+  if (type === 'messages') {
+    if (req.method === 'GET') {
+      return requireAuth(getMessages)(req, res);
+    }
+    if (req.method === 'POST') {
+      return requireAuth(createMessage)(req, res);
+    }
+    if (req.method === 'PATCH') {
+      return requireAuth(updateMessage)(req, res);
+    }
+    if (req.method === 'DELETE') {
+      return requireAuth(deleteMessage)(req, res);
+    }
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Default: activity logs handlers
   if (req.method === 'GET') {
     return requireAuth(getActivityLogs)(req, res);
   }
