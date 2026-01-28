@@ -1290,6 +1290,7 @@ window.removeRole = removeRole;
 // ========================================
 
 let selectedExerciseForDosage = null;
+let currentProgramForDosage = null;
 
 async function loadExerciseDosage() {
     const exerciseId = document.getElementById('dosageExerciseSelect').value;
@@ -1298,11 +1299,13 @@ async function loadExerciseDosage() {
         document.getElementById('currentDosageDisplay').classList.add('hidden');
         document.getElementById('editDosageForm').classList.add('hidden');
         selectedExerciseForDosage = null;
+        currentProgramForDosage = null;
         return;
     }
 
     selectedExerciseForDosage = allExercises.find(ex => ex.id === exerciseId);
     if (!selectedExerciseForDosage) return;
+    currentProgramForDosage = null;
 
     // Show/hide conditional fields based on pattern modifiers
     const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
@@ -1332,6 +1335,63 @@ async function loadExerciseDosage() {
     document.getElementById('dosageReps').value = '';
     document.getElementById('dosageSeconds').value = '';
     document.getElementById('dosageDistance').value = '';
+
+    try {
+        const response = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
+        const programs = response.programs || [];
+        currentProgramForDosage = programs.find(p => p.exercise_id === selectedExerciseForDosage.id) || null;
+
+        const currentDisplay = document.getElementById('currentDosageDisplay');
+
+        if (currentProgramForDosage) {
+            const spec = currentProgramForDosage;
+            const secondsValue = spec.seconds_per_rep || spec.seconds_per_set || '';
+            const distanceValue = spec.distance_feet || '';
+            const repsValue = spec.reps_per_set || '';
+
+            const summaryParts = [];
+            if (spec.sets) {
+                summaryParts.push(`${spec.sets} sets`);
+            }
+            if (!replacesReps && repsValue) {
+                summaryParts.push(`${repsValue} reps`);
+            }
+            if (spec.seconds_per_rep) {
+                summaryParts.push(`${spec.seconds_per_rep}s hold`);
+            }
+            if (spec.seconds_per_set) {
+                summaryParts.push(`${spec.seconds_per_set}s duration`);
+            }
+            if (spec.distance_feet) {
+                summaryParts.push(`${spec.distance_feet} ft`);
+            }
+
+            currentDisplay.innerHTML = `
+                <h4 style="margin-bottom: 10px; font-size: 16px;">Current Dosage</h4>
+                <div style="background: var(--bg-tertiary); padding: 10px; border-radius: 6px; font-weight: 600;">
+                    ${summaryParts.join(' • ')}
+                </div>
+            `;
+            currentDisplay.classList.remove('hidden');
+
+            document.getElementById('dosageSets').value = spec.sets || '';
+            if (!replacesReps) {
+                document.getElementById('dosageReps').value = repsValue;
+            }
+            if (hasHold || hasDuration) {
+                document.getElementById('dosageSeconds').value = secondsValue;
+            }
+            if (hasDistance) {
+                document.getElementById('dosageDistance').value = distanceValue;
+            }
+        } else {
+            currentDisplay.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No dosage set yet.</p>';
+            currentDisplay.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Failed to load dosage:', error);
+        toast(error.message || 'Failed to load dosage', 'error');
+    }
 
     toast('Select dosage parameters below', 'success');
 }
