@@ -306,6 +306,8 @@ function validateExerciseData(data, isUpdate = false) {
 async function createExercise(req, res) {
   const supabase = getSupabaseWithAuth(req.accessToken);
 
+  const payload = req.body?.exercise ?? req.body;
+
   const {
     id,
     canonical_name,
@@ -322,10 +324,10 @@ async function createExercise(req, res) {
     lifecycle_status = null,
     lifecycle_effective_start_date = null,
     lifecycle_effective_end_date = null
-  } = req.body;
+  } = payload;
 
   // Validate input
-  const validationErrors = validateExerciseData(req.body, false);
+  const validationErrors = validateExerciseData(payload, false);
   if (validationErrors.length > 0) {
     return res.status(400).json({
       error: 'Validation failed',
@@ -465,6 +467,8 @@ async function createExercise(req, res) {
 async function updateExercise(req, res, exerciseId) {
   const supabase = getSupabaseWithAuth(req.accessToken);
 
+  const payload = req.body?.exercise ?? req.body;
+
   const {
     canonical_name,
     description,
@@ -480,10 +484,10 @@ async function updateExercise(req, res, exerciseId) {
     lifecycle_status,
     lifecycle_effective_start_date,
     lifecycle_effective_end_date
-  } = req.body;
+  } = payload;
 
   // Validate input
-  const validationErrors = validateExerciseData(req.body, true);
+  const validationErrors = validateExerciseData(payload, true);
   if (validationErrors.length > 0) {
     return res.status(400).json({
       error: 'Validation failed',
@@ -686,8 +690,11 @@ async function deleteExercise(req, res, exerciseId) {
  */
 async function handler(req, res) {
   // Parse exercise ID from URL for PUT/DELETE
-  const urlParts = req.url.split('?')[0].split('/');
-  const exerciseId = urlParts[urlParts.length - 1];
+  const urlParts = req.url.split('?')[0].split('/').filter(Boolean);
+  const exerciseIdFromPath = urlParts[urlParts.length - 1];
+  const exerciseId = exerciseIdFromPath !== 'exercises'
+    ? exerciseIdFromPath
+    : (req.query?.id || req.body?.id || req.body?.exercise?.id);
 
   if (req.method === 'GET') {
     return getExercises(req, res);
