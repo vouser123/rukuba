@@ -1310,16 +1310,18 @@ async function loadExerciseDosage() {
     const hasDuration = modifiers.includes('duration_seconds');
     const hasDistance = modifiers.includes('distance_feet');
     const isUnilateral = selectedExerciseForDosage.pattern === 'side';
+    const replacesReps = hasDuration || hasDistance;
 
     // Toggle visibility of conditional fields
+    document.getElementById('dosageRepsGroup').classList.toggle('hidden', replacesReps);
     document.getElementById('dosageSecondsGroup').classList.toggle('hidden', !(hasHold || hasDuration));
     document.getElementById('dosageDistanceGroup').classList.toggle('hidden', !hasDistance);
 
     // Update label based on modifier type
     if (hasHold) {
-        document.getElementById('dosageSecondsLabel').textContent = 'Hold Seconds';
+        document.getElementById('dosageSecondsLabel').textContent = 'Hold Seconds (per rep)';
     } else if (hasDuration) {
-        document.getElementById('dosageSecondsLabel').textContent = 'Duration Seconds';
+        document.getElementById('dosageSecondsLabel').textContent = 'Duration Seconds (per set)';
     }
 
     // Show the form
@@ -1337,36 +1339,66 @@ async function loadExerciseDosage() {
 window.loadExerciseDosage = loadExerciseDosage;
 
 async function updateDosage() {
-    const sets = document.getElementById('dosageSets').value;
-    const reps = document.getElementById('dosageReps').value;
+    const sets = parseInt(document.getElementById('dosageSets').value, 10);
+    const reps = parseInt(document.getElementById('dosageReps').value, 10);
 
     if (!selectedExerciseForDosage) {
         toast('Please select an exercise first', 'error');
         return;
     }
 
-    if (!sets || !reps) {
-        toast('Please fill in sets and reps', 'error');
+    if (!sets || sets < 1) {
+        toast('Please enter valid sets', 'error');
+        return;
+    }
+
+    const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
+    const replacesReps = modifiers.includes('duration_seconds') || modifiers.includes('distance_feet');
+
+    if (!replacesReps && (!reps || reps < 1)) {
+        toast('Please enter valid reps', 'error');
         return;
     }
 
     const dosageData = {
         patient_id: currentUser.id,
         exercise_id: selectedExerciseForDosage.id,
-        sets: parseInt(sets),
-        reps_per_set: parseInt(reps)
+        sets: sets
     };
 
     // Add optional fields if visible
-    const modifiers = selectedExerciseForDosage.pattern_modifiers || [];
-    if (modifiers.includes('hold_seconds') || modifiers.includes('duration_seconds')) {
-        const seconds = document.getElementById('dosageSeconds').value;
-        if (seconds) dosageData.seconds_per_rep = parseInt(seconds);
+    if (!replacesReps) {
+        dosageData.reps_per_set = reps;
+    }
+
+    if (modifiers.includes('hold_seconds')) {
+        const seconds = parseInt(document.getElementById('dosageSeconds').value, 10);
+        if (!seconds || seconds < 1) {
+            toast('Please enter valid hold seconds', 'error');
+            return;
+        }
+        dosageData.seconds_per_rep = seconds;
+        dosageData.dosage_type = 'hold';
+    } else if (modifiers.includes('duration_seconds')) {
+        const seconds = parseInt(document.getElementById('dosageSeconds').value, 10);
+        if (!seconds || seconds < 1) {
+            toast('Please enter valid duration in seconds', 'error');
+            return;
+        }
+        dosageData.seconds_per_set = seconds;
+        dosageData.dosage_type = 'duration';
+    } else if (!replacesReps) {
+        dosageData.dosage_type = 'reps';
     }
 
     if (modifiers.includes('distance_feet')) {
-        const distance = document.getElementById('dosageDistance').value;
-        if (distance) dosageData.distance_feet = parseInt(distance);
+        const distance = parseInt(document.getElementById('dosageDistance').value, 10);
+        if (!distance || distance < 1) {
+            toast('Please enter valid distance in feet', 'error');
+            return;
+        }
+        dosageData.distance_feet = distance;
+        dosageData.dosage_type = 'distance';
     }
 
     try {
