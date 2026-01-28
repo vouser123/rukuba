@@ -3209,12 +3209,40 @@
             return Array.from(values).sort();
         }
 
-        // Format date/time to human-readable EST/EDT
+        function formatDateTimeWithZone(date, options = {}) {
+            const baseOptions = { timeZoneName: 'short', ...options };
+            try {
+                return new Intl.DateTimeFormat(undefined, baseOptions).format(date);
+            } catch (error) {
+                return new Intl.DateTimeFormat('en-US', {
+                    ...baseOptions,
+                    timeZone: 'America/New_York'
+                }).format(date);
+            }
+        }
+
+        function formatDateWithZone(date, options = {}) {
+            return formatDateTimeWithZone(date, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                ...options
+            });
+        }
+
+        function formatTimeWithZone(date, options = {}) {
+            return formatDateTimeWithZone(date, {
+                hour: '2-digit',
+                minute: '2-digit',
+                ...options
+            });
+        }
+
+        // Format date/time to human-readable local time (fallback: EST/EDT)
         function formatDateTime(isoDateString) {
             if (!isoDateString) return '';
             const date = new Date(isoDateString);
-            return date.toLocaleString('en-US', {
-                timeZone: 'America/New_York',
+            return formatDateTimeWithZone(date, {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
@@ -5820,11 +5848,11 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <div>
                                     <div style="font-weight: 600; font-size: 15px;">
-                                        ${sessionDate.toLocaleDateString()}
+                                        ${formatDateWithZone(sessionDate)}
                                         ${isToday ? '<span style="color: var(--ios-blue); margin-left: 8px;">• Today</span>' : ''}
                                     </div>
                                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
-                                        ${sessionDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                        ${formatTimeWithZone(sessionDate, { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
                                 <div style="text-align: right; font-size: 12px; color: var(--text-secondary);">
@@ -5912,7 +5940,7 @@
                         Last 7 Days (Rolling)
                     </div>
                     <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">
-                        ${startOfWeek.toLocaleDateString()} - ${today.toLocaleDateString()}
+                        ${formatDateWithZone(startOfWeek)} - ${formatDateWithZone(today)}
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px;">
                         <div>
@@ -5959,7 +5987,7 @@
 
                 weeks.push({
                     label: i === 0 ? 'This week' : `${i}w ago`,
-                    date: weekStart.toLocaleDateString([], {month: 'short', day: 'numeric'}),
+                    date: formatDateWithZone(weekStart, { month: 'short', day: 'numeric' }),
                     reps: totalReps,
                     sets: totalSets,
                     sessions: weekSessions.length
@@ -6208,7 +6236,7 @@
                         ${last10.map((session, idx) => {
                             const avgReps = session.sets.reduce((sum, set) => sum + (set.reps || 0), 0) / session.sets.length;
                             const barWidth = (avgReps / maxReps * 100).toFixed(1);
-                            const date = new Date(session.date).toLocaleDateString();
+                            const date = formatDateWithZone(new Date(session.date));
                             return `
                                 <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
                                     <div style="width: 70px; color: var(--text-secondary); flex-shrink: 0;">${date}</div>
@@ -6251,8 +6279,8 @@
                             return `
                                 <div style="padding: 8px; border-bottom: 1px solid var(--border-color); ${idx === 0 ? 'background: rgba(0,122,255,0.05);' : ''}">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                        <div style="font-weight: 600; font-size: 13px;">${date.toLocaleDateString()}</div>
-                                        <div style="font-size: 12px; color: var(--text-secondary);">${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
+                                        <div style="font-weight: 600; font-size: 13px;">${formatDateWithZone(date)}</div>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">${formatTimeWithZone(date, { hour: '2-digit', minute: '2-digit' })}</div>
                                     </div>
                                     <div style="font-size: 12px; color: var(--text-secondary);">
                                         ${volumeDisplay}
@@ -6989,7 +7017,13 @@
 
             const lines = [];
             lines.push('PT Tracker Library Debug');
-            lines.push(`Timestamp: ${new Date().toLocaleString()}`);
+            lines.push(`Timestamp: ${formatDateTimeWithZone(new Date(), {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            })}`);
             lines.push('');
             lines.push(`Local storage payload (pt_exercise_library):`);
             lines.push(`  - type: ${localStoredType}`);
@@ -8057,7 +8091,13 @@
                     const note = noteDoc.data;
                     const noteId = noteDoc.id;
                     const date = new Date(note.createdAt);
-                    const dateStr = date.toLocaleString();
+                    const dateStr = formatDateTimeWithZone(date, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                    });
                     const isPatient = note.createdBy === 'patient';
                     const canUndo = (now - date.getTime() < oneHour); // Allow undo for any note within 1 hour
 
@@ -8639,7 +8679,7 @@
 
         async function buildPtDataExport(note) {
             return {
-                exportDate: new Date().toLocaleDateString('en-US', {
+                exportDate: formatDateWithZone(new Date(), {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -8678,7 +8718,7 @@
 
             const exportData = await buildPtDataExport(note);
             const payload = await ptPayloadUtils.buildV2Block({ type: 'PT_DATA', obj: exportData });
-            const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            const dateStr = formatDateWithZone(new Date(), { month: 'long', day: 'numeric', year: 'numeric' });
 
             // Build current dosage summary
             const activeExercises = loadExerciseLibrary().filter(ex => !ex.archived);
@@ -9185,8 +9225,8 @@ ${payload}`;
             }
 
             let summary = `PT 7-DAY SUMMARY (ROLLING)\n`;
-            summary += `${sevenDaysAgo.toLocaleDateString()} - ${now.toLocaleDateString()}\n`;
-            summary += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+            summary += `${formatDateWithZone(sevenDaysAgo)} - ${formatDateWithZone(now)}\n`;
+            summary += `Generated: ${formatDateWithZone(new Date())}\n\n`;
 
             summary += `${'='.repeat(40)}\n`;
             summary += `OVERVIEW\n`;
@@ -9230,7 +9270,7 @@ ${payload}`;
                 summary += `  Total: ${group.totalSets} sets, ${group.totalReps} reps\n`;
 
                 // Show dates
-                const dates = group.sessions.map(s => new Date(s.date).toLocaleDateString());
+                const dates = group.sessions.map(s => formatDateWithZone(new Date(s.date)));
                 summary += `  Dates: ${dates.join(', ')}\n`;
 
                 // Show notes if any
@@ -9450,7 +9490,7 @@ ${payload}`;
                                 ${relevantExercises.map(ex => `
                                     <div style="font-size: 14px; padding: 4px 0;">
                                         ${ex.name} <span class="pill">${ex.count}× this week</span>
-                                        <div style="font-size: 11px; color: var(--text-secondary);">Last: ${ex.lastDate.toLocaleDateString()}</div>
+                                        <div style="font-size: 11px; color: var(--text-secondary);">Last: ${formatDateWithZone(ex.lastDate)}</div>
                                     </div>
                                 `).join('')}
                             </div>

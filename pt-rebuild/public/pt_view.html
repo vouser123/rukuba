@@ -1078,9 +1078,12 @@
                 const date = new Date(log.performed_at);
                 const dateKey = date.toLocaleDateString();
                 if (!groupedByDate[dateKey]) {
-                    groupedByDate[dateKey] = [];
+                    groupedByDate[dateKey] = {
+                        displayDate: formatDateWithZone(date),
+                        logs: []
+                    };
                 }
-                groupedByDate[dateKey].push(log);
+                groupedByDate[dateKey].logs.push(log);
             });
 
             // Sort dates descending
@@ -1089,11 +1092,13 @@
             });
 
             const html = sortedDates.map(dateKey => {
-                const logs = groupedByDate[dateKey];
+                const group = groupedByDate[dateKey];
+                const logs = group.logs;
+                const displayDate = group.displayDate;
 
                 const sessionsHtml = logs.map(log => {
                     const date = new Date(log.performed_at);
-                    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const timeStr = formatTimeWithZone(date, { hour: '2-digit', minute: '2-digit' });
 
                     const setsHtml = log.sets ? log.sets.map((set, idx) => {
                         let setInfo = `Set ${set.set_number || idx + 1}: `;
@@ -1114,7 +1119,7 @@
                     return `
                         <div class="session-card">
                             <div class="session-header">
-                                <div class="session-date">${dateKey}</div>
+                                <div class="session-date">${displayDate}</div>
                                 <div class="session-time">${timeStr}</div>
                             </div>
                             <div class="session-exercise">${escapeHtml(log.exercise_name)}</div>
@@ -1126,7 +1131,7 @@
 
                 return `
                     <div class="grouped-by-date">
-                        <div class="date-group-header">${dateKey} (${logs.length} session${logs.length > 1 ? 's' : ''})</div>
+                        <div class="date-group-header">${displayDate} (${logs.length} session${logs.length > 1 ? 's' : ''})</div>
                         ${sessionsHtml}
                     </div>
                 `;
@@ -1228,7 +1233,36 @@
             if (diffHours < 24) return `${diffHours}h ago`;
             if (diffDays < 7) return `${diffDays}d ago`;
 
-            return date.toLocaleDateString();
+            return formatDateWithZone(date);
+        }
+
+        function formatDateTimeWithZone(date, options = {}) {
+            const baseOptions = { timeZoneName: 'short', ...options };
+            try {
+                return new Intl.DateTimeFormat(undefined, baseOptions).format(date);
+            } catch (error) {
+                return new Intl.DateTimeFormat('en-US', {
+                    ...baseOptions,
+                    timeZone: 'America/New_York'
+                }).format(date);
+            }
+        }
+
+        function formatDateWithZone(date, options = {}) {
+            return formatDateTimeWithZone(date, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                ...options
+            });
+        }
+
+        function formatTimeWithZone(date, options = {}) {
+            return formatDateTimeWithZone(date, {
+                hour: '2-digit',
+                minute: '2-digit',
+                ...options
+            });
         }
 
         // ============================================================================
@@ -1282,8 +1316,8 @@
 
             const html = filtered.map(log => {
                 const date = new Date(log.performed_at);
-                const dateStr = date.toLocaleDateString();
-                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateStr = formatDateWithZone(date);
+                const timeStr = formatTimeWithZone(date, { hour: '2-digit', minute: '2-digit' });
 
                 const setsHtml = log.sets ? log.sets.map((set, idx) => {
                     let setInfo = `Set ${set.set_number || idx + 1}: `;
