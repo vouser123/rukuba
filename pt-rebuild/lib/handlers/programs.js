@@ -9,8 +9,8 @@
  * Patients see own programs, therapists see their patients' programs.
  */
 
-import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
-import { requireAuth } from '../lib/auth.js';
+import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../db.js';
+import { requireAuth } from '../auth.js';
 
 /**
  * Resolve a patient identifier that may be either users.id or auth.users.id.
