@@ -116,6 +116,9 @@ async function getPrograms(req, res) {
           description,
           pt_category,
           pattern,
+          exercise_pattern_modifiers (
+            modifier
+          ),
           archived
         )
       `)
@@ -125,9 +128,23 @@ async function getPrograms(req, res) {
 
     if (error) throw error;
 
+    const normalizedPrograms = programs.map((program) => {
+      const exercise = program.exercises || null;
+      const modifiers = exercise?.exercise_pattern_modifiers || [];
+      return {
+        ...program,
+        exercises: exercise
+          ? {
+            ...exercise,
+            pattern_modifiers: modifiers.map((modifier) => modifier.modifier)
+          }
+          : exercise
+      };
+    });
+
     return res.status(200).json({
-      programs,
-      count: programs.length
+      programs: normalizedPrograms,
+      count: normalizedPrograms.length
     });
 
   } catch (error) {
@@ -154,6 +171,17 @@ async function createProgram(req, res) {
 
   const resolvedDosageType = dosage_type
     || (distance_feet ? 'distance' : (seconds_per_set ? 'duration' : (seconds_per_rep ? 'hold' : 'reps')));
+  let resolvedSecondsPerRep = seconds_per_rep ?? null;
+  let resolvedSecondsPerSet = seconds_per_set ?? null;
+
+  if (resolvedDosageType === 'duration') {
+    resolvedSecondsPerRep = null;
+  } else if (resolvedDosageType === 'hold') {
+    resolvedSecondsPerSet = null;
+  } else if (['reps', 'distance'].includes(resolvedDosageType)) {
+    resolvedSecondsPerRep = null;
+    resolvedSecondsPerSet = null;
+  }
 
   // Validate required fields
   if (!patient_id || !exercise_id || !sets || (!reps_per_set && !['duration', 'distance'].includes(resolvedDosageType))) {
@@ -265,9 +293,9 @@ async function createProgram(req, res) {
       dosage_type: resolvedDosageType,
       sets,
       reps_per_set: reps_per_set ?? null,
-      seconds_per_rep: seconds_per_rep || null,
-      seconds_per_set: seconds_per_set || null,
-      distance_feet: distance_feet || null
+      seconds_per_rep: resolvedSecondsPerRep,
+      seconds_per_set: resolvedSecondsPerSet,
+      distance_feet: distance_feet ?? null
     };
 
     const { data: program, error } = await supabase
@@ -354,6 +382,8 @@ async function updateProgram(req, res, programId) {
     }
 
     const updateData = {};
+    const hasSecondsPerRep = seconds_per_rep !== undefined;
+    const hasSecondsPerSet = seconds_per_set !== undefined;
     if (sets !== undefined) {
       if (!Number.isInteger(sets) || sets < 1) {
         return res.status(400).json({ error: 'sets must be a positive integer' });
@@ -366,13 +396,13 @@ async function updateProgram(req, res, programId) {
       }
       updateData.reps_per_set = reps_per_set;
     }
-    if (seconds_per_rep !== undefined) {
+    if (hasSecondsPerRep) {
       if (seconds_per_rep !== null && (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 0)) {
         return res.status(400).json({ error: 'seconds_per_rep must be a non-negative integer or null' });
       }
       updateData.seconds_per_rep = seconds_per_rep;
     }
-    if (seconds_per_set !== undefined) {
+    if (hasSecondsPerSet) {
       if (seconds_per_set !== null && (!Number.isInteger(seconds_per_set) || seconds_per_set < 0)) {
         return res.status(400).json({ error: 'seconds_per_set must be a non-negative integer or null' });
       }
@@ -386,6 +416,20 @@ async function updateProgram(req, res, programId) {
     }
     if (dosage_type !== undefined) {
       updateData.dosage_type = dosage_type;
+    }
+    if (hasSecondsPerRep && !hasSecondsPerSet) {
+      updateData.seconds_per_set = null;
+    }
+    if (hasSecondsPerSet && !hasSecondsPerRep) {
+      updateData.seconds_per_rep = null;
+    }
+    if (dosage_type === 'duration') {
+      updateData.seconds_per_rep = null;
+    } else if (dosage_type === 'hold') {
+      updateData.seconds_per_set = null;
+    } else if (dosage_type === 'reps' || dosage_type === 'distance') {
+      updateData.seconds_per_rep = null;
+      updateData.seconds_per_set = null;
     }
 
     const { data: program, error } = await supabase
