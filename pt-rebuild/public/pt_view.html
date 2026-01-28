@@ -666,7 +666,7 @@
             <div class="hamburger-item" data-action="show-messages">
                 <span class="hamburger-icon" style="position: relative;">
                     💬
-                    <span id="menuMessagesBadge" class="messages-badge hidden"></span>
+                    <span id="messagesBadge" class="messages-badge hidden"></span>
                 </span>
                 <span>Messages</span>
             </div>
@@ -993,7 +993,7 @@
                 const hasNotes = ex.sessions.some(s => s.notes);
 
                 html += `
-                    <div class="exercise-card" data-action="show-exercise-history" data-exercise-id="${ex.id}" data-exercise-name="${escapeHtml(ex.name)}">
+                    <div class="exercise-card" data-action="show-exercise-history" data-exercise-id="${ex.id}" data-exercise-name="${ex.name}">
                         <div class="exercise-card-title">
                             ${escapeHtml(ex.name)}
                             ${hasNotes ? '<span style="color: #007bff; margin-left: 6px;" title="Has notes">📝</span>' : ''}
@@ -1417,6 +1417,19 @@
                 return;
             }
 
+            // Get recipient from logs data - find the patient whose logs we're viewing
+            // If current user is patient, they don't have anyone to message from pt_view
+            // If current user is therapist, get patient_id from logs
+            let recipientId = null;
+            if (allLogs.length > 0) {
+                recipientId = allLogs[0].patient_id;
+            }
+
+            if (!recipientId || recipientId === currentUser.id) {
+                alert('No recipient available for messaging from this view.');
+                return;
+            }
+
             try {
                 const response = await fetch('/api/logs?type=messages', {
                     method: 'POST',
@@ -1425,7 +1438,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        recipient_id: currentUser.id,
+                        recipient_id: recipientId,
                         body: text
                     })
                 });

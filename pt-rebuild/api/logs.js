@@ -261,10 +261,12 @@ async function getMessages(req, res) {
   const supabase = getSupabaseWithAuth(req.accessToken);
 
   try {
+    // Filter by current user - must be sender or recipient
     const { data: messages, error } = await supabase
       .from('clinical_messages')
       .select('*')
       .is('deleted_at', null)
+      .or(`sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

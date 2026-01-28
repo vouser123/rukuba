@@ -1117,6 +1117,7 @@
         let currentUser = null;
         let authToken = null;
         let refreshToken = null;
+        let therapistId = null; // Patient's assigned therapist for messaging
         let allExercises = [];
         let allHistory = []; // All activity logs for smart dropdowns
         let currentExercise = null;
@@ -1238,6 +1239,20 @@
         async function loadData() {
             try {
                 document.getElementById('exerciseList').innerHTML = '<div class="loading">Loading exercises...</div>';
+
+                // Get current user's therapist_id for messaging
+                try {
+                    const usersResult = await fetchWithAuth('/api/users');
+                    const users = usersResult.users || [];
+                    const me = users.find(u => u.id === currentUser.id || u.email === currentUser.email);
+                    // Find therapist (any user with therapist role) for messaging
+                    const therapist = users.find(u => u.role === 'therapist');
+                    if (therapist) {
+                        therapistId = therapist.id;
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch therapist ID:', e);
+                }
 
                 // Load patient's assigned programs (exercises with dosages)
                 const result = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
@@ -2276,10 +2291,11 @@ ${queueData}
             }
 
             try {
-                // For now, we need to know the PT's user ID.
-                // In a real app, this would come from the patient's assigned therapist.
-                // For now, we'll use a placeholder - the API will need the recipient_id.
-                // TODO: Get therapist ID from patient's program or assignments
+                if (!therapistId) {
+                    showToast('No therapist assigned. Cannot send message.', 'error');
+                    return;
+                }
+
                 const response = await fetch('/api/logs?type=messages', {
                     method: 'POST',
                     headers: {
@@ -2287,7 +2303,7 @@ ${queueData}
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        recipient_id: currentUser.id, // Placeholder - should be therapist ID
+                        recipient_id: therapistId,
                         body: text
                     })
                 });
