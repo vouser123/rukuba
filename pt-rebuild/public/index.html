@@ -2780,6 +2780,10 @@ ${queueData}
 
         // Event handlers
         function bindEventHandlers() {
+            document.body.addEventListener('pointerup', () => {
+                ensureAudioReady();
+            }, { once: true });
+
             // Auth form
             document.getElementById('authForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
