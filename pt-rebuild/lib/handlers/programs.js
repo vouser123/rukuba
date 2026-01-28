@@ -12,6 +12,22 @@
 import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../db.js';
 import { requireAuth } from '../auth.js';
 
+export function normalizeProgramPatternModifiers(programs) {
+  return programs.map((program) => {
+    const exercise = program.exercises || null;
+    const modifiers = exercise?.exercise_pattern_modifiers || [];
+    return {
+      ...program,
+      exercises: exercise
+        ? {
+          ...exercise,
+          pattern_modifiers: modifiers.map((modifier) => modifier.modifier)
+        }
+        : exercise
+    };
+  });
+}
+
 /**
  * Resolve a patient identifier that may be either users.id or auth.users.id.
  * This keeps API inputs flexible while ensuring we always query patient_programs
@@ -116,7 +132,9 @@ async function getPrograms(req, res) {
           description,
           pt_category,
           pattern,
-          pattern_modifiers,
+          exercise_pattern_modifiers (
+            modifier
+          ),
           archived
         )
       `)
@@ -126,9 +144,11 @@ async function getPrograms(req, res) {
 
     if (error) throw error;
 
+    const normalizedPrograms = normalizeProgramPatternModifiers(programs);
+
     return res.status(200).json({
-      programs,
-      count: programs.length
+      programs: normalizedPrograms,
+      count: normalizedPrograms.length
     });
 
   } catch (error) {
