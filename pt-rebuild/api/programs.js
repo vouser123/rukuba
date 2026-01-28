@@ -141,10 +141,22 @@ async function getPrograms(req, res) {
 
 async function createProgram(req, res) {
   const supabase = getSupabaseWithAuth(req.accessToken);
-  const { patient_id, exercise_id, sets, reps_per_set, seconds_per_rep, distance_feet } = req.body;
+  const {
+    patient_id,
+    exercise_id,
+    sets,
+    reps_per_set,
+    seconds_per_rep,
+    seconds_per_set,
+    distance_feet,
+    dosage_type
+  } = req.body;
+
+  const resolvedDosageType = dosage_type
+    || (distance_feet ? 'distance' : (seconds_per_set ? 'duration' : (seconds_per_rep ? 'hold' : 'reps')));
 
   // Validate required fields
-  if (!patient_id || !exercise_id || !sets || !reps_per_set) {
+  if (!patient_id || !exercise_id || !sets || (!reps_per_set && !['duration', 'distance'].includes(resolvedDosageType))) {
     return res.status(400).json({
       error: 'Missing required fields: patient_id, exercise_id, sets, reps_per_set'
     });
@@ -154,12 +166,19 @@ async function createProgram(req, res) {
   if (!Number.isInteger(sets) || sets < 1) {
     return res.status(400).json({ error: 'sets must be a positive integer' });
   }
-  if (!Number.isInteger(reps_per_set) || reps_per_set < 1) {
-    return res.status(400).json({ error: 'reps_per_set must be a positive integer' });
+  if (reps_per_set !== undefined && reps_per_set !== null) {
+    if (!Number.isInteger(reps_per_set) || reps_per_set < 1) {
+      return res.status(400).json({ error: 'reps_per_set must be a positive integer' });
+    }
   }
   if (seconds_per_rep !== undefined && seconds_per_rep !== null) {
     if (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 0) {
       return res.status(400).json({ error: 'seconds_per_rep must be a non-negative integer or null' });
+    }
+  }
+  if (seconds_per_set !== undefined && seconds_per_set !== null) {
+    if (!Number.isInteger(seconds_per_set) || seconds_per_set < 0) {
+      return res.status(400).json({ error: 'seconds_per_set must be a non-negative integer or null' });
     }
   }
   if (distance_feet !== undefined && distance_feet !== null) {
@@ -243,10 +262,11 @@ async function createProgram(req, res) {
     const programData = {
       patient_id: actualPatientId,
       exercise_id,
-      dosage_type: 'reps', // Default dosage type
+      dosage_type: resolvedDosageType,
       sets,
-      reps_per_set,
+      reps_per_set: reps_per_set ?? null,
       seconds_per_rep: seconds_per_rep || null,
+      seconds_per_set: seconds_per_set || null,
       distance_feet: distance_feet || null
     };
 
@@ -271,7 +291,7 @@ async function createProgram(req, res) {
 
 async function updateProgram(req, res, programId) {
   const supabase = getSupabaseWithAuth(req.accessToken);
-  const { sets, reps_per_set, seconds_per_rep, distance_feet } = req.body;
+  const { sets, reps_per_set, seconds_per_rep, seconds_per_set, distance_feet, dosage_type } = req.body;
 
   try {
     // First fetch the program to check ownership
@@ -352,11 +372,20 @@ async function updateProgram(req, res, programId) {
       }
       updateData.seconds_per_rep = seconds_per_rep;
     }
+    if (seconds_per_set !== undefined) {
+      if (seconds_per_set !== null && (!Number.isInteger(seconds_per_set) || seconds_per_set < 0)) {
+        return res.status(400).json({ error: 'seconds_per_set must be a non-negative integer or null' });
+      }
+      updateData.seconds_per_set = seconds_per_set;
+    }
     if (distance_feet !== undefined) {
       if (distance_feet !== null && (!Number.isInteger(distance_feet) || distance_feet < 1)) {
         return res.status(400).json({ error: 'distance_feet must be a positive integer or null' });
       }
       updateData.distance_feet = distance_feet;
+    }
+    if (dosage_type !== undefined) {
+      updateData.dosage_type = dosage_type;
     }
 
     const { data: program, error } = await supabase
@@ -379,13 +408,76 @@ async function updateProgram(req, res, programId) {
   }
 }
 
+async function deleteProgram(req, res, programId) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+
+  try {
+    const { data: existingProgram, error: fetchError } = await supabase
+      .from('patient_programs')
+      .select('id, patient_id')
+      .eq('id', programId)
+      .single();
+
+    if (fetchError || !existingProgram) {
+      return res.status(404).json({ error: 'Program not found' });
+    }
+
+    if (req.user.role === 'patient') {
+      const isOwnAccount = req.user.id === existingProgram.patient_id || req.user.auth_id === existingProgram.patient_id;
+      if (!isOwnAccount) {
+        return res.status(403).json({ error: 'Patients can only delete their own programs' });
+      }
+    } else if (req.user.role === 'therapist') {
+      const { data: patient, error: patientError } = await supabase
+        .from('users')
+        .select('therapist_id')
+        .eq('id', existingProgram.patient_id)
+        .single();
+
+      if (patientError) {
+        console.error('Error fetching patient for delete:', patientError);
+        return res.status(500).json({
+          error: 'Failed to verify patient relationship',
+          details: patientError.message
+        });
+      }
+
+      if (!patient || patient.therapist_id !== req.user.id) {
+        return res.status(403).json({ error: 'Patient does not belong to this therapist' });
+      }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized to delete patient programs' });
+    }
+
+    const { data: program, error } = await supabase
+      .from('patient_programs')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', programId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(200).json({ program });
+  } catch (error) {
+    console.error('Error deleting program:', error);
+    return res.status(500).json({
+      error: 'Failed to delete program',
+      details: error.message
+    });
+  }
+}
+
 /**
  * Request router
  */
 async function handler(req, res) {
   // Parse program ID from URL for PUT
-  const urlParts = req.url.split('?')[0].split('/');
-  const programId = urlParts[urlParts.length - 1];
+  const urlParts = req.url.split('?')[0].split('/').filter(Boolean);
+  const programIdFromPath = urlParts[urlParts.length - 1];
+  const programId = programIdFromPath !== 'programs'
+    ? programIdFromPath
+    : (req.query?.id || req.body?.id);
 
   if (req.method === 'GET') {
     return getPrograms(req, res);
@@ -393,6 +485,8 @@ async function handler(req, res) {
     return createProgram(req, res);
   } else if (req.method === 'PUT' && programId && programId !== 'programs') {
     return updateProgram(req, res, programId);
+  } else if (req.method === 'DELETE' && programId) {
+    return deleteProgram(req, res, programId);
   } else {
     return res.status(405).json({
       error: 'Method not allowed'
