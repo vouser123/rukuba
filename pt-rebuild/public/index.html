@@ -1693,13 +1693,32 @@
             btn.textContent = timerState.isRunning ? 'Pause' : 'Start';
         }
 
+        let audioContext = null;
+
+        function ensureAudioReady() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            } catch (error) {
+                console.warn('Audio not available:', error);
+                audioContext = null;
+            }
+        }
+
         /**
          * Play a simple beep sound using Web Audio API.
          * iOS Safari requires user interaction before playing audio.
          */
         function playBeep(frequency = 800, duration = 200) {
             try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                ensureAudioReady();
+                if (!audioContext) {
+                    return;
+                }
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
 
@@ -2760,6 +2779,10 @@ ${queueData}
 
         // Event handlers
         function bindEventHandlers() {
+            document.body.addEventListener('pointerup', () => {
+                ensureAudioReady();
+            }, { once: true });
+
             // Auth form
             document.getElementById('authForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
