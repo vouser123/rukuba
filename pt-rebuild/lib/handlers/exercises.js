@@ -17,8 +17,8 @@
  * Public to authenticated users (both patients and therapists).
  */
 
-import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
-import { requireAuth } from '../lib/auth.js';
+import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../db.js';
+import { requireAuth } from '../auth.js';
 
 // Valid enum values from schema
 const VALID_PT_CATEGORIES = ['back_sij', 'knee', 'ankle', 'hip', 'vestibular', 'foot', 'shoulder', 'other'];
