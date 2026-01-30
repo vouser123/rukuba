@@ -587,6 +587,21 @@ CREATE POLICY messages_insert ON clinical_messages FOR INSERT TO authenticated
     OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
   );
 
+-- Clinical Messages: Sender and recipient can update their own flags (archive, read)
+CREATE POLICY messages_update ON clinical_messages FOR UPDATE TO authenticated
+  USING (
+    sender_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR recipient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
+
+-- Clinical Messages: Sender can soft-delete within time window
+CREATE POLICY messages_delete ON clinical_messages FOR DELETE TO authenticated
+  USING (
+    sender_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
+
 -- Offline Mutations: Users manage their own queue, admins see all
 CREATE POLICY mutations_own ON offline_mutations FOR ALL TO authenticated
   USING (
