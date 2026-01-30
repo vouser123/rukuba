@@ -1332,6 +1332,7 @@
         let currentUser = null;
         let authToken = null;
         let refreshToken = null;
+        let currentUserProfileId = null;
         let therapistId = null; // Patient's assigned therapist for messaging
         let allExercises = [];
         let allHistory = []; // All activity logs for smart dropdowns
@@ -1375,19 +1376,21 @@
             }
 
             // Auth state listener
-            supabaseClient.auth.onAuthStateChange((event, session) => {
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_IN') {
                     currentUser = session.user;
                     authToken = session.access_token;
                     refreshToken = session.refresh_token;
                     hideAuthModal();
                     updateEditorLink();
-                    loadData();
+                    await loadData();
                     checkForNewMessages();
                 } else if (event === 'SIGNED_OUT') {
                     currentUser = null;
                     authToken = null;
                     refreshToken = null;
+                    currentUserProfileId = null;
+                    therapistId = null;
                     showAuthModal();
                     updateEditorLink();
                 }
@@ -1462,6 +1465,7 @@
                     const usersResult = await fetchWithAuth('/api/users');
                     const users = usersResult.users || [];
                     const me = users.find(u => u.id === currentUser.id || u.email === currentUser.email);
+                    currentUserProfileId = me?.id ?? null;
                     if (me?.therapist_id) {
                         therapistId = me.therapist_id;
                     } else {
@@ -3004,7 +3008,8 @@ ${queueData}
                 // Render messages
                 let html = '';
                 messages.forEach(msg => {
-                    const isFromPatient = msg.sender_id === currentUser.id;
+                    const viewerId = currentUserProfileId || currentUser.id;
+                    const isFromPatient = msg.sender_id === viewerId;
                     const createdAt = new Date(msg.created_at);
                     const timeAgo = formatTimeAgo(createdAt);
 
@@ -3022,7 +3027,7 @@ ${queueData}
                         ">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span style="font-weight: 600; font-size: 13px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
-                                    ${isFromPatient ? 'You' : 'PT'}
+                                    ${isFromPatient ? 'You → PT' : 'PT → You'}
                                 </span>
                                 <span style="font-size: 11px; color: #888;">${timeAgo}</span>
                             </div>
@@ -3158,7 +3163,8 @@ ${queueData}
 
                 // Count unread messages (received after lastReadMessageTime)
                 const unreadCount = messages.filter(msg => {
-                    const isFromOther = msg.sender_id !== currentUser.id;
+                    const viewerId = currentUserProfileId || currentUser.id;
+                    const isFromOther = msg.sender_id !== viewerId;
                     const isNew = new Date(msg.created_at) > new Date(lastReadMessageTime);
                     return isFromOther && isNew;
                 }).length;

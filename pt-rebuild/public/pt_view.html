@@ -796,6 +796,7 @@
         // State
         let currentUser = null;
         let authToken = null;
+        let currentUserProfileId = null;
         let allLogs = [];
         let filteredLogs = [];
         let lastReadMessageTime = localStorage.getItem('lastReadMessageTime') || new Date(0).toISOString();
@@ -830,17 +831,18 @@
             }
 
             // Auth state listener
-            supabaseClient.auth.onAuthStateChange((event, session) => {
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_IN') {
                     currentUser = session.user;
                     authToken = session.access_token;
                     hideAuthModal();
                     updateUserDisplay();
-                    loadData();
+                    await loadData();
                     checkForNewMessages();
                 } else if (event === 'SIGNED_OUT') {
                     currentUser = null;
                     authToken = null;
+                    currentUserProfileId = null;
                     showAuthModal();
                 }
             });
@@ -877,6 +879,7 @@
             await supabaseClient.auth.signOut();
             currentUser = null;
             authToken = null;
+            currentUserProfileId = null;
             showAuthModal();
             toggleHamburger();
         }
@@ -898,6 +901,8 @@
         async function loadData() {
             try {
                 document.getElementById('historyList').innerHTML = '<div class="loading">Loading history...</div>';
+
+                await loadCurrentUserProfile();
 
                 const result = await fetchWithAuth('/api/logs?limit=1000');
                 allLogs = result.logs || [];
@@ -938,6 +943,19 @@
             }
 
             return response.json();
+        }
+
+        async function loadCurrentUserProfile() {
+            if (!currentUser || !authToken) return;
+
+            try {
+                const usersResult = await fetchWithAuth('/api/users');
+                const users = usersResult.users || [];
+                const me = users.find(user => user.id === currentUser.id || user.email === currentUser.email);
+                currentUserProfileId = me?.id ?? null;
+            } catch (error) {
+                console.warn('Could not resolve current user profile:', error);
+            }
         }
 
         // Summary stats
@@ -1401,7 +1419,8 @@
 
                 let html = '';
                 messages.forEach(msg => {
-                    const isFromPatient = msg.sender_id !== currentUser.id;
+                    const viewerId = currentUserProfileId || currentUser.id;
+                    const isFromPatient = msg.sender_id !== viewerId;
                     const createdAt = new Date(msg.created_at);
                     const timeAgo = formatTimeAgo(createdAt);
 
@@ -1418,7 +1437,7 @@
                         ">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span style="font-weight: 600; font-size: 13px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
-                                    ${isFromPatient ? 'Patient' : 'You'}
+                                    ${isFromPatient ? 'Patient → You' : 'You → Patient'}
                                 </span>
                                 <span style="font-size: 11px; color: #888;">${timeAgo}</span>
                             </div>
@@ -1461,7 +1480,8 @@
                 recipientId = allLogs[0].patient_id;
             }
 
-            if (!recipientId || recipientId === currentUser.id) {
+            const viewerId = currentUserProfileId || currentUser.id;
+            if (!recipientId || recipientId === viewerId) {
                 alert('No recipient available for messaging from this view.');
                 return;
             }
@@ -1545,7 +1565,8 @@
                 const { messages } = await response.json();
 
                 const unreadCount = messages.filter(msg => {
-                    const isFromOther = msg.sender_id !== currentUser.id;
+                    const viewerId = currentUserProfileId || currentUser.id;
+                    const isFromOther = msg.sender_id !== viewerId;
                     const isNew = new Date(msg.created_at) > new Date(lastReadMessageTime);
                     return isFromOther && isNew;
                 }).length;

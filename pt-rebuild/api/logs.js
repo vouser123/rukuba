@@ -301,9 +301,19 @@ async function getMessages(req, res) {
 
     if (error) throw error;
 
+    const visibleMessages = (messages || []).filter(message => {
+      if (message.sender_id === req.user.id) {
+        return !message.archived_by_sender;
+      }
+      if (message.recipient_id === req.user.id) {
+        return !message.archived_by_recipient;
+      }
+      return false;
+    });
+
     return res.status(200).json({
-      messages,
-      count: messages.length
+      messages: visibleMessages,
+      count: visibleMessages.length
     });
 
   } catch (error) {
