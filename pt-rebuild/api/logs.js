@@ -75,10 +75,35 @@ async function getActivityLogs(req, res) {
 
     if (setsError) throw setsError;
 
+    const setIds = sets.map(set => set.id);
+    let formDataBySet = {};
+
+    if (setIds.length > 0) {
+      const { data: formDataRows, error: formDataError } = await supabase
+        .from('patient_activity_set_form_data')
+        .select('*')
+        .in('activity_set_id', setIds);
+
+      if (formDataError) throw formDataError;
+
+      formDataBySet = formDataRows.reduce((acc, row) => {
+        if (!acc[row.activity_set_id]) acc[row.activity_set_id] = [];
+        acc[row.activity_set_id].push({
+          parameter_name: row.parameter_name,
+          parameter_value: row.parameter_value,
+          parameter_unit: row.parameter_unit
+        });
+        return acc;
+      }, {});
+    }
+
     // Group sets by log ID
     const setsByLog = sets.reduce((acc, set) => {
       if (!acc[set.activity_log_id]) acc[set.activity_log_id] = [];
-      acc[set.activity_log_id].push(set);
+      acc[set.activity_log_id].push({
+        ...set,
+        form_data: formDataBySet[set.id] || null
+      });
       return acc;
     }, {});
 
