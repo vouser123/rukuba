@@ -1462,10 +1462,14 @@
                     const usersResult = await fetchWithAuth('/api/users');
                     const users = usersResult.users || [];
                     const me = users.find(u => u.id === currentUser.id || u.email === currentUser.email);
-                    // Find therapist (any user with therapist role) for messaging
-                    const therapist = users.find(u => u.role === 'therapist');
-                    if (therapist) {
-                        therapistId = therapist.id;
+                    if (me?.therapist_id) {
+                        therapistId = me.therapist_id;
+                    } else {
+                        // Find therapist (any user with therapist role) for messaging
+                        const therapist = users.find(u => u.role === 'therapist');
+                        if (therapist) {
+                            therapistId = therapist.id;
+                        }
                     }
                 } catch (e) {
                     console.warn('Could not fetch therapist ID:', e);
