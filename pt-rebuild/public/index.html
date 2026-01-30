@@ -1476,8 +1476,9 @@
                     };
                 });
 
-                renderExerciseList(allExercises);
+                // Load history FIRST so adherence data is available when rendering
                 await loadHistory();
+                renderExerciseList(allExercises);
 
             } catch (error) {
                 console.error('Failed to load data:', error);
