@@ -17,3 +17,7 @@ This file tracks development progress on the Supabase/Vercel rebuild of the PT t
 ## 2026-01-28
 
 - **2026-01-28** — **Docs:** Rewrote the public rebuild docs in `pt-rebuild/public/docs` to reflect Supabase/Vercel architecture instead of copying legacy Firebase documentation.
+
+## 2026-01-30
+
+- **2026-01-30** — **API:** Added exercise form parameter names to the programs payload by joining exercise form parameters and normalizing them into `form_parameters_required`, keeping the patient tracker data consistent with exercise metadata. **Files:** `pt-rebuild/lib/handlers/programs.js`.
