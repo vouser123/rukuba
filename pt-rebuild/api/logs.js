@@ -415,11 +415,12 @@ async function updateMessage(req, res) {
 
   try {
     // First fetch the message to determine user's role (sender or recipient)
+    // Use maybeSingle() to return null instead of throwing PGRST116 when not found
     const { data: existing, error: fetchError } = await supabase
       .from('clinical_messages')
       .select('sender_id, recipient_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError) throw fetchError;
     if (!existing) {
@@ -453,9 +454,12 @@ async function updateMessage(req, res) {
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found or update not permitted' });
+    }
 
     return res.status(200).json({ message });
 
@@ -490,11 +494,12 @@ async function deleteMessage(req, res) {
 
   try {
     // Fetch message to verify ownership and check time window
+    // Use maybeSingle() to return null instead of throwing PGRST116 when not found
     const { data: existing, error: fetchError } = await supabase
       .from('clinical_messages')
       .select('sender_id, created_at')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError) throw fetchError;
     if (!existing) {
@@ -524,9 +529,12 @@ async function deleteMessage(req, res) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found or delete not permitted' });
+    }
 
     return res.status(200).json({ message, deleted: true });
 
