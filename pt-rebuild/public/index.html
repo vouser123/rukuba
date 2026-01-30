@@ -404,6 +404,70 @@
             color: #666;
         }
 
+        .exercise-adherence {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .exercise-adherence.green { color: #34C759; }
+        .exercise-adherence.orange { color: #FF9500; }
+        .exercise-adherence.red { color: #FF3B30; }
+        .exercise-adherence.gray { color: #8E8E93; }
+
+        .exercise-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .exercise-tag {
+            font-size: 0.7rem;
+            background: #e0e0e0;
+            color: #555;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        /* Control Buttons Row */
+        .control-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 1rem;
+            padding: 0 1rem;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 14px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .control-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .control-btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+
+        .control-btn-success {
+            background: #34C759;
+            color: white;
+        }
+
+        .control-btn:active {
+            opacity: 0.8;
+        }
+
         /* Logger View */
         .logger-header {
             background: white;
@@ -455,6 +519,8 @@
             align-items: center;
             justify-content: center;
             font-size: 72px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
             font-weight: 700;
             color: var(--counter-color, #007bff);
             box-shadow: 0 4px 20px rgba(0, 122, 255, 0.3);
@@ -867,12 +933,23 @@
                 background: rgba(0, 0, 0, 0.7);
             }
 
-            #formParamsContainer {
+            #formParamsContainer,
+            #nextSetParamsContainer {
                 background: rgba(76, 141, 255, 0.12) !important;
             }
 
-            #formParamsContainer > div {
+            #formParamsContainer > div,
+            #nextSetParamsContainer > div {
                 color: #d5d5d5;
+            }
+
+            .exercise-tag {
+                background: #3a3f4b;
+                color: #b5b5b5;
+            }
+
+            .control-btn-secondary {
+                background: #4a4f5c;
             }
         }
     </style>
@@ -1016,18 +1093,37 @@
         </div>
 
         <div class="set-info">
-            <div class="set-info-row">
-                <span>Current Set:</span>
-                <span id="currentSetNumber">1</span>
+            <!-- Non-sided progress -->
+            <div id="setsProgressBoth" class="set-info-row">
+                <span>Sets:</span>
+                <span id="setsProgressBothText">0/0</span>
             </div>
-            <div class="set-info-row">
-                <span>Total Sets:</span>
-                <span id="totalSetsLogged">0</span>
+            <!-- Sided progress (hidden for non-sided exercises) -->
+            <div id="setsProgressSided" class="hidden">
+                <div class="set-info-row">
+                    <span>👈 Left:</span>
+                    <span id="setsProgressLeft">0/0</span>
+                </div>
+                <div class="set-info-row">
+                    <span>👉 Right:</span>
+                    <span id="setsProgressRight">0/0</span>
+                </div>
+            </div>
+            <!-- Target info -->
+            <div class="set-info-row" style="margin-top: 4px; font-size: 0.85rem; color: #888;">
+                <span>Target:</span>
+                <span id="targetDoseDisplay">--</span>
             </div>
         </div>
 
-        <button class="log-set-btn" data-action="log-set">Log This Set</button>
-        <button class="finish-session-btn" data-action="finish-session">Done</button>
+        <!-- Control Buttons (always visible) -->
+        <div class="control-buttons">
+            <button class="control-btn control-btn-secondary" data-action="previous-set">Previous</button>
+            <button class="control-btn control-btn-primary" data-action="show-log-set-modal">Log Set</button>
+            <button class="control-btn control-btn-success" data-action="show-next-set-modal">Next Set</button>
+        </div>
+
+        <button class="finish-session-btn" data-action="finish-session" style="margin-top: 1rem;">Done</button>
         <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;" data-action="back-to-picker">← Back to Exercises</button>
     </div>
 
@@ -1054,9 +1150,51 @@
                 <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333;">Form Parameters:</div>
                 <div id="formParamsFields"></div>
             </div>
+            <!-- Side selector for Log Set modal -->
+            <div id="logSetSideContainer" class="hidden" style="margin: 12px 0;">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; text-align: center;">📍 SELECT SIDE FOR THIS SET:</div>
+                <div style="display: flex; gap: 12px;">
+                    <div class="side-select-btn" data-action="log-set-select-side" data-side="left" style="flex: 1; padding: 12px; border-radius: 8px; border: 2px solid #555; background: #2a2a2a; text-align: center; cursor: pointer;">
+                        <div style="font-size: 20px;">👈</div>
+                        <div style="font-weight: 600;">LEFT</div>
+                        <div id="logSetLeftProgress" style="font-size: 12px; color: #888;">0/0 sets</div>
+                    </div>
+                    <div class="side-select-btn" data-action="log-set-select-side" data-side="right" style="flex: 1; padding: 12px; border-radius: 8px; border: 2px solid #007AFF; background: #007AFF; text-align: center; cursor: pointer;">
+                        <div style="font-size: 20px;">👉</div>
+                        <div style="font-weight: 600;">RIGHT</div>
+                        <div id="logSetRightProgress" style="font-size: 12px; color: rgba(255,255,255,0.8);">0/0 sets</div>
+                    </div>
+                </div>
+            </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" data-action="close-log-set-modal">Cancel</button>
                 <button type="button" class="btn" data-action="save-logged-set">Save Set</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next Set Modal (confirmation before logging) -->
+    <div id="nextSetModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Next Set</h2>
+                <button class="close-btn" data-action="close-next-set-modal">&times;</button>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Logging:</div>
+                <div id="nextSetSummary" style="font-size: 15px; color: #888;"></div>
+            </div>
+            <!-- Form parameters display -->
+            <div id="nextSetParamsContainer" class="hidden" style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Parameters:</div>
+                <div id="nextSetParamsDisplay"></div>
+            </div>
+            <!-- Side display for sided exercises -->
+            <div id="nextSetSideDisplay" class="hidden" style="margin-bottom: 16px; font-size: 14px; color: #888;"></div>
+            <div class="form-actions" style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-secondary" style="flex: 1;" data-action="close-next-set-modal">Cancel</button>
+                <button type="button" class="btn" style="flex: 1; background: #007AFF;" data-action="edit-next-set">Edit</button>
+                <button type="button" class="btn" style="flex: 1; background: #34C759;" data-action="confirm-next-set">Log & Next</button>
             </div>
         </div>
     </div>
@@ -1095,6 +1233,52 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" data-action="close-messages-modal">Cancel</button>
                     <button type="button" class="btn" data-action="send-message">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Session Modal -->
+    <div id="editSessionModal" class="modal hidden">
+        <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h2>Edit Session</h2>
+                <button class="close-btn" data-action="close-edit-session-modal">&times;</button>
+            </div>
+            <div style="flex: 1; overflow-y: auto; padding: 0 0 1rem 0;">
+                <!-- Exercise info -->
+                <div id="editSessionExerciseInfo" style="background: rgba(0,122,255,0.1); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <div id="editSessionExerciseName" style="font-weight: 600; font-size: 1.1rem;"></div>
+                    <div id="editSessionExerciseType" style="font-size: 0.85rem; color: #888; margin-top: 4px;"></div>
+                </div>
+
+                <!-- Date -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px;">Date & Time</label>
+                    <input type="datetime-local" id="editSessionDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+                </div>
+
+                <!-- Sets -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Sets</div>
+                    <div id="editSessionSetsList"></div>
+                    <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 0.9rem; padding: 8px 16px;" data-action="add-edit-session-set">+ Add Set</button>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 6px;">Notes</label>
+                    <textarea id="editSessionNotes" placeholder="Session notes..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Delete Session Button -->
+                <button type="button" class="btn" style="width: 100%; background: #dc3545; padding: 14px; font-size: 1rem; margin-top: 8px;" data-action="delete-session">🗑️ Delete Session</button>
+            </div>
+
+            <div style="border-top: 1px solid #ddd; padding-top: 1rem;">
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" data-action="close-edit-session-modal">Cancel</button>
+                    <button type="button" class="btn" data-action="save-edit-session">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -1152,6 +1336,8 @@
                 updateEditorLink();
                 await loadData();
                 checkForNewMessages();
+                // Poll for new messages every 30 seconds
+                setInterval(checkForNewMessages, 30000);
             } else {
                 showAuthModal();
                 updateEditorLink();
@@ -1378,6 +1564,60 @@
             }
         }
 
+        /**
+         * Calculate days between two dates (local timezone).
+         */
+        function getDaysDiff(date1, date2) {
+            const d1 = new Date(date1);
+            const d2 = new Date(date2);
+            d1.setHours(0, 0, 0, 0);
+            d2.setHours(0, 0, 0, 0);
+            const diffTime = Math.abs(d1 - d2);
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        /**
+         * Get adherence info for an exercise from history.
+         * Returns { daysSince, totalSessions, colorClass, icon }
+         */
+        function getAdherenceInfo(exerciseId, exerciseName) {
+            const logs = allHistory.filter(log =>
+                log.exercise_id === exerciseId || log.exercise_name === exerciseName
+            );
+
+            const totalSessions = logs.length;
+
+            if (totalSessions === 0) {
+                return { daysSince: null, totalSessions: 0, colorClass: 'gray', icon: '○', text: 'Never done' };
+            }
+
+            // Find most recent log
+            const sortedLogs = logs.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
+            const lastLog = sortedLogs[0];
+            const daysSince = getDaysDiff(new Date(), new Date(lastLog.performed_at));
+
+            let colorClass, icon, text;
+            if (daysSince === 0) {
+                colorClass = 'green';
+                icon = '✓';
+                text = 'Done today';
+            } else if (daysSince <= 3) {
+                colorClass = 'green';
+                icon = '';
+                text = `${daysSince} day${daysSince > 1 ? 's' : ''} ago`;
+            } else if (daysSince <= 7) {
+                colorClass = 'orange';
+                icon = '⚠️ ';
+                text = `${daysSince} days ago`;
+            } else {
+                colorClass = 'red';
+                icon = '❗ ';
+                text = `${daysSince} days ago`;
+            }
+
+            return { daysSince, totalSessions, colorClass, icon, text };
+        }
+
         // Render functions
         function renderExerciseList(exercises) {
             const listEl = document.getElementById('exerciseList');
@@ -1389,12 +1629,22 @@
 
             const html = exercises
                 .filter(ex => !ex.archived)
-                .map(ex => `
-                    <div class="exercise-card" data-action="select-exercise" data-id="${ex.id}">
-                        <div class="exercise-name">${escapeHtml(ex.canonical_name)}</div>
-                        <div class="exercise-dosage">${escapeHtml(formatDosage(ex))}</div>
-                    </div>
-                `).join('');
+                .map(ex => {
+                    const adherence = getAdherenceInfo(ex.id, ex.canonical_name);
+                    const adherenceHtml = `<div class="exercise-adherence ${adherence.colorClass}">${adherence.icon}${adherence.text}${adherence.totalSessions > 0 ? ` · ${adherence.totalSessions} session${adherence.totalSessions > 1 ? 's' : ''} total` : ''}</div>`;
+
+                    // Category tag
+                    const tagHtml = ex.pt_category ? `<div class="exercise-tags"><span class="exercise-tag">${escapeHtml(ex.pt_category)}</span></div>` : '';
+
+                    return `
+                        <div class="exercise-card" data-action="select-exercise" data-id="${ex.id}">
+                            <div class="exercise-name">${escapeHtml(ex.canonical_name)}</div>
+                            <div class="exercise-dosage">${escapeHtml(formatDosage(ex))}</div>
+                            ${adherenceHtml}
+                            ${tagHtml}
+                        </div>
+                    `;
+                }).join('');
 
             listEl.innerHTML = html || '<div class="empty-state">No active exercises.</div>';
         }
@@ -1419,7 +1669,7 @@
                 const setsCount = log.sets ? log.sets.length : 0;
 
                 return `
-                    <div class="session-card">
+                    <div class="session-card" data-action="edit-session" data-log-id="${log.id}" style="cursor: pointer;">
                         <div class="session-date">${dateStr}</div>
                         <div class="session-exercise">${escapeHtml(log.exercise_name)}</div>
                         <div class="session-sets">${setsCount} sets logged</div>
@@ -1465,8 +1715,6 @@
             // Setup logger view
             document.getElementById('loggerExerciseName').textContent = currentExercise.canonical_name;
             document.getElementById('loggerDosage').textContent = formatDosage(currentExercise);
-            document.getElementById('currentSetNumber').textContent = '1';
-            document.getElementById('totalSetsLogged').textContent = '0';
 
             // Handle side tracking visibility - only show for pattern: "side"
             const sideTracking = document.querySelector('.side-tracking');
@@ -1477,11 +1725,23 @@
                 sideTracking.classList.remove('hidden');
                 currentSide = 'right';
                 selectSide('right');
+                // Show sided progress, hide both progress
+                document.getElementById('setsProgressBoth').classList.add('hidden');
+                document.getElementById('setsProgressSided').classList.remove('hidden');
             } else {
                 // Hide side selector for bilateral (both) exercises
                 sideTracking.classList.add('hidden');
                 currentSide = null; // No side tracking for bilateral
+                // Show both progress, hide sided progress
+                document.getElementById('setsProgressBoth').classList.remove('hidden');
+                document.getElementById('setsProgressSided').classList.add('hidden');
             }
+
+            // Update sets progress display
+            updateSetsProgress();
+
+            // Update target display
+            updateTargetDisplay();
 
             // Determine which mode to show: timer mode or counter mode
             const hasTimerModifier = currentExercise.pattern_modifiers?.includes('duration_seconds') ||
@@ -1504,6 +1764,78 @@
             }
 
             showView('logger');
+        }
+
+        /**
+         * Update the sets progress display based on current session data.
+         */
+        function updateSetsProgress() {
+            if (!currentExercise || !currentSession) return;
+
+            const isSidePattern = currentExercise.pattern === 'side';
+            const targetSets = currentExercise.current_sets || 0;
+
+            if (isSidePattern) {
+                // Count sets per side
+                const leftSets = currentSession.sets.filter(s => s.side === 'left').length;
+                const rightSets = currentSession.sets.filter(s => s.side === 'right').length;
+                document.getElementById('setsProgressLeft').textContent = `${leftSets}/${targetSets}`;
+                document.getElementById('setsProgressRight').textContent = `${rightSets}/${targetSets}`;
+            } else {
+                // Count total sets
+                const totalSets = currentSession.sets.length;
+                document.getElementById('setsProgressBothText').textContent = `${totalSets}/${targetSets}`;
+            }
+        }
+
+        /**
+         * Update the target dose display.
+         */
+        function updateTargetDisplay() {
+            if (!currentExercise) return;
+
+            const reps = currentExercise.current_reps || 0;
+            const holdSeconds = currentExercise.seconds_per_rep || 0;
+            const durationSeconds = currentExercise.seconds_per_set || 0;
+            const distance = currentExercise.distance_feet || 0;
+
+            const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds') || currentExercise.dosage_type === 'duration';
+            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold';
+            const hasDistance = currentExercise.pattern_modifiers?.includes('distance_feet') || currentExercise.dosage_type === 'distance';
+
+            let targetText;
+            if (hasDistance && distance > 0) {
+                targetText = `${distance} feet`;
+            } else if (hasDuration && durationSeconds > 0) {
+                targetText = `${durationSeconds} seconds`;
+            } else if (hasHold && holdSeconds > 0 && reps > 0) {
+                targetText = `${reps} reps × ${holdSeconds}s hold`;
+            } else if (reps > 0) {
+                targetText = `${reps} reps`;
+            } else {
+                targetText = '--';
+            }
+
+            document.getElementById('targetDoseDisplay').textContent = targetText;
+        }
+
+        /**
+         * Get the last used form parameters for this exercise from history.
+         */
+        function getLastFormParams(exerciseId) {
+            const logs = allHistory.filter(log => log.exercise_id === exerciseId);
+            if (logs.length === 0) return null;
+
+            // Sort by date descending to get most recent
+            const sortedLogs = logs.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
+            const lastLog = sortedLogs[0];
+
+            // Get form_data from the most recent set
+            if (lastLog.sets && lastLog.sets.length > 0) {
+                const lastSet = lastLog.sets[lastLog.sets.length - 1];
+                return lastSet.form_data || null;
+            }
+            return null;
         }
 
         // Counter functions
@@ -1869,37 +2201,296 @@ ${queueData}
             }
         }
 
+        // Track the side selected in Log Set modal
+        let logSetSelectedSide = null;
+
         /**
-         * Open "Log Set" modal to review/edit the current set before saving.
-         * Pre-fills with counter or timer value, allows manual adjustment.
-         * Shows form parameters if exercise requires them (weight, band resistance, etc.)
+         * Open "Log Set" modal for manual entry.
+         * Pre-fills with TARGET dose (not counter value) for manual logging.
+         * Shows form parameters prefilled with last used values.
          */
-        function logSet() {
-            const counterMode = document.getElementById('counterMode');
-            const isTimerMode = counterMode.classList.contains('hidden');
+        function showLogSetModal() {
+            if (!currentExercise) return;
 
             const modal = document.getElementById('logSetModal');
             const input = document.getElementById('logSetInput');
             const label = document.getElementById('logSetInputLabel');
 
-            if (isTimerMode) {
-                // Timer mode: pre-fill with elapsed seconds
-                const elapsedSeconds = Math.floor(timerState.elapsedMs / 1000);
-                input.value = elapsedSeconds;
+            const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds') || currentExercise.dosage_type === 'duration';
+            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold';
+
+            if (hasDuration) {
+                // Duration: prefill with target seconds
+                input.value = currentExercise.seconds_per_set || currentExercise.seconds_per_rep || 0;
                 label.textContent = 'Seconds performed';
+            } else if (hasHold) {
+                // Hold: prefill with target reps (timer handles the hold time)
+                input.value = currentExercise.current_reps || 0;
+                label.textContent = 'Reps performed';
             } else {
-                // Counter mode: pre-fill with reps
-                const reps = parseInt(document.getElementById('counterDisplay').textContent);
-                input.value = reps;
+                // Reps: prefill with target reps
+                input.value = currentExercise.current_reps || 0;
                 label.textContent = 'Reps performed';
             }
 
-            // Populate form parameters if exercise requires them
+            // Populate form parameters with last used values
             populateFormParameters();
 
-            // Show modal
+            // Show/hide side selector
+            const isSidePattern = currentExercise.pattern === 'side';
+            const sideContainer = document.getElementById('logSetSideContainer');
+            if (isSidePattern) {
+                sideContainer.classList.remove('hidden');
+                logSetSelectedSide = currentSide || 'right';
+                updateLogSetSideDisplay();
+            } else {
+                sideContainer.classList.add('hidden');
+                logSetSelectedSide = null;
+            }
+
             modal.classList.remove('hidden');
             input.focus();
+        }
+
+        /**
+         * Select side in Log Set modal.
+         */
+        function selectLogSetSide(side) {
+            logSetSelectedSide = side;
+            updateLogSetSideDisplay();
+        }
+
+        /**
+         * Update Log Set modal side button display.
+         */
+        function updateLogSetSideDisplay() {
+            const leftBtn = document.querySelector('[data-action="log-set-select-side"][data-side="left"]');
+            const rightBtn = document.querySelector('[data-action="log-set-select-side"][data-side="right"]');
+
+            if (!leftBtn || !rightBtn) return;
+
+            const targetSets = currentExercise?.current_sets || 0;
+            const leftSets = currentSession?.sets.filter(s => s.side === 'left').length || 0;
+            const rightSets = currentSession?.sets.filter(s => s.side === 'right').length || 0;
+
+            // Update progress text
+            document.getElementById('logSetLeftProgress').textContent = `${leftSets}/${targetSets} sets`;
+            document.getElementById('logSetRightProgress').textContent = `${rightSets}/${targetSets} sets`;
+
+            // Update button styles
+            if (logSetSelectedSide === 'left') {
+                leftBtn.style.border = '2px solid #007AFF';
+                leftBtn.style.background = '#007AFF';
+                rightBtn.style.border = '2px solid #555';
+                rightBtn.style.background = '#2a2a2a';
+            } else {
+                rightBtn.style.border = '2px solid #007AFF';
+                rightBtn.style.background = '#007AFF';
+                leftBtn.style.border = '2px solid #555';
+                leftBtn.style.background = '#2a2a2a';
+            }
+        }
+
+        /**
+         * Show "Next Set" modal to confirm logging counter/timer value.
+         * Shows what will be logged with Cancel/Edit/Log & Next buttons.
+         */
+        function showNextSetModal() {
+            if (!currentExercise || !currentSession) return;
+
+            const counterMode = document.getElementById('counterMode');
+            const isTimerMode = counterMode.classList.contains('hidden');
+
+            let logValue, targetValue, unit;
+            const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds') || currentExercise.dosage_type === 'duration';
+            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold';
+
+            if (isTimerMode) {
+                if (hasDuration) {
+                    logValue = Math.floor(timerState.elapsedMs / 1000);
+                    targetValue = currentExercise.seconds_per_set || currentExercise.seconds_per_rep || 0;
+                    unit = 's';
+                } else if (hasHold) {
+                    logValue = timerState.currentRep;
+                    targetValue = timerState.totalReps;
+                    unit = ' reps';
+                } else {
+                    logValue = Math.floor(timerState.elapsedMs / 1000);
+                    targetValue = currentExercise.seconds_per_rep || 0;
+                    unit = 's';
+                }
+            } else {
+                logValue = parseInt(document.getElementById('counterDisplay').textContent) || 0;
+                targetValue = currentExercise.current_reps || 0;
+                unit = ' reps';
+            }
+
+            // Build summary
+            document.getElementById('nextSetSummary').textContent = `${logValue}${unit} (target ${targetValue}${unit})`;
+
+            // Show form parameters that will be logged
+            const paramsContainer = document.getElementById('nextSetParamsContainer');
+            const paramsDisplay = document.getElementById('nextSetParamsDisplay');
+            const formParams = currentExercise.form_parameters_required || [];
+
+            if (formParams.length > 0) {
+                const lastParams = getLastFormParams(currentExercise.id);
+                if (lastParams && lastParams.length > 0) {
+                    const paramsHtml = lastParams.map(p =>
+                        `<div style="font-size: 13px; color: #888;">${p.parameter_name}: <span style="color: #fff;">${p.parameter_value}${p.parameter_unit ? ' ' + p.parameter_unit : ''}</span></div>`
+                    ).join('');
+                    paramsDisplay.innerHTML = paramsHtml;
+                    paramsContainer.classList.remove('hidden');
+                } else {
+                    paramsContainer.classList.add('hidden');
+                }
+            } else {
+                paramsContainer.classList.add('hidden');
+            }
+
+            // Show side info for sided exercises
+            const sideDisplay = document.getElementById('nextSetSideDisplay');
+            const isSidePattern = currentExercise.pattern === 'side';
+            if (isSidePattern && currentSide) {
+                sideDisplay.textContent = `Side: ${currentSide.charAt(0).toUpperCase() + currentSide.slice(1)}`;
+                sideDisplay.classList.remove('hidden');
+            } else {
+                sideDisplay.classList.add('hidden');
+            }
+
+            document.getElementById('nextSetModal').classList.remove('hidden');
+        }
+
+        function closeNextSetModal() {
+            document.getElementById('nextSetModal').classList.add('hidden');
+        }
+
+        /**
+         * Edit button in Next Set modal - opens Log Set modal for editing.
+         */
+        function editNextSet() {
+            closeNextSetModal();
+            showLogSetModal();
+        }
+
+        /**
+         * Confirm and log the set from Next Set modal.
+         */
+        function confirmNextSet() {
+            const counterMode = document.getElementById('counterMode');
+            const isTimerMode = counterMode.classList.contains('hidden');
+
+            let reps = null;
+            let seconds = null;
+
+            const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds') || currentExercise.dosage_type === 'duration';
+            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold';
+
+            if (isTimerMode) {
+                if (hasDuration) {
+                    reps = 1;
+                    seconds = Math.floor(timerState.elapsedMs / 1000);
+                } else if (hasHold) {
+                    reps = timerState.currentRep;
+                    seconds = timerState.targetSeconds;
+                }
+                resetTimer();
+            } else {
+                reps = parseInt(document.getElementById('counterDisplay').textContent) || 0;
+            }
+
+            if (reps === 0 && !seconds) {
+                showToast('Please perform at least one rep', 'error');
+                closeNextSetModal();
+                return;
+            }
+
+            // Get last used form params
+            const lastParams = getLastFormParams(currentExercise.id);
+
+            const set = {
+                set_number: currentSession.sets.length + 1,
+                reps: reps,
+                seconds: seconds,
+                distance_feet: null,
+                side: currentSide,
+                form_data: lastParams,
+                manual_log: false,
+                partial_rep: false,
+                performed_at: new Date().toISOString()
+            };
+
+            currentSession.sets.push(set);
+
+            // Reset timer rep counter for next set (hold exercises)
+            if (isTimerMode && hasHold) {
+                timerState.currentRep = 1;
+                document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+            }
+
+            // Update sets progress display
+            updateSetsProgress();
+
+            // Reset counter for next set
+            document.getElementById('counterDisplay').textContent = '0';
+
+            // Voice comparison to last time
+            announceProgressComparison(set);
+
+            closeNextSetModal();
+            showLogFeedback();
+        }
+
+        /**
+         * Go back to previous set (undo last logged set).
+         */
+        function previousSet() {
+            if (!currentSession || currentSession.sets.length === 0) {
+                showToast('No sets to undo', 'error');
+                return;
+            }
+
+            const removedSet = currentSession.sets.pop();
+            updateSetsProgress();
+            showToast(`Set ${removedSet.set_number} removed`, 'success');
+        }
+
+        /**
+         * Announce progress comparison to last session.
+         * "X more/less reps than last time"
+         */
+        function announceProgressComparison(currentSet) {
+            if (!currentExercise) return;
+
+            // Find previous session for this exercise
+            const prevLogs = allHistory.filter(log =>
+                log.exercise_id === currentExercise.id || log.exercise_name === currentExercise.canonical_name
+            ).sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at));
+
+            if (prevLogs.length === 0) return;
+
+            const prevLog = prevLogs[0];
+            if (!prevLog.sets || prevLog.sets.length === 0) return;
+
+            // Find matching set (same set number and side if applicable)
+            const matchingSet = prevLog.sets.find(s => {
+                if (currentExercise.pattern === 'side') {
+                    return s.set_number === currentSet.set_number && s.side === currentSet.side;
+                }
+                return s.set_number === currentSet.set_number;
+            });
+
+            if (!matchingSet) return;
+
+            const prevReps = matchingSet.reps || 0;
+            const currReps = currentSet.reps || 0;
+            const diff = currReps - prevReps;
+
+            if (diff > 0) {
+                setTimeout(() => speakText(`${diff} more rep${diff > 1 ? 's' : ''} than last time`), 1500);
+            } else if (diff < 0 && Math.abs(diff) > 2) {
+                setTimeout(() => speakText(`${Math.abs(diff)} fewer reps than last time`), 1500);
+            }
         }
 
         /**
@@ -2200,9 +2791,14 @@ ${queueData}
                 document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
             }
 
-            // Update UI
-            document.getElementById('totalSetsLogged').textContent = currentSession.sets.length;
-            document.getElementById('currentSetNumber').textContent = currentSession.sets.length + 1;
+            // Update sets progress display
+            updateSetsProgress();
+
+            // Reset counter for next set
+            document.getElementById('counterDisplay').textContent = '0';
+
+            // Voice comparison to last time
+            announceProgressComparison(set);
 
             // Close modal and show feedback
             closeLogSetModal();
@@ -2454,6 +3050,236 @@ ${queueData}
 
             } catch (error) {
                 console.error('Error checking for new messages:', error);
+            }
+        }
+
+        // ============================================================================
+        // EDIT SESSION FUNCTIONALITY
+        // ============================================================================
+
+        let editingLog = null; // Currently editing log
+
+        /**
+         * Open the Edit Session modal for a specific log entry.
+         */
+        function openEditSessionModal(logId) {
+            editingLog = allHistory.find(log => log.id === logId);
+            if (!editingLog) {
+                showToast('Session not found', 'error');
+                return;
+            }
+
+            // Find exercise info
+            const exercise = allExercises.find(ex => ex.id === editingLog.exercise_id);
+            const isSided = exercise?.pattern === 'side';
+
+            // Populate exercise info
+            document.getElementById('editSessionExerciseName').textContent = editingLog.exercise_name;
+            document.getElementById('editSessionExerciseType').textContent = isSided ? '🔄 Sided' : '';
+
+            // Populate date
+            const date = new Date(editingLog.performed_at);
+            const dateInput = document.getElementById('editSessionDate');
+            // Format for datetime-local input
+            const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            dateInput.value = localDate.toISOString().slice(0, 16);
+
+            // Populate notes
+            document.getElementById('editSessionNotes').value = editingLog.notes || '';
+
+            // Render sets
+            renderEditSessionSets(editingLog.sets || [], isSided, exercise);
+
+            document.getElementById('editSessionModal').classList.remove('hidden');
+        }
+
+        /**
+         * Render the sets list in the Edit Session modal.
+         */
+        function renderEditSessionSets(sets, isSided, exercise) {
+            const container = document.getElementById('editSessionSetsList');
+            const formParams = exercise?.form_parameters_required || [];
+
+            if (sets.length === 0) {
+                container.innerHTML = '<div style="color: #888; font-style: italic;">No sets logged</div>';
+                return;
+            }
+
+            const html = sets.map((set, index) => {
+                // Build form params display
+                let paramsHtml = '';
+                if (formParams.length > 0 && set.form_data && set.form_data.length > 0) {
+                    paramsHtml = set.form_data.map(p => `
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <label style="flex: 1; font-size: 0.85rem; color: #888;">${p.parameter_name}</label>
+                            <input type="text" class="edit-set-param" data-set="${index}" data-param="${p.parameter_name}"
+                                value="${p.parameter_value}${p.parameter_unit ? ' ' + p.parameter_unit : ''}"
+                                style="flex: 2; padding: 6px 10px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 0.9rem;">
+                        </div>
+                    `).join('');
+                }
+
+                return `
+                    <div class="edit-session-set" style="background: #1a1a1a; border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid #333;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 600;">Set ${index + 1}</span>
+                            <button type="button" class="btn" style="background: transparent; color: #dc3545; padding: 4px 12px; font-size: 0.85rem;" data-action="delete-edit-session-set" data-set-index="${index}">Delete</button>
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 0.85rem; color: #888; display: block; margin-bottom: 4px;">Reps</label>
+                                <input type="number" class="edit-set-reps" data-set="${index}" value="${set.reps || 0}"
+                                    style="width: 100%; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 1rem;">
+                            </div>
+                            ${isSided ? `
+                            <div style="flex: 1;">
+                                <label style="font-size: 0.85rem; color: #888; display: block; margin-bottom: 4px;">Side</label>
+                                <select class="edit-set-side" data-set="${index}"
+                                    style="width: 100%; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 1rem;">
+                                    <option value="left" ${set.side === 'left' ? 'selected' : ''}>Left</option>
+                                    <option value="right" ${set.side === 'right' ? 'selected' : ''}>Right</option>
+                                </select>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ${paramsHtml}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        /**
+         * Add a new set to the editing session.
+         */
+        function addEditSessionSet() {
+            if (!editingLog) return;
+
+            const exercise = allExercises.find(ex => ex.id === editingLog.exercise_id);
+            const isSided = exercise?.pattern === 'side';
+
+            // Create new set with default values
+            const newSet = {
+                set_number: (editingLog.sets?.length || 0) + 1,
+                reps: exercise?.current_reps || 10,
+                seconds: null,
+                side: isSided ? 'right' : null,
+                form_data: null,
+                performed_at: new Date().toISOString()
+            };
+
+            if (!editingLog.sets) editingLog.sets = [];
+            editingLog.sets.push(newSet);
+
+            renderEditSessionSets(editingLog.sets, isSided, exercise);
+        }
+
+        /**
+         * Delete a set from the editing session.
+         */
+        function deleteEditSessionSet(setIndex) {
+            if (!editingLog || !editingLog.sets) return;
+
+            editingLog.sets.splice(setIndex, 1);
+
+            // Renumber sets
+            editingLog.sets.forEach((set, i) => set.set_number = i + 1);
+
+            const exercise = allExercises.find(ex => ex.id === editingLog.exercise_id);
+            const isSided = exercise?.pattern === 'side';
+            renderEditSessionSets(editingLog.sets, isSided, exercise);
+        }
+
+        function closeEditSessionModal() {
+            document.getElementById('editSessionModal').classList.add('hidden');
+            editingLog = null;
+        }
+
+        /**
+         * Save edited session to the API.
+         */
+        async function saveEditSession() {
+            if (!editingLog) return;
+
+            // Collect updated values from form
+            const dateInput = document.getElementById('editSessionDate');
+            const notesInput = document.getElementById('editSessionNotes');
+
+            // Update sets from form inputs
+            document.querySelectorAll('.edit-set-reps').forEach(input => {
+                const setIndex = parseInt(input.dataset.set);
+                if (editingLog.sets[setIndex]) {
+                    editingLog.sets[setIndex].reps = parseInt(input.value) || 0;
+                }
+            });
+
+            document.querySelectorAll('.edit-set-side').forEach(select => {
+                const setIndex = parseInt(select.dataset.set);
+                if (editingLog.sets[setIndex]) {
+                    editingLog.sets[setIndex].side = select.value;
+                }
+            });
+
+            // Update form parameters
+            document.querySelectorAll('.edit-set-param').forEach(input => {
+                const setIndex = parseInt(input.dataset.set);
+                const paramName = input.dataset.param;
+                if (editingLog.sets[setIndex] && editingLog.sets[setIndex].form_data) {
+                    const param = editingLog.sets[setIndex].form_data.find(p => p.parameter_name === paramName);
+                    if (param) {
+                        // Parse value and unit if present
+                        const parts = input.value.trim().split(/\s+/);
+                        param.parameter_value = parts[0] || input.value;
+                        if (parts.length > 1) {
+                            param.parameter_unit = parts.slice(1).join(' ');
+                        }
+                    }
+                }
+            });
+
+            try {
+                const response = await fetchWithAuth(`/api/logs/${editingLog.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        performed_at: new Date(dateInput.value).toISOString(),
+                        notes: notesInput.value || null,
+                        sets: editingLog.sets
+                    })
+                });
+
+                showToast('Session updated', 'success');
+                closeEditSessionModal();
+                await loadHistory();
+
+            } catch (error) {
+                console.error('Error updating session:', error);
+                showToast('Failed to update session', 'error');
+            }
+        }
+
+        /**
+         * Delete the entire session.
+         */
+        async function deleteSession() {
+            if (!editingLog) return;
+
+            if (!confirm('Are you sure you want to delete this entire session? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                await fetchWithAuth(`/api/logs/${editingLog.id}`, {
+                    method: 'DELETE'
+                });
+
+                showToast('Session deleted', 'success');
+                closeEditSessionModal();
+                await loadHistory();
+
+            } catch (error) {
+                console.error('Error deleting session:', error);
+                showToast('Failed to delete session', 'error');
             }
         }
 
@@ -2844,8 +3670,23 @@ ${queueData}
                     case 'timer-reset':
                         resetTimer();
                         break;
-                    case 'log-set':
-                        logSet();
+                    case 'previous-set':
+                        previousSet();
+                        break;
+                    case 'show-log-set-modal':
+                        showLogSetModal();
+                        break;
+                    case 'show-next-set-modal':
+                        showNextSetModal();
+                        break;
+                    case 'close-next-set-modal':
+                        closeNextSetModal();
+                        break;
+                    case 'edit-next-set':
+                        editNextSet();
+                        break;
+                    case 'confirm-next-set':
+                        confirmNextSet();
                         break;
                     case 'finish-session':
                         finishSession();
@@ -2860,6 +3701,9 @@ ${queueData}
                         break;
                     case 'save-logged-set':
                         saveLoggedSet();
+                        break;
+                    case 'log-set-select-side':
+                        selectLogSetSide(target.dataset.side);
                         break;
                     case 'close-notes-modal':
                         closeNotesModal();
@@ -2908,6 +3752,24 @@ ${queueData}
                         break;
                     case 'reload':
                         reloadPage();
+                        break;
+                    case 'edit-session':
+                        openEditSessionModal(target.dataset.logId);
+                        break;
+                    case 'close-edit-session-modal':
+                        closeEditSessionModal();
+                        break;
+                    case 'save-edit-session':
+                        saveEditSession();
+                        break;
+                    case 'delete-session':
+                        deleteSession();
+                        break;
+                    case 'add-edit-session-set':
+                        addEditSessionSet();
+                        break;
+                    case 'delete-edit-session-set':
+                        deleteEditSessionSet(parseInt(target.dataset.setIndex));
                         break;
                 }
             });
