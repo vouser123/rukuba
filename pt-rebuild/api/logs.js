@@ -14,7 +14,7 @@
  * GET enforces: patients see own logs only, therapists see their patients' logs.
  */
 
-import { getSupabaseWithAuth } from '../lib/db.js';
+import { getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
 import { requireAuth, requirePatient } from '../lib/auth.js';
 
 /**
@@ -339,8 +339,9 @@ async function createMessage(req, res) {
   }
 
   try {
-    // Validate recipient exists
-    const { data: recipient, error: recipientError } = await supabase
+    // Validate recipient exists (use admin client to avoid RLS blocking lookups)
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: recipient, error: recipientError } = await supabaseAdmin
       .from('users')
       .select('id, role')
       .eq('id', recipient_id)
