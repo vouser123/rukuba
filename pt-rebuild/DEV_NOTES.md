@@ -21,3 +21,4 @@ This file tracks development progress on the Supabase/Vercel rebuild of the PT t
 ## 2026-01-30
 
 - **2026-01-30** — **API:** Added exercise form parameter names to the programs payload by joining exercise form parameters and normalizing them into `form_parameters_required`, keeping the patient tracker data consistent with exercise metadata. **Files:** `pt-rebuild/lib/handlers/programs.js`.
+- **2026-01-30** — **Messages:** Fixed message labeling/undo visibility by aligning client-side comparisons with `users.id` instead of auth IDs, and clarified sender/recipient labels in both patient (`index.html`) and therapist (`pt_view.html`) messaging UIs. **Also:** Ensured hidden messages are actually filtered per-user by excluding `archived_by_sender`/`archived_by_recipient` in the messages API response. **Files:** `pt-rebuild/public/index.html`, `pt-rebuild/public/pt_view.html`, `pt-rebuild/api/logs.js`.
