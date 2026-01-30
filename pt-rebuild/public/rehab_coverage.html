@@ -6,11 +6,61 @@
     <title>Rehab Coverage Analysis</title>
     <link rel="stylesheet" href="main.css">
     <style>
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f8f9fa;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --accent-color: #007AFF;
+            --accent-hover: #0056b3;
+            --success-color: #34C759;
+            --success-bg: #d4edda;
+            --warning-color: #FF9500;
+            --warning-bg: #fff3cd;
+            --danger-color: #FF3B30;
+            --danger-bg: #f8d7da;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #0f1115;
+                --bg-secondary: #1c1f26;
+                --bg-tertiary: #2a2f3a;
+                --text-primary: #f5f5f5;
+                --text-secondary: #a0a0a0;
+                --border-color: #3a3f4b;
+                --accent-color: #4c8dff;
+                --accent-hover: #3d7de6;
+                --success-color: #34C759;
+                --success-bg: rgba(52, 199, 89, 0.15);
+                --warning-color: #FF9500;
+                --warning-bg: rgba(255, 149, 0, 0.15);
+                --danger-color: #FF3B30;
+                --danger-bg: rgba(255, 59, 48, 0.15);
+                --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+                --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 0;
-            background: #f5f5f5;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            touch-action: manipulation;
         }
 
         /* Auth Modal */
@@ -20,7 +70,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -32,61 +82,72 @@
         }
 
         .auth-content {
-            background: white;
+            background: var(--bg-secondary);
             padding: 2rem;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             max-width: 400px;
             width: 90%;
+            box-shadow: var(--shadow-md);
         }
 
         .auth-content h2 {
             margin: 0 0 1.5rem 0;
+            color: var(--text-primary);
         }
 
         .auth-form input {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.875rem;
             margin-bottom: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
             font-size: 16px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
 
         .auth-form button {
             width: 100%;
-            padding: 0.75rem;
-            background: #007bff;
+            padding: 0.875rem;
+            background: var(--accent-color);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .auth-form button:active {
-            background: #0056b3;
+            background: var(--accent-hover);
         }
 
         .auth-error {
-            color: #d32f2f;
+            color: var(--danger-color);
             margin-top: 1rem;
             font-size: 14px;
         }
 
         /* Header */
         .header {
-            background: white;
-            padding: 1rem;
-            border-bottom: 2px solid #007bff;
+            background: var(--bg-secondary);
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .header h1 {
             margin: 0;
-            font-size: 1.5rem;
-            color: #007bff;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--accent-color);
         }
 
         .header-actions {
@@ -95,48 +156,60 @@
         }
 
         .btn {
-            padding: 0.5rem 1rem;
-            background: #007bff;
+            padding: 0.625rem 1rem;
+            background: var(--accent-color);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 14px;
+            font-weight: 600;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
         }
 
         .btn-secondary {
-            background: #6c757d;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
 
         .btn:active {
-            opacity: 0.8;
+            opacity: 0.85;
+            transform: scale(0.98);
         }
 
         /* Date Range Selector */
         .date-range-section {
-            background: white;
-            padding: 1rem;
+            background: var(--bg-secondary);
+            padding: 1.25rem;
             margin: 1rem;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
         }
 
         .date-range-section h3 {
             margin: 0 0 1rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
         }
 
         .date-inputs {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
+            gap: 0.75rem;
             margin-bottom: 1rem;
         }
 
         .date-inputs input {
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
 
         .quick-ranges {
@@ -146,45 +219,94 @@
         }
 
         .quick-range-btn {
-            padding: 0.25rem 0.75rem;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-color);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .quick-range-btn:active {
-            background: #e0e0e0;
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
         }
+
+        /* Summary Stats */
+        .summary-stats {
+            background: var(--bg-secondary);
+            padding: 1.25rem;
+            margin: 1rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-stats h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .stat-value.status-done { color: var(--success-color); }
+        .stat-value.status-gap { color: var(--warning-color); }
+        .stat-value.status-not-done { color: var(--danger-color); }
 
         /* Coverage Matrix */
         .coverage-section {
-            padding: 0 1rem 1rem 1rem;
+            padding: 0 1rem 2rem 1rem;
         }
 
         .region-group {
-            background: white;
+            background: var(--bg-secondary);
             margin-bottom: 1rem;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
         }
 
         .region-header {
-            background: #007bff;
+            background: var(--accent-color);
             color: white;
-            padding: 0.75rem 1rem;
-            font-weight: bold;
-            font-size: 1.1rem;
+            padding: 1rem 1.25rem;
+            font-weight: 700;
+            font-size: 1.05rem;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .region-header:active {
-            background: #0056b3;
+            background: var(--accent-hover);
         }
 
         .region-content {
@@ -196,128 +318,173 @@
         }
 
         .capacity-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
             padding-left: 1rem;
-            border-left: 3px solid #007bff;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .capacity-group:last-child {
+            margin-bottom: 0;
         }
 
         .capacity-header {
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 0.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
         }
 
         .focus-item {
-            background: #f8f9fa;
-            padding: 0.5rem;
-            margin-bottom: 0.5rem;
-            border-radius: 4px;
-            border-left: 3px solid #28a745;
+            background: var(--bg-tertiary);
+            padding: 0.875rem;
+            margin-bottom: 0.625rem;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--success-color);
+        }
+
+        .focus-item:last-child {
+            margin-bottom: 0;
         }
 
         .focus-item.not-covered {
-            border-left-color: #dc3545;
+            border-left-color: var(--danger-color);
+            background: var(--danger-bg);
         }
 
         .focus-item.needs-attention {
-            border-left-color: #ffc107;
+            border-left-color: var(--warning-color);
+            background: var(--warning-bg);
         }
 
         .focus-name {
-            font-weight: 500;
-            margin-bottom: 0.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
         }
 
         .focus-exercises {
-            font-size: 0.85rem;
-            color: #666;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
         }
 
         .exercise-chip {
             display: inline-block;
-            background: white;
-            padding: 0.125rem 0.5rem;
-            margin: 0.125rem;
-            border-radius: 3px;
-            border: 1px solid #ddd;
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.625rem;
+            margin: 0.15rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
         }
 
         .exercise-chip.done {
-            background: #d4edda;
-            border-color: #28a745;
+            background: var(--success-bg);
+            border-color: var(--success-color);
+            color: var(--success-color);
         }
 
         .focus-status {
             font-size: 0.85rem;
-            margin-top: 0.25rem;
+            font-weight: 600;
         }
 
-        .status-done {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .status-gap {
-            color: #ffc107;
-            font-weight: bold;
-        }
-
-        .status-not-done {
-            color: #dc3545;
-            font-weight: bold;
-        }
-
-        /* Summary Stats */
-        .summary-stats {
-            background: white;
-            padding: 1rem;
-            margin: 1rem;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-
-        .summary-stats h3 {
-            margin: 0 0 1rem 0;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .stat-row:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: #666;
-        }
-
-        .stat-value {
-            font-weight: bold;
-        }
+        .focus-status.status-done { color: var(--success-color); }
+        .focus-status.status-needs-attention { color: var(--warning-color); }
+        .focus-status.status-not-covered { color: var(--danger-color); }
 
         .loading {
             text-align: center;
-            padding: 2rem;
-            color: #666;
+            padding: 3rem;
+            color: var(--text-secondary);
         }
 
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .expand-icon {
-            transition: transform 0.2s;
+            transition: transform 0.2s ease;
+            font-size: 0.85rem;
         }
 
         .expand-icon.collapsed {
             transform: rotate(-90deg);
         }
+
+        /* Coverage Progress Bar */
+        .coverage-bar-container {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .coverage-bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .coverage-bar-label span:first-child {
+            font-weight: 600;
+        }
+
+        .coverage-bar-label span:last-child {
+            color: var(--text-secondary);
+        }
+
+        .coverage-bar {
+            height: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .coverage-bar-segment {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .coverage-bar-segment.done {
+            background: var(--success-color);
+        }
+
+        .coverage-bar-segment.attention {
+            background: var(--warning-color);
+        }
+
+        .coverage-bar-segment.not-covered {
+            background: var(--danger-color);
+        }
+
+        .coverage-legend {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.done { background: var(--success-color); }
+        .legend-dot.attention { background: var(--warning-color); }
+        .legend-dot.not-covered { background: var(--danger-color); }
     </style>
 </head>
 <body>
@@ -387,6 +554,24 @@
         <div class="stat-row">
             <span class="stat-label">Not Covered:</span>
             <span class="stat-value status-not-done" id="notCoveredCount">0</span>
+        </div>
+
+        <!-- Coverage Progress Bar -->
+        <div class="coverage-bar-container">
+            <div class="coverage-bar-label">
+                <span>Coverage</span>
+                <span id="coveragePercent">0%</span>
+            </div>
+            <div class="coverage-bar">
+                <div class="coverage-bar-segment done" id="barDone" style="width: 0%;"></div>
+                <div class="coverage-bar-segment attention" id="barAttention" style="width: 0%;"></div>
+                <div class="coverage-bar-segment not-covered" id="barNotCovered" style="width: 0%;"></div>
+            </div>
+            <div class="coverage-legend">
+                <div class="legend-item"><div class="legend-dot done"></div>Covered</div>
+                <div class="legend-item"><div class="legend-dot attention"></div>Needs Attention</div>
+                <div class="legend-item"><div class="legend-dot not-covered"></div>Not Covered</div>
+            </div>
         </div>
     </div>
 
@@ -538,7 +723,11 @@
             coverageData = {};
 
             allRoles.forEach(role => {
-                const { region, capacity, focus, exercise_id } = role;
+                const region = role.region || 'Uncategorized';
+                const capacity = role.capacity || 'General';
+                const focus = role.focus || 'General';
+                const exerciseId = role.exercise_id;
+                const exerciseName = role.exercises?.canonical_name || exerciseId || 'Unknown';
 
                 if (!coverageData[region]) {
                     coverageData[region] = {};
@@ -554,14 +743,15 @@
                 }
 
                 // Check if this exercise was done in date range
-                const exerciseLogs = filteredLogs.filter(log => log.exercise_id === exercise_id);
+                const exerciseLogs = filteredLogs.filter(log => log.exercise_id === exerciseId);
                 const done = exerciseLogs.length > 0;
                 const lastLog = exerciseLogs.length > 0
                     ? new Date(Math.max(...exerciseLogs.map(l => new Date(l.performed_at))))
                     : null;
 
                 coverageData[region][capacity][focus].exercises.push({
-                    exercise_id,
+                    exercise_id: exerciseId,
+                    exercise_name: exerciseName,
                     done,
                     lastDone: lastLog
                 });
@@ -627,7 +817,7 @@
 
                         const exercisesHtml = exercises.map(ex => {
                             const chipClass = ex.done ? 'exercise-chip done' : 'exercise-chip';
-                            return `<span class="${chipClass}">${escapeHtml(ex.exercise_id)}</span>`;
+                            return `<span class="${chipClass}">${escapeHtml(ex.exercise_name)}</span>`;
                         }).join('');
 
                         return `
@@ -704,6 +894,24 @@
             document.getElementById('coveredCount').textContent = coveredCount;
             document.getElementById('gapCount').textContent = gapCount;
             document.getElementById('notCoveredCount').textContent = notCoveredCount;
+
+            // Update progress bar
+            if (totalFocusAreas > 0) {
+                const donePercent = (coveredCount / totalFocusAreas) * 100;
+                const attentionPercent = (gapCount / totalFocusAreas) * 100;
+                const notCoveredPercent = (notCoveredCount / totalFocusAreas) * 100;
+                const overallPercent = Math.round(((coveredCount + gapCount * 0.5) / totalFocusAreas) * 100);
+
+                document.getElementById('barDone').style.width = `${donePercent}%`;
+                document.getElementById('barAttention').style.width = `${attentionPercent}%`;
+                document.getElementById('barNotCovered').style.width = `${notCoveredPercent}%`;
+                document.getElementById('coveragePercent').textContent = `${overallPercent}%`;
+            } else {
+                document.getElementById('barDone').style.width = '0%';
+                document.getElementById('barAttention').style.width = '0%';
+                document.getElementById('barNotCovered').style.width = '0%';
+                document.getElementById('coveragePercent').textContent = '0%';
+            }
         }
 
         // Toggle region collapse
