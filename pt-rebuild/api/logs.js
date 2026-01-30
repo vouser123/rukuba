@@ -295,13 +295,31 @@ async function createMessage(req, res) {
   const supabase = getSupabaseWithAuth(req.accessToken);
   const { recipient_id, subject, body } = req.body;
 
-  if (!recipient_id || !body) {
+  // Validate required fields (including empty string check)
+  if (!recipient_id?.trim() || !body?.trim()) {
     return res.status(400).json({
       error: 'Missing required fields: recipient_id, body'
     });
   }
 
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(recipient_id)) {
+    return res.status(400).json({ error: 'Invalid recipient_id format' });
+  }
+
   try {
+    // Validate recipient exists
+    const { data: recipient, error: recipientError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', recipient_id)
+      .single();
+
+    if (recipientError || !recipient) {
+      return res.status(404).json({ error: 'Recipient not found' });
+    }
+
     // For patient-to-therapist messages, patient_id is the sender (current user)
     // For therapist-to-patient messages, patient_id is the recipient
     // We'll use the current user's ID as patient_id if they're a patient,
@@ -346,6 +364,12 @@ async function updateMessage(req, res) {
 
   if (!id) {
     return res.status(400).json({ error: 'Missing message id' });
+  }
+
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return res.status(400).json({ error: 'Invalid message id format' });
   }
 
   try {
@@ -415,6 +439,12 @@ async function deleteMessage(req, res) {
 
   if (!id) {
     return res.status(400).json({ error: 'Missing message id' });
+  }
+
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return res.status(400).json({ error: 'Invalid message id format' });
   }
 
   try {
