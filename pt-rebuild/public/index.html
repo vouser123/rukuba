@@ -1507,6 +1507,35 @@
                     };
                 });
 
+                // Backfill missing form parameters from the full exercise library (if needed)
+                const missingFormParams = allExercises.filter(ex =>
+                    !ex.form_parameters_required || ex.form_parameters_required.length === 0
+                );
+
+                if (missingFormParams.length > 0) {
+                    try {
+                        const exercisesResult = await fetchWithAuth('/api/exercises');
+                        const library = exercisesResult.exercises || [];
+                        const libraryById = new Map(library.map(ex => [ex.id, ex]));
+
+                        allExercises = allExercises.map(ex => {
+                            if (ex.form_parameters_required && ex.form_parameters_required.length > 0) {
+                                return ex;
+                            }
+                            const fallback = libraryById.get(ex.id);
+                            if (fallback?.form_parameters_required?.length) {
+                                return {
+                                    ...ex,
+                                    form_parameters_required: fallback.form_parameters_required
+                                };
+                            }
+                            return ex;
+                        });
+                    } catch (error) {
+                        console.warn('Failed to backfill form parameters from exercise library:', error);
+                    }
+                }
+
                 // Load history FIRST so adherence data is available when rendering
                 await loadHistory();
                 renderExerciseList(allExercises);
@@ -1520,7 +1549,7 @@
 
         async function loadHistory() {
             try {
-                const result = await fetchWithAuth(`/api/logs?limit=200`); // Get more for smart dropdowns
+                const result = await fetchWithAuth(`/api/logs?include_all=true&limit=1000`); // Get more for smart dropdowns
                 const logs = result.logs || [];
                 allHistory = logs; // Store for form parameter dropdowns
                 renderHistory(logs);

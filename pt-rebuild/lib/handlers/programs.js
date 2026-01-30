@@ -12,19 +12,21 @@
 import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../db.js';
 import { requireAuth } from '../auth.js';
 
-export function normalizeProgramPatternModifiers(programs) {
+export function normalizeProgramPatternModifiers(programs, formParamsByExercise = {}) {
   return programs.map((program) => {
     const exercise = program.exercises || null;
     const modifiers = exercise?.exercise_pattern_modifiers || [];
     const formParams = exercise?.exercise_form_parameters || [];
     const { exercise_form_parameters, ...exercisePayload } = exercise || {};
+    const fallbackFormParams = exercise?.id ? (formParamsByExercise[exercise.id] || []) : [];
+    const resolvedFormParams = formParams.length > 0 ? formParams : fallbackFormParams;
     return {
       ...program,
       exercises: exercise
         ? {
           ...exercisePayload,
           pattern_modifiers: modifiers.map((modifier) => modifier.modifier),
-          form_parameters_required: formParams.map((param) => param.parameter_name)
+          form_parameters_required: resolvedFormParams.map((param) => param.parameter_name)
         }
         : exercise
     };
@@ -150,7 +152,31 @@ async function getPrograms(req, res) {
 
     if (error) throw error;
 
-    const normalizedPrograms = normalizeProgramPatternModifiers(programs);
+    const exerciseIds = programs
+      .map((program) => program.exercises?.id)
+      .filter(Boolean);
+
+    let formParamsByExercise = {};
+
+    if (exerciseIds.length > 0) {
+      const supabaseAdmin = getSupabaseAdmin();
+      const { data: formParams, error: formParamsError } = await supabaseAdmin
+        .from('exercise_form_parameters')
+        .select('exercise_id, parameter_name')
+        .in('exercise_id', exerciseIds);
+
+      if (formParamsError) {
+        console.warn('Failed to load exercise form parameters with admin client:', formParamsError);
+      } else {
+        formParamsByExercise = formParams.reduce((acc, row) => {
+          if (!acc[row.exercise_id]) acc[row.exercise_id] = [];
+          acc[row.exercise_id].push({ parameter_name: row.parameter_name });
+          return acc;
+        }, {});
+      }
+    }
+
+    const normalizedPrograms = normalizeProgramPatternModifiers(programs, formParamsByExercise);
 
     return res.status(200).json({
       programs: normalizedPrograms,

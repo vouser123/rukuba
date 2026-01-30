@@ -41,7 +41,9 @@ async function getActivityLogs(req, res) {
   });
 
   try {
-    // Fetch activity logs (last 90 days, or with limit)
+    // Fetch activity logs (last 90 days by default, or all history when requested)
+    const { include_all } = req.query;
+    const includeAll = include_all === 'true' || include_all === '1';
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
@@ -50,8 +52,11 @@ async function getActivityLogs(req, res) {
       .from('patient_activity_logs')
       .select('*')
       .eq('patient_id', targetPatientId)
-      .gte('performed_at', ninetyDaysAgo.toISOString())
       .order('performed_at', { ascending: false });
+
+    if (!includeAll) {
+      query = query.gte('performed_at', ninetyDaysAgo.toISOString());
+    }
 
     // Apply limit if provided
     if (limit) {
