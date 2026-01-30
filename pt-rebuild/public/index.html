@@ -2210,13 +2210,29 @@
          */
         function showDebugInfo() {
             const queueData = JSON.stringify(offlineQueue, null, 2);
+            const currentExerciseSummary = currentExercise
+                ? JSON.stringify({
+                    id: currentExercise.id,
+                    name: currentExercise.canonical_name,
+                    pattern: currentExercise.pattern,
+                    pattern_modifiers: currentExercise.pattern_modifiers,
+                    form_parameters_required: currentExercise.form_parameters_required,
+                    dosage_type: currentExercise.dosage_type,
+                    current_sets: currentExercise.current_sets,
+                    current_reps: currentExercise.current_reps
+                }, null, 2)
+                : 'None selected';
             console.log('Offline Queue:', offlineQueue);
+            console.log('Current Exercise Summary:', currentExerciseSummary);
 
             // Create a modal-like debug display
             const debugInfo = `
 Queue Length: ${offlineQueue.length}
 Auth Token: ${authToken ? 'Present' : 'Missing'}
 Current User: ${currentUser?.email || 'None'}
+Exercises Loaded: ${allExercises.length}
+Current Exercise:
+${currentExerciseSummary}
 
 Queued Sessions:
 ${queueData}
