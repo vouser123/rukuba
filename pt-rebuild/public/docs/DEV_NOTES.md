@@ -46,6 +46,25 @@ For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
   - Added touch-action: manipulation to counter display (prevents iOS double-tap zoom)
   - Added setInterval for periodic message polling (30 seconds)
   - Added UUID validation to messages API functions
+  - Fixed exercise list showing "Never done" for all exercises (loadHistory now runs before renderExerciseList)
+
+### Rehab Coverage Improvements (rehab_coverage.html)
+
+- **Dark Mode Support**
+  - Added CSS custom properties for theming
+  - Added `prefers-color-scheme: dark` media query
+  - Styled cards, headers, and text for dark backgrounds
+
+- **Visual Improvements**
+  - Modernized card layout with shadow and rounded corners
+  - Better typography hierarchy
+  - Responsive grid layout for exercise cards
+  - Meaningful coverage progress bar showing actual percentage (not always full)
+
+- **Data Display Fixes**
+  - Fixed null values showing as "null" - now defaults to descriptive text
+  - Shows exercise canonical names instead of IDs
+  - Grouped exercises by region → capacity → focus hierarchy
 
 ## 2026-01-28
 
