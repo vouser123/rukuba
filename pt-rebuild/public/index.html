@@ -759,6 +759,37 @@
             margin-bottom: 1rem;
         }
 
+        .modal-input,
+        .modal-select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px; /* Prevent iOS zoom on focus */
+            margin-bottom: 12px;
+            font-family: inherit;
+            background: #f2f2f7;
+            color: #111;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .modal-input:focus,
+        .modal-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #007AFF;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        textarea,
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
         .form-group label {
             display: block;
             margin-bottom: 0.25rem;
@@ -1143,7 +1174,7 @@
             </div>
             <div class="form-group">
                 <label id="logSetInputLabel" for="logSetInput">Reps performed</label>
-                <input type="number" id="logSetInput" min="0" step="1">
+                <input type="number" id="logSetInput" min="0" step="1" class="modal-input">
             </div>
             <!-- Form Parameters (weight, band resistance, etc.) -->
             <div id="formParamsContainer" class="hidden" style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
@@ -1187,7 +1218,7 @@
             <!-- Form parameters display -->
             <div id="nextSetParamsContainer" class="hidden" style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                 <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Parameters:</div>
-                <div id="nextSetParamsDisplay"></div>
+                <div id="nextSetParamsFields"></div>
             </div>
             <!-- Side display for sided exercises -->
             <div id="nextSetSideDisplay" class="hidden" style="margin-bottom: 16px; font-size: 14px; color: #888;"></div>
@@ -2234,9 +2265,6 @@ ${queueData}
                 label.textContent = 'Reps performed';
             }
 
-            // Populate form parameters with last used values
-            populateFormParameters();
-
             // Show/hide side selector
             const isSidePattern = currentExercise.pattern === 'side';
             const sideContainer = document.getElementById('logSetSideContainer');
@@ -2249,6 +2277,14 @@ ${queueData}
                 logSetSelectedSide = null;
             }
 
+            // Populate form parameters with last used values
+            renderFormParameterFields({
+                containerId: 'formParamsContainer',
+                fieldsId: 'formParamsFields',
+                prefix: 'log',
+                side: logSetSelectedSide
+            });
+
             modal.classList.remove('hidden');
             input.focus();
         }
@@ -2259,6 +2295,12 @@ ${queueData}
         function selectLogSetSide(side) {
             logSetSelectedSide = side;
             updateLogSetSideDisplay();
+            renderFormParameterFields({
+                containerId: 'formParamsContainer',
+                fieldsId: 'formParamsFields',
+                prefix: 'log',
+                side: logSetSelectedSide
+            });
         }
 
         /**
@@ -2330,24 +2372,12 @@ ${queueData}
             document.getElementById('nextSetSummary').textContent = `${logValue}${unit} (target ${targetValue}${unit})`;
 
             // Show form parameters that will be logged
-            const paramsContainer = document.getElementById('nextSetParamsContainer');
-            const paramsDisplay = document.getElementById('nextSetParamsDisplay');
-            const formParams = currentExercise.form_parameters_required || [];
-
-            if (formParams.length > 0) {
-                const lastParams = getLastFormParams(currentExercise.id);
-                if (lastParams && lastParams.length > 0) {
-                    const paramsHtml = lastParams.map(p =>
-                        `<div style="font-size: 13px; color: #888;">${p.parameter_name}: <span style="color: #fff;">${p.parameter_value}${p.parameter_unit ? ' ' + p.parameter_unit : ''}</span></div>`
-                    ).join('');
-                    paramsDisplay.innerHTML = paramsHtml;
-                    paramsContainer.classList.remove('hidden');
-                } else {
-                    paramsContainer.classList.add('hidden');
-                }
-            } else {
-                paramsContainer.classList.add('hidden');
-            }
+            renderFormParameterFields({
+                containerId: 'nextSetParamsContainer',
+                fieldsId: 'nextSetParamsFields',
+                prefix: 'next',
+                side: currentSide
+            });
 
             // Show side info for sided exercises
             const sideDisplay = document.getElementById('nextSetSideDisplay');
@@ -2406,8 +2436,7 @@ ${queueData}
                 return;
             }
 
-            // Get last used form params
-            const lastParams = getLastFormParams(currentExercise.id);
+            const formData = collectFormParameters('nextSetParamsContainer');
 
             const set = {
                 set_number: currentSession.sets.length + 1,
@@ -2415,7 +2444,7 @@ ${queueData}
                 seconds: seconds,
                 distance_feet: null,
                 side: currentSide,
-                form_data: lastParams,
+                form_data: formData.length > 0 ? formData : null,
                 manual_log: false,
                 partial_rep: false,
                 performed_at: new Date().toISOString()
@@ -2495,6 +2524,32 @@ ${queueData}
         }
 
         /**
+         * Get historical values for a parameter from this exercise.
+         */
+        function getHistoricalParamValues(exerciseId, paramName, side = null) {
+            const values = new Set();
+
+            const exerciseLogs = allHistory.filter(log => log.exercise_id === exerciseId);
+            exerciseLogs.forEach(log => {
+                (log.sets || []).forEach(set => {
+                    if (side && set.side !== side) return;
+
+                    if (set.form_data && Array.isArray(set.form_data)) {
+                        const param = set.form_data.find(p => p.parameter_name === paramName);
+                        if (param && param.parameter_value !== undefined && param.parameter_value !== null) {
+                            const fullValue = param.parameter_unit
+                                ? `${param.parameter_value} ${param.parameter_unit}`
+                                : param.parameter_value;
+                            values.add(fullValue);
+                        }
+                    }
+                });
+            });
+
+            return Array.from(values).sort();
+        }
+
+        /**
          * Get ALL historical values for a parameter across ALL exercises (global).
          * Used to populate smart dropdowns with all previously logged values.
          *
@@ -2531,6 +2586,22 @@ ${queueData}
          * Returns combined "value unit" string (e.g., "15 lb") or just value.
          */
         function getLastUsedParamValue(exerciseId, paramName, side = null) {
+            if (currentSession && currentSession.exerciseId === exerciseId) {
+                const sessionSets = [...(currentSession.sets || [])].reverse();
+                for (const set of sessionSets) {
+                    if (side && set.side !== side) continue;
+
+                    if (set.form_data && Array.isArray(set.form_data)) {
+                        const param = set.form_data.find(p => p.parameter_name === paramName);
+                        if (param) {
+                            return param.parameter_unit
+                                ? `${param.parameter_value} ${param.parameter_unit}`
+                                : param.parameter_value;
+                        }
+                    }
+                }
+            }
+
             const exerciseLogs = allHistory.filter(log => log.exercise_id === exerciseId);
 
             // Sort by date descending (most recent first)
@@ -2557,49 +2628,51 @@ ${queueData}
         }
 
         /**
-         * Populate form parameter fields based on exercise requirements.
+         * Render form parameter fields based on exercise requirements.
          * Weight and distance are special (int + unit), others are smart dropdowns.
          */
-        function populateFormParameters() {
-            const formParams = currentExercise.form_parameters_required || [];
-            const container = document.getElementById('formParamsContainer');
-            const fieldsDiv = document.getElementById('formParamsFields');
+        function renderFormParameterFields({ containerId, fieldsId, prefix, side = null }) {
+            const formParams = currentExercise?.form_parameters_required || [];
+            const container = document.getElementById(containerId);
+            const fieldsDiv = document.getElementById(fieldsId);
+
+            if (!container || !fieldsDiv) return;
 
             if (formParams.length === 0) {
+                fieldsDiv.innerHTML = '';
                 container.classList.add('hidden');
                 return;
             }
 
-            // Build form parameter inputs
             const html = formParams.map(param => {
                 if (param === 'weight') {
-                    // Weight: int + unit dropdown
-                    const lastValue = getLastUsedParamValue(currentExercise.id, param, currentSide);
+                    const lastValue = getLastUsedParamValue(currentExercise.id, param, side);
                     const [weightNum, weightUnit] = lastValue ? lastValue.split(' ') : ['', 'lb'];
 
                     return `
                         <div style="margin-bottom: 12px;">
                             <label style="font-size: 13px; margin-bottom: 4px; display: block;">Weight</label>
                             <div style="display: flex; gap: 8px;">
-                                <input type="number" class="form-control" id="param-weight" placeholder="Weight" min="0" step="1" value="${weightNum || ''}" style="flex: 1;" data-param="weight">
-                                <select class="form-control" id="param-weight-unit" style="width: 80px;">
+                                <input type="number" class="modal-input" id="${prefix}-weight" placeholder="Weight" min="0" step="1" value="${weightNum || ''}" style="flex: 1; margin: 0;" data-param="weight">
+                                <select class="modal-select" id="${prefix}-weight-unit" style="width: 80px; margin: 0;" data-param-unit="weight">
                                     <option value="lb" ${weightUnit === 'lb' ? 'selected' : ''}>lb</option>
                                     <option value="kg" ${weightUnit === 'kg' ? 'selected' : ''}>kg</option>
                                 </select>
                             </div>
                         </div>
                     `;
-                } else if (param === 'distance') {
-                    // Distance: int + unit dropdown
-                    const lastValue = getLastUsedParamValue(currentExercise.id, param, currentSide);
+                }
+
+                if (param === 'distance') {
+                    const lastValue = getLastUsedParamValue(currentExercise.id, param, side);
                     const [distNum, distUnit] = lastValue ? lastValue.split(' ') : ['', 'ft'];
 
                     return `
                         <div style="margin-bottom: 12px;">
                             <label style="font-size: 13px; margin-bottom: 4px; display: block;">Distance</label>
                             <div style="display: flex; gap: 8px;">
-                                <input type="number" class="form-control" id="param-distance" placeholder="Distance" min="0" step="1" value="${distNum || ''}" style="flex: 1;" data-param="distance">
-                                <select class="form-control" id="param-distance-unit" style="width: 80px;">
+                                <input type="number" class="modal-input" id="${prefix}-distance" placeholder="Distance" min="0" step="1" value="${distNum || ''}" style="flex: 1; margin: 0;" data-param="distance">
+                                <select class="modal-select" id="${prefix}-distance-unit" style="width: 80px; margin: 0;" data-param-unit="distance">
                                     <option value="ft" ${distUnit === 'ft' ? 'selected' : ''}>ft</option>
                                     <option value="in" ${distUnit === 'in' ? 'selected' : ''}>in</option>
                                     <option value="cm" ${distUnit === 'cm' ? 'selected' : ''}>cm</option>
@@ -2608,59 +2681,112 @@ ${queueData}
                             </div>
                         </div>
                     `;
-                } else {
-                    // Smart dropdown: populate from GLOBAL history (all exercises) + always allow "Other"
-                    // Parameters are mutable - show all values ever logged across all exercises
-                    const globalValues = getGlobalHistoricalParamValues(param);
-                    const lastUsed = getLastUsedParamValue(currentExercise.id, param, currentSide);
-                    const label = param.replace(/_/g, ' ');
-
-                    // Pre-select last used value (defaults to most recent for this exercise+side)
-                    const options = globalValues.map(value => {
-                        const selected = value === lastUsed ? 'selected' : '';
-                        return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
-                    }).join('');
-
-                    return `
-                        <div style="margin-bottom: 12px;">
-                            <label style="font-size: 13px; margin-bottom: 4px; display: block;">${label}</label>
-                            <select class="form-control param-select" id="param-${param}" data-param="${param}">
-                                ${!lastUsed ? `<option value="">Select ${label}...</option>` : ''}
-                                ${options}
-                                <option value="${CUSTOM_PARAM_VALUE}">Other...</option>
-                            </select>
-                            <input type="text" class="form-control" id="param-${param}-custom" placeholder="Enter ${label}" style="display: none; margin-top: 8px;" data-param="${param}">
-                        </div>
-                    `;
                 }
+
+                const historicalValues = getHistoricalParamValues(currentExercise.id, param, side);
+                const globalValues = getGlobalHistoricalParamValues(param);
+                const lastUsed = getLastUsedParamValue(currentExercise.id, param, side);
+                const label = param.replace(/_/g, ' ');
+                const mergedValues = new Set([...historicalValues, ...globalValues]);
+                if (lastUsed) mergedValues.add(lastUsed);
+
+                const options = Array.from(mergedValues).sort().map(value => {
+                    const selected = value === lastUsed ? 'selected' : '';
+                    return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
+                }).join('');
+
+                return `
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 13px; margin-bottom: 4px; display: block;">${label}</label>
+                        <select class="modal-select param-select" id="${prefix}-param-${param}" data-param="${param}">
+                            ${!lastUsed ? `<option value="">Select ${label}...</option>` : ''}
+                            ${options}
+                            <option value="${CUSTOM_PARAM_VALUE}">Other...</option>
+                        </select>
+                        <input type="text" class="modal-input" id="${prefix}-param-${param}-custom" placeholder="Enter ${label}" style="display: none; margin-top: 8px;" data-param="${param}">
+                    </div>
+                `;
             }).join('');
 
             fieldsDiv.innerHTML = html;
             container.classList.remove('hidden');
+        }
 
-            // Bind change handlers for "Other" option
-            bindParamSelectHandlers();
+        /**
+         * Collect form parameters from a container.
+         */
+        function collectFormParameters(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container || container.classList.contains('hidden')) {
+                return [];
+            }
+
+            const formData = [];
+
+            const weightInput = container.querySelector('input[data-param="weight"]');
+            if (weightInput && weightInput.value) {
+                const unit = container.querySelector('select[data-param-unit="weight"]')?.value || 'lb';
+                formData.push({
+                    parameter_name: 'weight',
+                    parameter_value: weightInput.value,
+                    parameter_unit: unit
+                });
+            }
+
+            const distanceInput = container.querySelector('input[data-param="distance"]');
+            if (distanceInput && distanceInput.value) {
+                const unit = container.querySelector('select[data-param-unit="distance"]')?.value || 'ft';
+                formData.push({
+                    parameter_name: 'distance',
+                    parameter_value: distanceInput.value,
+                    parameter_unit: unit
+                });
+            }
+
+            container.querySelectorAll('.param-select').forEach(select => {
+                const paramName = select.dataset.param;
+                if (!paramName) return;
+
+                let paramValue = null;
+
+                if (select.value === CUSTOM_PARAM_VALUE) {
+                    const customInput = document.getElementById(`${select.id}-custom`);
+                    if (customInput && customInput.value.trim()) {
+                        paramValue = customInput.value.trim();
+                    }
+                } else if (select.value && select.value.trim() !== '') {
+                    paramValue = select.value;
+                }
+
+                if (paramValue) {
+                    formData.push({
+                        parameter_name: paramName,
+                        parameter_value: paramValue,
+                        parameter_unit: null
+                    });
+                }
+            });
+
+            return formData;
         }
 
         /**
          * iOS-safe event delegation for param select "Other" option.
          */
-        function bindParamSelectHandlers() {
-            document.querySelectorAll('.param-select').forEach(select => {
-                select.addEventListener('change', function() {
-                    const customInput = document.getElementById(`${this.id}-custom`);
-                    if (!customInput) return;
+        document.addEventListener('change', (event) => {
+            if (!event.target.classList.contains('param-select')) return;
 
-                    if (this.value === CUSTOM_PARAM_VALUE) {
-                        customInput.style.display = 'block';
-                        customInput.focus();
-                    } else {
-                        customInput.style.display = 'none';
-                        customInput.value = '';
-                    }
-                });
-            });
-        }
+            const customInput = document.getElementById(`${event.target.id}-custom`);
+            if (!customInput) return;
+
+            if (event.target.value === CUSTOM_PARAM_VALUE) {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                customInput.value = '';
+            }
+        });
 
         function closeLogSetModal() {
             document.getElementById('logSetModal').classList.add('hidden');
@@ -2719,65 +2845,14 @@ ${queueData}
                 document.getElementById('counterDisplay').textContent = '0';
             }
 
-            // Collect form parameters as normalized array (not object)
-            // Each parameter becomes: {parameter_name, parameter_value, parameter_unit}
-            const formData = [];
-
-            // Handle weight (int + unit)
-            const weightInput = document.getElementById('param-weight');
-            if (weightInput && weightInput.value) {
-                const unit = document.getElementById('param-weight-unit')?.value || 'lb';
-                formData.push({
-                    parameter_name: 'weight',
-                    parameter_value: weightInput.value,
-                    parameter_unit: unit
-                });
-            }
-
-            // Handle distance (int + unit)
-            const distanceInput = document.getElementById('param-distance');
-            if (distanceInput && distanceInput.value) {
-                const unit = document.getElementById('param-distance-unit')?.value || 'ft';
-                formData.push({
-                    parameter_name: 'distance',
-                    parameter_value: distanceInput.value,
-                    parameter_unit: unit
-                });
-            }
-
-            // Handle all other parameters (smart dropdowns with "Other" option)
-            document.querySelectorAll('.param-select').forEach(select => {
-                const paramName = select.dataset.param;
-                if (!paramName) return;
-
-                let paramValue = null;
-
-                if (select.value === CUSTOM_PARAM_VALUE) {
-                    // User selected "Other" - get value from custom input
-                    const customInput = document.getElementById(`${select.id}-custom`);
-                    if (customInput && customInput.value.trim()) {
-                        paramValue = customInput.value.trim();
-                    }
-                } else if (select.value && select.value.trim() !== '') {
-                    // User selected from dropdown
-                    paramValue = select.value;
-                }
-
-                if (paramValue) {
-                    formData.push({
-                        parameter_name: paramName,
-                        parameter_value: paramValue,
-                        parameter_unit: null // Non-weight/distance params don't have units
-                    });
-                }
-            });
+            const formData = collectFormParameters('formParamsContainer');
 
             const set = {
                 set_number: currentSession.sets.length + 1,
                 reps: reps,  // Always populated (never null)
                 seconds: seconds,
                 distance_feet: null, // TODO: Add distance mode
-                side: currentSide,
+                side: logSetSelectedSide || currentSide,
                 form_data: formData.length > 0 ? formData : null, // Normalized array
                 manual_log: false,
                 partial_rep: false,
