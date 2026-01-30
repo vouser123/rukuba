@@ -16,12 +16,15 @@ export function normalizeProgramPatternModifiers(programs) {
   return programs.map((program) => {
     const exercise = program.exercises || null;
     const modifiers = exercise?.exercise_pattern_modifiers || [];
+    const formParams = exercise?.exercise_form_parameters || [];
+    const { exercise_form_parameters, ...exercisePayload } = exercise || {};
     return {
       ...program,
       exercises: exercise
         ? {
-          ...exercise,
-          pattern_modifiers: modifiers.map((modifier) => modifier.modifier)
+          ...exercisePayload,
+          pattern_modifiers: modifiers.map((modifier) => modifier.modifier),
+          form_parameters_required: formParams.map((param) => param.parameter_name)
         }
         : exercise
     };
@@ -134,6 +137,9 @@ async function getPrograms(req, res) {
           pattern,
           exercise_pattern_modifiers (
             modifier
+          ),
+          exercise_form_parameters (
+            parameter_name
           ),
           archived
         )
