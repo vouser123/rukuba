@@ -217,6 +217,21 @@ async function handleAuthSuccess(session) {
         document.getElementById('authModal').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
 
+        // Initialize hamburger menu with user info
+        if (typeof HamburgerMenu !== 'undefined') {
+            HamburgerMenu.init({
+                currentUser: currentUser,
+                signOutFn: signOut,
+                onAction: (action) => {
+                    if (action === 'clear-form') {
+                        clearForm();
+                        return true;
+                    }
+                    return false;
+                }
+            });
+        }
+
         // Load data
         await loadVocabularies();
         await loadReferenceData();

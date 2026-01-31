@@ -5,6 +5,26 @@ For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
 
 ## 2026-01-31
 
+### Coverage Legend & Metrics Display (rehab_coverage.html)
+
+- **Problem:** Users couldn't understand what the bar colors, widths, and opacities meant.
+- **What I did:** Added explanatory elements throughout the page.
+  - Collapsible legend card explaining the THREE SIGNALS (width=7d density, color=recency, opacity=21d trend)
+  - Exercise cards now show "7d: X · 21d: Y" session counts
+  - Capacity bars show subtitle: "X% weekly • recency text • Y% trend"
+  - Fixed 21-day trend summary to use average opacity (was incorrectly using binary "done once" count)
+
+### Hamburger Menu for pt_editor.html
+
+- **Problem:** pt_editor.html had no hamburger menu for navigation, unlike other pages.
+- **What I did:** Added consistent hamburger menu with navigation links.
+  - Created shared module `/js/hamburger-menu.js` for reusable menu functionality
+  - Created shared styles `/css/hamburger-menu.css` for consistent appearance
+  - Menu includes: PT Tracker (if patient), View History, Coverage Analysis, Reload, Sign Out
+  - Displays signed-in user email
+  - Uses `data-action` pattern for iOS Safari/PWA compatibility
+  - HamburgerMenu.init() accepts config for currentUser, signOutFn, and custom action handlers
+
 ### Exercise Details Modal (index.html)
 
 - **Problem:** Patients had no way to view exercise guidance, target muscles, or equipment info from the tracker.

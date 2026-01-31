@@ -518,6 +518,109 @@
             color: var(--text-secondary);
         }
 
+        /* Legend Card */
+        .legend-card {
+            background: var(--bg-secondary);
+            margin: 1rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .legend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .legend-header:active {
+            background: var(--border-color);
+        }
+
+        .legend-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .legend-toggle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+        }
+
+        .legend-card.expanded .legend-toggle {
+            transform: rotate(90deg);
+        }
+
+        .legend-content {
+            display: none;
+            padding: 1rem;
+        }
+
+        .legend-card.expanded .legend-content {
+            display: block;
+        }
+
+        .legend-section {
+            margin-bottom: 1rem;
+        }
+
+        .legend-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-section-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.35rem 0;
+            font-size: 0.85rem;
+        }
+
+        .legend-sample {
+            width: 40px;
+            height: 12px;
+            border-radius: 3px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .legend-opacity-samples {
+            display: flex;
+            gap: 4px;
+        }
+
+        .legend-opacity-sample {
+            width: 18px;
+            height: 12px;
+            border-radius: 3px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-description {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            line-height: 1.4;
+            margin-top: 0.25rem;
+        }
+
         /* Summary Card */
         .summary-card {
             background: var(--bg-secondary);
@@ -648,6 +751,83 @@
         <div class="summary-row">
             <span class="summary-label">21-Day Trend:</span>
             <span class="summary-value" id="trendStatus">—</span>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-card" id="legendCard">
+        <div class="legend-header" data-action="toggle-legend">
+            <h4>📊 How to Read Coverage Bars</h4>
+            <span class="legend-toggle">›</span>
+        </div>
+        <div class="legend-content">
+            <div class="legend-section">
+                <div class="legend-section-title">Bar Width = 7-Day Density</div>
+                <p class="legend-description">How consistently exercises are being done in the past week.</p>
+                <div class="legend-row">
+                    <div class="legend-sample" style="width: 40px; background: #888;"></div>
+                    <span>100% = All exercises done daily</span>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-sample" style="width: 20px; background: #888;"></div>
+                    <span>50% = About half the expected volume</span>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-sample" style="width: 4px; background: #888;"></div>
+                    <span>0% = No exercises done this week</span>
+                </div>
+            </div>
+
+            <div class="legend-section">
+                <div class="legend-section-title">Bar Color = Recency</div>
+                <p class="legend-description">How recently the most neglected exercise was done.</p>
+                <div class="legend-row">
+                    <div class="legend-sample" style="background: rgb(52, 199, 89);"></div>
+                    <span>Green = Done within 3 days</span>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-sample" style="background: rgb(255, 204, 0);"></div>
+                    <span>Yellow = 4-6 days ago</span>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-sample" style="background: rgb(255, 149, 0);"></div>
+                    <span>Orange = 7-10 days ago</span>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-sample" style="background: rgb(255, 59, 48);"></div>
+                    <span>Red = 11+ days or never done</span>
+                </div>
+            </div>
+
+            <div class="legend-section">
+                <div class="legend-section-title">Bar Opacity = 21-Day Trend</div>
+                <p class="legend-description">Long-term engagement pattern. Fades slowly when missed, recovers quickly when resumed.</p>
+                <div class="legend-row">
+                    <div class="legend-opacity-samples">
+                        <div class="legend-opacity-sample" style="background: #007AFF; opacity: 1;"></div>
+                        <div class="legend-opacity-sample" style="background: #007AFF; opacity: 0.7;"></div>
+                        <div class="legend-opacity-sample" style="background: #007AFF; opacity: 0.4;"></div>
+                        <div class="legend-opacity-sample" style="background: #007AFF; opacity: 0.15;"></div>
+                    </div>
+                    <span>Solid → Faded = Active → Neglected</span>
+                </div>
+            </div>
+
+            <div class="legend-section">
+                <div class="legend-section-title">Exercise Borders</div>
+                <div class="legend-row">
+                    <div class="legend-sample" style="border-left: 3px solid var(--danger-color); background: var(--bg-tertiary);"></div>
+                    <span>Red = HIGH contribution (priority)</span>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-sample" style="border-left: 3px solid var(--warning-color); background: var(--bg-tertiary);"></div>
+                    <span>Orange = MEDIUM contribution</span>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-sample" style="border-left: 3px solid var(--accent-color); background: var(--bg-tertiary);"></div>
+                    <span>Blue = LOW contribution</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1519,27 +1699,31 @@
             weekCoverageEl.style.color = coverage7 >= 70 ? 'var(--success-color)' :
                                          coverage7 >= 40 ? 'var(--warning-color)' : 'var(--danger-color)';
 
-            // 21-day trend
-            const exercisesDone21Days = new Set();
-            for (const [key] of history21Days) {
-                if (!key.includes('_21_')) {
-                    exercisesDone21Days.add(key);
+            // 21-day trend - use average opacity from all region bars
+            // This reflects actual engagement, not just binary "done once"
+            let totalOpacity = 0;
+            let regionCount = 0;
+            for (const region of Object.keys(coverageData)) {
+                const regionBar = coverageData[region]._regionBar;
+                if (regionBar && typeof regionBar.opacity === 'number') {
+                    totalOpacity += regionBar.opacity;
+                    regionCount++;
                 }
             }
-            const coverage21 = totalExercises > 0 ? Math.round((exercisesDone21Days.size / totalExercises) * 100) : 0;
+            const avgOpacity = regionCount > 0 ? Math.round(totalOpacity / regionCount) : 0;
 
             const trendEl = document.getElementById('trendStatus');
-            if (coverage21 >= 80) {
-                trendEl.textContent = 'Excellent';
+            if (avgOpacity >= 70) {
+                trendEl.textContent = `Excellent (${avgOpacity}%)`;
                 trendEl.style.color = 'var(--success-color)';
-            } else if (coverage21 >= 50) {
-                trendEl.textContent = 'Good';
+            } else if (avgOpacity >= 50) {
+                trendEl.textContent = `Good (${avgOpacity}%)`;
                 trendEl.style.color = 'var(--success-color)';
-            } else if (coverage21 >= 30) {
-                trendEl.textContent = 'Needs Attention';
+            } else if (avgOpacity >= 30) {
+                trendEl.textContent = `Needs Attention (${avgOpacity}%)`;
                 trendEl.style.color = 'var(--warning-color)';
             } else {
-                trendEl.textContent = 'Low Activity';
+                trendEl.textContent = `Low Activity (${avgOpacity}%)`;
                 trendEl.style.color = 'var(--danger-color)';
             }
         }
@@ -1604,11 +1788,16 @@
                             const isDone = !!ex.lastDone;
                             const statusIcon = isDone ? '✓' : '⚠';
                             const statusColor = isDone ? 'var(--success-color)' : 'var(--warning-color)';
-                            const statusText = isDone ? `${ex.daysSince || 0}d` : 'not done';
+                            const statusText = isDone ? `${ex.daysSince || 0}d ago` : 'never';
 
                             // Contribution level determines left border color
                             const contribution = ex.contribution || 'low';
                             const contribClass = `contrib-${contribution}`;
+
+                            // Build metrics string: 7d sessions, 21d sessions
+                            const sessions7 = ex.days7 || 0;
+                            const sessions21 = ex.days21 || 0;
+                            const metricsText = `7d: ${sessions7} · 21d: ${sessions21}`;
 
                             return `
                                 <div class="exercise-card ${contribClass}">
@@ -1619,6 +1808,8 @@
                                             <span style="color: ${contribution === 'high' ? 'var(--danger-color)' : contribution === 'medium' ? 'var(--warning-color)' : 'var(--accent-color)'}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">${contribution}</span>
                                             <span style="margin: 0 6px; opacity: 0.5;">•</span>
                                             <span style="color: ${statusColor};">${statusText}</span>
+                                            <span style="margin: 0 6px; opacity: 0.5;">•</span>
+                                            <span style="opacity: 0.7;">${metricsText}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1636,6 +1827,17 @@
                         `;
                     }).join('');
 
+                    // Build descriptive subtitle for the bar
+                    // Color score: 100=green, 0=red. Map to recency.
+                    let recencyText = '';
+                    if (colorScore >= 80) recencyText = 'done recently';
+                    else if (colorScore >= 60) recencyText = 'a few days ago';
+                    else if (colorScore >= 40) recencyText = 'needs attention';
+                    else if (colorScore >= 20) recencyText = 'overdue';
+                    else recencyText = 'very overdue';
+
+                    const barExplanation = `${percent}% weekly • ${recencyText} • ${opacity}% trend`;
+
                     return `
                         <div class="capacity-group" id="cap-${escapeHtml(region)}-${escapeHtml(capacity)}">
                             <div class="capacity-header" data-action="toggle-capacity" data-region="${escapeHtml(region)}" data-capacity="${escapeHtml(capacity)}">
@@ -1648,6 +1850,7 @@
                                 </div>
                                 <span class="capacity-chevron">›</span>
                             </div>
+                            <div class="capacity-subtitle" style="font-size: 11px; color: var(--text-secondary); padding: 2px 0 4px 0; margin-left: 2px;">${barExplanation}</div>
                             <div class="focus-list">
                                 ${focusesHtml}
                             </div>
@@ -1713,6 +1916,16 @@
         }
 
         /**
+         * Toggle legend card expansion
+         */
+        function toggleLegend() {
+            const legendCard = document.getElementById('legendCard');
+            if (legendCard) {
+                legendCard.classList.toggle('expanded');
+            }
+        }
+
+        /**
          * Bind event handlers
          */
         function bindEventHandlers() {
@@ -1741,6 +1954,9 @@
                 switch (action) {
                     case 'toggle-hamburger':
                         toggleHamburger();
+                        break;
+                    case 'toggle-legend':
+                        toggleLegend();
                         break;
                     case 'refresh-data':
                         toggleHamburger();

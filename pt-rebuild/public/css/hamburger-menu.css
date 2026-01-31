@@ -1,0 +1,132 @@
+/**
+ * Shared Hamburger Menu Styles
+ *
+ * Include this CSS in any page that uses the hamburger menu component.
+ * Requires CSS variables from the page's theme (--bg-primary, --bg-tertiary, etc.)
+ */
+
+/* Hamburger Button */
+.hamburger-btn {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Overlay - darkens background when menu is open */
+.hamburger-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+}
+
+.hamburger-overlay.active {
+    display: block;
+}
+
+/* Slide-out menu panel */
+.hamburger-menu {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 280px;
+    background: var(--bg-primary, #ffffff);
+    z-index: 9999;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+    overflow-y: auto;
+}
+
+.hamburger-menu.active {
+    display: block;
+}
+
+/* Menu header with title and close button */
+.hamburger-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hamburger-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.hamburger-close {
+    background: transparent;
+    border: none;
+    color: var(--ios-blue, #007aff);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* User info section */
+.hamburger-user-info {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    font-size: 13px;
+    color: var(--text-secondary, #666);
+}
+
+.hamburger-user-info strong {
+    display: block;
+    color: var(--text-primary, #000);
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+/* Menu items - both links and action buttons */
+.hamburger-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.hamburger-item:active {
+    background: var(--bg-tertiary, #f0f0f0);
+}
+
+/* Icon container for consistent sizing */
+.hamburger-icon {
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .hamburger-menu {
+        background: var(--bg-primary, #000000);
+    }
+
+    .hamburger-close {
+        color: var(--ios-blue, #0a84ff);
+    }
+
+    .hamburger-item:active {
+        background: var(--bg-tertiary, #2c2c2e);
+    }
+}
