@@ -63,6 +63,10 @@
             touch-action: manipulation;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
         /* Auth Modal */
         .auth-modal {
             position: fixed;
@@ -153,6 +157,94 @@
         .header-actions {
             display: flex;
             gap: 0.5rem;
+            align-items: center;
+        }
+
+        /* Hamburger Menu */
+        .hamburger-btn {
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 8px;
+            touch-action: manipulation;
+        }
+
+        .hamburger-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        }
+
+        .hamburger-overlay.active {
+            display: block;
+        }
+
+        .hamburger-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 280px;
+            height: 100%;
+            background: var(--bg-secondary);
+            z-index: 9999;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+        }
+
+        .hamburger-menu.active {
+            display: block;
+        }
+
+        .hamburger-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hamburger-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .hamburger-close {
+            background: transparent;
+            border: none;
+            color: var(--accent-color);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .hamburger-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-primary);
+            text-decoration: none;
+            touch-action: manipulation;
+        }
+
+        .hamburger-item:active {
+            background: var(--bg-tertiary);
+        }
+
+        .hamburger-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
         }
 
         .btn {
@@ -180,107 +272,9 @@
             transform: scale(0.98);
         }
 
-        /* Date Range Selector */
-        .date-range-section {
-            background: var(--bg-secondary);
-            padding: 1.25rem;
-            margin: 1rem;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .date-range-section h3 {
-            margin: 0 0 1rem 0;
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .date-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-        }
-
-        .date-inputs input {
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            font-size: 15px;
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .quick-ranges {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .quick-range-btn {
-            padding: 0.5rem 1rem;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--accent-color);
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .quick-range-btn:active {
-            background: var(--accent-color);
-            color: white;
-            border-color: var(--accent-color);
-        }
-
-        /* Summary Stats */
-        .summary-stats {
-            background: var(--bg-secondary);
-            padding: 1.25rem;
-            margin: 1rem;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .summary-stats h3 {
-            margin: 0 0 1rem 0;
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .stat-row:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-
-        .stat-value {
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-
-        .stat-value.status-done { color: var(--success-color); }
-        .stat-value.status-gap { color: var(--warning-color); }
-        .stat-value.status-not-done { color: var(--danger-color); }
-
-        /* Coverage Matrix */
+        /* Region Accordion */
         .coverage-section {
-            padding: 0 1rem 2rem 1rem;
+            padding: 1rem;
         }
 
         .region-group {
@@ -292,21 +286,64 @@
         }
 
         .region-header {
-            background: var(--accent-color);
-            color: white;
             padding: 1rem 1.25rem;
-            font-weight: 700;
-            font-size: 1.05rem;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid var(--border-color);
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
 
         .region-header:active {
-            background: var(--accent-hover);
+            background: var(--bg-tertiary);
+        }
+
+        .region-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            text-transform: capitalize;
+        }
+
+        .region-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            margin-left: 1rem;
+        }
+
+        .coverage-bar {
+            flex: 1;
+            height: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            overflow: hidden;
+            min-width: 60px;
+            max-width: 200px;
+        }
+
+        .coverage-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.3s ease, background 0.3s ease, opacity 0.3s ease;
+        }
+
+        .region-stats {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .expand-icon {
+            transition: transform 0.2s ease;
+            font-size: 0.85rem;
+            margin-left: 0.5rem;
+        }
+
+        .expand-icon.collapsed {
+            transform: rotate(-90deg);
         }
 
         .region-content {
@@ -317,10 +354,13 @@
             display: none;
         }
 
+        /* Capacity Rows */
         .capacity-group {
-            margin-bottom: 1.25rem;
-            padding-left: 1rem;
-            border-left: 3px solid var(--accent-color);
+            margin-bottom: 1rem;
+            padding: 0.875rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--accent-color);
         }
 
         .capacity-group:last-child {
@@ -328,54 +368,111 @@
         }
 
         .capacity-header {
-            font-weight: 700;
-            color: var(--accent-color);
-            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .capacity-header:active {
+            opacity: 0.8;
+        }
+
+        .capacity-title {
+            font-weight: 600;
             font-size: 0.95rem;
+            text-transform: capitalize;
+            color: var(--accent-color);
+        }
+
+        .capacity-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            margin-left: 0.75rem;
+        }
+
+        .capacity-stats {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .capacity-chevron {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+            margin-left: 0.5rem;
+        }
+
+        .capacity-group.expanded .capacity-chevron {
+            transform: rotate(90deg);
+        }
+
+        /* Focus Rows */
+        .focus-list {
+            display: none;
+            margin-top: 0.75rem;
+            padding-left: 0.75rem;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .capacity-group.expanded .focus-list {
+            display: block;
         }
 
         .focus-item {
-            background: var(--bg-tertiary);
-            padding: 0.875rem;
-            margin-bottom: 0.625rem;
+            padding: 0.625rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg-secondary);
             border-radius: var(--radius-sm);
-            border-left: 4px solid var(--success-color);
+            border-left: 3px solid var(--success-color);
         }
 
         .focus-item:last-child {
             margin-bottom: 0;
         }
 
-        .focus-item.not-covered {
-            border-left-color: var(--danger-color);
-            background: var(--danger-bg);
-        }
-
         .focus-item.needs-attention {
             border-left-color: var(--warning-color);
-            background: var(--warning-bg);
+        }
+
+        .focus-item.not-covered {
+            border-left-color: var(--danger-color);
+        }
+
+        .focus-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .focus-name {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            font-size: 0.95rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-transform: capitalize;
         }
 
-        .focus-exercises {
-            font-size: 0.8rem;
-            margin-bottom: 0.5rem;
+        .focus-stats {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Exercise List */
+        .exercise-list {
+            margin-top: 0.5rem;
         }
 
         .exercise-chip {
             display: inline-block;
-            background: var(--bg-secondary);
-            padding: 0.25rem 0.625rem;
+            background: var(--bg-tertiary);
+            padding: 0.25rem 0.5rem;
             margin: 0.15rem;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            font-size: 0.75rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
             color: var(--text-secondary);
+            border: 1px solid var(--border-color);
         }
 
         .exercise-chip.done {
@@ -383,15 +480,6 @@
             border-color: var(--success-color);
             color: var(--success-color);
         }
-
-        .focus-status {
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .focus-status.status-done { color: var(--success-color); }
-        .focus-status.status-needs-attention { color: var(--warning-color); }
-        .focus-status.status-not-covered { color: var(--danger-color); }
 
         .loading {
             text-align: center;
@@ -405,86 +493,58 @@
             color: var(--text-secondary);
         }
 
-        .expand-icon {
-            transition: transform 0.2s ease;
-            font-size: 0.85rem;
+        /* Summary Card */
+        .summary-card {
+            background: var(--bg-secondary);
+            padding: 1.25rem;
+            margin: 1rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
         }
 
-        .expand-icon.collapsed {
-            transform: rotate(-90deg);
+        .summary-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+            font-weight: 700;
         }
 
-        /* Coverage Progress Bar */
-        .coverage-bar-container {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .coverage-bar-label {
+        .summary-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 0.5rem;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
             font-size: 0.9rem;
         }
 
-        .coverage-bar-label span:first-child {
+        .summary-value {
             font-weight: 600;
+            font-size: 1rem;
         }
 
-        .coverage-bar-label span:last-child {
-            color: var(--text-secondary);
-        }
+        @media (prefers-color-scheme: dark) {
+            .hamburger-menu,
+            .header {
+                background: var(--bg-secondary);
+            }
 
-        .coverage-bar {
-            height: 12px;
-            background: var(--bg-tertiary);
-            border-radius: 6px;
-            overflow: hidden;
-            display: flex;
-        }
+            .hamburger-header,
+            .hamburger-item {
+                border-color: var(--border-color);
+            }
 
-        .coverage-bar-segment {
-            height: 100%;
-            transition: width 0.3s ease;
+            .hamburger-item:active {
+                background: var(--bg-tertiary);
+            }
         }
-
-        .coverage-bar-segment.done {
-            background: var(--success-color);
-        }
-
-        .coverage-bar-segment.attention {
-            background: var(--warning-color);
-        }
-
-        .coverage-bar-segment.not-covered {
-            background: var(--danger-color);
-        }
-
-        .coverage-legend {
-            display: flex;
-            gap: 1rem;
-            margin-top: 0.75rem;
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .legend-dot.done { background: var(--success-color); }
-        .legend-dot.attention { background: var(--warning-color); }
-        .legend-dot.not-covered { background: var(--danger-color); }
     </style>
 </head>
 <body>
@@ -517,61 +577,52 @@
     <div class="header">
         <h1>Rehab Coverage</h1>
         <div class="header-actions">
-            <button class="btn" data-action="refresh-data">↻ Refresh</button>
+            <button class="btn btn-secondary" data-action="refresh-data">↻</button>
+            <button class="hamburger-btn" data-action="toggle-hamburger">☰</button>
         </div>
     </div>
 
-    <!-- Date Range -->
-    <div class="date-range-section">
-        <h3>Date Range</h3>
-        <div class="date-inputs">
-            <input type="date" id="startDate">
-            <input type="date" id="endDate">
+    <!-- Hamburger Menu -->
+    <div class="hamburger-overlay" id="hamburgerOverlay" data-action="toggle-hamburger"></div>
+    <div class="hamburger-menu" id="hamburgerMenu">
+        <div class="hamburger-header">
+            <h3>Menu</h3>
+            <button class="hamburger-close" data-action="toggle-hamburger">Close</button>
         </div>
-        <div class="quick-ranges">
-            <button class="quick-range-btn" data-action="set-range" data-days="7">Last 7 days</button>
-            <button class="quick-range-btn" data-action="set-range" data-days="14">Last 14 days</button>
-            <button class="quick-range-btn" data-action="set-range" data-days="30">Last 30 days</button>
-            <button class="quick-range-btn" data-action="set-range" data-days="90">Last 90 days</button>
+        <div>
+            <a href="index.html" class="hamburger-item" id="ptTrackerLink">
+                <span class="hamburger-icon">🏠</span>
+                <span>PT Tracker</span>
+            </a>
+            <a href="pt_view.html" class="hamburger-item">
+                <span class="hamburger-icon">📊</span>
+                <span>View History</span>
+            </a>
+            <div class="hamburger-item" data-action="refresh-data">
+                <span class="hamburger-icon">🔄</span>
+                <span>Refresh Data</span>
+            </div>
+            <div class="hamburger-item" data-action="sign-out">
+                <span class="hamburger-icon">🚪</span>
+                <span>Sign Out</span>
+            </div>
         </div>
     </div>
 
-    <!-- Summary Stats -->
-    <div class="summary-stats">
-        <h3>Coverage Summary</h3>
-        <div class="stat-row">
-            <span class="stat-label">Total Focus Areas:</span>
-            <span class="stat-value" id="totalFocusAreas">0</span>
+    <!-- Summary Card -->
+    <div class="summary-card">
+        <h3>Coverage Overview</h3>
+        <div class="summary-row">
+            <span class="summary-label">Last Activity:</span>
+            <span class="summary-value" id="lastActivity">—</span>
         </div>
-        <div class="stat-row">
-            <span class="stat-label">Covered (done):</span>
-            <span class="stat-value status-done" id="coveredCount">0</span>
+        <div class="summary-row">
+            <span class="summary-label">7-Day Coverage:</span>
+            <span class="summary-value" id="weekCoverage">—</span>
         </div>
-        <div class="stat-row">
-            <span class="stat-label">Needs Attention (3+ days):</span>
-            <span class="stat-value status-gap" id="gapCount">0</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Not Covered:</span>
-            <span class="stat-value status-not-done" id="notCoveredCount">0</span>
-        </div>
-
-        <!-- Coverage Progress Bar -->
-        <div class="coverage-bar-container">
-            <div class="coverage-bar-label">
-                <span>Coverage</span>
-                <span id="coveragePercent">0%</span>
-            </div>
-            <div class="coverage-bar">
-                <div class="coverage-bar-segment done" id="barDone" style="width: 0%;"></div>
-                <div class="coverage-bar-segment attention" id="barAttention" style="width: 0%;"></div>
-                <div class="coverage-bar-segment not-covered" id="barNotCovered" style="width: 0%;"></div>
-            </div>
-            <div class="coverage-legend">
-                <div class="legend-item"><div class="legend-dot done"></div>Covered</div>
-                <div class="legend-item"><div class="legend-dot attention"></div>Needs Attention</div>
-                <div class="legend-item"><div class="legend-dot not-covered"></div>Not Covered</div>
-            </div>
+        <div class="summary-row">
+            <span class="summary-label">21-Day Trend:</span>
+            <span class="summary-value" id="trendStatus">—</span>
         </div>
     </div>
 
@@ -586,29 +637,546 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // Supabase initialization
+        /**
+         * ============================================================================
+         * COVERAGE CALCULATION FORMULAS
+         * ============================================================================
+         *
+         * These formulas implement THREE INDEPENDENT SIGNALS for exercise coverage:
+         *   1. PERCENT (7-day density) - How consistently are exercises being done?
+         *   2. COLOR (recency) - How recently was the most neglected exercise done?
+         *   3. OPACITY (21-day trend) - What's the long-term engagement pattern?
+         *
+         * SPECIFICATION SOURCE: rehab_coverage formulas.md (LOCKED)
+         *
+         * To adjust thresholds or weights, edit the CONSTANTS object below.
+         * ============================================================================
+         */
+
+        // ============================================================================
+        // CONSTANTS - Edit these to adjust formula behavior
+        // ============================================================================
+        const COVERAGE_CONSTANTS = {
+            // Contribution weights
+            HIGH_WEIGHT: 1.0,
+            MEDIUM_WEIGHT: 0.4,
+            MEDIUM_BONUS_CAP: 15,        // Max percentage bonus from MEDIUM exercises
+
+            // Opacity (21-day trend) settings
+            OPACITY_WINDOW_DAYS: 21,
+            OPACITY_OPTIMAL_DAYS: 15,    // Days of activity for 100% opacity
+
+            // Decay thresholds (days since last activity)
+            DECAY_NONE_MAX: 6,           // No decay if <= 6 days
+            DECAY_SLIGHT_MAX: 9,         // Slight decay (0.8x) if 7-9 days
+            DECAY_MODERATE_MAX: 13,      // Moderate decay (0.5x) if 10-13 days
+            // Heavy decay (0.3x) if >= 14 days
+
+            // Recovery thresholds (7-day activity count)
+            RECOVERY_STRONG_MIN: 5,      // 90% floor
+            RECOVERY_GOOD_MIN: 4,        // 70% floor
+            RECOVERY_NOTICEABLE_MIN: 3,  // 50% floor
+
+            // Focus aggregation weights
+            FOCUS_WORST_WEIGHT: 0.6,
+            FOCUS_OTHERS_WEIGHT: 0.4,
+
+            // Region bar weight exponent
+            REGION_WEIGHT_EXPONENT: 1.3,
+        };
+
+        // ============================================================================
+        // FORMULA 1: PERCENT (7-Day Density)
+        // ============================================================================
+        /**
+         * Calculate the 7-day density percentage for a capacity bar.
+         *
+         * @param {Object} capacityBarData - Contains:
+         *   - high_exercises: Array of HIGH contribution exercises
+         *   - medium_exercises: Array of MEDIUM contribution exercises
+         *   - history_7_days: Map<exerciseId, daysActive> - days active in last 7
+         *   - focuses: Array of focus names (if focus-aware calculation needed)
+         * @returns {number} 0-100 percentage
+         */
+        function calculatePercent(capacityBarData) {
+            const { high_exercises, medium_exercises, history_7_days, focuses } = capacityBarData;
+
+            // If no HIGH exercises, treat MEDIUM as HIGH (capped at 50%)
+            if (high_exercises.length === 0) {
+                return calculatePercentForMediumAsHigh(medium_exercises, history_7_days);
+            }
+
+            // If focuses exist, calculate per-focus then aggregate
+            if (focuses && focuses.length > 1) {
+                return calculatePercentWithFocuses(high_exercises, medium_exercises, history_7_days, focuses);
+            }
+
+            // Standard calculation: sum HIGH contributions
+            let highContribution = 0;
+            for (const ex of high_exercises) {
+                const days = history_7_days.get(ex.id) || 0;
+                highContribution += (days / 7.0);
+            }
+
+            // Add MEDIUM bonus (capped)
+            let mediumContribution = 0;
+            for (const ex of medium_exercises) {
+                const days = history_7_days.get(ex.id) || 0;
+                mediumContribution += (days / 7.0) * COVERAGE_CONSTANTS.MEDIUM_WEIGHT;
+            }
+
+            const coverage = highContribution / high_exercises.length;
+            const mediumBonus = Math.min(
+                (mediumContribution / high_exercises.length) * 100,
+                COVERAGE_CONSTANTS.MEDIUM_BONUS_CAP
+            );
+
+            return Math.min(coverage * 100 + mediumBonus, 100);
+        }
+
+        function calculatePercentForMediumAsHigh(medium_exercises, history_7_days) {
+            if (medium_exercises.length === 0) return 0;
+
+            let contribution = 0;
+            for (const ex of medium_exercises) {
+                const days = history_7_days.get(ex.id) || 0;
+                contribution += (days / 7.0);
+            }
+
+            const coverage = contribution / medium_exercises.length;
+            return Math.min(coverage * 100, 50); // Cap at 50% for MEDIUM-only
+        }
+
+        function calculatePercentWithFocuses(high_exercises, medium_exercises, history_7_days, focuses) {
+            const focusGroups = groupExercisesByFocus(high_exercises);
+            const focusPercents = [];
+
+            for (const [focus, exercises] of focusGroups) {
+                let contribution = 0;
+                for (const ex of exercises) {
+                    const days = history_7_days.get(ex.id) || 0;
+                    contribution += (days / 7.0);
+                }
+                focusPercents.push((contribution / exercises.length) * 100);
+            }
+
+            // Aggregate: 60% worst + 40% avg(others)
+            const worst = Math.min(...focusPercents);
+            const others = focusPercents.filter(p => p !== worst);
+            const avgOthers = others.length > 0 ? average(others) : worst;
+            const base = COVERAGE_CONSTANTS.FOCUS_WORST_WEIGHT * worst +
+                        COVERAGE_CONSTANTS.FOCUS_OTHERS_WEIGHT * avgOthers;
+
+            // Add MEDIUM bonus
+            let mediumContribution = 0;
+            for (const ex of medium_exercises) {
+                const days = history_7_days.get(ex.id) || 0;
+                mediumContribution += (days / 7.0) * COVERAGE_CONSTANTS.MEDIUM_WEIGHT;
+            }
+            const mediumBonus = Math.min(
+                (mediumContribution / high_exercises.length) * 100,
+                COVERAGE_CONSTANTS.MEDIUM_BONUS_CAP
+            );
+
+            return Math.min(base + mediumBonus, 100);
+        }
+
+        // ============================================================================
+        // FORMULA 2: COLOR SCORE (Recency)
+        // ============================================================================
+        /**
+         * Calculate the color score (0-100) based on recency of most neglected exercise.
+         *
+         * @param {Object} capacityBarData - Contains:
+         *   - high_exercises: Array of HIGH contribution exercises
+         *   - medium_exercises: Array of MEDIUM contribution exercises
+         *   - last_done_dates: Map<exerciseId, Date> - last done date per exercise
+         *   - current_date: Date - today's date
+         *   - focuses: Array of focus names (optional)
+         * @returns {number} 0-100 color score
+         */
+        function calculateColorScore(capacityBarData) {
+            const { high_exercises, medium_exercises, last_done_dates, current_date, focuses } = capacityBarData;
+
+            // If no HIGH exercises, use MEDIUM (capped at 50 = yellow)
+            if (high_exercises.length === 0) {
+                const score = calculateColorForMedium(medium_exercises, last_done_dates, current_date);
+                return Math.min(score, 50);
+            }
+
+            // If focuses exist, calculate per-focus then aggregate
+            if (focuses && focuses.length > 1) {
+                return calculateColorWithFocuses(high_exercises, last_done_dates, current_date, focuses);
+            }
+
+            // Find oldest HIGH (most neglected)
+            let maxDaysSince = 0;
+
+            for (const ex of high_exercises) {
+                const lastDone = last_done_dates.get(ex.id);
+                if (!lastDone) return 0; // Never done = deep red
+
+                const daysSince = daysBetween(lastDone, current_date);
+                maxDaysSince = Math.max(maxDaysSince, daysSince);
+            }
+
+            return daysToColorScore(maxDaysSince);
+        }
+
+        /**
+         * Convert days-since-last to a 0-100 color score.
+         * Higher score = greener, lower score = redder.
+         */
+        function daysToColorScore(days) {
+            if (days === 0) return 100;
+            if (days === 1) return 85;
+            if (days === 2) return 60;
+            if (days === 3) return 35;
+            if (days === 4) return 15;
+            return Math.max(0, 15 - (days - 4) * 2);
+        }
+
+        function calculateColorForMedium(medium_exercises, last_done_dates, current_date) {
+            if (medium_exercises.length === 0) return 0;
+
+            let maxDaysSince = 0;
+            for (const ex of medium_exercises) {
+                const lastDone = last_done_dates.get(ex.id);
+                if (!lastDone) return 0;
+
+                const daysSince = daysBetween(lastDone, current_date);
+                maxDaysSince = Math.max(maxDaysSince, daysSince);
+            }
+
+            return daysToColorScore(maxDaysSince);
+        }
+
+        function calculateColorWithFocuses(high_exercises, last_done_dates, current_date, focuses) {
+            const focusGroups = groupExercisesByFocus(high_exercises);
+            const focusScores = [];
+
+            for (const [focus, exercises] of focusGroups) {
+                let maxDays = 0;
+                let hasNeverDone = false;
+
+                for (const ex of exercises) {
+                    const lastDone = last_done_dates.get(ex.id);
+                    if (!lastDone) {
+                        hasNeverDone = true;
+                        break;
+                    }
+                    const daysSince = daysBetween(lastDone, current_date);
+                    maxDays = Math.max(maxDays, daysSince);
+                }
+
+                if (hasNeverDone) {
+                    focusScores.push(0);
+                } else {
+                    focusScores.push(daysToColorScore(maxDays));
+                }
+            }
+
+            // Aggregate: 60% worst + 40% avg(others)
+            const worst = Math.min(...focusScores);
+            const others = focusScores.filter(s => s !== worst);
+            const avgOthers = others.length > 0 ? average(others) : worst;
+
+            return COVERAGE_CONSTANTS.FOCUS_WORST_WEIGHT * worst +
+                   COVERAGE_CONSTANTS.FOCUS_OTHERS_WEIGHT * avgOthers;
+        }
+
+        // ============================================================================
+        // FORMULA 3: OPACITY (21-Day Trend with Slow Decay, Fast Recovery)
+        // ============================================================================
+        /**
+         * Calculate the opacity (0-100) based on 21-day trend.
+         *
+         * @param {Object} capacityBarData - Contains:
+         *   - high_exercises: Array of HIGH contribution exercises
+         *   - medium_exercises: Array of MEDIUM contribution exercises
+         *   - history_21_days: Map<exerciseId, daysActive> - days active in last 21
+         *   - history_7_days: Map<exerciseId, daysActive> - days active in last 7
+         *   - last_done_dates: Map<exerciseId, Date> - last done date per exercise
+         *   - current_date: Date - today's date
+         *   - focuses: Array of focus names (optional)
+         * @returns {number} 0-100 opacity percentage
+         */
+        function calculateOpacity(capacityBarData) {
+            const {
+                high_exercises, medium_exercises,
+                history_21_days, history_7_days,
+                last_done_dates, current_date, focuses
+            } = capacityBarData;
+
+            // If no HIGH exercises, use MEDIUM
+            if (high_exercises.length === 0) {
+                return calculateOpacityForMedium(
+                    medium_exercises, history_21_days, history_7_days,
+                    last_done_dates, current_date
+                );
+            }
+
+            // If focuses exist, calculate per-focus then aggregate
+            if (focuses && focuses.length > 1) {
+                return calculateOpacityWithFocuses(
+                    high_exercises, history_21_days, history_7_days,
+                    last_done_dates, current_date, focuses
+                );
+            }
+
+            // Calculate 21-day volume
+            let total21day = 0;
+            for (const ex of high_exercises) {
+                total21day += history_21_days.get(ex.id) || 0;
+            }
+            const avg21day = total21day / high_exercises.length;
+
+            // Calculate recent 7-day volume
+            let totalRecent = 0;
+            for (const ex of high_exercises) {
+                totalRecent += history_7_days.get(ex.id) || 0;
+            }
+            const avgRecent = totalRecent / high_exercises.length;
+
+            // Find most recent work
+            let minDaysSince = Infinity;
+            for (const ex of high_exercises) {
+                const lastDone = last_done_dates.get(ex.id);
+                if (lastDone) {
+                    const daysSince = daysBetween(lastDone, current_date);
+                    minDaysSince = Math.min(minDaysSince, daysSince);
+                }
+            }
+
+            // Base opacity from 21-day volume (15 days = 100%)
+            let base = Math.min(avg21day / COVERAGE_CONSTANTS.OPACITY_OPTIMAL_DAYS, 1.0) * 100;
+
+            // SLOW DECAY (based on days-since-last)
+            if (minDaysSince >= 14) {
+                base *= 0.3;      // Heavy decay
+            } else if (minDaysSince >= 10) {
+                base *= 0.5;      // Moderate decay
+            } else if (minDaysSince >= 7) {
+                base *= 0.8;      // Slight decay
+            }
+            // else: <7 days, no decay
+
+            // FAST RECOVERY (based on recent 7-day work)
+            if (avgRecent >= COVERAGE_CONSTANTS.RECOVERY_STRONG_MIN) {
+                return Math.max(base, 90);      // Solid week → 90% floor
+            } else if (avgRecent >= COVERAGE_CONSTANTS.RECOVERY_GOOD_MIN) {
+                return Math.max(base, 70);      // Good week → 70% floor
+            } else if (avgRecent >= COVERAGE_CONSTANTS.RECOVERY_NOTICEABLE_MIN) {
+                return Math.max(base, 50);      // Noticeable → 50% floor
+            }
+
+            return Math.round(base);
+        }
+
+        function calculateOpacityForMedium(medium_exercises, history_21_days, history_7_days, last_done_dates, current_date) {
+            if (medium_exercises.length === 0) return 20; // Minimum visibility
+
+            let total21 = 0;
+            let totalRecent = 0;
+            let minDaysSince = Infinity;
+
+            for (const ex of medium_exercises) {
+                total21 += history_21_days.get(ex.id) || 0;
+                totalRecent += history_7_days.get(ex.id) || 0;
+
+                const lastDone = last_done_dates.get(ex.id);
+                if (lastDone) {
+                    const daysSince = daysBetween(lastDone, current_date);
+                    minDaysSince = Math.min(minDaysSince, daysSince);
+                }
+            }
+
+            const avg21 = total21 / medium_exercises.length;
+            const avgRecent = totalRecent / medium_exercises.length;
+
+            let base = Math.min(avg21 / COVERAGE_CONSTANTS.OPACITY_OPTIMAL_DAYS, 1.0) * 100;
+
+            // Apply slow decay
+            if (minDaysSince >= 14) base *= 0.3;
+            else if (minDaysSince >= 10) base *= 0.5;
+            else if (minDaysSince >= 7) base *= 0.8;
+
+            // Apply fast recovery floors (reduced for MEDIUM)
+            if (avgRecent >= 5) base = Math.max(base, 70);
+            else if (avgRecent >= 4) base = Math.max(base, 50);
+            else if (avgRecent >= 3) base = Math.max(base, 35);
+
+            return Math.round(base);
+        }
+
+        function calculateOpacityWithFocuses(high_exercises, history_21_days, history_7_days, last_done_dates, current_date, focuses) {
+            const focusGroups = groupExercisesByFocus(high_exercises);
+            const focusOpacities = [];
+
+            for (const [focus, exercises] of focusGroups) {
+                let total21 = 0;
+                let totalRecent = 0;
+                let minDaysSince = Infinity;
+
+                for (const ex of exercises) {
+                    total21 += history_21_days.get(ex.id) || 0;
+                    totalRecent += history_7_days.get(ex.id) || 0;
+
+                    const lastDone = last_done_dates.get(ex.id);
+                    if (lastDone) {
+                        const daysSince = daysBetween(lastDone, current_date);
+                        minDaysSince = Math.min(minDaysSince, daysSince);
+                    }
+                }
+
+                const avg21 = total21 / exercises.length;
+                const avgRecent = totalRecent / exercises.length;
+
+                let base = Math.min(avg21 / COVERAGE_CONSTANTS.OPACITY_OPTIMAL_DAYS, 1.0) * 100;
+
+                // Apply slow decay
+                if (minDaysSince >= 14) base *= 0.3;
+                else if (minDaysSince >= 10) base *= 0.5;
+                else if (minDaysSince >= 7) base *= 0.8;
+
+                // Apply fast recovery floors
+                if (avgRecent >= 5) base = Math.max(base, 90);
+                else if (avgRecent >= 4) base = Math.max(base, 70);
+                else if (avgRecent >= 3) base = Math.max(base, 50);
+
+                focusOpacities.push(base);
+            }
+
+            // Aggregate: 60% worst + 40% avg(others)
+            const worst = Math.min(...focusOpacities);
+            const others = focusOpacities.filter(o => o !== worst);
+            const avgOthers = others.length > 0 ? average(others) : worst;
+
+            return Math.round(
+                COVERAGE_CONSTANTS.FOCUS_WORST_WEIGHT * worst +
+                COVERAGE_CONSTANTS.FOCUS_OTHERS_WEIGHT * avgOthers
+            );
+        }
+
+        // ============================================================================
+        // COLOR SCORE TO RGB
+        // ============================================================================
+        /**
+         * Convert a 0-100 color score to an RGB color string.
+         * 100 = bright green, 50 = yellow, 0 = deep red
+         */
+        function colorScoreToRGB(score) {
+            if (score >= 85) {
+                // Green range (85-100)
+                const t = (score - 85) / 15;
+                return `rgb(${Math.round(132 - t * 116)}, ${Math.round(204 + t * 41)}, 129)`;
+            } else if (score >= 60) {
+                // Yellow-green range (60-85)
+                const t = (score - 60) / 25;
+                return `rgb(${Math.round(250 - t * 118)}, 204, ${Math.round(21 + t * 108)})`;
+            } else if (score >= 35) {
+                // Orange range (35-60)
+                const t = (score - 35) / 25;
+                return `rgb(249, ${Math.round(115 + t * 89)}, 22)`;
+            } else if (score >= 15) {
+                // Red-orange range (15-35)
+                const t = (score - 15) / 20;
+                return `rgb(${Math.round(239 + t * 10)}, ${Math.round(68 + t * 47)}, 22)`;
+            } else {
+                // Deep red range (0-15)
+                const t = score / 15;
+                return `rgb(${Math.round(185 + t * 54)}, ${Math.round(28 + t * 40)}, ${Math.round(28 - t * 6)})`;
+            }
+        }
+
+        // ============================================================================
+        // REGION BAR AGGREGATION
+        // ============================================================================
+        /**
+         * Aggregate capacity bars into a region bar using weighted average.
+         * Weight = (count of HIGH exercises) ^ 1.3
+         */
+        function calculateRegionBar(capacityBars) {
+            const weights = capacityBars.map(cap => {
+                const highCount = cap.exercises.filter(e => e.contribution === 'high').length;
+                return Math.pow(highCount, COVERAGE_CONSTANTS.REGION_WEIGHT_EXPONENT);
+            });
+            const totalWeight = weights.reduce((a, b) => a + b, 0);
+
+            if (totalWeight === 0) {
+                return { percent: 0, color_score: 0, opacity: 20 };
+            }
+
+            const percent = Math.round(weightedAverage(capacityBars.map(c => c.percent), weights));
+            const colorScore = Math.round(weightedAverage(capacityBars.map(c => c.color_score), weights));
+            const opacity = Math.round(weightedAverage(capacityBars.map(c => c.opacity), weights));
+
+            return { percent, color_score: colorScore, opacity };
+        }
+
+        // ============================================================================
+        // HELPER FUNCTIONS
+        // ============================================================================
+        function daysBetween(date1, date2) {
+            const d1 = new Date(date1);
+            const d2 = new Date(date2);
+            d1.setHours(0, 0, 0, 0);
+            d2.setHours(0, 0, 0, 0);
+            return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+        }
+
+        function average(arr) {
+            if (arr.length === 0) return 0;
+            return arr.reduce((a, b) => a + b, 0) / arr.length;
+        }
+
+        function weightedAverage(values, weights) {
+            const totalWeight = weights.reduce((a, b) => a + b, 0);
+            if (totalWeight === 0) return 0;
+
+            let sum = 0;
+            for (let i = 0; i < values.length; i++) {
+                sum += values[i] * weights[i];
+            }
+            return sum / totalWeight;
+        }
+
+        function groupExercisesByFocus(exercises) {
+            const groups = new Map();
+            for (const ex of exercises) {
+                const focus = ex.focus || 'general';
+                if (!groups.has(focus)) {
+                    groups.set(focus, []);
+                }
+                groups.get(focus).push(ex);
+            }
+            return groups;
+        }
+
+        // ============================================================================
+        // END COVERAGE FORMULAS
+        // ============================================================================
+
+
+        // ============================================================================
+        // APPLICATION STATE & INITIALIZATION
+        // ============================================================================
         const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // State
         let currentUser = null;
         let authToken = null;
+        let userRole = null;
         let allLogs = [];
         let allRoles = [];
         let coverageData = {};
         let collapsedRegions = new Set();
 
-        // Initialize app
+        /**
+         * Initialize the application
+         */
         async function init() {
-            // Set default date range (last 7 days)
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 7);
-
-            document.getElementById('startDate').valueAsDate = startDate;
-            document.getElementById('endDate').valueAsDate = endDate;
-
             // Check auth state
             const { data: { session } } = await supabaseClient.auth.getSession();
 
@@ -616,6 +1184,7 @@
                 currentUser = session.user;
                 authToken = session.access_token;
                 hideAuthModal();
+                await loadUserRole();
                 await loadData();
             } else {
                 showAuthModal();
@@ -627,16 +1196,47 @@
                     currentUser = session.user;
                     authToken = session.access_token;
                     hideAuthModal();
-                    loadData();
+                    loadUserRole().then(() => loadData());
                 } else if (event === 'SIGNED_OUT') {
                     currentUser = null;
                     authToken = null;
+                    userRole = null;
                     showAuthModal();
                 }
             });
 
             // Bind event handlers
             bindEventHandlers();
+        }
+
+        /**
+         * Load user role to determine menu visibility
+         */
+        async function loadUserRole() {
+            try {
+                const response = await fetchWithAuth('/api/users/me');
+                userRole = response.user?.role || 'patient';
+                updateMenuVisibility();
+            } catch (error) {
+                console.error('Failed to load user role:', error);
+                userRole = 'patient';
+                updateMenuVisibility();
+            }
+        }
+
+        /**
+         * Update menu items based on user role
+         */
+        function updateMenuVisibility() {
+            const ptTrackerLink = document.getElementById('ptTrackerLink');
+            if (ptTrackerLink) {
+                // Only show PT Tracker link for patients
+                if (userRole !== 'patient') {
+                    ptTrackerLink.classList.add('hidden');
+                } else {
+                    ptTrackerLink.classList.remove('hidden');
+                }
+            }
         }
 
         // Auth functions
@@ -661,7 +1261,13 @@
             return data;
         }
 
-        // Data loading
+        async function signOut() {
+            await supabaseClient.auth.signOut();
+        }
+
+        /**
+         * Load coverage data from API
+         */
         async function loadData() {
             try {
                 document.getElementById('coverageMatrix').innerHTML = '<div class="loading">Loading coverage data...</div>';
@@ -675,13 +1281,13 @@
                 allLogs = logsResult.logs || [];
                 allRoles = rolesResult.roles || [];
 
-                // Calculate coverage
-                calculateCoverage();
+                // Calculate and render coverage
+                calculateAndRenderCoverage();
 
             } catch (error) {
                 console.error('Failed to load data:', error);
                 document.getElementById('coverageMatrix').innerHTML =
-                    '<div class="empty-state">Failed to load coverage data.</div>';
+                    '<div class="empty-state">Failed to load coverage data. Please try refreshing.</div>';
             }
         }
 
@@ -707,68 +1313,213 @@
             return response.json();
         }
 
-        // Coverage calculation
-        function calculateCoverage() {
-            const startDate = new Date(document.getElementById('startDate').value);
-            const endDate = new Date(document.getElementById('endDate').value);
-            endDate.setHours(23, 59, 59);
+        /**
+         * Calculate coverage using the THREE SIGNALS formulas and render
+         */
+        function calculateAndRenderCoverage() {
+            const currentDate = new Date();
+            const sevenDaysAgo = new Date(currentDate);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const twentyOneDaysAgo = new Date(currentDate);
+            twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 21);
 
-            // Filter logs by date range
-            const filteredLogs = allLogs.filter(log => {
+            // Build exercise history maps
+            const history7Days = new Map();  // exerciseId -> days active in last 7
+            const history21Days = new Map(); // exerciseId -> days active in last 21
+            const lastDoneDates = new Map(); // exerciseId -> most recent date
+
+            // Process logs to build history
+            for (const log of allLogs) {
                 const logDate = new Date(log.performed_at);
-                return logDate >= startDate && logDate <= endDate;
-            });
+                const exerciseId = log.exercise_id;
 
-            // Build coverage matrix: region → capacity → focus → exercises
+                if (!exerciseId) continue;
+
+                // Track last done date
+                const existingDate = lastDoneDates.get(exerciseId);
+                if (!existingDate || logDate > existingDate) {
+                    lastDoneDates.set(exerciseId, logDate);
+                }
+
+                // Count unique days in 7-day window
+                if (logDate >= sevenDaysAgo) {
+                    const dateKey = logDate.toISOString().split('T')[0];
+                    const key7 = `${exerciseId}_7_${dateKey}`;
+                    if (!history7Days.has(key7)) {
+                        history7Days.set(exerciseId, (history7Days.get(exerciseId) || 0) + 1);
+                        history7Days.set(key7, true); // Mark this day as counted
+                    }
+                }
+
+                // Count unique days in 21-day window
+                if (logDate >= twentyOneDaysAgo) {
+                    const dateKey = logDate.toISOString().split('T')[0];
+                    const key21 = `${exerciseId}_21_${dateKey}`;
+                    if (!history21Days.has(key21)) {
+                        history21Days.set(exerciseId, (history21Days.get(exerciseId) || 0) + 1);
+                        history21Days.set(key21, true);
+                    }
+                }
+            }
+
+            // Build coverage matrix: region → capacity → data
             coverageData = {};
 
-            allRoles.forEach(role => {
-                const region = role.region || 'Uncategorized';
-                const capacity = role.capacity || 'General';
-                const focus = role.focus || 'General';
+            // Group roles by region → capacity
+            for (const role of allRoles) {
+                const region = role.region || 'uncategorized';
+                const capacity = role.capacity || 'general';
+                const focus = role.focus || null;
+                const contribution = role.contribution || 'low';
                 const exerciseId = role.exercise_id;
-                const exerciseName = role.exercises?.canonical_name || exerciseId || 'Unknown';
+                const exerciseName = role.exercises?.canonical_name || exerciseId;
 
                 if (!coverageData[region]) {
                     coverageData[region] = {};
                 }
                 if (!coverageData[region][capacity]) {
-                    coverageData[region][capacity] = {};
-                }
-                if (!coverageData[region][capacity][focus]) {
-                    coverageData[region][capacity][focus] = {
+                    coverageData[region][capacity] = {
                         exercises: [],
-                        lastDone: null
+                        focuses: new Set()
                     };
                 }
 
-                // Check if this exercise was done in date range
-                const exerciseLogs = filteredLogs.filter(log => log.exercise_id === exerciseId);
-                const done = exerciseLogs.length > 0;
-                const lastLog = exerciseLogs.length > 0
-                    ? new Date(Math.max(...exerciseLogs.map(l => new Date(l.performed_at))))
-                    : null;
-
-                coverageData[region][capacity][focus].exercises.push({
-                    exercise_id: exerciseId,
-                    exercise_name: exerciseName,
-                    done,
-                    lastDone: lastLog
+                coverageData[region][capacity].exercises.push({
+                    id: exerciseId,
+                    name: exerciseName,
+                    contribution,
+                    focus,
+                    lastDone: lastDoneDates.get(exerciseId) || null,
+                    days7: history7Days.get(exerciseId) || 0,
+                    days21: history21Days.get(exerciseId) || 0
                 });
 
-                // Update focus area last done date
-                if (lastLog) {
-                    if (!coverageData[region][capacity][focus].lastDone || lastLog > coverageData[region][capacity][focus].lastDone) {
-                        coverageData[region][capacity][focus].lastDone = lastLog;
-                    }
+                if (focus) {
+                    coverageData[region][capacity].focuses.add(focus);
                 }
-            });
+            }
 
+            // Calculate signals for each capacity bar
+            for (const region of Object.keys(coverageData)) {
+                for (const capacity of Object.keys(coverageData[region])) {
+                    const capData = coverageData[region][capacity];
+                    const exercises = capData.exercises;
+
+                    const highExercises = exercises.filter(e => e.contribution === 'high');
+                    const mediumExercises = exercises.filter(e => e.contribution === 'medium');
+                    const focuses = Array.from(capData.focuses);
+
+                    // Build history maps for this capacity
+                    const capHistory7 = new Map();
+                    const capHistory21 = new Map();
+                    const capLastDone = new Map();
+
+                    for (const ex of exercises) {
+                        capHistory7.set(ex.id, ex.days7);
+                        capHistory21.set(ex.id, ex.days21);
+                        if (ex.lastDone) {
+                            capLastDone.set(ex.id, ex.lastDone);
+                        }
+                    }
+
+                    const barData = {
+                        high_exercises: highExercises,
+                        medium_exercises: mediumExercises,
+                        history_7_days: capHistory7,
+                        history_21_days: capHistory21,
+                        last_done_dates: capLastDone,
+                        current_date: currentDate,
+                        focuses: focuses.length > 1 ? focuses : null
+                    };
+
+                    // Calculate THREE SIGNALS
+                    capData.percent = calculatePercent(barData);
+                    capData.color_score = calculateColorScore(barData);
+                    capData.opacity = calculateOpacity(barData);
+                    capData.color = colorScoreToRGB(capData.color_score);
+                }
+            }
+
+            // Calculate region-level aggregates
+            for (const region of Object.keys(coverageData)) {
+                const capacityBars = Object.values(coverageData[region]);
+                const regionBar = calculateRegionBar(capacityBars);
+                coverageData[region]._regionBar = regionBar;
+            }
+
+            // Update summary
+            updateSummary(lastDoneDates, history7Days, history21Days, currentDate);
+
+            // Render
             renderCoverageMatrix();
-            updateSummaryStats();
         }
 
-        // Render coverage matrix
+        /**
+         * Update summary card
+         */
+        function updateSummary(lastDoneDates, history7Days, history21Days, currentDate) {
+            // Last activity
+            let mostRecentDate = null;
+            for (const [, date] of lastDoneDates) {
+                if (!mostRecentDate || date > mostRecentDate) {
+                    mostRecentDate = date;
+                }
+            }
+
+            const lastActivityEl = document.getElementById('lastActivity');
+            if (mostRecentDate) {
+                const daysAgo = daysBetween(mostRecentDate, currentDate);
+                lastActivityEl.textContent = daysAgo === 0 ? 'Today' : `${daysAgo} days ago`;
+                lastActivityEl.style.color = daysAgo <= 1 ? 'var(--success-color)' :
+                                             daysAgo <= 3 ? 'var(--warning-color)' : 'var(--danger-color)';
+            } else {
+                lastActivityEl.textContent = 'No activity';
+                lastActivityEl.style.color = 'var(--danger-color)';
+            }
+
+            // 7-day coverage (count of unique exercises done)
+            const exercisesDone7Days = new Set();
+            for (const [key] of history7Days) {
+                if (!key.includes('_7_')) {
+                    exercisesDone7Days.add(key);
+                }
+            }
+            const totalExercises = new Set(allRoles.map(r => r.exercise_id)).size;
+            const coverage7 = totalExercises > 0 ? Math.round((exercisesDone7Days.size / totalExercises) * 100) : 0;
+
+            const weekCoverageEl = document.getElementById('weekCoverage');
+            weekCoverageEl.textContent = `${coverage7}% (${exercisesDone7Days.size}/${totalExercises})`;
+            weekCoverageEl.style.color = coverage7 >= 70 ? 'var(--success-color)' :
+                                         coverage7 >= 40 ? 'var(--warning-color)' : 'var(--danger-color)';
+
+            // 21-day trend
+            const exercisesDone21Days = new Set();
+            for (const [key] of history21Days) {
+                if (!key.includes('_21_')) {
+                    exercisesDone21Days.add(key);
+                }
+            }
+            const coverage21 = totalExercises > 0 ? Math.round((exercisesDone21Days.size / totalExercises) * 100) : 0;
+
+            const trendEl = document.getElementById('trendStatus');
+            if (coverage21 >= 80) {
+                trendEl.textContent = 'Excellent';
+                trendEl.style.color = 'var(--success-color)';
+            } else if (coverage21 >= 50) {
+                trendEl.textContent = 'Good';
+                trendEl.style.color = 'var(--success-color)';
+            } else if (coverage21 >= 30) {
+                trendEl.textContent = 'Needs Attention';
+                trendEl.style.color = 'var(--warning-color)';
+            } else {
+                trendEl.textContent = 'Low Activity';
+                trendEl.style.color = 'var(--danger-color)';
+            }
+        }
+
+        /**
+         * Render the coverage matrix
+         */
         function renderCoverageMatrix() {
             const matrixEl = document.getElementById('coverageMatrix');
 
@@ -777,70 +1528,98 @@
                 return;
             }
 
-            const regions = Object.keys(coverageData).sort();
+            // Sort regions by color score (worst first)
+            const regions = Object.keys(coverageData).sort((a, b) => {
+                const aBar = coverageData[a]._regionBar || { color_score: 0 };
+                const bBar = coverageData[b]._regionBar || { color_score: 0 };
+                return aBar.color_score - bBar.color_score;
+            });
 
             const html = regions.map(region => {
-                const capacities = Object.keys(coverageData[region]).sort();
+                const regionBar = coverageData[region]._regionBar || { percent: 0, color_score: 50, opacity: 50 };
+                const capacities = Object.keys(coverageData[region]).filter(k => k !== '_regionBar');
                 const isCollapsed = collapsedRegions.has(region);
 
                 const capacitiesHtml = capacities.map(capacity => {
-                    const focuses = Object.keys(coverageData[region][capacity]).sort();
+                    const capData = coverageData[region][capacity];
+                    const exercises = capData.exercises || [];
+                    const percent = Math.round(capData.percent || 0);
+                    const colorScore = capData.color_score || 0;
+                    const opacity = Math.max(20, capData.opacity || 20);
+                    const color = capData.color || colorScoreToRGB(colorScore);
 
-                    const focusesHtml = focuses.map(focus => {
-                        const data = coverageData[region][capacity][focus];
-                        const exercises = data.exercises;
+                    // Group exercises by focus
+                    const focusGroups = new Map();
+                    focusGroups.set('general', []);
 
-                        const doneCount = exercises.filter(ex => ex.done).length;
-                        const totalCount = exercises.length;
+                    for (const ex of exercises) {
+                        const focus = ex.focus || 'general';
+                        if (!focusGroups.has(focus)) {
+                            focusGroups.set(focus, []);
+                        }
+                        focusGroups.get(focus).push(ex);
+                    }
+
+                    const hasFocuses = focusGroups.size > 1 || (focusGroups.size === 1 && !focusGroups.has('general'));
+
+                    const focusesHtml = Array.from(focusGroups.entries()).map(([focus, focusExercises]) => {
+                        if (focusExercises.length === 0) return '';
+
+                        const doneCount = focusExercises.filter(e => e.lastDone).length;
+                        const totalCount = focusExercises.length;
 
                         let statusClass = '';
-                        let statusText = '';
-                        let statusHtml = '';
+                        if (doneCount === 0) statusClass = 'not-covered';
+                        else if (doneCount < totalCount) statusClass = 'needs-attention';
 
-                        if (doneCount === totalCount) {
-                            statusClass = 'done';
-                            statusText = '✓ Covered';
-                            if (data.lastDone) {
-                                const daysAgo = Math.floor((new Date() - data.lastDone) / (1000 * 60 * 60 * 24));
-                                if (daysAgo >= 3) {
-                                    statusClass = 'needs-attention';
-                                    statusText = `⚠ ${daysAgo} days ago`;
-                                }
-                            }
-                        } else if (doneCount > 0) {
-                            statusClass = 'needs-attention';
-                            statusText = `⚠ Partial (${doneCount}/${totalCount})`;
-                        } else {
-                            statusClass = 'not-covered';
-                            statusText = '✗ Not Covered';
-                        }
-
-                        const exercisesHtml = exercises.map(ex => {
-                            const chipClass = ex.done ? 'exercise-chip done' : 'exercise-chip';
-                            return `<span class="${chipClass}">${escapeHtml(ex.exercise_name)}</span>`;
+                        const exercisesHtml = focusExercises.map(ex => {
+                            const chipClass = ex.lastDone ? 'exercise-chip done' : 'exercise-chip';
+                            return `<span class="${chipClass}">${escapeHtml(ex.name)}</span>`;
                         }).join('');
 
                         return `
-                            <div class="focus-item ${statusClass === 'not-covered' ? 'not-covered' : statusClass === 'needs-attention' ? 'needs-attention' : ''}">
-                                <div class="focus-name">${escapeHtml(focus)}</div>
-                                <div class="focus-exercises">${exercisesHtml}</div>
-                                <div class="focus-status status-${statusClass}">${statusText}</div>
+                            <div class="focus-item ${statusClass}">
+                                <div class="focus-header">
+                                    <span class="focus-name">${focus === 'general' ? 'General' : escapeHtml(focus.replace(/_/g, ' '))}</span>
+                                    <span class="focus-stats">${doneCount}/${totalCount}</span>
+                                </div>
+                                <div class="exercise-list">${exercisesHtml}</div>
                             </div>
                         `;
                     }).join('');
 
                     return `
-                        <div class="capacity-group">
-                            <div class="capacity-header">${escapeHtml(capacity)}</div>
-                            ${focusesHtml}
+                        <div class="capacity-group" id="cap-${escapeHtml(region)}-${escapeHtml(capacity)}">
+                            <div class="capacity-header" data-action="toggle-capacity" data-region="${escapeHtml(region)}" data-capacity="${escapeHtml(capacity)}">
+                                <span class="capacity-title">${escapeHtml(capacity)}</span>
+                                <div class="capacity-bar-container">
+                                    <div class="coverage-bar">
+                                        <div class="coverage-bar-fill" style="width: ${percent}%; background: ${color}; opacity: ${opacity / 100};"></div>
+                                    </div>
+                                    <span class="capacity-stats">${percent}%</span>
+                                </div>
+                                <span class="capacity-chevron">›</span>
+                            </div>
+                            <div class="focus-list">
+                                ${focusesHtml}
+                            </div>
                         </div>
                     `;
                 }).join('');
 
+                const regionColor = colorScoreToRGB(regionBar.color_score);
+                const regionOpacity = Math.max(20, regionBar.opacity);
+
                 return `
                     <div class="region-group">
                         <div class="region-header" data-action="toggle-region" data-region="${escapeHtml(region)}">
-                            <span>${escapeHtml(region)}</span>
+                            <span class="region-title">${escapeHtml(region)}</span>
+                            <div class="region-bar-container">
+                                <div class="coverage-bar">
+                                    <div class="coverage-bar-fill" style="width: ${regionBar.percent}%; background: ${regionColor}; opacity: ${regionOpacity / 100};"></div>
+                                </div>
+                                <span class="region-stats">${regionBar.percent}%</span>
+                            </div>
                             <span class="expand-icon ${isCollapsed ? 'collapsed' : ''}">▼</span>
                         </div>
                         <div class="region-content ${isCollapsed ? 'collapsed' : ''}">
@@ -853,68 +1632,9 @@
             matrixEl.innerHTML = html;
         }
 
-        // Update summary stats
-        function updateSummaryStats() {
-            let totalFocusAreas = 0;
-            let coveredCount = 0;
-            let gapCount = 0;
-            let notCoveredCount = 0;
-
-            Object.values(coverageData).forEach(capacities => {
-                Object.values(capacities).forEach(focuses => {
-                    Object.values(focuses).forEach(focusData => {
-                        totalFocusAreas++;
-
-                        const exercises = focusData.exercises;
-                        const doneCount = exercises.filter(ex => ex.done).length;
-                        const totalCount = exercises.length;
-
-                        if (doneCount === totalCount) {
-                            // Check days since last done
-                            if (focusData.lastDone) {
-                                const daysAgo = Math.floor((new Date() - focusData.lastDone) / (1000 * 60 * 60 * 24));
-                                if (daysAgo >= 3) {
-                                    gapCount++;
-                                } else {
-                                    coveredCount++;
-                                }
-                            } else {
-                                coveredCount++;
-                            }
-                        } else if (doneCount === 0) {
-                            notCoveredCount++;
-                        } else {
-                            gapCount++;
-                        }
-                    });
-                });
-            });
-
-            document.getElementById('totalFocusAreas').textContent = totalFocusAreas;
-            document.getElementById('coveredCount').textContent = coveredCount;
-            document.getElementById('gapCount').textContent = gapCount;
-            document.getElementById('notCoveredCount').textContent = notCoveredCount;
-
-            // Update progress bar
-            if (totalFocusAreas > 0) {
-                const donePercent = (coveredCount / totalFocusAreas) * 100;
-                const attentionPercent = (gapCount / totalFocusAreas) * 100;
-                const notCoveredPercent = (notCoveredCount / totalFocusAreas) * 100;
-                const overallPercent = Math.round(((coveredCount + gapCount * 0.5) / totalFocusAreas) * 100);
-
-                document.getElementById('barDone').style.width = `${donePercent}%`;
-                document.getElementById('barAttention').style.width = `${attentionPercent}%`;
-                document.getElementById('barNotCovered').style.width = `${notCoveredPercent}%`;
-                document.getElementById('coveragePercent').textContent = `${overallPercent}%`;
-            } else {
-                document.getElementById('barDone').style.width = '0%';
-                document.getElementById('barAttention').style.width = '0%';
-                document.getElementById('barNotCovered').style.width = '0%';
-                document.getElementById('coveragePercent').textContent = '0%';
-            }
-        }
-
-        // Toggle region collapse
+        /**
+         * Toggle region collapse
+         */
         function toggleRegion(region) {
             if (collapsedRegions.has(region)) {
                 collapsedRegions.delete(region);
@@ -924,19 +1644,29 @@
             renderCoverageMatrix();
         }
 
-        // Set date range
-        function setDateRange(days) {
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - days);
-
-            document.getElementById('startDate').valueAsDate = startDate;
-            document.getElementById('endDate').valueAsDate = endDate;
-
-            calculateCoverage();
+        /**
+         * Toggle capacity expand
+         */
+        function toggleCapacity(region, capacity) {
+            const el = document.getElementById(`cap-${region}-${capacity}`);
+            if (el) {
+                el.classList.toggle('expanded');
+            }
         }
 
-        // Event handlers
+        /**
+         * Toggle hamburger menu
+         */
+        function toggleHamburger() {
+            const overlay = document.getElementById('hamburgerOverlay');
+            const menu = document.getElementById('hamburgerMenu');
+            overlay.classList.toggle('active');
+            menu.classList.toggle('active');
+        }
+
+        /**
+         * Bind event handlers
+         */
         function bindEventHandlers() {
             // Auth form
             document.getElementById('authForm').addEventListener('submit', async (e) => {
@@ -953,30 +1683,49 @@
                 }
             });
 
-            // Date inputs
-            document.getElementById('startDate').addEventListener('change', calculateCoverage);
-            document.getElementById('endDate').addEventListener('change', calculateCoverage);
-
             // Pointer events (iOS-safe)
-            document.body.addEventListener('pointerup', (e) => {
-                const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action;
-                if (!action) return;
-
+            document.body.addEventListener('pointerup', async (e) => {
                 const target = e.target.closest('[data-action]');
+                if (!target) return;
 
-                if (action === 'refresh-data') {
-                    loadData();
-                } else if (action === 'set-range') {
-                    const days = parseInt(target.dataset.days);
-                    setDateRange(days);
-                } else if (action === 'toggle-region') {
-                    const region = target.dataset.region;
-                    toggleRegion(region);
+                const action = target.dataset.action;
+
+                switch (action) {
+                    case 'toggle-hamburger':
+                        toggleHamburger();
+                        break;
+                    case 'refresh-data':
+                        toggleHamburger();
+                        await loadData();
+                        break;
+                    case 'toggle-region':
+                        toggleRegion(target.dataset.region);
+                        break;
+                    case 'toggle-capacity':
+                        toggleCapacity(target.dataset.region, target.dataset.capacity);
+                        break;
+                    case 'sign-out':
+                        toggleHamburger();
+                        await signOut();
+                        break;
+                }
+            });
+
+            // Keyboard accessibility
+            document.body.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const target = e.target.closest('[data-action]');
+                    if (target) {
+                        e.preventDefault();
+                        target.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+                    }
                 }
             });
         }
 
-        // Utility functions
+        /**
+         * Escape HTML to prevent XSS
+         */
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
