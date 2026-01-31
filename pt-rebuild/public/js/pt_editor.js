@@ -148,6 +148,14 @@ async function init() {
         e.preventDefault();
         await saveExercise();
     });
+
+    // Set up New button (clear form to add new exercise)
+    const newBtn = document.querySelector('[data-action="clear-form"]');
+    if (newBtn) {
+        newBtn.addEventListener('click', () => {
+            clearForm();
+        });
+    }
 }
 
 async function signIn() {

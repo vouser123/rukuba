@@ -12,14 +12,22 @@
 import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../db.js';
 import { requireAuth } from '../auth.js';
 
+/**
+ * Normalize program data, transforming nested Supabase relations into flat arrays.
+ *
+ * IMPORTANT: Always prefer formParamsByExercise (loaded via admin client) over the
+ * nested query result, since RLS may block patients from reading exercise_form_parameters
+ * via the nested join, causing it to silently return [].
+ */
 export function normalizeProgramPatternModifiers(programs, formParamsByExercise = {}) {
   return programs.map((program) => {
     const exercise = program.exercises || null;
     const modifiers = exercise?.exercise_pattern_modifiers || [];
-    const formParams = exercise?.exercise_form_parameters || [];
+    const nestedFormParams = exercise?.exercise_form_parameters || [];
     const { exercise_form_parameters, ...exercisePayload } = exercise || {};
-    const fallbackFormParams = exercise?.id ? (formParamsByExercise[exercise.id] || []) : [];
-    const resolvedFormParams = formParams.length > 0 ? formParams : fallbackFormParams;
+    const adminFormParams = exercise?.id ? (formParamsByExercise[exercise.id] || []) : [];
+    // Prefer admin-fetched params (RLS-safe) over nested query result
+    const resolvedFormParams = adminFormParams.length > 0 ? adminFormParams : nestedFormParams;
     return {
       ...program,
       exercises: exercise
@@ -167,12 +175,15 @@ async function getPrograms(req, res) {
 
       if (formParamsError) {
         console.warn('Failed to load exercise form parameters with admin client:', formParamsError);
-      } else {
+      } else if (formParams && formParams.length > 0) {
         formParamsByExercise = formParams.reduce((acc, row) => {
           if (!acc[row.exercise_id]) acc[row.exercise_id] = [];
           acc[row.exercise_id].push({ parameter_name: row.parameter_name });
           return acc;
         }, {});
+        console.log('Loaded form params for exercises:', Object.keys(formParamsByExercise));
+      } else {
+        console.log('No form parameters found in exercise_form_parameters table for exercise IDs:', exerciseIds);
       }
     }
 

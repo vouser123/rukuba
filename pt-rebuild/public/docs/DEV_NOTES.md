@@ -5,6 +5,15 @@ For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
 
 ## 2026-01-31
 
+### Form Parameters Not Showing in Log Set Modal (index.html)
+
+- **Problem:** When logging sets, the fields for required form parameters (weight, band resistance, etc.) were not appearing.
+- **What I did:** Fixed the priority order in `normalizeProgramPatternModifiers()` in `lib/handlers/programs.js`.
+  - Root cause: RLS policies may block patients from reading `exercise_form_parameters` via nested Supabase joins
+  - The nested query silently returns `[]`, but code was preferring it over the admin-fetched fallback
+  - Changed logic to always prefer admin-fetched form params (RLS-safe) over nested query result
+  - Added logging to help diagnose if form params are missing from database
+
 ### Rehab-Focused pt_view.html Overhaul
 
 - **Problem:** pt_view.html was using gym-style metrics (Total Sessions, Total Sets, Top Exercises) inappropriate for physical therapy rehab tracking. Session notes from patients were buried and hard to find.
