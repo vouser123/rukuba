@@ -21,11 +21,14 @@ async function getRoles(req, res) {
       .from('exercise_roles')
       .select(`
         *,
-        exercises (
+        exercises!inner (
           id,
-          canonical_name
+          canonical_name,
+          archived
         )
-      `);
+      `)
+      // Filter out archived exercises
+      .eq('exercises.archived', false);
 
     // Filter by exercise_id if provided
     if (exercise_id) {

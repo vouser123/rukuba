@@ -5,6 +5,32 @@ For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
 
 ## 2026-01-31
 
+### Simplified Lifecycle UI and Fixed Data Consistency (pt_editor.html)
+
+- **Problem:** pt_editor had both a checkbox AND a dropdown for archived status, plus "deprecated" option nobody understood. Database had inconsistent data (some exercises had `lifecycle_status: null`, one had `archived: false` but `lifecycle_status: 'archived'`).
+- **What I did:**
+  - **Database fix:** Updated all exercises to have consistent `lifecycle_status` ('active' or 'archived') matching `archived` boolean
+  - **UI simplification:** Removed redundant checkbox, removed "deprecated" option, kept only Active/Archived dropdown
+  - **Code fix:** `lifecycle_status` now always defaults to 'active', never null
+  - Added helper text explaining archived exercises are hidden from trackers and coverage
+
+### Archived Exercises Showing in Rehab Coverage (rehab_coverage.html)
+
+- **Problem:** Archived exercises (like "Wipers") were still appearing in the rehab coverage page.
+- **What I did:** Updated `/api/roles` to filter out archived exercises.
+  - Added `!inner` join to exercises table to enable filtering
+  - Added `.eq('exercises.archived', false)` filter to the query
+  - Now only active (non-archived) exercises appear in coverage analysis
+
+### Sign Out Error "Auth Session missing" (pt_editor.html)
+
+- **Problem:** After signing out from pt_editor.html hamburger menu on iOS, page reload showed "Token sign-in failed: Auth Session missing!" error.
+- **What I did:** Fixed `signOut()` in `public/js/pt_editor.js` to clear stored auth tokens BEFORE calling `supabaseClient.auth.signOut()`.
+  - Root cause: `index.html` stores auth tokens in `pt_editor_auth` localStorage key when navigating to pt_editor
+  - On reload after sign out, `init()` found stale tokens and tried to use them with `setSession()`
+  - Supabase returned "Auth Session missing" because the session was already invalidated
+  - Fix: Call `clearStoredAuth()` before `signOut()` to remove stale tokens
+
 ### Form Parameters Not Showing in Log Set Modal (index.html)
 
 - **Problem:** When logging sets, the fields for required form parameters (weight, band resistance, etc.) were not appearing.

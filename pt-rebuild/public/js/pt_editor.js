@@ -156,6 +156,18 @@ async function init() {
             clearForm();
         });
     }
+
+    // Auto-populate end date when archived is selected
+    const lifecycleSelect = document.getElementById('lifecycleStatus');
+    if (lifecycleSelect) {
+        lifecycleSelect.addEventListener('change', () => {
+            const endDateInput = document.getElementById('effectiveEndDate');
+            if (lifecycleSelect.value === 'archived' && endDateInput && !endDateInput.value) {
+                // Set to today's date in YYYY-MM-DD format
+                endDateInput.value = new Date().toISOString().split('T')[0];
+            }
+        });
+    }
 }
 
 async function signIn() {
@@ -281,6 +293,8 @@ async function handleAuthSuccess(session) {
 }
 
 async function signOut() {
+    // Clear stored auth tokens BEFORE signing out to prevent stale token errors on reload
+    clearStoredAuth();
     await supabaseClient.auth.signOut();
     location.reload();
 }
@@ -628,9 +642,10 @@ function loadExerciseForEdit() {
     renderGuidanceList('safetyList', safetyFlags);
     renderGuidanceList('externalCuesList', externalCues);
 
-    // Lifecycle fields
-    document.getElementById('archived').checked = exercise.archived || false;
-    document.getElementById('lifecycleStatus').value = exercise.lifecycle_status || '';
+    // Lifecycle fields - use lifecycle_status as source of truth, default to 'active'
+    const lifecycleStatus = exercise.lifecycle_status || (exercise.archived ? 'archived' : 'active');
+    document.getElementById('lifecycleStatus').value = lifecycleStatus;
+    document.getElementById('archived').checked = lifecycleStatus === 'archived';
     document.getElementById('effectiveStartDate').value = exercise.lifecycle_effective_start_date || '';
     document.getElementById('effectiveEndDate').value = exercise.lifecycle_effective_end_date || '';
 
@@ -663,6 +678,15 @@ function clearForm() {
     document.getElementById('exerciseForm').reset();
     document.getElementById('exerciseSelect').value = '';
     document.querySelector('#exerciseForm button[type="submit"]').textContent = 'Save Exercise';
+
+    // Set lifecycle defaults - always default to 'active'
+    document.getElementById('lifecycleStatus').value = 'active';
+    document.getElementById('archived').checked = false;
+
+    // Auto-populate start date for new exercises
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('effectiveStartDate').value = today;
+    document.getElementById('effectiveEndDate').value = '';
 
     // Clear tag arrays
     requiredEquipment = [];
@@ -980,21 +1004,40 @@ function collectFormData() {
         throw new Error('Please fill in all required fields (Canonical Name, Description, PT Category, Pattern).');
     }
 
+    // Get lifecycle status - always default to 'active', never null
+    const lifecycleStatus = document.getElementById('lifecycleStatus').value || 'active';
+    const isArchived = lifecycleStatus === 'archived';
+
+    // Auto-set dates only if user hasn't entered their own value
+    const today = new Date().toISOString().split('T')[0];
+    const isNewExercise = !currentExercise;
+    const addedDateInput = document.getElementById('addedDate')?.value || null;
+    const updatedDateInput = document.getElementById('updatedDate')?.value || null;
+
+    // For new exercises: use user's input or default to today
+    // For existing exercises: preserve added_date, use user's updated_date or default to today
+    const addedDate = isNewExercise
+        ? (addedDateInput || today)
+        : (addedDateInput || currentExercise?.added_date || null);
+    const updatedDate = isNewExercise
+        ? null
+        : (updatedDateInput || today);
+
     const exerciseData = {
         id: currentExercise?.id || generateExerciseId(canonicalName),
         canonical_name: canonicalName,
         description: description,
         pt_category: ptCategory,
         pattern: pattern,
-        archived: document.getElementById('archived').checked,
-        lifecycle_status: document.getElementById('lifecycleStatus').value || null,
+        archived: isArchived,
+        lifecycle_status: lifecycleStatus,
         lifecycle_effective_start_date: document.getElementById('effectiveStartDate').value || null,
         lifecycle_effective_end_date: document.getElementById('effectiveEndDate').value || null,
         supersedes_exercise_id: document.getElementById('supersedesExercise')?.value || null,
         superseded_by_exercise_id: document.getElementById('supersededByExercise')?.value || null,
         superseded_date: document.getElementById('supersededDate')?.value || null,
-        added_date: document.getElementById('addedDate')?.value || null,
-        updated_date: document.getElementById('updatedDate')?.value || null,
+        added_date: addedDate,
+        updated_date: updatedDate,
         pattern_modifiers: [
             ...(document.getElementById('modDuration').checked ? ['duration_seconds'] : []),
             ...(document.getElementById('modHold').checked ? ['hold_seconds'] : []),
