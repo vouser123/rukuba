@@ -3,6 +3,18 @@
 This file summarizes notable rebuild milestones for the public docs bundle.
 For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
 
+## 2026-01-31
+
+### Exercise Details Modal (index.html)
+
+- **Problem:** Patients had no way to view exercise guidance, target muscles, or equipment info from the tracker.
+- **What I did:** Added ℹ️ info button to each exercise card that opens a details modal.
+  - Button positioned top-right of card with `data-stop-propagation` to prevent triggering exercise selection
+  - Modal displays: description, pattern (sided/bilateral), primary/secondary muscles, equipment, and guidance sections (external cues, motor cues, compensation warnings, safety flags)
+  - Uses `data-require-self` pattern for backdrop click-to-close
+  - Follows pt_tracker.html detail display pattern for consistency
+  - Added CSS for `.details-btn`, `.pill`, `.detail-section` classes
+
 ## 2026-01-30
 
 ### Exercise Logging Enhancements (index.html)

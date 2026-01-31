@@ -322,11 +322,12 @@
             overflow: hidden;
             min-width: 60px;
             max-width: 200px;
+            border: 1px solid var(--border-color);
         }
 
         .coverage-bar-fill {
             height: 100%;
-            border-radius: 6px;
+            border-radius: 5px;
             transition: width 0.3s ease, background 0.3s ease, opacity 0.3s ease;
         }
 
@@ -459,27 +460,51 @@
             color: var(--text-secondary);
         }
 
-        /* Exercise List */
+        /* Exercise List - Card Format (matching pt/rehab_coverage.html) */
         .exercise-list {
             margin-top: 0.5rem;
+            padding: 4px 0;
         }
 
-        .exercise-chip {
-            display: inline-block;
+        .exercise-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            padding: 6px 8px;
+            margin: 3px 0;
             background: var(--bg-tertiary);
-            padding: 0.25rem 0.5rem;
-            margin: 0.15rem;
             border-radius: 4px;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
+            border-left: 3px solid;
         }
 
-        .exercise-chip.done {
-            background: var(--success-bg);
-            border-color: var(--success-color);
-            color: var(--success-color);
+        .exercise-card-icon {
+            min-width: 16px;
+            margin-top: 2px;
+            font-size: 14px;
         }
+
+        .exercise-card-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .exercise-card-title {
+            font-size: 13px;
+            font-weight: 500;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+
+        .exercise-card-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Contribution colors */
+        .contrib-high { border-left-color: var(--danger-color); }
+        .contrib-medium { border-left-color: var(--warning-color); }
+        .contrib-low { border-left-color: var(--accent-color); }
 
         .loading {
             text-align: center;
@@ -1572,9 +1597,30 @@
                         if (doneCount === 0) statusClass = 'not-covered';
                         else if (doneCount < totalCount) statusClass = 'needs-attention';
 
+                        // Render exercises as cards (matching pt/rehab_coverage.html format)
                         const exercisesHtml = focusExercises.map(ex => {
-                            const chipClass = ex.lastDone ? 'exercise-chip done' : 'exercise-chip';
-                            return `<span class="${chipClass}">${escapeHtml(ex.name)}</span>`;
+                            const isDone = !!ex.lastDone;
+                            const statusIcon = isDone ? '✓' : '⚠';
+                            const statusColor = isDone ? 'var(--success-color)' : 'var(--warning-color)';
+                            const statusText = isDone ? `${ex.daysSince || 0}d` : 'not done';
+
+                            // Contribution level determines left border color
+                            const contribution = ex.contribution || 'low';
+                            const contribClass = `contrib-${contribution}`;
+
+                            return `
+                                <div class="exercise-card ${contribClass}">
+                                    <span class="exercise-card-icon" style="color: ${statusColor};">${statusIcon}</span>
+                                    <div class="exercise-card-content">
+                                        <div class="exercise-card-title">${escapeHtml(ex.name)}</div>
+                                        <div class="exercise-card-meta">
+                                            <span style="color: ${contribution === 'high' ? 'var(--danger-color)' : contribution === 'medium' ? 'var(--warning-color)' : 'var(--accent-color)'}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">${contribution}</span>
+                                            <span style="margin: 0 6px; opacity: 0.5;">•</span>
+                                            <span style="color: ${statusColor};">${statusText}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
                         }).join('');
 
                         return `

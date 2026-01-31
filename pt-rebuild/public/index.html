@@ -387,10 +387,71 @@
             cursor: pointer;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            position: relative;
         }
 
         .exercise-card:active {
             background: #f0f0f0;
+        }
+
+        /* Details button - top right of exercise card */
+        .details-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .details-btn:active {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Pill badges for muscles, pattern, etc */
+        .pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Detail section spacing in modal */
+        .detail-section {
+            margin-bottom: 16px;
+        }
+
+        .detail-section-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .detail-section-content {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .detail-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .detail-list {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .detail-list li {
+            margin-bottom: 6px;
         }
 
         .exercise-name {
@@ -1087,6 +1148,17 @@
         </div>
     </div>
 
+    <!-- Exercise Details Modal -->
+    <div class="modal hidden" id="exercise-details-modal" data-action="closeExerciseDetailsModal" data-require-self="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="exercise-details-title">Exercise Details</h2>
+                <button class="close-btn" data-action="closeExerciseDetailsModal">&times;</button>
+            </div>
+            <div id="exercise-details-content"></div>
+        </div>
+    </div>
+
     <!-- Logger View -->
     <div id="loggerView" class="view">
         <div class="logger-header">
@@ -1707,6 +1779,7 @@
 
                     return `
                         <div class="exercise-card" data-action="select-exercise" data-id="${ex.id}">
+                            <button class="details-btn" data-action="showExerciseDetails" data-id="${ex.id}" data-stop-propagation="true">ℹ️</button>
                             <div class="exercise-name">${escapeHtml(ex.canonical_name)}</div>
                             <div class="exercise-dosage">${escapeHtml(formatDosage(ex))}</div>
                             ${adherenceHtml}
@@ -1747,6 +1820,158 @@
             }).join('');
 
             listEl.innerHTML = html;
+        }
+
+        /**
+         * Show exercise details modal with guidance, muscles, equipment info.
+         * Uses data-action pattern for iOS Safari/PWA compatibility.
+         */
+        function showExerciseDetails(exerciseId) {
+            const exercise = allExercises.find(ex => ex.id === exerciseId);
+            if (!exercise) {
+                showToast('Exercise not found', 'error');
+                return;
+            }
+
+            document.getElementById('exercise-details-title').textContent = exercise.canonical_name;
+
+            // Build detail HTML following pt_tracker.html pattern
+            let detailHtml = '';
+
+            // Description
+            if (exercise.description) {
+                detailHtml += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Description</div>
+                        <div class="detail-section-content">${escapeHtml(exercise.description)}</div>
+                    </div>
+                `;
+            }
+
+            // Pattern
+            if (exercise.pattern) {
+                const isSided = exercise.pattern === 'side';
+                const patternText = isSided ? '↔️ Sided Exercise (work left and right separately)' : '⬛ Bilateral Exercise (both sides together)';
+                const patternColor = isSided ? '#FF9500' : '#007AFF';
+                detailHtml += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Pattern</div>
+                        <div class="detail-pills">
+                            <span class="pill" style="background: ${patternColor}; color: white;">${patternText}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Primary Muscles
+            if (exercise.primary_muscles && exercise.primary_muscles.length > 0) {
+                detailHtml += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Primary Muscles</div>
+                        <div class="detail-pills">
+                            ${exercise.primary_muscles.map(m => `<span class="pill" style="background: rgba(0,122,255,0.1); color: #007AFF;">${escapeHtml(m)}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Secondary Muscles
+            if (exercise.secondary_muscles && exercise.secondary_muscles.length > 0) {
+                detailHtml += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Secondary Muscles</div>
+                        <div class="detail-pills">
+                            ${exercise.secondary_muscles.map(m => `<span class="pill" style="background: rgba(0,122,255,0.05); color: #666;">${escapeHtml(m)}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Equipment Required
+            if (exercise.equipment && exercise.equipment.required && exercise.equipment.required.length > 0) {
+                detailHtml += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Equipment Required</div>
+                        <div class="detail-section-content">${exercise.equipment.required.map(e => escapeHtml(e)).join(', ')}</div>
+                    </div>
+                `;
+            }
+
+            // Optional Equipment
+            if (exercise.equipment && exercise.equipment.optional && exercise.equipment.optional.length > 0) {
+                detailHtml += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Optional Equipment</div>
+                        <div class="detail-section-content">${exercise.equipment.optional.map(e => escapeHtml(e)).join(', ')}</div>
+                    </div>
+                `;
+            }
+
+            // Guidance sections
+            if (exercise.guidance) {
+                // External Cues
+                if (exercise.guidance.external_cues && exercise.guidance.external_cues.length > 0) {
+                    detailHtml += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">👀 External Cues</div>
+                            <ul class="detail-list">
+                                ${exercise.guidance.external_cues.map(cue => `<li>${escapeHtml(cue)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Motor Cues
+                if (exercise.guidance.motor_cues && exercise.guidance.motor_cues.length > 0) {
+                    detailHtml += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">💪 Motor Cues</div>
+                            <ul class="detail-list">
+                                ${exercise.guidance.motor_cues.map(cue => `<li>${escapeHtml(cue)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Compensation Warnings
+                if (exercise.guidance.compensation_warnings && exercise.guidance.compensation_warnings.length > 0) {
+                    detailHtml += `
+                        <div class="detail-section">
+                            <div class="detail-section-title" style="color: #FF9500;">⚠️ Compensation Warnings</div>
+                            <ul class="detail-list">
+                                ${exercise.guidance.compensation_warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Safety Flags
+                if (exercise.guidance.safety_flags && exercise.guidance.safety_flags.length > 0) {
+                    detailHtml += `
+                        <div class="detail-section">
+                            <div class="detail-section-title" style="color: #FF3B30;">🛑 Safety Flags</div>
+                            <ul class="detail-list" style="color: #FF3B30;">
+                                ${exercise.guidance.safety_flags.map(f => `<li>${escapeHtml(f)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+            }
+
+            // If no details available
+            if (!detailHtml) {
+                detailHtml = '<div class="detail-section-content">No additional details available for this exercise.</div>';
+            }
+
+            document.getElementById('exercise-details-content').innerHTML = detailHtml;
+            document.getElementById('exercise-details-modal').classList.remove('hidden');
+        }
+
+        /**
+         * Close the exercise details modal.
+         */
+        function closeExerciseDetailsModal() {
+            document.getElementById('exercise-details-modal').classList.add('hidden');
         }
 
         // Exercise selection
@@ -3779,6 +4004,16 @@ ${queueData}
                 const target = e.target.closest('[data-action]');
                 if (!target) return;
 
+                // Prevent parent action handlers from firing
+                if (target.dataset.stopPropagation === 'true') {
+                    e.stopPropagation();
+                }
+
+                // For modal backdrops: only trigger if click was directly on the element (not children)
+                if (target.dataset.requireSelf === 'true' && e.target !== target) {
+                    return;
+                }
+
                 const action = target.dataset.action;
 
                 switch (action) {
@@ -3787,6 +4022,12 @@ ${queueData}
                         break;
                     case 'select-exercise':
                         selectExercise(target.dataset.id);
+                        break;
+                    case 'showExerciseDetails':
+                        showExerciseDetails(target.dataset.id);
+                        break;
+                    case 'closeExerciseDetailsModal':
+                        closeExerciseDetailsModal();
                         break;
                     case 'counter-tap':
                     case 'counter-increase':
