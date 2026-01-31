@@ -225,6 +225,20 @@
             padding: 8px;
         }
 
+        .hamburger-user-info {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .hamburger-user-info strong {
+            display: block;
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
         .hamburger-item {
             padding: 16px 20px;
             border-bottom: 1px solid var(--border-color);
@@ -717,6 +731,10 @@
             <h3>Menu</h3>
             <button class="hamburger-close" data-action="toggle-hamburger">Close</button>
         </div>
+        <div class="hamburger-user-info" id="userInfo">
+            <strong>Signed in as</strong>
+            <span id="userEmail">Loading...</span>
+        </div>
         <div>
             <a href="index.html" class="hamburger-item" id="ptTrackerLink">
                 <span class="hamburger-icon">🏠</span>
@@ -725,6 +743,10 @@
             <a href="pt_view.html" class="hamburger-item">
                 <span class="hamburger-icon">📊</span>
                 <span>View History</span>
+            </a>
+            <a href="pt_editor.html" class="hamburger-item">
+                <span class="hamburger-icon">✏️</span>
+                <span>Exercise Editor</span>
             </a>
             <div class="hamburger-item" data-action="refresh-data">
                 <span class="hamburger-icon">🔄</span>
@@ -1436,6 +1458,12 @@
          * Update menu items based on user role
          */
         function updateMenuVisibility() {
+            // Update user email display
+            const userEmailEl = document.getElementById('userEmail');
+            if (userEmailEl && currentUser) {
+                userEmailEl.textContent = currentUser.email || 'Unknown';
+            }
+
             const ptTrackerLink = document.getElementById('ptTrackerLink');
             if (ptTrackerLink) {
                 // Only show PT Tracker link for patients

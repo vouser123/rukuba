@@ -217,11 +217,24 @@ async function handleAuthSuccess(session) {
         document.getElementById('authModal').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
 
+        // Check if user has programs assigned (they're also a patient)
+        // Pass the auth_id - the API's resolvePatientId() will map it to the users.id
+        let showTrackerLink = false;
+        try {
+            const programsResponse = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
+            const programs = programsResponse.programs || [];
+            showTrackerLink = programs.length > 0;
+        } catch (e) {
+            // If programs fetch fails, default to not showing the link
+            console.warn('Could not check for patient programs:', e);
+        }
+
         // Initialize hamburger menu with user info
         if (typeof HamburgerMenu !== 'undefined') {
             HamburgerMenu.init({
                 currentUser: currentUser,
                 signOutFn: signOut,
+                showTrackerLink: showTrackerLink,
                 onAction: (action) => {
                     if (action === 'clear-form') {
                         clearForm();

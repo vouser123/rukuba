@@ -1016,11 +1016,23 @@
 
                 await loadCurrentUserProfile();
 
-                const result = await fetchWithAuth('/api/logs?limit=1000');
-                allLogs = result.logs || [];
+                // Load logs and programs in parallel
+                const [logsResult, programsResult] = await Promise.all([
+                    fetchWithAuth('/api/logs?limit=1000'),
+                    fetchWithAuth('/api/programs').catch(() => ({ programs: [] }))
+                ]);
+
+                allLogs = logsResult.logs || [];
+                allPrograms = programsResult.programs || [];
+
+                // Render patient notes first (most important for therapist)
+                renderPatientNotes();
 
                 // Update summary stats
                 updateSummary();
+
+                // Render needs attention section
+                renderNeedsAttention();
 
                 // Populate exercise filter
                 populateExerciseFilter();
@@ -1070,68 +1082,183 @@
             }
         }
 
-        // Summary stats
-        function updateSummary() {
-            const totalSessions = allLogs.length;
-            const totalSets = allLogs.reduce((sum, log) => sum + (log.sets ? log.sets.length : 0), 0);
+        // Concerning words that should be highlighted in notes
+        const CONCERNING_WORDS = ['pain', 'sharp', 'couldn\'t', 'couldn't', 'unable', 'stopped', 'worse', 'difficult', 'hurt', 'ache', 'sore', 'swelling', 'tingling', 'numbness'];
 
-            // Last 7 days
+        /**
+         * Render patient notes at the top - MUST stand out for therapist
+         */
+        function renderPatientNotes() {
+            const container = document.getElementById('notesList');
+            const countEl = document.getElementById('notesCount');
+            const section = document.getElementById('notesAlertSection');
+
+            // Get logs with notes from last 7 days
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            const recentSessions = allLogs.filter(log =>
-                new Date(log.performed_at) >= sevenDaysAgo
-            ).length;
 
-            document.getElementById('totalSessions').textContent = totalSessions;
-            document.getElementById('totalSets').textContent = totalSets;
-            document.getElementById('recentSessions').textContent = recentSessions;
+            const logsWithNotes = allLogs
+                .filter(log => log.notes && log.notes.trim() && new Date(log.performed_at) >= sevenDaysAgo)
+                .slice(0, 10); // Limit to 10
 
-            // Render top exercises
-            renderTopExercises();
-        }
-
-        // Top exercises
-        function renderTopExercises() {
-            const container = document.getElementById('topExercises');
-
-            if (allLogs.length === 0) {
-                container.innerHTML = '<div style="color: #666; font-size: 13px; padding: 12px;">No exercises recorded yet</div>';
+            if (logsWithNotes.length === 0) {
+                section.classList.add('empty');
                 return;
             }
 
-            // Group by exercise
-            const exerciseGroups = {};
-            allLogs.forEach(log => {
-                const id = log.exercise_id || log.exercise_name;
-                const name = log.exercise_name;
-
-                if (!exerciseGroups[id]) {
-                    exerciseGroups[id] = { id, name, sessions: [], totalSets: 0 };
-                }
-                exerciseGroups[id].sessions.push(log);
-                exerciseGroups[id].totalSets += (log.sets || []).length;
-            });
-
-            // Sort by session count and take top 10
-            const topExercises = Object.values(exerciseGroups)
-                .sort((a, b) => b.sessions.length - a.sessions.length)
-                .slice(0, 10);
+            section.classList.remove('empty');
+            countEl.textContent = logsWithNotes.length;
 
             let html = '';
-            topExercises.forEach(ex => {
-                const lastSession = ex.sessions[0]; // Already sorted desc by performed_at
-                const lastDate = new Date(lastSession.performed_at);
-                const timeAgo = formatTimeAgo(lastDate);
-                const hasNotes = ex.sessions.some(s => s.notes);
+            logsWithNotes.forEach(log => {
+                const date = new Date(log.performed_at);
+                const dateStr = formatTimeAgo(date);
+                const noteText = escapeHtml(log.notes);
+
+                // Check for concerning words
+                const isConcerning = CONCERNING_WORDS.some(word =>
+                    log.notes.toLowerCase().includes(word)
+                );
+
+                // Highlight concerning words in the note
+                let highlightedNote = noteText;
+                if (isConcerning) {
+                    CONCERNING_WORDS.forEach(word => {
+                        const regex = new RegExp(`(${word})`, 'gi');
+                        highlightedNote = highlightedNote.replace(regex, '<span class="concerning-word">$1</span>');
+                    });
+                }
 
                 html += `
-                    <div class="exercise-card" data-action="show-exercise-history" data-exercise-id="${ex.id}" data-exercise-name="${ex.name}">
+                    <div class="note-card ${isConcerning ? 'concerning' : ''}">
+                        <div class="note-meta">
+                            <span class="note-date">${dateStr}</span>
+                            <span class="note-exercise">${escapeHtml(log.exercise_name)}</span>
+                        </div>
+                        <div class="note-text">${highlightedNote}</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Summary stats - REHAB focused (not gym)
+        function updateSummary() {
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            // Days active in last 7 days
+            const activeDays = new Set();
+            allLogs.forEach(log => {
+                const logDate = new Date(log.performed_at);
+                if (logDate >= sevenDaysAgo) {
+                    activeDays.add(logDate.toDateString());
+                }
+            });
+            document.getElementById('daysActive').textContent = `${activeDays.size}/7`;
+
+            // Color code days active
+            const daysActiveEl = document.getElementById('daysActive');
+            if (activeDays.size >= 5) {
+                daysActiveEl.style.color = '#28a745';
+            } else if (activeDays.size >= 3) {
+                daysActiveEl.style.color = '#ffc107';
+            } else {
+                daysActiveEl.style.color = '#dc3545';
+            }
+
+            // Exercises covered vs prescribed
+            const prescribedExercises = new Set(allPrograms.map(p => p.exercise_id || p.exercise_name));
+            const doneExercises = new Set();
+            allLogs.forEach(log => {
+                if (new Date(log.performed_at) >= sevenDaysAgo) {
+                    doneExercises.add(log.exercise_id || log.exercise_name);
+                }
+            });
+
+            const totalPrescribed = prescribedExercises.size || doneExercises.size;
+            const doneCount = totalPrescribed > 0
+                ? [...doneExercises].filter(ex => prescribedExercises.has(ex) || prescribedExercises.size === 0).length
+                : doneExercises.size;
+
+            document.getElementById('exercisesCovered').textContent = `${doneCount}/${totalPrescribed}`;
+
+            // Calculate needs attention count
+            const needsAttentionCount = calculateNeedsAttention().length;
+            const needsAttentionEl = document.getElementById('needsAttention');
+            needsAttentionEl.textContent = needsAttentionCount;
+            needsAttentionEl.style.color = needsAttentionCount > 3 ? '#dc3545' : needsAttentionCount > 0 ? '#ff9800' : '#28a745';
+        }
+
+        /**
+         * Calculate which exercises need attention (overdue 7+ days)
+         */
+        function calculateNeedsAttention() {
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            // Build map of last done dates
+            const lastDoneMap = {};
+            allLogs.forEach(log => {
+                const id = log.exercise_id || log.exercise_name;
+                const date = new Date(log.performed_at);
+                if (!lastDoneMap[id] || date > lastDoneMap[id].date) {
+                    lastDoneMap[id] = { date, name: log.exercise_name };
+                }
+            });
+
+            // Find exercises not done in 7+ days
+            const now = new Date();
+            const overdue = [];
+
+            // Check prescribed exercises
+            allPrograms.forEach(program => {
+                const id = program.exercise_id || program.exercise_name;
+                const name = program.exercise_name || program.canonical_name || id;
+                const lastDone = lastDoneMap[id];
+
+                if (!lastDone) {
+                    // Never done
+                    overdue.push({ id, name, daysSince: Infinity, neverDone: true });
+                } else {
+                    const daysSince = Math.floor((now - lastDone.date) / (1000 * 60 * 60 * 24));
+                    if (daysSince >= 7) {
+                        overdue.push({ id, name: lastDone.name, daysSince, neverDone: false });
+                    }
+                }
+            });
+
+            // Sort by days since (worst first)
+            overdue.sort((a, b) => b.daysSince - a.daysSince);
+
+            return overdue;
+        }
+
+        /**
+         * Render exercises that need attention (overdue)
+         */
+        function renderNeedsAttention() {
+            const container = document.getElementById('needsAttentionList');
+            const overdue = calculateNeedsAttention();
+
+            if (overdue.length === 0) {
+                container.innerHTML = '<div style="color: #28a745; font-size: 13px; padding: 12px;">✓ All exercises up to date!</div>';
+                return;
+            }
+
+            let html = '';
+            overdue.slice(0, 10).forEach(ex => {
+                const urgencyColor = ex.daysSince > 14 || ex.neverDone ? '#dc3545' : ex.daysSince > 10 ? '#ff5722' : '#ff9800';
+                const statusText = ex.neverDone ? 'Never done' : `${ex.daysSince} days ago`;
+
+                html += `
+                    <div class="exercise-card" data-action="show-exercise-history" data-exercise-id="${ex.id}" data-exercise-name="${escapeHtml(ex.name)}" style="border-left: 4px solid ${urgencyColor};">
                         <div class="exercise-card-title">
                             ${escapeHtml(ex.name)}
-                            ${hasNotes ? '<span style="color: #007bff; margin-left: 6px;" title="Has notes">📝</span>' : ''}
                         </div>
-                        <div class="exercise-card-meta">
-                            ${ex.sessions.length} logs • ${ex.totalSets} sets • Last: ${timeAgo}
+                        <div class="exercise-card-meta" style="color: ${urgencyColor}; font-weight: 600;">
+                            ⚠️ ${statusText}
                         </div>
                     </div>
                 `;

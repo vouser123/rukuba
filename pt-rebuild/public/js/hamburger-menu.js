@@ -15,7 +15,8 @@ const HamburgerMenu = {
     config: {
         currentUser: null,
         signOutFn: null,
-        onAction: null // Custom action handler
+        onAction: null, // Custom action handler
+        showTrackerLink: null // Explicit override for PT Tracker link visibility (null = auto-detect)
     },
 
     /**
@@ -66,10 +67,16 @@ const HamburgerMenu = {
         }
 
         // Show PT Tracker link for patients
+        // Uses explicit override if provided, otherwise auto-detects from user metadata
         if (patientLink && user) {
-            const isPatient = user.user_metadata?.patient_id ||
-                              user.app_metadata?.role === 'patient';
-            patientLink.style.display = isPatient ? 'flex' : 'none';
+            let showLink = this.config.showTrackerLink;
+            if (showLink === null) {
+                // Auto-detect: check user metadata for patient indicators
+                showLink = !!(user.user_metadata?.patient_id ||
+                             user.app_metadata?.role === 'patient' ||
+                             user.role === 'patient');
+            }
+            patientLink.style.display = showLink ? 'flex' : 'none';
         }
     },
 

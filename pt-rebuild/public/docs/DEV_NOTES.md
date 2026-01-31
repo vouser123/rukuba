@@ -5,6 +5,32 @@ For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
 
 ## 2026-01-31
 
+### Rehab-Focused pt_view.html Overhaul
+
+- **Problem:** pt_view.html was using gym-style metrics (Total Sessions, Total Sets, Top Exercises) inappropriate for physical therapy rehab tracking. Session notes from patients were buried and hard to find.
+- **What I did:** Complete overhaul to make the page rehab-focused.
+  - **Patient Notes Section:** Added prominent alert-styled section at TOP of page
+    - Yellow/orange border-left styling to grab attention
+    - Shows sessions with notes from past 7 days
+    - Concerning words (pain, sharp, couldn't, etc.) are highlighted in red
+    - Each note shows date, exercise name, and note text in quotes
+  - **Rehab Metrics:** Replaced gym metrics with rehab-appropriate ones
+    - "Days Active" (X/7) - emphasizes consistency over volume
+    - "Exercises Covered" (X/Y) - breadth over depth
+    - "Needs Attention" count - shows overdue exercises
+  - **Needs Attention Section:** Replaced "Top Exercises" with exercises not done in 7+ days
+    - Color-coded urgency: orange (7-10 days), red (11+ days)
+    - Shows days since last done
+    - Prioritizes HIGH contribution exercises
+
+### PT Tracker Link in Hamburger Menu (pt_editor.html)
+
+- **Problem:** Admin/therapist users who also have exercises assigned couldn't see the PT Tracker link in the hamburger menu.
+- **What I did:** Updated HamburgerMenu module and pt_editor.js to check if user has programs assigned.
+  - Added `showTrackerLink` option to HamburgerMenu.init() for explicit control
+  - pt_editor.js now fetches user's programs and shows PT Tracker link if any exist
+  - This allows therapists/admins who are also patients to access their tracker
+
 ### Coverage Legend & Metrics Display (rehab_coverage.html)
 
 - **Problem:** Users couldn't understand what the bar colors, widths, and opacities meant.
