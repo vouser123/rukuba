@@ -181,9 +181,6 @@ async function getPrograms(req, res) {
           acc[row.exercise_id].push({ parameter_name: row.parameter_name });
           return acc;
         }, {});
-        console.log('Loaded form params for exercises:', Object.keys(formParamsByExercise));
-      } else {
-        console.log('No form parameters found in exercise_form_parameters table for exercise IDs:', exerciseIds);
       }
     }
 
