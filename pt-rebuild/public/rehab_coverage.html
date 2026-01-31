@@ -800,8 +800,8 @@
             </div>
 
             <div class="legend-section">
-                <div class="legend-section-title">Bar Opacity = 21-Day Trend</div>
-                <p class="legend-description">Long-term engagement pattern. Fades slowly when missed, recovers quickly when resumed.</p>
+                <div class="legend-section-title">Bar Opacity = 3-Week Momentum</div>
+                <p class="legend-description">Shows if you're keeping up over time. <strong>Solid = exercising regularly.</strong> <strong>Faded = falling behind.</strong> Bars fade slowly when you skip sessions, but brighten quickly when you get back on track.</p>
                 <div class="legend-row">
                     <div class="legend-opacity-samples">
                         <div class="legend-opacity-sample" style="background: #007AFF; opacity: 1;"></div>
@@ -809,7 +809,10 @@
                         <div class="legend-opacity-sample" style="background: #007AFF; opacity: 0.4;"></div>
                         <div class="legend-opacity-sample" style="background: #007AFF; opacity: 0.15;"></div>
                     </div>
-                    <span>Solid → Faded = Active → Neglected</span>
+                    <span>Solid → Faded</span>
+                </div>
+                <div class="legend-row" style="margin-top: 4px;">
+                    <span style="font-size: 12px;">↑ steady = doing great &nbsp;|&nbsp; → ok = on track &nbsp;|&nbsp; ↓ slipping = do more</span>
                 </div>
             </div>
 
@@ -1713,17 +1716,19 @@
             const avgOpacity = regionCount > 0 ? Math.round(totalOpacity / regionCount) : 0;
 
             const trendEl = document.getElementById('trendStatus');
+            // Make trend understandable: higher % = more consistent over 3 weeks
+            // Add arrows and plain language
             if (avgOpacity >= 70) {
-                trendEl.textContent = `Excellent (${avgOpacity}%)`;
+                trendEl.textContent = `📈 Strong (${avgOpacity}%) - exercising consistently`;
                 trendEl.style.color = 'var(--success-color)';
             } else if (avgOpacity >= 50) {
-                trendEl.textContent = `Good (${avgOpacity}%)`;
+                trendEl.textContent = `↗️ Building (${avgOpacity}%) - good momentum`;
                 trendEl.style.color = 'var(--success-color)';
             } else if (avgOpacity >= 30) {
-                trendEl.textContent = `Needs Attention (${avgOpacity}%)`;
+                trendEl.textContent = `↘️ Fading (${avgOpacity}%) - activity dropping`;
                 trendEl.style.color = 'var(--warning-color)';
             } else {
-                trendEl.textContent = `Low Activity (${avgOpacity}%)`;
+                trendEl.textContent = `📉 Low (${avgOpacity}%) - needs more sessions`;
                 trendEl.style.color = 'var(--danger-color)';
             }
         }
@@ -1830,13 +1835,20 @@
                     // Build descriptive subtitle for the bar
                     // Color score: 100=green, 0=red. Map to recency.
                     let recencyText = '';
-                    if (colorScore >= 80) recencyText = 'done recently';
-                    else if (colorScore >= 60) recencyText = 'a few days ago';
-                    else if (colorScore >= 40) recencyText = 'needs attention';
-                    else if (colorScore >= 20) recencyText = 'overdue';
-                    else recencyText = 'very overdue';
+                    if (colorScore >= 80) recencyText = '✓ done recently';
+                    else if (colorScore >= 60) recencyText = '~ a few days ago';
+                    else if (colorScore >= 40) recencyText = '⚠ getting stale';
+                    else if (colorScore >= 20) recencyText = '! overdue';
+                    else recencyText = '!! very overdue';
 
-                    const barExplanation = `${percent}% weekly • ${recencyText} • ${opacity}% trend`;
+                    // Make trend clearer with arrow
+                    let trendText = '';
+                    if (opacity >= 70) trendText = `↑ steady (${opacity}%)`;
+                    else if (opacity >= 50) trendText = `→ ok (${opacity}%)`;
+                    else if (opacity >= 30) trendText = `↓ slipping (${opacity}%)`;
+                    else trendText = `↓↓ low (${opacity}%)`;
+
+                    const barExplanation = `This week: ${percent}% • Last done: ${recencyText} • 3-week: ${trendText}`;
 
                     return `
                         <div class="capacity-group" id="cap-${escapeHtml(region)}-${escapeHtml(capacity)}">
