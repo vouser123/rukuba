@@ -1409,12 +1409,14 @@
                     };
                 }
 
+                const lastDoneDate = lastDoneDates.get(exerciseId) || null;
                 coverageData[region][capacity].exercises.push({
                     id: exerciseId,
                     name: exerciseName,
                     contribution,
                     focus,
-                    lastDone: lastDoneDates.get(exerciseId) || null,
+                    lastDone: lastDoneDate,
+                    daysSince: lastDoneDate ? daysBetween(lastDoneDate, currentDate) : null,
                     days7: history7Days.get(exerciseId) || 0,
                     days21: history21Days.get(exerciseId) || 0
                 });

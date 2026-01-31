@@ -93,9 +93,36 @@ async function processActivityLog(supabase, patientId, payload) {
     sets
   } = payload;
 
-  // Validation
+  // Validation - check required fields exist
   if (!exercise_name || !activity_type || !performed_at || !client_mutation_id || !sets) {
     return { success: false, error: 'Missing required fields' };
+  }
+
+  // Validate field types and formats
+  if (typeof exercise_name !== 'string' || exercise_name.length === 0 || exercise_name.length > 255) {
+    return { success: false, error: 'Invalid exercise_name (must be string 1-255 chars)' };
+  }
+
+  if (!['reps', 'hold', 'duration', 'distance'].includes(activity_type)) {
+    return { success: false, error: 'Invalid activity_type' };
+  }
+
+  if (!Array.isArray(sets) || sets.length === 0) {
+    return { success: false, error: 'Invalid sets (must be non-empty array)' };
+  }
+
+  // Validate performed_at is a valid ISO date
+  const performedDate = new Date(performed_at);
+  if (isNaN(performedDate.getTime())) {
+    return { success: false, error: 'Invalid performed_at date' };
+  }
+
+  // Validate each set
+  for (let i = 0; i < sets.length; i++) {
+    const set = sets[i];
+    if (typeof set.set_number !== 'number' || set.set_number < 1) {
+      return { success: false, error: `Invalid set_number at index ${i}` };
+    }
   }
 
   try {

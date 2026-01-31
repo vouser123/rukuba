@@ -19,6 +19,19 @@ let currentSets = [];
 let repCount = 0;
 
 /**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
  * Initialize app
  */
 async function init() {
@@ -221,20 +234,15 @@ async function loadExercises() {
   const exercises = await offlineManager.getCachedExercises();
   const programs = await offlineManager.getCachedPrograms(currentUser.id);
 
-  console.log('loadExercises called:', {
-    exercisesCount: exercises?.length,
-    programsCount: programs?.length,
-    programsType: typeof programs,
-    programsIsArray: Array.isArray(programs),
-    firstProgram: programs?.[0]
-  });
-
   const list = document.getElementById('exercise-list');
+  if (!list) {
+    console.error('exercise-list element not found');
+    return;
+  }
   list.innerHTML = '';
 
   // Check if programs is valid array before iterating
   if (!Array.isArray(programs) || programs.length === 0) {
-    console.error('Programs invalid or empty:', programs);
     list.innerHTML = '<li style="padding: 20px; text-align: center; color: #666;">No exercises assigned. Contact your therapist.</li>';
     return;
   }
@@ -259,8 +267,8 @@ async function loadExercises() {
     if (program.seconds_per_set) dosageText += ` × ${program.seconds_per_set}s`;
 
     li.innerHTML = `
-      <strong>${exercise.canonical_name}</strong>
-      <span>${dosageText}</span>
+      <strong>${escapeHtml(exercise.canonical_name)}</strong>
+      <span>${escapeHtml(dosageText)}</span>
     `;
     list.appendChild(li);
   });

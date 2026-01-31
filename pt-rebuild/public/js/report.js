@@ -13,6 +13,19 @@ let allExercises = [];
 let currentExercise = null;
 let currentAssignment = null;
 
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
@@ -206,13 +219,13 @@ function displayExercises(exercises) {
     li.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: start;">
         <div style="flex: 1;">
-          <strong style="display: block; font-size: 16px; color: #2c3e50; margin-bottom: 4px;">${ex.canonical_name}</strong>
-          <span style="font-size: 14px; color: #7f8c8d; display: block; margin-bottom: 4px;">${ex.description}</span>
-          <span style="font-size: 12px; color: #95a5a6;">Category: ${ex.pt_category} | Pattern: ${ex.pattern}</span>
+          <strong style="display: block; font-size: 16px; color: #2c3e50; margin-bottom: 4px;">${escapeHtml(ex.canonical_name)}</strong>
+          <span style="font-size: 14px; color: #7f8c8d; display: block; margin-bottom: 4px;">${escapeHtml(ex.description)}</span>
+          <span style="font-size: 12px; color: #95a5a6;">Category: ${escapeHtml(ex.pt_category)} | Pattern: ${escapeHtml(ex.pattern)}</span>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button data-action="edit-exercise" data-exercise-id="${ex.id}" style="padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 14px;">Edit</button>
-          <button data-action="delete-exercise" data-exercise-id="${ex.id}" style="padding: 8px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; font-size: 14px;">Archive</button>
+          <button data-action="edit-exercise" data-exercise-id="${escapeHtml(ex.id)}" style="padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 14px;">Edit</button>
+          <button data-action="delete-exercise" data-exercise-id="${escapeHtml(ex.id)}" style="padding: 8px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; font-size: 14px;">Archive</button>
         </div>
       </div>
     `;
@@ -298,13 +311,13 @@ function displayAssignments(programs) {
     li.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: start;">
         <div style="flex: 1;">
-          <strong style="display: block; font-size: 16px; color: #2c3e50; margin-bottom: 4px;">${ex.canonical_name}</strong>
-          <span style="font-size: 14px; color: #7f8c8d; display: block; margin-bottom: 4px;">${dosageText}</span>
-          <span style="font-size: 12px; color: #95a5a6;">Type: ${prog.dosage_type}</span>
+          <strong style="display: block; font-size: 16px; color: #2c3e50; margin-bottom: 4px;">${escapeHtml(ex.canonical_name)}</strong>
+          <span style="font-size: 14px; color: #7f8c8d; display: block; margin-bottom: 4px;">${escapeHtml(dosageText)}</span>
+          <span style="font-size: 12px; color: #95a5a6;">Type: ${escapeHtml(prog.dosage_type)}</span>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button data-action="edit-assignment" data-assignment-id="${prog.id}" style="padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 14px;">Edit</button>
-          <button data-action="delete-assignment" data-assignment-id="${prog.id}" style="padding: 8px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; font-size: 14px;">Remove</button>
+          <button data-action="edit-assignment" data-assignment-id="${escapeHtml(prog.id)}" style="padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 14px;">Edit</button>
+          <button data-action="delete-assignment" data-assignment-id="${escapeHtml(prog.id)}" style="padding: 8px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; font-size: 14px;">Remove</button>
         </div>
       </div>
     `;

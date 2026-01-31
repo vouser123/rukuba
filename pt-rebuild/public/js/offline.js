@@ -249,13 +249,14 @@ class OfflineManager {
       const tx = this.db.transaction(['offline_queue'], 'readwrite');
       const store = tx.objectStore('offline_queue');
 
-      for (const item of processed) {
-        // Find and delete by client_mutation_id
-        const allItems = await store.getAll();
-        for (const queueItem of allItems) {
-          if (queueItem.payload?.client_mutation_id === item.client_mutation_id) {
-            await store.delete(queueItem.id);
-          }
+      // Build set of processed mutation IDs for O(1) lookup
+      const processedIds = new Set(processed.map(item => item.client_mutation_id));
+
+      // Get all items once, then delete matches
+      const allItems = await store.getAll();
+      for (const queueItem of allItems) {
+        if (processedIds.has(queueItem.payload?.client_mutation_id)) {
+          await store.delete(queueItem.id);
         }
       }
 
