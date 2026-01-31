@@ -121,6 +121,106 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Patient Notes Alert Section - MUST stand out for therapist */
+        .notes-alert-section {
+            margin: 1rem;
+            background: #fff8e1;
+            border: 2px solid #ffc107;
+            border-left: 6px solid #ff9800;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .notes-alert-section.empty {
+            display: none;
+        }
+
+        .notes-header {
+            background: #ff9800;
+            color: white;
+            padding: 0.75rem 1rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notes-header-count {
+            background: white;
+            color: #ff9800;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .notes-list {
+            padding: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .note-card {
+            background: white;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .note-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .note-card.concerning {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        .note-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .note-date {
+            color: #666;
+        }
+
+        .note-exercise {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .note-text {
+            font-size: 1rem;
+            color: #333;
+            font-style: italic;
+            line-height: 1.4;
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.03);
+            border-radius: 4px;
+        }
+
+        .note-text::before {
+            content: '"';
+        }
+
+        .note-text::after {
+            content: '"';
+        }
+
+        .concerning-word {
+            background: #ffcdd2;
+            color: #c62828;
+            padding: 0 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
         /* Summary Cards */
         .summary-section {
             padding: 1rem;
@@ -693,26 +793,37 @@
         </div>
     </div>
 
-    <!-- Summary -->
-    <div class="summary-section">
-        <div class="summary-card">
-            <div class="summary-label">Total Sessions</div>
-            <div class="summary-value" id="totalSessions">0</div>
+    <!-- Patient Notes - MUST be at top, visible at a glance -->
+    <div class="notes-alert-section" id="notesAlertSection">
+        <div class="notes-header">
+            <span>📝 Patient Notes</span>
+            <span class="notes-header-count" id="notesCount">0</span>
         </div>
-        <div class="summary-card">
-            <div class="summary-label">Total Sets</div>
-            <div class="summary-value" id="totalSets">0</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-label">Last 7 Days</div>
-            <div class="summary-value" id="recentSessions">0</div>
+        <div class="notes-list" id="notesList">
+            <div class="loading">Loading notes...</div>
         </div>
     </div>
 
-    <!-- Top Exercises -->
+    <!-- Summary -->
+    <div class="summary-section">
+        <div class="summary-card">
+            <div class="summary-label">Days Active (7d)</div>
+            <div class="summary-value" id="daysActive">0/7</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Exercises Done</div>
+            <div class="summary-value" id="exercisesCovered">0/0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Needs Attention</div>
+            <div class="summary-value" id="needsAttention" style="color: #ff9800;">0</div>
+        </div>
+    </div>
+
+    <!-- Needs Attention - Exercises overdue or missed -->
     <div class="section">
-        <div class="section-title">Top Exercises</div>
-        <div id="topExercises" class="top-exercises-grid">
+        <div class="section-title">⚠️ Needs Attention</div>
+        <div id="needsAttentionList" class="top-exercises-grid">
             <div class="loading">Loading...</div>
         </div>
     </div>
@@ -798,6 +909,7 @@
         let authToken = null;
         let currentUserProfileId = null;
         let allLogs = [];
+        let allPrograms = []; // Prescribed exercises
         let filteredLogs = [];
         let lastReadMessageTime = localStorage.getItem('lastReadMessageTime') || new Date(0).toISOString();
 
