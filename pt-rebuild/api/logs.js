@@ -416,6 +416,7 @@ async function updateMessage(req, res) {
 
     if (read !== undefined && isRecipient) {
       updates.read_by_recipient = read;
+      updates.read_at = read ? new Date().toISOString() : null;
     }
 
     if (archived !== undefined) {
