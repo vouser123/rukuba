@@ -34,3 +34,11 @@ This file tracks development progress on the Supabase/Vercel rebuild of the PT t
 - **2026-01-31** — **Cleanup:** Deleted unused files `tracker.html` and `pt_tracker.html` (legacy Firebase version still exists in `/pt`). Updated `sw.js` cache to v6 with correct asset list including self-hosted Supabase SDK.
 
 - **2026-01-31** — **New icon:** Created PT² icon variant (dark grey background #333, white "PT", powder blue superscript "2") to distinguish rebuild from original `/pt` app on iOS home screen. **Files:** `icons/icon.svg`, `manifest.json`.
+
+## 2026-02-01
+
+- **2026-02-01** — **Problem:** Duration timer exercises logged 0 seconds instead of actual elapsed time when timer reached 0. **What I did:** When duration timer hits 0, the code was resetting `timerState.elapsedMs = 0`, so `confirmNextSet()` captured 0 instead of actual time. Fixed by setting `timerState.elapsedMs = timerState.targetSeconds * 1000` when duration completes, preserving the actual elapsed time for logging. **Files:** `pt-rebuild/public/index.html`.
+
+- **2026-02-01** — **Problem:** Form parameters (band_resistance, weight, etc.) and pattern modifiers (hold_seconds, duration_seconds, distance_feet) not displayed in history views. **What I did:** (1) Updated `renderHistory()` in index.html to show sets summary with reps/seconds/distance (e.g., "3 sets: 10r, 10r × 30s") and form params from first set. (2) Updated pt_view.html compact summary to show combined reps×seconds format and form params. (3) Updated pt_view.html expanded set details to include form_data with format "parameter_name: value unit". **Files:** `pt-rebuild/public/index.html`, `pt-rebuild/public/pt_view.html`.
+
+- **2026-02-01** — **Problem:** rehab_coverage.html calling non-existent `/api/users/me` endpoint causing 404 error. **What I did:** Instead of creating new API endpoint (Vercel function limit), added `user_role` field to existing `/api/roles` GET response since auth middleware already loads user role. Updated rehab_coverage.html to extract role from roles response in `loadData()` instead of separate API call. **Files:** `pt-rebuild/api/roles.js`, `pt-rebuild/public/rehab_coverage.html`.

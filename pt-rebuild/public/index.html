@@ -1916,11 +1916,30 @@
                 });
                 const setsCount = log.sets ? log.sets.length : 0;
 
+                // Build sets summary with reps/seconds/distance
+                const setsSummary = log.sets ? log.sets.map(s => {
+                    if (s.reps && s.seconds) return `${s.reps} × ${s.seconds}s`;
+                    if (s.reps) return `${s.reps} reps`;
+                    if (s.seconds) return `${s.seconds}s`;
+                    if (s.distance_feet) return `${s.distance_feet} ft`;
+                    return '';
+                }).filter(Boolean).join(', ') : '';
+
+                // Extract form parameters from the first set (typically same across sets)
+                let formParamsHtml = '';
+                if (log.sets && log.sets.length > 0 && log.sets[0].form_data && log.sets[0].form_data.length > 0) {
+                    const params = log.sets[0].form_data.map(p =>
+                        `${p.parameter_value}${p.parameter_unit ? ' ' + p.parameter_unit : ''}`
+                    ).join(', ');
+                    formParamsHtml = `<div class="session-params" style="font-size: 0.85rem; color: #888; margin-top: 2px;">${params}</div>`;
+                }
+
                 return `
                     <div class="session-card" data-action="edit-session" data-log-id="${log.id}" style="cursor: pointer;">
                         <div class="session-date">${dateStr}</div>
                         <div class="session-exercise">${escapeHtml(log.exercise_name)}</div>
-                        <div class="session-sets">${setsCount} sets logged</div>
+                        <div class="session-sets">${setsCount} sets: ${setsSummary}</div>
+                        ${formParamsHtml}
                     </div>
                 `;
             }).join('');
@@ -2399,10 +2418,12 @@
                             }
                             document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
                         } else {
+                            // Duration exercise completed - keep elapsedMs at target time
+                            // so confirmNextSet() captures the actual elapsed seconds
                             speakText('Time');
-                            timerState.elapsedMs = 0;
+                            timerState.elapsedMs = timerState.targetSeconds * 1000;
                             timerState.lastAnnouncedSecond = null;
-                            document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
+                            document.getElementById('timerDisplay').textContent = formatTime(0);
                         }
                     }
 

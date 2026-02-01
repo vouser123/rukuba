@@ -1642,19 +1642,42 @@
                     // Create compact summary
                     const setsCount = log.sets ? log.sets.length : 0;
                     const setsSummary = log.sets ? log.sets.map(s => {
-                        if (s.reps) return `${s.reps}r`;
+                        if (s.reps && s.seconds) return `${s.reps}×${s.seconds}s`;
+                        if (s.reps) return `${s.reps} reps`;
                         if (s.seconds) return `${s.seconds}s`;
-                        if (s.distance_feet) return `${s.distance_feet}ft`;
+                        if (s.distance_feet) return `${s.distance_feet} ft`;
                         return '';
                     }).filter(Boolean).join(', ') : '';
+
+                    // Extract form params from first set for compact display
+                    let formParamsCompact = '';
+                    if (log.sets && log.sets.length > 0 && log.sets[0].form_data && log.sets[0].form_data.length > 0) {
+                        formParamsCompact = log.sets[0].form_data.map(p =>
+                            `${p.parameter_value}${p.parameter_unit ? p.parameter_unit : ''}`
+                        ).join(', ');
+                    }
 
                     // Full sets detail (hidden by default, shown on click)
                     const setsHtml = log.sets ? log.sets.map((set, idx) => {
                         let setInfo = `Set ${set.set_number || idx + 1}: `;
-                        if (set.reps) setInfo += `${set.reps} reps`;
-                        if (set.seconds) setInfo += `${set.seconds}s`;
+                        if (set.reps && set.seconds) {
+                            setInfo += `${set.reps} reps × ${set.seconds}s`;
+                        } else if (set.reps) {
+                            setInfo += `${set.reps} reps`;
+                        } else if (set.seconds) {
+                            setInfo += `${set.seconds}s`;
+                        }
                         if (set.distance_feet) setInfo += `${set.distance_feet} ft`;
                         if (set.side) setInfo += ` (${set.side})`;
+
+                        // Add form parameters if present
+                        if (set.form_data && set.form_data.length > 0) {
+                            const params = set.form_data.map(p =>
+                                `${p.parameter_name}: ${p.parameter_value}${p.parameter_unit ? ' ' + p.parameter_unit : ''}`
+                            ).join(', ');
+                            setInfo += ` | ${params}`;
+                        }
+
                         return `<div class="set-item">${setInfo}</div>`;
                     }).join('') : '';
 
@@ -1663,6 +1686,10 @@
                         <div class="session-notes-inline">"${escapeHtml(log.notes)}"</div>
                     ` : '';
 
+                    // Form params display for compact view
+                    const formParamsHtml = formParamsCompact ?
+                        `<div class="session-params" style="font-size: 0.8rem; color: #888;">${formParamsCompact}</div>` : '';
+
                     return `
                         <div class="session-card ${log.notes ? 'has-notes' : ''}" data-action="toggle-session" data-log-id="${logId}">
                             <div class="session-card-compact">
@@ -1670,6 +1697,7 @@
                                 <div class="session-main-col">
                                     <div class="session-exercise">${escapeHtml(log.exercise_name)}</div>
                                     <div class="session-sets-summary">${setsCount} sets: ${setsSummary}</div>
+                                    ${formParamsHtml}
                                     ${notesInlineHtml}
                                 </div>
                             </div>
