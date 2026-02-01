@@ -1075,6 +1075,34 @@
                 >
                 <button type="submit">Sign In</button>
                 <div id="authError" class="auth-error"></div>
+                <a href="#" id="forgotPasswordLink" style="display: block; text-align: center; margin-top: 1rem; color: #007bff; font-size: 14px;">Forgot password?</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="auth-modal hidden">
+        <div class="auth-content">
+            <h2>Reset Password</h2>
+            <p style="margin-bottom: 1rem; color: #666; font-size: 14px;">Enter your email and we'll send you a reset link.</p>
+            <form id="forgotPasswordForm" class="auth-form">
+                <input type="email" id="resetEmailInput" placeholder="Email" required autocomplete="email">
+                <button type="submit">Send Reset Link</button>
+                <div id="resetError" class="auth-error"></div>
+                <a href="#" id="backToLoginLink" style="display: block; text-align: center; margin-top: 1rem; color: #007bff; font-size: 14px;">Back to sign in</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Set New Password Modal -->
+    <div id="newPasswordModal" class="auth-modal hidden">
+        <div class="auth-content">
+            <h2>Set New Password</h2>
+            <form id="newPasswordForm" class="auth-form">
+                <input type="password" id="newPasswordInput" placeholder="New password" required minlength="6" autocomplete="new-password">
+                <input type="password" id="confirmPasswordInput" placeholder="Confirm password" required minlength="6" autocomplete="new-password">
+                <button type="submit">Update Password</button>
+                <div id="newPasswordError" class="auth-error"></div>
             </form>
         </div>
     </div>
@@ -1402,6 +1430,7 @@
 
     <!-- Supabase Client -->
     <script src="/js/vendor/supabase.min.js"></script>
+    <script src="/shared/auth.js"></script>
 
     <script>
         // Supabase initialization
@@ -1443,35 +1472,37 @@
                 currentUser = session.user;
                 authToken = session.access_token;
                 refreshToken = session.refresh_token;
-                hideAuthModal();
+                Auth.hideAuthModal();
                 updateEditorLink();
                 await loadData();
                 checkForNewMessages();
                 // Poll for new messages every 30 seconds
                 setInterval(checkForNewMessages, 30000);
             } else {
-                showAuthModal();
+                Auth.showAuthModal();
                 updateEditorLink();
             }
 
-            // Auth state listener
-            supabaseClient.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_IN') {
+            // Initialize shared auth module
+            Auth.init(supabaseClient, {
+                onSignedIn: async (session) => {
                     currentUser = session.user;
                     authToken = session.access_token;
                     refreshToken = session.refresh_token;
-                    hideAuthModal();
                     updateEditorLink();
                     await loadData();
                     checkForNewMessages();
-                } else if (event === 'SIGNED_OUT') {
+                },
+                onSignedOut: () => {
                     currentUser = null;
                     authToken = null;
                     refreshToken = null;
                     currentUserProfileId = null;
                     therapistId = null;
-                    showAuthModal();
                     updateEditorLink();
+                },
+                onPasswordUpdated: () => {
+                    showToast('Password updated successfully!', 'success');
                 }
             });
 
@@ -1482,28 +1513,6 @@
             // Bind event handlers
             bindEventHandlers();
             updateEditorLink();
-        }
-
-        // Auth functions
-        function showAuthModal() {
-            document.getElementById('authModal').classList.remove('hidden');
-        }
-
-        function hideAuthModal() {
-            document.getElementById('authModal').classList.add('hidden');
-        }
-
-        async function signIn(email, password) {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email,
-                password
-            });
-
-            if (error) {
-                throw error;
-            }
-
-            return data;
         }
 
         function updateEditorLink() {
@@ -3257,7 +3266,7 @@ ${queueData}
                     const viewerId = currentUserProfileId || currentUser.id;
                     const isFromPatient = msg.sender_id === viewerId;
                     const createdAt = new Date(msg.created_at);
-                    const timeAgo = formatTimeAgo(createdAt);
+                    const sentDateTime = formatMessageDateTime(createdAt);
 
                     // Check if message can be undone (within 1 hour)
                     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -3275,7 +3284,7 @@ ${queueData}
                                 <span style="font-weight: 600; font-size: 13px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
                                     ${isFromPatient ? 'You → PT' : 'PT → You'}
                                 </span>
-                                <span style="font-size: 11px; color: #888;">${timeAgo}</span>
+                                <span style="font-size: 11px; color: #888;">${sentDateTime}</span>
                             </div>
                             <div style="font-size: 14px; color: #333; white-space: pre-wrap;">${escapeHtml(msg.body)}</div>
                             <div style="margin-top: 8px; display: flex; gap: 8px;">
@@ -3676,6 +3685,33 @@ ${queueData}
             return formatDateWithZone(date);
         }
 
+        /**
+         * Format date as: ddd m/d/yy h:mm tt tz (e.g., "Mon 1/15/24 3:45 PM EST")
+         */
+        function formatMessageDateTime(date) {
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayName = days[date.getDay()];
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const year = String(date.getFullYear()).slice(-2);
+            let hours = date.getHours();
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+
+            // Get timezone abbreviation
+            let tz = '';
+            try {
+                const tzParts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(date);
+                const tzPart = tzParts.find(p => p.type === 'timeZoneName');
+                if (tzPart) tz = tzPart.value;
+            } catch (e) {
+                tz = 'local';
+            }
+
+            return `sent: ${dayName} ${month}/${day}/${year} ${hours}:${minutes} ${ampm} ${tz}`;
+        }
+
         function formatDateTimeWithZone(date, options = {}) {
             const baseOptions = { timeZoneName: 'short', ...options };
             try {
@@ -4000,21 +4036,6 @@ ${queueData}
             document.body.addEventListener('pointerup', () => {
                 ensureAudioReady();
             }, { once: true });
-
-            // Auth form
-            document.getElementById('authForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('emailInput').value;
-                const password = document.getElementById('passwordInput').value;
-                const errorEl = document.getElementById('authError');
-
-                try {
-                    await signIn(email, password);
-                    errorEl.textContent = '';
-                } catch (error) {
-                    errorEl.textContent = error.message;
-                }
-            });
 
             // Search
             document.getElementById('searchInput').addEventListener('input', (e) => {
