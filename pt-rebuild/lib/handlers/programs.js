@@ -286,13 +286,6 @@ async function createProgram(req, res) {
           .single();
       const { data: patient, error: patientError } = patientLookup;
 
-      console.log('Therapist verification:', {
-        therapist_id: req.user.id,
-        patient_id: actualPatientId,
-        patient_data: patient,
-        patient_error: patientError
-      });
-
       if (patientError) {
         console.error('Error fetching patient:', patientError);
         return res.status(500).json({
@@ -302,10 +295,6 @@ async function createProgram(req, res) {
       }
 
       if (!patient || patient.therapist_id !== req.user.id) {
-        console.log('Authorization failed:', {
-          patient_therapist_id: patient?.therapist_id,
-          current_therapist_id: req.user.id
-        });
         return res.status(403).json({
           error: 'Patient does not belong to this therapist'
         });
@@ -394,13 +383,6 @@ async function updateProgram(req, res, programId) {
         .eq('id', existingProgram.patient_id)
         .single();
 
-      console.log('Therapist verification for update:', {
-        therapist_id: req.user.id,
-        patient_id: existingProgram.patient_id,
-        patient_data: patient,
-        patient_error: patientError
-      });
-
       if (patientError) {
         console.error('Error fetching patient for update:', patientError);
         return res.status(500).json({
@@ -410,10 +392,6 @@ async function updateProgram(req, res, programId) {
       }
 
       if (!patient || patient.therapist_id !== req.user.id) {
-        console.log('Authorization failed for update:', {
-          patient_therapist_id: patient?.therapist_id,
-          current_therapist_id: req.user.id
-        });
         return res.status(403).json({
           error: 'Patient does not belong to this therapist'
         });

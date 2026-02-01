@@ -64,59 +64,64 @@ function bindEvents() {
     // Prevent multi-tap (iOS issue)
     if (target.disabled) return;
 
-    switch (action) {
-      case 'show-login':
-        showLoginForm();
-        break;
-      case 'login':
-        await handleLogin();
-        break;
-      case 'logout':
-        await handleLogout();
-        break;
-      case 'sync':
-        await handleSync();
-        break;
-      case 'select-exercise':
-        selectExercise(target.dataset.exerciseId);
-        break;
-      case 'increment':
-        repCount++;
-        updateCounter();
-        break;
-      case 'decrement':
-        if (repCount > 0) {
-          repCount--;
+    try {
+      switch (action) {
+        case 'show-login':
+          showLoginForm();
+          break;
+        case 'login':
+          await handleLogin();
+          break;
+        case 'logout':
+          await handleLogout();
+          break;
+        case 'sync':
+          await handleSync();
+          break;
+        case 'select-exercise':
+          selectExercise(target.dataset.exerciseId);
+          break;
+        case 'increment':
+          repCount++;
           updateCounter();
-        }
-        break;
-      case 'finish-set':
-        finishSet();
-        break;
-      case 'finish-exercise':
-        await finishExercise();
-        break;
-      case 'cancel':
-        cancelExercise();
-        break;
-      case 'show-picker':
-        showPicker();
-        break;
-      case 'show-history':
-        await showHistory();
-        break;
-      case 'close-history':
-        hideHistory();
-        break;
-      case 'toggle-menu':
-        toggleMenu();
-        break;
-      case 'reload-app':
-        window.location.reload();
-        break;
-      case 'close-menu':
-        closeMenu();
-        break;
+          break;
+        case 'decrement':
+          if (repCount > 0) {
+            repCount--;
+            updateCounter();
+          }
+          break;
+        case 'finish-set':
+          finishSet();
+          break;
+        case 'finish-exercise':
+          await finishExercise();
+          break;
+        case 'cancel':
+          cancelExercise();
+          break;
+        case 'show-picker':
+          showPicker();
+          break;
+        case 'show-history':
+          await showHistory();
+          break;
+        case 'close-history':
+          hideHistory();
+          break;
+        case 'toggle-menu':
+          toggleMenu();
+          break;
+        case 'reload-app':
+          window.location.reload();
+          break;
+        case 'close-menu':
+          closeMenu();
+          break;
+      }
+    } catch (error) {
+      console.error(`Action '${action}' failed:`, error);
+      showToast(`Action failed: ${error.message}`, 'error');
     }
   });
 

@@ -129,7 +129,8 @@ class OfflineManager {
         await logStore.put(log);
       }
 
-      await tx.complete;
+      // Wait for transaction to complete (idb library uses .done, not .complete)
+      await tx.done;
 
       // Update sync metadata
       await this.setSyncMetadata('last_sync', new Date().toISOString());
@@ -305,7 +306,6 @@ class OfflineManager {
       const request = store.getAll();
 
       request.onsuccess = () => {
-        console.log('getCachedPrograms result:', request.result);
         resolve(request.result || []);
       };
 

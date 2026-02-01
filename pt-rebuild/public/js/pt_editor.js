@@ -168,6 +168,125 @@ async function init() {
             }
         });
     }
+
+    // Bind iOS-safe pointerup handlers for all data-action elements
+    bindPointerHandlers();
+
+    // Bind input/change events for search and select elements
+    bindInputHandlers();
+}
+
+/**
+ * Bind input/change event handlers for search and select elements.
+ * Separating from pointerup handlers since these are different event types.
+ */
+function bindInputHandlers() {
+    // Exercise search and select (main form)
+    const exerciseSearch = document.getElementById('exerciseSearch');
+    if (exerciseSearch) {
+        exerciseSearch.addEventListener('input', () => filterExercises());
+    }
+    const exerciseSelect = document.getElementById('exerciseSelect');
+    if (exerciseSelect) {
+        exerciseSelect.addEventListener('change', () => loadExerciseForEdit());
+    }
+
+    // Role exercise search and select
+    const roleExerciseSearch = document.getElementById('roleExerciseSearch');
+    if (roleExerciseSearch) {
+        roleExerciseSearch.addEventListener('input', () => filterRoleExercises());
+    }
+    const roleExerciseSelect = document.getElementById('roleExerciseSelect');
+    if (roleExerciseSelect) {
+        roleExerciseSelect.addEventListener('change', () => loadExerciseRoles());
+    }
+
+    // Dosage exercise search and select
+    const dosageExerciseSearch = document.getElementById('dosageExerciseSearch');
+    if (dosageExerciseSearch) {
+        dosageExerciseSearch.addEventListener('input', () => filterDosageExercises());
+    }
+    const dosageExerciseSelect = document.getElementById('dosageExerciseSelect');
+    if (dosageExerciseSelect) {
+        dosageExerciseSelect.addEventListener('change', () => loadExerciseDosage());
+    }
+}
+
+/**
+ * Bind iOS-safe pointer event handlers to elements with data-action attributes.
+ * iOS Safari/PWA does not reliably trigger onclick handlers on dynamically created elements.
+ * This binds pointerup events (which work consistently on iOS touch and desktop mouse).
+ */
+function bindPointerHandlers(root = document) {
+    root.querySelectorAll('[data-action]').forEach(el => {
+        if (el.dataset.pointerBound) return; // Prevent double-binding
+        el.dataset.pointerBound = 'true';
+
+        el.addEventListener('pointerup', (e) => {
+            e.preventDefault();
+            handleAction(el);
+        });
+
+        // Keyboard accessibility (Enter/Space)
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleAction(el);
+            }
+        });
+    });
+}
+
+/**
+ * Handle data-action events from buttons.
+ * @param {HTMLElement} el - The element that triggered the action
+ */
+function handleAction(el) {
+    const action = el.dataset.action;
+    switch (action) {
+        case 'addRequiredEquipment':
+            addRequiredEquipment();
+            break;
+        case 'addOptionalEquipment':
+            addOptionalEquipment();
+            break;
+        case 'addPrimaryMuscle':
+            addPrimaryMuscle();
+            break;
+        case 'addSecondaryMuscle':
+            addSecondaryMuscle();
+            break;
+        case 'addFormParameter':
+            addFormParameter();
+            break;
+        case 'addMotorCue':
+            addMotorCue();
+            break;
+        case 'addCompensationWarning':
+            addCompensationWarning();
+            break;
+        case 'addSafetyFlag':
+            addSafetyFlag();
+            break;
+        case 'addExternalCue':
+            addExternalCue();
+            break;
+        case 'addRoleRow':
+            addRoleRow();
+            break;
+        case 'clearForm':
+        case 'clear-form':
+            clearForm();
+            break;
+        case 'addRoleToExercise':
+            addRoleToExercise();
+            break;
+        case 'updateDosage':
+            updateDosage();
+            break;
+        default:
+            console.warn('Unknown action:', action);
+    }
 }
 
 async function signIn() {
@@ -721,10 +840,13 @@ function renderTagList(containerId, items) {
         tag.className = 'tag';
         tag.innerHTML = `
             <span>${escapeHtml(item)}</span>
-            <button type="button" class="tag-remove" onclick="removeTag('${containerId}', ${index})">×</button>
+            <button type="button" class="tag-remove" data-action="removeTag" data-container="${containerId}" data-index="${index}">×</button>
         `;
         container.appendChild(tag);
     });
+
+    // Rebind handlers for dynamically created elements
+    bindPointerHandlers(container);
 }
 
 function removeTag(containerId, index) {

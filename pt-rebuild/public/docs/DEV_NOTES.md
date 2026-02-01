@@ -3,6 +3,40 @@
 This file summarizes notable rebuild milestones for the public docs bundle.
 For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
 
+## 2026-01-31 (Audit Fixes)
+
+### Deep Dive Audit - Critical Bug Fixes
+
+Ran comprehensive audit using 3 parallel agents. Fixed critical issues:
+
+1. **IndexedDB Transaction Bug** (`public/js/offline.js`)
+   - **Problem:** `await tx.complete` doesn't exist - IndexedDB transactions use `.done` not `.complete`
+   - **Fix:** Changed to `await tx.done` for proper transaction completion
+
+2. **CSS File Reference Wrong** (`index.html`, `pt_view.html`, `rehab_coverage.html`)
+   - **Problem:** Pages linked to `main.css` (16-line reset only) instead of `css/main.css` (526-line full stylesheet)
+   - **Fix:** Updated all references to `/css/main.css`
+
+3. **Missing PWA Meta Tags** (`pt_editor.html`, `pt_view.html`, `rehab_coverage.html`)
+   - **Problem:** Pages missing manifest, favicon, apple-touch-icon, iOS web app meta tags
+   - **Fix:** Added full PWA meta tag set to all pages
+
+4. **requireTherapist() Missing accessToken** (`lib/auth.js`)
+   - **Problem:** Unlike `requireAuth()` and `requirePatient()`, the `requireTherapist()` middleware didn't extract and attach `req.accessToken` for RLS context
+   - **Fix:** Added accessToken extraction matching other middleware patterns
+
+5. **Unhandled Async Errors** (`public/js/tracker.js`, `public/js/report.js`)
+   - **Problem:** Event handlers with async operations had no try/catch - errors silently failed
+   - **Fix:** Wrapped switch statements in try/catch with user-facing error messages
+
+### New PT² Icon
+
+- Created `public/icons/icon.svg` - Dark grey background (#333333) with white "PT" and powder blue superscript "2"
+- Updated `manifest.json` to use SVG icon
+- Added PWA meta tags to `index.html` with new icon
+
+---
+
 ## 2026-01-31
 
 ### Simplified Lifecycle UI and Fixed Data Consistency (pt_editor.html)

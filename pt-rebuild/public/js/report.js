@@ -44,61 +44,66 @@ function bindEvents() {
     const action = target.dataset.action;
     if (!action || target.disabled) return;
 
-    switch (action) {
-      case 'toggle-menu':
-        toggleMenu();
-        break;
-      case 'close-menu':
-        closeMenu();
-        break;
-      case 'reload-app':
-        window.location.reload();
-        break;
-      case 'show-login':
-        showLoginForm();
-        break;
-      case 'login':
-        await handleLogin();
-        break;
-      case 'logout':
-        await handleLogout();
-        break;
-      case 'show-exercises':
-        showExercisesView();
-        break;
-      case 'show-assignments':
-        showAssignmentsView();
-        break;
-      case 'add-exercise':
-        openExerciseModal();
-        break;
-      case 'edit-exercise':
-        editExercise(target.dataset.exerciseId);
-        break;
-      case 'delete-exercise':
-        await deleteExercise(target.dataset.exerciseId);
-        break;
-      case 'close-modal':
-        closeExerciseModal();
-        break;
-      case 'save-exercise':
-        await saveExercise();
-        break;
-      case 'assign-exercise':
-        openAssignmentModal();
-        break;
-      case 'edit-assignment':
-        editAssignment(target.dataset.assignmentId);
-        break;
-      case 'delete-assignment':
-        await deleteAssignment(target.dataset.assignmentId);
-        break;
-      case 'close-assign-modal':
-        closeAssignmentModal();
-        break;
-      case 'save-assignment':
-        await saveAssignment();
-        break;
+    try {
+      switch (action) {
+        case 'toggle-menu':
+          toggleMenu();
+          break;
+        case 'close-menu':
+          closeMenu();
+          break;
+        case 'reload-app':
+          window.location.reload();
+          break;
+        case 'show-login':
+          showLoginForm();
+          break;
+        case 'login':
+          await handleLogin();
+          break;
+        case 'logout':
+          await handleLogout();
+          break;
+        case 'show-exercises':
+          showExercisesView();
+          break;
+        case 'show-assignments':
+          showAssignmentsView();
+          break;
+        case 'add-exercise':
+          openExerciseModal();
+          break;
+        case 'edit-exercise':
+          editExercise(target.dataset.exerciseId);
+          break;
+        case 'delete-exercise':
+          await deleteExercise(target.dataset.exerciseId);
+          break;
+        case 'close-modal':
+          closeExerciseModal();
+          break;
+        case 'save-exercise':
+          await saveExercise();
+          break;
+        case 'assign-exercise':
+          openAssignmentModal();
+          break;
+        case 'edit-assignment':
+          editAssignment(target.dataset.assignmentId);
+          break;
+        case 'delete-assignment':
+          await deleteAssignment(target.dataset.assignmentId);
+          break;
+        case 'close-assign-modal':
+          closeAssignmentModal();
+          break;
+        case 'save-assignment':
+          await saveAssignment();
+          break;
+      }
+    } catch (error) {
+      console.error(`Action '${action}' failed:`, error);
+      alert(`Action failed: ${error.message}`);
     }
   });
 

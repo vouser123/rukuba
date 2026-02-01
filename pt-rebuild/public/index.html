@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="PT Tracker">
-    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="/css/main.css">
     <style>
         :root {
             color-scheme: light;
@@ -2075,16 +2075,26 @@
             const isSidePattern = currentExercise.pattern === 'side';
             const targetSets = currentExercise.current_sets || 0;
 
+            let allComplete = false;
+
             if (isSidePattern) {
                 // Count sets per side
                 const leftSets = currentSession.sets.filter(s => s.side === 'left').length;
                 const rightSets = currentSession.sets.filter(s => s.side === 'right').length;
                 document.getElementById('setsProgressLeft').textContent = `${leftSets}/${targetSets}`;
                 document.getElementById('setsProgressRight').textContent = `${rightSets}/${targetSets}`;
+                allComplete = targetSets > 0 && leftSets >= targetSets && rightSets >= targetSets;
             } else {
                 // Count total sets
                 const totalSets = currentSession.sets.length;
                 document.getElementById('setsProgressBothText').textContent = `${totalSets}/${targetSets}`;
+                allComplete = targetSets > 0 && totalSets >= targetSets;
+            }
+
+            // Announce when all sets are complete (only once per exercise)
+            if (allComplete && !currentSession.allSetsAnnouncedComplete) {
+                currentSession.allSetsAnnouncedComplete = true;
+                setTimeout(() => speakText('All sets complete'), 500);
             }
         }
 
@@ -2438,6 +2448,9 @@
             if (label) {
                 label.textContent = `Working ${side} side`;
             }
+
+            // Voice announcement for side switch
+            speakText(`Working ${side} side`);
         }
 
         /**
@@ -3709,11 +3722,25 @@ ${queueData}
                 console.error('Sync failed, session queued for later:', error);
             }
 
+            // Add to local history so exercise list shows "Done today" immediately
+            const savedSession = { ...currentSession };
+            allHistory.unshift({
+                id: savedSession.sessionId,
+                exercise_id: savedSession.exerciseId,
+                exercise_name: savedSession.exerciseName,
+                performed_at: savedSession.performedAt || new Date().toISOString(),
+                sets: savedSession.sets,
+                notes: savedSession.notes
+            });
+
             closeNotesModal();
             document.getElementById('sessionNotes').value = '';
             currentSession = null;
             currentExercise = null;
             showView('picker');
+
+            // Re-render exercise list to show updated "Done today" status
+            renderExerciseList(allExercises);
 
             // Show toast with note status
             const noteStatus = hasNotes ? 'with notes' : 'no notes';

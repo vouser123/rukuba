@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" href="/icons/icon.svg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PT Tracker">
     <title>PT Editor - Exercise Library Manager</title>
     <style>
         /* CSS Variables - Light Mode (Default) */
@@ -487,11 +491,11 @@
             <h3 style="margin-bottom: 15px; font-size: 18px;">Select Exercise to Edit</h3>
 
             <div class="form-group">
-                <input type="text" id="exerciseSearch" class="form-input" placeholder="🔍 Search exercises..." oninput="filterExercises()">
+                <input type="text" id="exerciseSearch" class="form-input" placeholder="🔍 Search exercises...">
             </div>
 
             <div class="form-group">
-                <select id="exerciseSelect" class="form-select" onchange="loadExerciseForEdit()">
+                <select id="exerciseSelect" class="form-select">
                     <option value="">-- Add New Exercise (leave blank) --</option>
                 </select>
             </div>
@@ -558,7 +562,7 @@
                             <select id="requiredEquipmentSelect" class="form-select" style="flex: 1;">
                                 <option value="">-- Select Equipment --</option>
                             </select>
-                            <button type="button" class="btn-secondary" onclick="addRequiredEquipment()" style="white-space: nowrap;">Add</button>
+                            <button type="button" class="btn-secondary" data-action="addRequiredEquipment" style="white-space: nowrap;">Add</button>
                         </div>
                         <input type="text" id="requiredEquipmentOtherInput" class="form-input" placeholder="Enter custom equipment name" style="display: none;">
                     </div>
@@ -572,7 +576,7 @@
                             <select id="optionalEquipmentSelect" class="form-select" style="flex: 1;">
                                 <option value="">-- Select Equipment --</option>
                             </select>
-                            <button type="button" class="btn-secondary" onclick="addOptionalEquipment()" style="white-space: nowrap;">Add</button>
+                            <button type="button" class="btn-secondary" data-action="addOptionalEquipment" style="white-space: nowrap;">Add</button>
                         </div>
                         <input type="text" id="optionalEquipmentOtherInput" class="form-input" placeholder="Enter custom equipment name" style="display: none;">
                     </div>
@@ -591,7 +595,7 @@
                             <select id="primaryMusclesSelect" class="form-select" style="flex: 1;">
                                 <option value="">-- Select Muscle --</option>
                             </select>
-                            <button type="button" class="btn-secondary" onclick="addPrimaryMuscle()" style="white-space: nowrap;">Add</button>
+                            <button type="button" class="btn-secondary" data-action="addPrimaryMuscle" style="white-space: nowrap;">Add</button>
                         </div>
                         <input type="text" id="primaryMusclesOtherInput" class="form-input" placeholder="Enter custom muscle name" style="display: none;">
                     </div>
@@ -605,7 +609,7 @@
                             <select id="secondaryMusclesSelect" class="form-select" style="flex: 1;">
                                 <option value="">-- Select Muscle --</option>
                             </select>
-                            <button type="button" class="btn-secondary" onclick="addSecondaryMuscle()" style="white-space: nowrap;">Add</button>
+                            <button type="button" class="btn-secondary" data-action="addSecondaryMuscle" style="white-space: nowrap;">Add</button>
                         </div>
                         <input type="text" id="secondaryMusclesOtherInput" class="form-input" placeholder="Enter custom muscle name" style="display: none;">
                     </div>
@@ -624,7 +628,7 @@
                             <select id="formParameterSelect" class="form-select" style="flex: 1;">
                                 <option value="">-- Select Parameter --</option>
                             </select>
-                            <button type="button" class="btn-secondary" onclick="addFormParameter()" style="white-space: nowrap;">Add</button>
+                            <button type="button" class="btn-secondary" data-action="addFormParameter" style="white-space: nowrap;">Add</button>
                         </div>
                         <input type="text" id="formParameterOtherInput" class="form-input" placeholder="Enter custom parameter name (e.g., band_resistance, surface)" style="display: none;">
                     </div>
@@ -642,7 +646,7 @@
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <input type="text" id="motorCuesInput" class="form-input" placeholder="Add motor cue">
-                        <button type="button" class="btn-secondary" onclick="addMotorCue()" style="white-space: nowrap;">Add</button>
+                        <button type="button" class="btn-secondary" data-action="addMotorCue" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
 
@@ -653,7 +657,7 @@
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <input type="text" id="compensationInput" class="form-input" placeholder="Add compensation warning">
-                        <button type="button" class="btn-secondary" onclick="addCompensationWarning()" style="white-space: nowrap;">Add</button>
+                        <button type="button" class="btn-secondary" data-action="addCompensationWarning" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
 
@@ -664,7 +668,7 @@
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <input type="text" id="safetyInput" class="form-input" placeholder="Add safety flag">
-                        <button type="button" class="btn-secondary" onclick="addSafetyFlag()" style="white-space: nowrap;">Add</button>
+                        <button type="button" class="btn-secondary" data-action="addSafetyFlag" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
 
@@ -675,7 +679,7 @@
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <input type="text" id="externalCuesInput" class="form-input" placeholder="Add external cue">
-                        <button type="button" class="btn-secondary" onclick="addExternalCue()" style="white-space: nowrap;">Add</button>
+                        <button type="button" class="btn-secondary" data-action="addExternalCue" style="white-space: nowrap;">Add</button>
                     </div>
                 </div>
             </details>
@@ -696,7 +700,7 @@
                     </thead>
                     <tbody></tbody>
                 </table>
-                <button type="button" class="btn-secondary" onclick="addRoleRow()">Add Role</button>
+                <button type="button" class="btn-secondary" data-action="addRoleRow">Add Role</button>
             </details>
 
             <!-- Lifecycle & Status -->
@@ -742,7 +746,7 @@
 
             <!-- Action Buttons -->
             <div class="action-buttons">
-                <button type="button" class="btn-secondary" onclick="clearForm()">Cancel</button>
+                <button type="button" class="btn-secondary" data-action="clearForm">Cancel</button>
                 <button type="submit" class="btn-primary">Save Exercise</button>
             </div>
         </form>
@@ -758,8 +762,8 @@
             <!-- Exercise Selector for Roles -->
             <div class="form-group">
                 <label class="form-label" for="roleExerciseSelect">Select Exercise *</label>
-                <input type="text" id="roleExerciseSearch" class="form-input" placeholder="Search exercises..." oninput="filterRoleExercises()" style="margin-bottom: 8px;">
-                <select id="roleExerciseSelect" class="form-select" onchange="loadExerciseRoles()">
+                <input type="text" id="roleExerciseSearch" class="form-input" placeholder="Search exercises..." style="margin-bottom: 8px;">
+                <select id="roleExerciseSelect" class="form-select">
                     <option value="">-- Choose an exercise --</option>
                 </select>
             </div>
@@ -802,7 +806,7 @@
                     </select>
                 </div>
 
-                <button class="btn-primary" onclick="addRoleToExercise()">Add Role</button>
+                <button class="btn-primary" data-action="addRoleToExercise">Add Role</button>
             </div>
         </div>
 
@@ -816,8 +820,8 @@
             <!-- Exercise Selector for Dosages -->
             <div class="form-group">
                 <label class="form-label" for="dosageExerciseSelect">Select Exercise *</label>
-                <input type="text" id="dosageExerciseSearch" class="form-input" placeholder="Search exercises..." oninput="filterDosageExercises()" style="margin-bottom: 8px;">
-                <select id="dosageExerciseSelect" class="form-select" onchange="loadExerciseDosage()">
+                <input type="text" id="dosageExerciseSearch" class="form-input" placeholder="Search exercises..." style="margin-bottom: 8px;">
+                <select id="dosageExerciseSelect" class="form-select">
                     <option value="">-- Choose an exercise --</option>
                 </select>
             </div>
@@ -849,7 +853,7 @@
                     <input type="number" id="dosageDistance" class="form-input" placeholder="e.g., 100" min="1">
                 </div>
 
-                <button class="btn-primary" onclick="updateDosage()">Update Dosage</button>
+                <button class="btn-primary" data-action="updateDosage">Update Dosage</button>
             </div>
         </div>
     </div>

@@ -128,7 +128,7 @@ export function requirePatient(handler) {
 }
 
 /**
- * Require therapist role
+ * Require therapist role (therapist only, not admin)
  * @param {Function} handler - Request handler function
  * @returns {Function} - Wrapped handler with therapist role check
  */
@@ -145,6 +145,38 @@ export function requireTherapist(handler) {
     }
 
     req.user = user;
+
+    // Extract and attach the access token for RLS context
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    req.accessToken = authHeader.substring(7); // Remove "Bearer " prefix
+
+    return handler(req, res);
+  };
+}
+
+/**
+ * Require therapist or admin role
+ * @param {Function} handler - Request handler function
+ * @returns {Function} - Wrapped handler with therapist/admin role check
+ */
+export function requireTherapistOrAdmin(handler) {
+  return async (req, res) => {
+    const { user, role, error } = await authenticateRequest(req);
+
+    if (error) {
+      return res.status(401).json({ error });
+    }
+
+    if (role !== 'therapist' && role !== 'admin') {
+      return res.status(403).json({ error: 'Therapist or admin access required' });
+    }
+
+    req.user = user;
+
+    // Extract and attach the access token for RLS context
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    req.accessToken = authHeader.substring(7); // Remove "Bearer " prefix
+
     return handler(req, res);
   };
 }

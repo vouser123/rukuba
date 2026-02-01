@@ -30,16 +30,6 @@ async function getActivityLogs(req, res) {
   // Default to current user's ID if not specified
   const targetPatientId = patient_id || req.user.id;
 
-  // Debug logging
-  console.log('[GET /api/logs] User:', {
-    id: req.user.id,
-    auth_id: req.user.auth_id,
-    email: req.user.email,
-    role: req.user.role,
-    targetPatientId,
-    hasAccessToken: !!req.accessToken
-  });
-
   try {
     // Fetch activity logs (last 90 days by default, or all history when requested)
     const { include_all } = req.query;
@@ -66,8 +56,6 @@ async function getActivityLogs(req, res) {
     const { data: logs, error: logsError } = await query;
 
     if (logsError) throw logsError;
-
-    console.log('[GET /api/logs] Found', logs.length, 'logs');
 
     // Fetch all sets for these logs
     const logIds = logs.map(log => log.id);
@@ -174,17 +162,6 @@ async function createActivityLog(req, res) {
       error: 'Invalid activity_type. Must be: reps, hold, duration, distance'
     });
   }
-
-  // Debug logging
-  console.log('[POST /api/logs] Creating activity log:', {
-    targetPatientId,
-    userId: req.user.id,
-    userAuthId: req.user.auth_id,
-    userEmail: req.user.email,
-    hasAccessToken: !!req.accessToken,
-    exerciseName: exercise_name,
-    activityType: activity_type
-  });
 
   try {
     // Create activity log (with deduplication)
