@@ -59,7 +59,7 @@ async function getExercises(req, res) {
       supabase.from('exercise_pattern_modifiers').select('*'),
       supabase.from('exercise_form_parameters').select('*'),
       supabase.from('exercise_guidance').select('*').order('sort_order'),
-      supabase.from('exercise_roles').select('*')
+      supabase.from('exercise_roles').select('*').eq('active', true)
     ]);
 
     // Group related data by exercise_id

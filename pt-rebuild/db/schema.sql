@@ -608,3 +608,22 @@ CREATE POLICY mutations_own ON offline_mutations FOR ALL TO authenticated
     user_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
     OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
   );
+
+-- ============================================================================
+-- VOCABULARY TABLES RLS (see vocab_schema.sql for table definitions)
+-- ============================================================================
+-- All authenticated users can read vocabularies.
+-- Only therapists and admins can modify (insert/update/delete).
+-- Policies applied via migration 004_vocab_rls_policies.sql:
+--   vocab_region, vocab_capacity, vocab_contribution, vocab_focus,
+--   vocab_pt_category, vocab_pattern
+
+-- ============================================================================
+-- SOFT DELETE PATTERNS
+-- ============================================================================
+-- The following tables use soft-delete to preserve data:
+--   - exercises: archived=true
+--   - exercise_roles: active=false (added via migration)
+--   - vocab_*: active=false
+--   - clinical_messages: deleted_at, deleted_by columns
+-- Hard deletes should be avoided; UI always asks for confirmation.

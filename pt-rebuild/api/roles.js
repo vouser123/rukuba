@@ -27,8 +27,9 @@ async function getRoles(req, res) {
           archived
         )
       `)
-      // Filter out archived exercises
-      .eq('exercises.archived', false);
+      // Filter out archived exercises and inactive roles
+      .eq('exercises.archived', false)
+      .eq('active', true);
 
     // Filter by exercise_id if provided
     if (exercise_id) {
@@ -121,6 +122,10 @@ async function createRole(req, res) {
   }
 }
 
+/**
+ * DELETE /api/roles/:id
+ * Soft delete - sets active=false to preserve data
+ */
 async function deleteRole(req, res, roleId) {
   const supabase = getSupabaseWithAuth(req.accessToken);
 
@@ -132,14 +137,17 @@ async function deleteRole(req, res, roleId) {
   }
 
   try {
-    const { error } = await supabase
+    // Soft delete - set active=false
+    const { data, error } = await supabase
       .from('exercise_roles')
-      .delete()
-      .eq('id', roleId);
+      .update({ active: false, updated_at: new Date().toISOString() })
+      .eq('id', roleId)
+      .select()
+      .single();
 
     if (error) throw error;
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, deleted: roleId });
 
   } catch (error) {
     console.error('Error deleting role:', error);
