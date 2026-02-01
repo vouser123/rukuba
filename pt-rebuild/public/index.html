@@ -154,6 +154,20 @@
             align-items: center;
         }
 
+        /* Patient Info Banner (for therapists viewing patient data) */
+        .patient-banner {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            font-size: 0.95rem;
+            border-bottom: 1px solid #bbdefb;
+        }
+
+        .patient-banner.hidden {
+            display: none;
+        }
+
         .sync-badge {
             background: #ffc107;
             color: #000;
@@ -1147,6 +1161,11 @@
         </div>
     </div>
 
+    <!-- Patient Info Banner (shown when therapist is viewing patient data) -->
+    <div id="patientBanner" class="patient-banner hidden">
+        Viewing exercises for: <strong id="patientName">-</strong>
+    </div>
+
     <!-- Hamburger Menu -->
     <div class="hamburger-overlay" id="hamburgerOverlay" data-action="toggle-hamburger"></div>
     <div class="hamburger-menu" id="hamburgerMenu">
@@ -1476,6 +1495,7 @@
         let refreshToken = null;
         let currentUserProfileId = null;
         let therapistId = null; // Patient's assigned therapist for messaging
+        let viewingPatientId = null; // Patient whose data we're viewing (for therapists)
         let allExercises = [];
         let allHistory = []; // All activity logs for smart dropdowns
         let currentExercise = null;
@@ -1638,27 +1658,86 @@
             try {
                 document.getElementById('exerciseList').innerHTML = '<div class="loading">Loading exercises...</div>';
 
-                // Get current user's therapist_id for messaging
+                // Get current user profile and determine which patient to view
+                viewingPatientId = null; // Reset global
                 try {
                     const usersResult = await fetchWithAuth('/api/users');
                     const users = usersResult.users || [];
-                    const me = users.find(u => u.id === currentUser.id || u.email === currentUser.email);
+                    // Match by auth_id (Supabase auth user ID) or email
+                    const me = users.find(u => u.auth_id === currentUser.id || u.email === currentUser.email);
                     currentUserProfileId = me?.id ?? null;
-                    if (me?.therapist_id) {
-                        therapistId = me.therapist_id;
-                    } else {
-                        // Find therapist (any user with therapist role) for messaging
-                        const therapist = users.find(u => u.role === 'therapist');
-                        if (therapist) {
-                            therapistId = therapist.id;
+
+                    if (!me) {
+                        console.warn('Could not find current user in users list');
+                        throw new Error('User not found');
+                    }
+
+                    // Helper to get display name
+                    const getDisplayName = (user) => {
+                        if (user.first_name || user.last_name) {
+                            return [user.first_name, user.last_name].filter(Boolean).join(' ');
+                        }
+                        return user.email?.split('@')[0] || 'Unknown';
+                    };
+
+                    // Determine which patient's data to view based on role
+                    let viewingPatient = null;
+
+                    if (me.role === 'patient') {
+                        // Patient viewing own data
+                        viewingPatient = me;
+                        if (me.therapist_id) {
+                            therapistId = me.therapist_id;
+                        }
+                    } else if (me.role === 'therapist') {
+                        // Therapist viewing their patient's data
+                        const patients = users.filter(u => u.therapist_id === me.id);
+                        if (patients.length > 0) {
+                            viewingPatient = patients[0];
+                            therapistId = me.id;
+                        } else {
+                            throw new Error('No patients assigned to this therapist');
+                        }
+                    } else if (me.role === 'admin') {
+                        // Admin viewing - if admin has therapist_id, they're also a patient
+                        if (me.therapist_id) {
+                            viewingPatient = me;
+                            therapistId = me.therapist_id;
+                        } else {
+                            // Pure admin - find any patient
+                            const patients = users.filter(u => u.therapist_id);
+                            if (patients.length > 0) {
+                                viewingPatient = patients[0];
+                            }
                         }
                     }
+
+                    if (viewingPatient) {
+                        viewingPatientId = viewingPatient.id;
+
+                        // Show patient banner for therapists viewing patient data
+                        if (me.role === 'therapist') {
+                            const banner = document.getElementById('patientBanner');
+                            const nameEl = document.getElementById('patientName');
+                            if (banner && nameEl) {
+                                nameEl.textContent = getDisplayName(viewingPatient);
+                                banner.classList.remove('hidden');
+                            }
+                        }
+                    }
+
+                    console.log('User role:', me.role, '| Viewing patient:', viewingPatientId);
                 } catch (e) {
-                    console.warn('Could not fetch therapist ID:', e);
+                    console.warn('Could not resolve user profile:', e);
+                    throw e;
+                }
+
+                if (!viewingPatientId) {
+                    throw new Error('Could not determine patient ID');
                 }
 
                 // Load patient's assigned programs (exercises with dosages)
-                const result = await fetchWithAuth(`/api/programs?patient_id=${currentUser.id}`);
+                const result = await fetchWithAuth(`/api/programs?patient_id=${viewingPatientId}`);
                 const programs = result.programs || [];
 
                 // Transform programs into exercise format with dosage data
@@ -1735,7 +1814,9 @@
 
         async function loadHistory() {
             try {
-                const result = await fetchWithAuth(`/api/logs?include_all=true&limit=1000`); // Get more for smart dropdowns
+                // Use viewingPatientId if set (for therapists viewing patient data)
+                const patientParam = viewingPatientId ? `&patient_id=${viewingPatientId}` : '';
+                const result = await fetchWithAuth(`/api/logs?include_all=true&limit=1000${patientParam}`);
                 const logs = result.logs || [];
                 allHistory = logs; // Store for form parameter dropdowns
                 renderHistory(logs);
