@@ -1689,8 +1689,9 @@
                             });
 
                             if (response.ok) {
-                                msg.read_by_recipient = true;
-                                msg.read_at = new Date().toISOString();
+                                const { message } = await response.json();
+                                msg.read_by_recipient = message?.read_by_recipient ?? true;
+                                msg.read_at = message?.read_at || new Date().toISOString();
                             }
                         }));
                     } catch (error) {
