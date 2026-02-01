@@ -2,6 +2,11 @@
 
 This file tracks development progress on the Supabase/Vercel rebuild of the PT tracker app.
 
+## 2025-02-01
+
+- **2025-02-01** — **Messages:** Hardened messages loading against missing `created_at` by using `sent_at` when available, adding safe timestamp formatting, and normalizing API responses. Added `sent_at` column migration + schema update with defaults/backfill to keep message ordering and display stable. **Files:** `pt-rebuild/api/logs.js`, `pt-rebuild/public/index.html`, `pt-rebuild/public/pt_view.html`, `pt-rebuild/db/schema.sql`, `pt-rebuild/db/migrations/006_add_message_sent_at.sql`.
+- **2025-02-01** — **Messages:** Guarded `formatDateTimeWithZone` against invalid/empty dates so the messages UI doesn’t throw “Invalid time value” when a timestamp is missing or malformed. **Files:** `pt-rebuild/public/index.html`, `pt-rebuild/public/pt_view.html`.
+
 ## 2026-01-19
 
 - **2026-01-19** — **Progress:** Implemented core tracker features in rebuilt index.html. **What was done:** (1) Added timer mode with countdown display, beeps at 5 seconds and completion, and voice announcements ("5 seconds left", "4", "3", "2", "1", "Time"). Timer counts up to show elapsed time and auto-pauses at target but allows continuing beyond. (2) Created big tappable circle for reps counting (320px diameter, iOS-optimized with scale feedback on tap). Removed +/- buttons in favor of single tap-to-increment interface with undo button. (3) Added voice countdown for reps mode - announces "5 reps left", "4 reps left", etc. when approaching target. (4) Implemented pattern modifier detection to show timer mode for `duration_seconds` and `hold_seconds` exercises, counter mode for standard reps. (5) Created `formatDosage()` function to display exercise prescriptions as "3 × 10 reps", "3 × 30 sec", "20 feet", or "3 × 10 reps (5 sec hold)" based on patient_programs data. (6) Used CSS variables (--counter-color, --counter-bg, --timer-color) for future dark mode support. (7) All interactions use data-action with pointerup events per iOS PWA requirements (no onclick handlers). **Files:** `pt-rebuild/public/index.html`. **Notes:** Timer uses Web Audio API for beeps and Web Speech API for voice - both require user interaction on iOS to initialize. Set data is saved with either reps or seconds based on mode.
