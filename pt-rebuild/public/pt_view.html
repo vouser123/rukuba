@@ -1316,6 +1316,7 @@
             try {
                 const usersResult = await fetchWithAuth('/api/users');
                 const users = usersResult.users || [];
+                console.log('Users loaded:', users.length, users.map(u => ({ id: u.id, role: u.role, therapist_id: u.therapist_id })));
 
                 // Match by auth_id (Supabase auth user ID) or email
                 const me = users.find(user => user.auth_id === currentUser.id || user.email === currentUser.email);
@@ -1332,7 +1333,10 @@
                     viewingPatientId = me.id;
                 } else if (me.role === 'therapist') {
                     // Therapist viewing their patient's data
-                    const patients = users.filter(u => u.therapist_id === me.id && u.role === 'patient');
+                    // Find users assigned to this therapist (therapist_id = my id)
+                    // Don't filter by role - admin can also be a patient
+                    const patients = users.filter(u => u.therapist_id === me.id);
+                    console.log('Therapist patients found:', patients.length, patients);
                     if (patients.length > 0) {
                         viewingPatientId = patients[0].id;
                     }
