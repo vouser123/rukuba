@@ -1505,6 +1505,33 @@
             return formatDateWithZone(date);
         }
 
+        /**
+         * Format date as: ddd m/d/yy h:mm tt tz (e.g., "Mon 1/15/24 3:45 PM EST")
+         */
+        function formatMessageDateTime(date) {
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayName = days[date.getDay()];
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const year = String(date.getFullYear()).slice(-2);
+            let hours = date.getHours();
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+
+            // Get timezone abbreviation
+            let tz = '';
+            try {
+                const tzParts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(date);
+                const tzPart = tzParts.find(p => p.type === 'timeZoneName');
+                if (tzPart) tz = tzPart.value;
+            } catch (e) {
+                tz = 'local';
+            }
+
+            return `sent: ${dayName} ${month}/${day}/${year} ${hours}:${minutes} ${ampm} ${tz}`;
+        }
+
         function formatDateTimeWithZone(date, options = {}) {
             const baseOptions = { timeZoneName: 'short', ...options };
             try {
@@ -1671,7 +1698,7 @@
                     const viewerId = currentUserProfileId || currentUser.id;
                     const isFromPatient = msg.sender_id !== viewerId;
                     const createdAt = new Date(msg.created_at);
-                    const timeAgo = formatTimeAgo(createdAt);
+                    const sentDateTime = formatMessageDateTime(createdAt);
 
                     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
                     const canUndo = !isFromPatient && createdAt > oneHourAgo;
@@ -1688,7 +1715,7 @@
                                 <span style="font-weight: 600; font-size: 13px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
                                     ${isFromPatient ? 'Patient → You' : 'You → Patient'}
                                 </span>
-                                <span style="font-size: 11px; color: #888;">${timeAgo}</span>
+                                <span style="font-size: 11px; color: #888;">${sentDateTime}</span>
                             </div>
                             <div style="font-size: 14px; color: #333; white-space: pre-wrap;">${escapeHtml(msg.body)}</div>
                             <div style="margin-top: 8px; display: flex; gap: 8px;">
