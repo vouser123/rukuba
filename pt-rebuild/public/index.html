@@ -1430,7 +1430,6 @@
 
     <!-- Supabase Client -->
     <script src="/js/vendor/supabase.min.js"></script>
-    <script src="/shared/auth.js"></script>
 
     <script>
         // Supabase initialization
@@ -1472,37 +1471,41 @@
                 currentUser = session.user;
                 authToken = session.access_token;
                 refreshToken = session.refresh_token;
-                Auth.hideAuthModal();
+                hideAuthModal();
                 updateEditorLink();
                 await loadData();
                 checkForNewMessages();
                 // Poll for new messages every 30 seconds
                 setInterval(checkForNewMessages, 30000);
             } else {
-                Auth.showAuthModal();
+                showAuthModal();
                 updateEditorLink();
             }
 
-            // Initialize shared auth module
-            Auth.init(supabaseClient, {
-                onSignedIn: async (session) => {
+            // Auth state listener
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'PASSWORD_RECOVERY') {
+                    // User clicked password reset link - show new password form
+                    hideAuthModal();
+                    hideForgotPasswordModal();
+                    showNewPasswordModal();
+                } else if (event === 'SIGNED_IN') {
                     currentUser = session.user;
                     authToken = session.access_token;
                     refreshToken = session.refresh_token;
+                    hideAuthModal();
+                    hideNewPasswordModal();
                     updateEditorLink();
                     await loadData();
                     checkForNewMessages();
-                },
-                onSignedOut: () => {
+                } else if (event === 'SIGNED_OUT') {
                     currentUser = null;
                     authToken = null;
                     refreshToken = null;
                     currentUserProfileId = null;
                     therapistId = null;
+                    showAuthModal();
                     updateEditorLink();
-                },
-                onPasswordUpdated: () => {
-                    showToast('Password updated successfully!', 'success');
                 }
             });
 
@@ -1513,6 +1516,57 @@
             // Bind event handlers
             bindEventHandlers();
             updateEditorLink();
+        }
+
+        // Auth functions
+        function showAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function showForgotPasswordModal() {
+            document.getElementById('authModal').classList.add('hidden');
+            document.getElementById('forgotPasswordModal').classList.remove('hidden');
+        }
+
+        function hideForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.add('hidden');
+        }
+
+        function showNewPasswordModal() {
+            document.getElementById('newPasswordModal').classList.remove('hidden');
+        }
+
+        function hideNewPasswordModal() {
+            document.getElementById('newPasswordModal').classList.add('hidden');
+        }
+
+        async function requestPasswordReset(email) {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + window.location.pathname
+            });
+            return { error };
+        }
+
+        async function updatePassword(newPassword) {
+            const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+            return { error };
+        }
+
+        async function signIn(email, password) {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            return data;
         }
 
         function updateEditorLink() {
@@ -4036,6 +4090,87 @@ ${queueData}
             document.body.addEventListener('pointerup', () => {
                 ensureAudioReady();
             }, { once: true });
+
+            // Auth form
+            document.getElementById('authForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('emailInput').value;
+                const password = document.getElementById('passwordInput').value;
+                const errorEl = document.getElementById('authError');
+
+                try {
+                    await signIn(email, password);
+                    errorEl.textContent = '';
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                }
+            });
+
+            // Forgot password link
+            document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                showForgotPasswordModal();
+            });
+
+            // Back to login link
+            document.getElementById('backToLoginLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                hideForgotPasswordModal();
+                showAuthModal();
+            });
+
+            // Forgot password form
+            document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('resetEmailInput').value;
+                const errorEl = document.getElementById('resetError');
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+
+                try {
+                    const { error } = await requestPasswordReset(email);
+                    if (error) throw error;
+                    errorEl.style.color = '#28a745';
+                    errorEl.textContent = 'Check your email for the reset link.';
+                } catch (error) {
+                    errorEl.style.color = '';
+                    errorEl.textContent = error.message;
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send Reset Link';
+                }
+            });
+
+            // New password form
+            document.getElementById('newPasswordForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newPassword = document.getElementById('newPasswordInput').value;
+                const confirmPassword = document.getElementById('confirmPasswordInput').value;
+                const errorEl = document.getElementById('newPasswordError');
+
+                if (newPassword !== confirmPassword) {
+                    errorEl.textContent = 'Passwords do not match.';
+                    return;
+                }
+
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Updating...';
+
+                try {
+                    const { error } = await updatePassword(newPassword);
+                    if (error) throw error;
+                    hideNewPasswordModal();
+                    showToast('Password updated successfully!', 'success');
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Update Password';
+                }
+            });
 
             // Search
             document.getElementById('searchInput').addEventListener('input', (e) => {
