@@ -122,6 +122,31 @@
             opacity: 0.8;
         }
 
+        /* Messages button in header */
+        .messages-header-btn {
+            position: relative;
+            font-size: 18px;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .messages-header-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #dc3545;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .messages-header-badge.hidden {
+            display: none;
+        }
+
         .btn,
         .hamburger-btn,
         .hamburger-item,
@@ -933,6 +958,10 @@
     <div class="header">
         <h1>PT History</h1>
         <div class="header-actions">
+            <button class="btn messages-header-btn" data-action="show-messages" title="Messages">
+                💬
+                <span id="messagesHeaderBadge" class="messages-header-badge hidden"></span>
+            </button>
             <button class="btn" data-action="refresh-data">↻</button>
             <button class="hamburger-btn" data-action="toggle-hamburger">☰</button>
         </div>
@@ -2215,6 +2244,8 @@
             // Hide badges
             const badge = document.getElementById('messagesBadge');
             if (badge) badge.classList.add('hidden');
+            const headerBadge = document.getElementById('messagesHeaderBadge');
+            if (headerBadge) headerBadge.classList.add('hidden');
             const sentBadge = document.getElementById('sentBadge');
             if (sentBadge) sentBadge.classList.add('hidden');
         }
@@ -2425,13 +2456,19 @@
 
                 // Update received messages badge (red - patient messages)
                 const badge = document.getElementById('messagesBadge');
-                if (badge) {
-                    if (unreadCount > 0) {
+                const headerBadge = document.getElementById('messagesHeaderBadge');
+                if (unreadCount > 0) {
+                    if (badge) {
                         badge.textContent = unreadCount;
                         badge.classList.remove('hidden');
-                    } else {
-                        badge.classList.add('hidden');
                     }
+                    if (headerBadge) {
+                        headerBadge.textContent = unreadCount;
+                        headerBadge.classList.remove('hidden');
+                    }
+                } else {
+                    if (badge) badge.classList.add('hidden');
+                    if (headerBadge) headerBadge.classList.add('hidden');
                 }
 
                 // Update sent messages badge (blue - your recent messages)
