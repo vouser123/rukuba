@@ -1239,14 +1239,28 @@
 
                 await loadCurrentUserProfile();
 
-                // Load logs and programs in parallel
-                const [logsResult, programsResult] = await Promise.all([
-                    fetchWithAuth('/api/logs?limit=1000'),
-                    fetchWithAuth('/api/programs').catch(() => ({ programs: [] }))
-                ]);
-
+                // First load logs to get patient_id
+                const logsResult = await fetchWithAuth('/api/logs?limit=1000');
                 allLogs = logsResult.logs || [];
-                allPrograms = programsResult.programs || [];
+
+                // Extract patient_id from logs for programs lookup
+                let patientId = null;
+                if (allLogs.length > 0) {
+                    patientId = allLogs[0].patient_id;
+                }
+
+                // Load programs with patient_id (required parameter)
+                if (patientId) {
+                    try {
+                        const programsResult = await fetchWithAuth(`/api/programs?patient_id=${patientId}`);
+                        allPrograms = programsResult.programs || [];
+                    } catch (err) {
+                        console.warn('Could not load programs:', err);
+                        allPrograms = [];
+                    }
+                } else {
+                    allPrograms = [];
+                }
 
                 // Render patient notes first (most important for therapist)
                 renderPatientNotes();
@@ -1472,9 +1486,6 @@
          * Calculate which exercises need attention (overdue 7+ days)
          */
         function calculateNeedsAttention() {
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
             // Build map of last done dates
             const lastDoneMap = {};
             allLogs.forEach(log => {
@@ -1491,8 +1502,9 @@
 
             // Check prescribed exercises
             allPrograms.forEach(program => {
-                const id = program.exercise_id || program.exercise_name;
-                const name = program.exercise_name || program.canonical_name || id;
+                const id = program.exercise_id;
+                // Get name from nested exercises object (from API response)
+                const name = program.exercises?.canonical_name || program.exercise_name || id;
                 const lastDone = lastDoneMap[id];
 
                 if (!lastDone) {
@@ -1526,6 +1538,7 @@
 
             let html = '';
             overdue.slice(0, 10).forEach(ex => {
+                // Red for 14+ days or never done, orange for 10-13 days, yellow for 7-9 days
                 const urgencyColor = ex.daysSince > 14 || ex.neverDone ? '#dc3545' : ex.daysSince > 10 ? '#ff5722' : '#ff9800';
                 const statusText = ex.neverDone ? 'Never done' : `${ex.daysSince} days ago`;
 
