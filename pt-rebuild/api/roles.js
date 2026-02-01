@@ -42,7 +42,8 @@ async function getRoles(req, res) {
 
     return res.status(200).json({
       roles,
-      count: roles.length
+      count: roles.length,
+      user_role: req.user.role
     });
 
   } catch (error) {

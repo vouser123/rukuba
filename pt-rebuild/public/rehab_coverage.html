@@ -1449,18 +1449,17 @@
         }
 
         /**
-         * Load user role to determine menu visibility
+         * Load user role to determine menu visibility.
+         * Role is now loaded from /api/roles response in loadData().
+         * This function just ensures menu visibility is updated.
          */
         async function loadUserRole() {
-            try {
-                const response = await fetchWithAuth('/api/users/me');
-                userRole = response.user?.role || 'patient';
-                updateMenuVisibility();
-            } catch (error) {
-                console.error('Failed to load user role:', error);
+            // Role will be set by loadData() from /api/roles response
+            // Default to patient if not yet loaded
+            if (!userRole) {
                 userRole = 'patient';
-                updateMenuVisibility();
             }
+            updateMenuVisibility();
         }
 
         /**
@@ -1525,6 +1524,12 @@
 
                 allLogs = logsResult.logs || [];
                 allRoles = rolesResult.roles || [];
+
+                // Extract user role from roles response and update menu
+                if (rolesResult.user_role) {
+                    userRole = rolesResult.user_role;
+                    updateMenuVisibility();
+                }
 
                 // Calculate and render coverage
                 calculateAndRenderCoverage();
