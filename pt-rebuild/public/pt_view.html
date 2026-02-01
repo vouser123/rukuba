@@ -1239,27 +1239,28 @@
 
                 await loadCurrentUserProfile();
 
-                // First load logs to get patient_id
-                const logsResult = await fetchWithAuth('/api/logs?limit=1000');
-                allLogs = logsResult.logs || [];
+                // Use viewingPatientId (set in loadCurrentUserProfile)
+                // For therapists, this is their patient's ID; for patients, their own ID
+                const patientId = viewingPatientId;
 
-                // Extract patient_id from logs for programs lookup
-                let patientId = null;
-                if (allLogs.length > 0) {
-                    patientId = allLogs[0].patient_id;
-                }
-
-                // Load programs with patient_id (required parameter)
-                if (patientId) {
-                    try {
-                        const programsResult = await fetchWithAuth(`/api/programs?patient_id=${patientId}`);
-                        allPrograms = programsResult.programs || [];
-                    } catch (err) {
-                        console.warn('Could not load programs:', err);
-                        allPrograms = [];
-                    }
-                } else {
+                if (!patientId) {
+                    console.warn('No patient_id available');
+                    allLogs = [];
                     allPrograms = [];
+                } else {
+                    // Load logs and programs in parallel for the patient
+                    const [logsResult, programsResult] = await Promise.all([
+                        fetchWithAuth(`/api/logs?patient_id=${patientId}&limit=1000`),
+                        fetchWithAuth(`/api/programs?patient_id=${patientId}`).catch(err => {
+                            console.warn('Could not load programs:', err);
+                            return { programs: [] };
+                        })
+                    ]);
+
+                    allLogs = logsResult.logs || [];
+                    // Filter out programs with archived exercises
+                    allPrograms = (programsResult.programs || []).filter(p => !p.exercises?.archived);
+                    console.log('Loaded', allLogs.length, 'logs and', allPrograms.length, 'active programs for patient:', patientId);
                 }
 
                 // Render patient notes first (most important for therapist)
@@ -1306,14 +1307,31 @@
             return response.json();
         }
 
+        // Track viewing patient ID (for therapists viewing patient data)
+        let viewingPatientId = null;
+
         async function loadCurrentUserProfile() {
             if (!currentUser || !authToken) return;
 
             try {
                 const usersResult = await fetchWithAuth('/api/users');
                 const users = usersResult.users || [];
-                const me = users.find(user => user.id === currentUser.id || user.email === currentUser.email);
+                // Match by auth_id (Supabase auth user ID) or email
+                const me = users.find(user => user.auth_id === currentUser.id || user.email === currentUser.email);
                 currentUserProfileId = me?.id ?? null;
+
+                // If current user is a therapist, find their patient(s)
+                if (me?.role === 'therapist') {
+                    const patients = users.filter(u => u.therapist_id === me.id && u.role === 'patient');
+                    if (patients.length > 0) {
+                        // Use first patient (single patient scenario)
+                        viewingPatientId = patients[0].id;
+                        console.log('Therapist viewing patient:', viewingPatientId);
+                    }
+                } else if (me?.role === 'patient') {
+                    // Patient viewing own data
+                    viewingPatientId = me.id;
+                }
             } catch (error) {
                 console.warn('Could not resolve current user profile:', error);
             }
