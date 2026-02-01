@@ -131,6 +131,20 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Patient Info Banner */
+        .patient-banner {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            font-size: 0.95rem;
+            border-bottom: 1px solid #bbdefb;
+        }
+
+        .patient-banner.hidden {
+            display: none;
+        }
+
         /* Patient Notes Alert Section - Compact and dismissible */
         .notes-alert-section {
             margin: 1rem;
@@ -924,6 +938,11 @@
         </div>
     </div>
 
+    <!-- Patient Info Banner (shown when viewing patient data) -->
+    <div id="patientBanner" class="patient-banner hidden">
+        Showing information for: <strong id="patientName">-</strong>
+    </div>
+
     <!-- Hamburger Menu -->
     <div class="hamburger-overlay" id="hamburgerOverlay" data-action="toggle-hamburger"></div>
     <div class="hamburger-menu" id="hamburgerMenu">
@@ -1307,8 +1326,37 @@
             return response.json();
         }
 
-        // Track viewing patient ID (for therapists viewing patient data)
+        // Track viewing patient ID and name (for therapists viewing patient data)
         let viewingPatientId = null;
+        let viewingPatientName = null;
+
+        /**
+         * Get display name for a user
+         * Prefers first_name + last_name, falls back to email prefix
+         */
+        function getDisplayName(user) {
+            if (user.first_name || user.last_name) {
+                return [user.first_name, user.last_name].filter(Boolean).join(' ');
+            }
+            // Fall back to email prefix (before @)
+            return user.email?.split('@')[0] || 'Unknown';
+        }
+
+        /**
+         * Update the patient banner with current viewing patient info
+         */
+        function updatePatientBanner() {
+            const banner = document.getElementById('patientBanner');
+            const nameEl = document.getElementById('patientName');
+            if (!banner || !nameEl) return;
+
+            if (viewingPatientName) {
+                nameEl.textContent = viewingPatientName;
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
 
         async function loadCurrentUserProfile() {
             if (!currentUser || !authToken) return;
@@ -1328,9 +1376,11 @@
                 }
 
                 // Determine which patient's data to view based on role
+                let viewingPatient = null;
+
                 if (me.role === 'patient') {
                     // Patient viewing own data
-                    viewingPatientId = me.id;
+                    viewingPatient = me;
                 } else if (me.role === 'therapist') {
                     // Therapist viewing their patient's data
                     // Find users assigned to this therapist (therapist_id = my id)
@@ -1338,24 +1388,30 @@
                     const patients = users.filter(u => u.therapist_id === me.id);
                     console.log('Therapist patients found:', patients.length, patients);
                     if (patients.length > 0) {
-                        viewingPatientId = patients[0].id;
+                        viewingPatient = patients[0];
                     }
                 } else if (me.role === 'admin') {
                     // Admin viewing - if admin has therapist_id, they're also a patient
                     // In that case, show their own data; otherwise find any patient
                     if (me.therapist_id) {
                         // Admin is also a patient - view own data
-                        viewingPatientId = me.id;
+                        viewingPatient = me;
                     } else {
                         // Pure admin - find any patient
                         const patients = users.filter(u => u.role === 'patient');
                         if (patients.length > 0) {
-                            viewingPatientId = patients[0].id;
+                            viewingPatient = patients[0];
                         }
                     }
                 }
 
-                console.log('User role:', me.role, '| Viewing patient:', viewingPatientId);
+                if (viewingPatient) {
+                    viewingPatientId = viewingPatient.id;
+                    viewingPatientName = getDisplayName(viewingPatient);
+                }
+
+                console.log('User role:', me.role, '| Viewing patient:', viewingPatientId, viewingPatientName);
+                updatePatientBanner();
             } catch (error) {
                 console.warn('Could not resolve current user profile:', error);
             }

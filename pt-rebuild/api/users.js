@@ -17,7 +17,7 @@ async function getUsers(req, res) {
   try {
     const { data: allUsers, error } = await supabaseAdmin
       .from('users')
-      .select('id, auth_id, email, role, therapist_id, created_at')
+      .select('id, auth_id, email, role, therapist_id, first_name, last_name, created_at')
       .order('email');
 
     if (error) throw error;
