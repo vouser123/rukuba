@@ -284,6 +284,18 @@ function handleAction(el) {
         case 'updateDosage':
             updateDosage();
             break;
+        case 'removeTag':
+            removeTag(el.dataset.container, parseInt(el.dataset.index));
+            break;
+        case 'removeGuidance':
+            removeGuidance(el.dataset.container, parseInt(el.dataset.index));
+            break;
+        case 'removeRoleRow':
+            removeRoleRow(el);
+            break;
+        case 'removeRole':
+            removeRole(el.dataset.roleId);
+            break;
         default:
             console.warn('Unknown action:', action);
     }
@@ -1036,10 +1048,13 @@ function renderGuidanceList(containerId, items) {
         const li = document.createElement('li');
         li.innerHTML = `
             ${escapeHtml(item)}
-            <button type="button" class="tag-remove" onclick="removeGuidance('${containerId}', ${index})">×</button>
+            <button type="button" class="tag-remove" data-action="removeGuidance" data-container="${containerId}" data-index="${index}">×</button>
         `;
         container.appendChild(li);
     });
+
+    // Rebind handlers for dynamically created elements
+    bindPointerHandlers(container);
 }
 
 function removeGuidance(containerId, index) {
@@ -1232,7 +1247,7 @@ function addRoleRow(role = {}) {
             </select>
         </td>
         <td>
-            <button type="button" class="btn-danger" onclick="removeRoleRow(this)">Remove</button>
+            <button type="button" class="btn-danger" data-action="removeRoleRow">Remove</button>
         </td>
     `;
 
@@ -1242,6 +1257,9 @@ function addRoleRow(role = {}) {
     if (role.contribution) row.querySelector('.role-contribution').value = role.contribution;
 
     tbody.appendChild(row);
+
+    // Rebind handlers for dynamically created button
+    bindPointerHandlers(row);
 }
 
 window.addRoleRow = addRoleRow;
@@ -1411,9 +1429,12 @@ function renderCurrentRoles() {
                     <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--ios-blue); color: white; font-size: 11px; font-weight: 600; margin-right: 8px;">${role.contribution.toUpperCase()}</span>
                     <strong>${role.region}</strong> / ${role.capacity}${role.focus ? ' / ' + role.focus : ''}
                 </div>
-                <button type="button" class="btn-danger" onclick="removeRole('${role.id}')" style="padding: 6px 12px; font-size: 12px;">Remove</button>
+                <button type="button" class="btn-danger" data-action="removeRole" data-role-id="${role.id}" style="padding: 6px 12px; font-size: 12px;">Remove</button>
             </div>
         `).join('');
+
+    // Rebind handlers for dynamically created buttons
+    bindPointerHandlers(container);
 }
 
 async function addRoleToExercise() {
