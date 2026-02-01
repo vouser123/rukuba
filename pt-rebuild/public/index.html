@@ -3253,11 +3253,40 @@ ${queueData}
 
                 // Render messages
                 let html = '';
+                const viewerId = currentUserProfileId || currentUser.id;
+                const unreadMessages = messages.filter(msg => msg.recipient_id === viewerId && !msg.read_by_recipient);
+
+                if (unreadMessages.length > 0) {
+                    try {
+                        await Promise.all(unreadMessages.map(async msg => {
+                            const response = await fetch(`/api/logs?type=messages&id=${msg.id}`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Authorization': `Bearer ${authToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ read: true })
+                            });
+
+                            if (response.ok) {
+                                const { message } = await response.json();
+                                msg.read_by_recipient = message?.read_by_recipient ?? true;
+                                msg.read_at = message?.read_at || new Date().toISOString();
+                            }
+                        }));
+                    } catch (error) {
+                        console.warn('Failed to mark messages as read:', error);
+                    }
+                }
+
                 messages.forEach(msg => {
-                    const viewerId = currentUserProfileId || currentUser.id;
                     const isFromPatient = msg.sender_id === viewerId;
                     const createdAt = new Date(msg.created_at);
-                    const timeAgo = formatTimeAgo(createdAt);
+                    const sentAt = formatLocalDateTime(createdAt);
+                    const readAt = msg.read_at
+                        ? new Date(msg.read_at)
+                        : (msg.read_by_recipient && msg.updated_at ? new Date(msg.updated_at) : null);
+                    const readAtLabel = readAt ? formatLocalDateTime(readAt) : 'Unread';
 
                     // Check if message can be undone (within 1 hour)
                     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -3275,7 +3304,10 @@ ${queueData}
                                 <span style="font-weight: 600; font-size: 13px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
                                     ${isFromPatient ? 'You → PT' : 'PT → You'}
                                 </span>
-                                <span style="font-size: 11px; color: #888;">${timeAgo}</span>
+                                <span style="font-size: 11px; color: #888; text-align: right;">
+                                    <div>Sent: ${sentAt}</div>
+                                    <div>Read: ${readAtLabel}</div>
+                                </span>
                             </div>
                             <div style="font-size: 14px; color: #333; white-space: pre-wrap;">${escapeHtml(msg.body)}</div>
                             <div style="margin-top: 8px; display: flex; gap: 8px;">
@@ -3686,6 +3718,13 @@ ${queueData}
                     timeZone: 'America/New_York'
                 }).format(date);
             }
+        }
+
+        function formatLocalDateTime(date) {
+            return formatDateTimeWithZone(date, {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            });
         }
 
         function formatDateWithZone(date, options = {}) {
