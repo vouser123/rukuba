@@ -93,17 +93,20 @@ class OfflineManager {
       // Fetch exercises
       const exercisesRes = await fetch('/api/exercises', { headers });
       if (!exercisesRes.ok) throw new Error('Failed to fetch exercises');
-      const { exercises } = await exercisesRes.json();
+      const exercisesData = await exercisesRes.json();
+      const exercises = exercisesData.exercises || [];
 
       // Fetch programs
       const programsRes = await fetch(`/api/programs?patient_id=${patientId}`, { headers });
       if (!programsRes.ok) throw new Error('Failed to fetch programs');
-      const { programs } = await programsRes.json();
+      const programsData = await programsRes.json();
+      const programs = programsData.programs || [];
 
       // Fetch activity logs (last 90 days)
       const logsRes = await fetch(`/api/logs?patient_id=${patientId}`, { headers });
       if (!logsRes.ok) throw new Error('Failed to fetch logs');
-      const { logs } = await logsRes.json();
+      const logsData = await logsRes.json();
+      const logs = logsData.logs || [];
 
       // Replace cache (server wins)
       const tx = this.db.transaction(['exercises', 'programs', 'activity_logs'], 'readwrite');
@@ -243,7 +246,9 @@ class OfflineManager {
         throw new Error(`Sync failed: ${response.statusText}`);
       }
 
-      const { processed, failed } = await response.json();
+      const result = await response.json();
+      const processed = result.processed || [];
+      const failed = result.failed || [];
 
       // Step 4: Remove successfully processed items
       onProgress?.('Updating queue...');
@@ -251,7 +256,7 @@ class OfflineManager {
       const store = tx.objectStore('offline_queue');
 
       // Build set of processed mutation IDs for O(1) lookup
-      const processedIds = new Set(processed.map(item => item.client_mutation_id));
+      const processedIds = new Set(processed.map(item => item?.client_mutation_id).filter(Boolean));
 
       // Get all items once, then delete matches
       const allItems = await store.getAll();

@@ -1,0 +1,39 @@
+name: Update Supabase SDK
+
+on:
+  schedule:
+    # Run on the 1st of each month at midnight UTC
+    - cron: '0 0 1 * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download latest Supabase SDK
+        run: |
+          curl -L "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" \
+            -o pt-rebuild/public/js/vendor/supabase.min.js
+
+      - name: Get SDK version
+        id: version
+        run: |
+          VERSION=$(curl -s "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/package.json" | jq -r '.version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --quiet pt-rebuild/public/js/vendor/supabase.min.js || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pt-rebuild/public/js/vendor/supabase.min.js
+          git commit -m "chore: Update Supabase SDK to v${{ steps.version.outputs.version }}"
+          git push

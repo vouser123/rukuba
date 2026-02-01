@@ -15,17 +15,20 @@ Key traits:
 ## File reference
 
 - `pt-rebuild/public/`
-  - `index.html`: main tracker UI entry point.
-  - `pt_tracker.html`: tracker view for patients.
-  - `pt_view.html`: PT-facing view (read-only / review).
-  - `pt_editor.html`: exercise editor.
-  - `rehab_coverage.html`: rehab coverage view.
-  - `js/`, `css/`, `shared/`: app scripts/styles.
-  - `sw.js`, `manifest.json`: PWA shell.
+  - `index.html`: main tracker UI entry point (patient exercises + logging).
+  - `pt_view.html`: PT-facing view (read-only / review patient progress).
+  - `pt_editor.html`: exercise editor (create/edit exercises).
+  - `rehab_coverage.html`: rehab coverage view (manage exercise roles).
+  - `js/`: app scripts including `offline.js` (IndexedDB cache), `pt_editor.js`, `report.js`.
+  - `js/vendor/supabase.min.js`: self-hosted Supabase SDK (auto-updated monthly via GitHub Action).
+  - `css/`: stylesheets.
+  - `sw.js`, `manifest.json`: PWA shell (service worker caches static assets).
+  - `icons/icon.svg`: PT² app icon (dark grey background, powder blue superscript 2).
   - `docs/`: rebuild-specific docs (this folder).
 - `pt-rebuild/api/`: Vercel API routes (see below).
-- `pt-rebuild/lib/`: Supabase client, auth helpers, and shared handlers.
+- `pt-rebuild/lib/`: Supabase client, auth helpers (`requireAuth`, `requirePatient`, `requireTherapist`, `requireTherapistOrAdmin`), and shared handlers.
 - `pt-rebuild/db/`: migration scripts and DB utilities.
+- `.github/workflows/update-supabase-sdk.yml`: GitHub Action to auto-update Supabase SDK monthly.
 
 ## API routes
 

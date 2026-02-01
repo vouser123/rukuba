@@ -441,18 +441,30 @@ function closeAssignmentModal() {
   currentAssignment = null;
 }
 
-function editAssignment(assignmentId) {
-  const token = (await supabase.auth.getSession()).data.session?.access_token;
-  fetch(`/api/programs?patient_id=${currentPatient}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  })
-  .then(r => r.json())
-  .then(({ programs }) => {
+async function editAssignment(assignmentId) {
+  try {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    const response = await fetch(`/api/programs?patient_id=${currentPatient}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch assignments');
+    }
+
+    const data = await response.json();
+    const programs = data.programs || [];
     const assignment = programs.find(p => p.id === assignmentId);
+
     if (assignment) {
       openAssignmentModal(assignment);
+    } else {
+      alert('Assignment not found');
     }
-  });
+  } catch (error) {
+    console.error('Failed to load assignment:', error);
+    alert('Failed to load assignment: ' + error.message);
+  }
 }
 
 async function saveAssignment() {

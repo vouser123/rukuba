@@ -7,6 +7,7 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
     <link rel="apple-touch-icon" href="/icons/icon.svg">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="PT Tracker">
@@ -1400,7 +1401,7 @@
     <div id="toastContainer"></div>
 
     <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/vendor/supabase.min.js"></script>
 
     <script>
         // Supabase initialization
@@ -3242,7 +3243,8 @@ ${queueData}
                     throw new Error('Failed to fetch messages');
                 }
 
-                const { messages } = await response.json();
+                const data = await response.json();
+                const messages = data.messages || [];
 
                 if (messages.length === 0) {
                     messagesList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No messages yet. Send a message to your PT!</div>';
@@ -3403,7 +3405,8 @@ ${queueData}
 
                 if (!response.ok) return;
 
-                const { messages } = await response.json();
+                const data = await response.json();
+                const messages = data.messages || [];
 
                 // Count unread messages (received after lastReadMessageTime)
                 const unreadCount = messages.filter(msg => {
