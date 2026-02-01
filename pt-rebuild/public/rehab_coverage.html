@@ -1833,9 +1833,12 @@
                         // Render exercises as cards (matching pt/rehab_coverage.html format)
                         const exercisesHtml = focusExercises.map(ex => {
                             const isDone = !!ex.lastDone;
-                            const statusIcon = isDone ? '✓' : '⚠';
-                            const statusColor = isDone ? 'var(--success-color)' : 'var(--warning-color)';
-                            const statusText = isDone ? `${ex.daysSince || 0}d ago` : 'never';
+                            const daysSince = ex.daysSince || 0;
+                            // Show warning if never done OR done more than 7 days ago
+                            const isOverdue = !isDone || daysSince >= 7;
+                            const statusIcon = isOverdue ? '⚠' : '✓';
+                            const statusColor = isOverdue ? 'var(--warning-color)' : 'var(--success-color)';
+                            const statusText = isDone ? `${daysSince}d ago` : 'never';
 
                             // Contribution level determines left border color
                             const contribution = ex.contribution || 'low';

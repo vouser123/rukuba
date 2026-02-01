@@ -1316,21 +1316,30 @@
             try {
                 const usersResult = await fetchWithAuth('/api/users');
                 const users = usersResult.users || [];
+                console.log('Users loaded:', users.length, 'currentUser.id:', currentUser.id, 'currentUser.email:', currentUser.email);
+
                 // Match by auth_id (Supabase auth user ID) or email
                 const me = users.find(user => user.auth_id === currentUser.id || user.email === currentUser.email);
+                console.log('Found me:', me);
                 currentUserProfileId = me?.id ?? null;
 
                 // If current user is a therapist, find their patient(s)
                 if (me?.role === 'therapist') {
                     const patients = users.filter(u => u.therapist_id === me.id && u.role === 'patient');
+                    console.log('Therapist patients found:', patients.length, patients.map(p => ({ id: p.id, therapist_id: p.therapist_id })));
                     if (patients.length > 0) {
                         // Use first patient (single patient scenario)
                         viewingPatientId = patients[0].id;
                         console.log('Therapist viewing patient:', viewingPatientId);
+                    } else {
+                        console.warn('No patients found for therapist', me.id);
                     }
                 } else if (me?.role === 'patient') {
                     // Patient viewing own data
                     viewingPatientId = me.id;
+                    console.log('Patient viewing own data:', viewingPatientId);
+                } else {
+                    console.warn('Unknown role or user not found:', me?.role);
                 }
             } catch (error) {
                 console.warn('Could not resolve current user profile:', error);
