@@ -857,6 +857,81 @@
                 <button class="btn-primary" data-action="updateDosage">Update Dosage</button>
             </div>
         </div>
+
+        <!-- SECTION 4: Vocabulary Editor (Advanced) -->
+        <details style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <summary style="font-size: 18px; font-weight: 600; cursor: pointer; padding: 5px 0;">
+                ⚙️ Vocabulary Editor (Advanced)
+            </summary>
+
+            <div style="margin-top: 15px;">
+                <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px;">
+                    Manage the vocabulary terms used for roles (regions, capacities, focuses). Changes apply to all exercises.
+                </p>
+
+                <!-- Vocabulary Category Selector -->
+                <div class="form-group">
+                    <label class="form-label" for="vocabCategory">Category</label>
+                    <select id="vocabCategory" class="form-select">
+                        <option value="">-- Select Category --</option>
+                        <option value="region">Regions (anatomical areas)</option>
+                        <option value="capacity">Capacities (functional abilities)</option>
+                        <option value="focus">Focuses (specific emphasis)</option>
+                        <option value="contribution">Contributions (high/medium/low)</option>
+                    </select>
+                </div>
+
+                <!-- Existing Terms List -->
+                <div id="vocabTermsList" class="hidden" style="margin: 15px 0; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <h4 style="margin-bottom: 10px; font-size: 15px;">Current Terms</h4>
+                    <div id="vocabTermsContent"></div>
+                </div>
+
+                <!-- Add New Term Form -->
+                <div id="addVocabForm" class="hidden" style="padding: 15px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 15px;">Add New Term</h4>
+
+                    <div class="form-group">
+                        <label class="form-label" for="newVocabCode">Code *</label>
+                        <input type="text" id="newVocabCode" class="form-input" placeholder="e.g., elbow (lowercase, no spaces)">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="newVocabDefinition">Definition *</label>
+                        <textarea id="newVocabDefinition" class="form-input" rows="2" placeholder="Description of this term"></textarea>
+                    </div>
+
+                    <button class="btn-primary" data-action="addVocabTerm">Add Term</button>
+                </div>
+
+                <!-- Edit Term Modal -->
+                <div id="editVocabModal" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+                    <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; width: 90%; max-width: 400px;">
+                        <h4 style="margin-bottom: 15px;">Edit Term</h4>
+                        <input type="hidden" id="editVocabCode">
+
+                        <div class="form-group">
+                            <label class="form-label">Code</label>
+                            <input type="text" id="editVocabCodeDisplay" class="form-input" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="editVocabDefinition">Definition *</label>
+                            <textarea id="editVocabDefinition" class="form-input" rows="3"></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn-primary" data-action="saveVocabEdit" style="flex: 1;">Save</button>
+                            <button class="btn-secondary" data-action="cancelVocabEdit" style="flex: 1;">Cancel</button>
+                        </div>
+
+                        <button class="btn-secondary" data-action="deleteVocabTerm" style="width: 100%; margin-top: 10px; background: var(--danger-bg); color: var(--danger-color); border-color: var(--danger-color);">
+                            Remove Term
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </details>
     </div>
 
     <!-- Toast Container -->

@@ -222,6 +222,12 @@ function bindInputHandlers() {
             if (modHold.checked) modDuration.checked = false;
         });
     }
+
+    // Vocab category selector
+    const vocabCategory = document.getElementById('vocabCategory');
+    if (vocabCategory) {
+        vocabCategory.addEventListener('change', () => loadVocabTerms());
+    }
 }
 
 /**
@@ -307,6 +313,21 @@ function handleAction(el) {
             break;
         case 'removeRole':
             removeRole(el.dataset.roleId);
+            break;
+        case 'addVocabTerm':
+            addVocabTerm();
+            break;
+        case 'saveVocabEdit':
+            saveVocabEdit();
+            break;
+        case 'cancelVocabEdit':
+            closeVocabEditModal();
+            break;
+        case 'deleteVocabTerm':
+            deleteVocabTerm();
+            break;
+        case 'editVocab':
+            openVocabEditModal(el.dataset.code, el.dataset.definition);
             break;
         default:
             console.warn('Unknown action:', action);
@@ -1731,6 +1752,210 @@ async function updateDosage() {
 }
 
 window.updateDosage = updateDosage;
+
+// ============================================================================
+// Vocabulary Editor Functions
+// ============================================================================
+
+let currentVocabCategory = null;
+
+/**
+ * Load vocabulary terms for the selected category
+ */
+async function loadVocabTerms() {
+    const category = document.getElementById('vocabCategory').value;
+    const termsList = document.getElementById('vocabTermsList');
+    const termsContent = document.getElementById('vocabTermsContent');
+    const addForm = document.getElementById('addVocabForm');
+
+    if (!category) {
+        termsList.classList.add('hidden');
+        addForm.classList.add('hidden');
+        currentVocabCategory = null;
+        return;
+    }
+
+    currentVocabCategory = category;
+    const terms = vocabularies[category] || [];
+
+    if (terms.length === 0) {
+        termsContent.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No terms found.</p>';
+    } else {
+        termsContent.innerHTML = terms.map(term => `
+            <div style="background: var(--bg-secondary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <strong style="color: var(--ios-blue);">${term.code}</strong>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${term.definition || '(no definition)'}</div>
+                </div>
+                <button type="button" class="btn-secondary" data-action="editVocab" data-code="${term.code}" data-definition="${encodeURIComponent(term.definition || '')}" style="padding: 6px 12px; font-size: 12px; margin-left: 10px;">Edit</button>
+            </div>
+        `).join('');
+    }
+
+    termsList.classList.remove('hidden');
+    addForm.classList.remove('hidden');
+
+    // Clear add form
+    document.getElementById('newVocabCode').value = '';
+    document.getElementById('newVocabDefinition').value = '';
+
+    // Rebind handlers for edit buttons
+    bindPointerHandlers(termsContent);
+}
+
+/**
+ * Add a new vocabulary term
+ */
+async function addVocabTerm() {
+    if (!currentVocabCategory) {
+        toast('Please select a category first', 'error');
+        return;
+    }
+
+    const code = document.getElementById('newVocabCode').value.trim();
+    const definition = document.getElementById('newVocabDefinition').value.trim();
+
+    if (!code || !definition) {
+        toast('Please enter both code and definition', 'error');
+        return;
+    }
+
+    try {
+        await fetchWithAuth('/api/vocab', {
+            method: 'POST',
+            body: JSON.stringify({
+                table: currentVocabCategory,
+                code: code,
+                definition: definition
+            })
+        });
+
+        toast('Term added successfully', 'success');
+
+        // Reload vocabularies and refresh display
+        await loadVocabularies();
+        loadVocabTerms();
+
+    } catch (error) {
+        console.error('Failed to add vocab term:', error);
+        toast(error.message || 'Failed to add term', 'error');
+    }
+}
+
+/**
+ * Open the edit modal for a vocabulary term
+ */
+function openVocabEditModal(code, encodedDefinition) {
+    const modal = document.getElementById('editVocabModal');
+    document.getElementById('editVocabCode').value = code;
+    document.getElementById('editVocabCodeDisplay').value = code;
+    document.getElementById('editVocabDefinition').value = decodeURIComponent(encodedDefinition || '');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+}
+
+/**
+ * Close the edit modal
+ */
+function closeVocabEditModal() {
+    const modal = document.getElementById('editVocabModal');
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+}
+
+/**
+ * Save vocabulary term edits
+ */
+async function saveVocabEdit() {
+    if (!currentVocabCategory) return;
+
+    const code = document.getElementById('editVocabCode').value;
+    const definition = document.getElementById('editVocabDefinition').value.trim();
+
+    if (!definition) {
+        toast('Definition cannot be empty', 'error');
+        return;
+    }
+
+    try {
+        await fetchWithAuth('/api/vocab', {
+            method: 'PUT',
+            body: JSON.stringify({
+                table: currentVocabCategory,
+                code: code,
+                definition: definition
+            })
+        });
+
+        toast('Term updated successfully', 'success');
+        closeVocabEditModal();
+
+        // Reload vocabularies and refresh display
+        await loadVocabularies();
+        loadVocabTerms();
+
+    } catch (error) {
+        console.error('Failed to update vocab term:', error);
+        toast(error.message || 'Failed to update term', 'error');
+    }
+}
+
+/**
+ * Delete (soft-delete) a vocabulary term
+ */
+async function deleteVocabTerm() {
+    if (!currentVocabCategory) return;
+
+    const code = document.getElementById('editVocabCode').value;
+
+    if (!confirm(`Are you sure you want to remove "${code}"? This will hide it from all dropdowns.`)) {
+        return;
+    }
+
+    try {
+        await fetchWithAuth(`/api/vocab?table=${currentVocabCategory}&code=${code}`, {
+            method: 'DELETE'
+        });
+
+        toast('Term removed successfully', 'success');
+        closeVocabEditModal();
+
+        // Reload vocabularies and refresh display
+        await loadVocabularies();
+        loadVocabTerms();
+
+        // Also refresh role dropdowns
+        populateRoleDropdowns();
+
+    } catch (error) {
+        console.error('Failed to delete vocab term:', error);
+        toast(error.message || 'Failed to remove term', 'error');
+    }
+}
+
+/**
+ * Repopulate role dropdowns after vocab changes
+ */
+function populateRoleDropdowns() {
+    const regionSelect = document.getElementById('newRoleRegion');
+    const capacitySelect = document.getElementById('newRoleCapacity');
+    const focusSelect = document.getElementById('newRoleFocus');
+
+    if (regionSelect && vocabularies.region) {
+        regionSelect.innerHTML = '<option value="">-- Select --</option>' +
+            vocabularies.region.map(item => `<option value="${item.code}">${item.code}</option>`).join('');
+    }
+
+    if (capacitySelect && vocabularies.capacity) {
+        capacitySelect.innerHTML = '<option value="">-- Select --</option>' +
+            vocabularies.capacity.map(item => `<option value="${item.code}">${item.code}</option>`).join('');
+    }
+
+    if (focusSelect && vocabularies.focus) {
+        focusSelect.innerHTML = '<option value="">(optional)</option>' +
+            vocabularies.focus.map(item => `<option value="${item.code}">${item.code}</option>`).join('');
+    }
+}
 
 window.addEventListener('error', (event) => {
     if (event?.message) {
