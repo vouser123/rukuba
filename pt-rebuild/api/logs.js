@@ -268,13 +268,28 @@ async function getMessages(req, res) {
   const supabase = getSupabaseWithAuth(req.accessToken);
 
   try {
+    const isMissingColumnError = (error, columnName) => {
+      if (!error) return false;
+      if (error.code === '42703') return true;
+      const message = `${error.message || ''}`.toLowerCase();
+      return message.includes(`column`) && message.includes(columnName);
+    };
+
+    const fetchMessages = async (orderField) => {
+      return supabase
+        .from('clinical_messages')
+        .select('*')
+        .is('deleted_at', null)
+        .or(`sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`)
+        .order(orderField, { ascending: false });
+    };
+
     // Filter by current user - must be sender or recipient
-    const { data: messages, error } = await supabase
-      .from('clinical_messages')
-      .select('*')
-      .is('deleted_at', null)
-      .or(`sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`)
-      .order('created_at', { ascending: false });
+    let { data: messages, error } = await fetchMessages('sent_at');
+
+    if (error && isMissingColumnError(error, 'sent_at')) {
+      ({ data: messages, error } = await fetchMessages('created_at'));
+    }
 
     if (error) throw error;
 
@@ -288,8 +303,13 @@ async function getMessages(req, res) {
       return false;
     });
 
+    const normalizedMessages = visibleMessages.map(message => ({
+      ...message,
+      sent_at: message.sent_at || message.created_at
+    }));
+
     return res.status(200).json({
-      messages: visibleMessages,
+      messages: normalizedMessages,
       count: visibleMessages.length
     });
 
@@ -344,17 +364,37 @@ async function createMessage(req, res) {
     // otherwise use the recipient_id
     const patientId = req.user.role === 'patient' ? req.user.id : recipient_id;
 
-    const { data: message, error } = await supabase
+    const isMissingColumnError = (error, columnName) => {
+      if (!error) return false;
+      if (error.code === '42703') return true;
+      const message = `${error.message || ''}`.toLowerCase();
+      return message.includes(`column`) && message.includes(columnName);
+    };
+
+    const basePayload = {
+      patient_id: patientId,
+      sender_id: req.user.id,
+      recipient_id,
+      subject: subject || null,
+      body
+    };
+
+    let { data: message, error } = await supabase
       .from('clinical_messages')
       .insert({
-        patient_id: patientId,
-        sender_id: req.user.id,
-        recipient_id,
-        subject: subject || null,
-        body
+        ...basePayload,
+        sent_at: new Date().toISOString()
       })
       .select()
       .single();
+
+    if (error && isMissingColumnError(error, 'sent_at')) {
+      ({ data: message, error } = await supabase
+        .from('clinical_messages')
+        .insert(basePayload)
+        .select()
+        .single());
+    }
 
     if (error) throw error;
 
