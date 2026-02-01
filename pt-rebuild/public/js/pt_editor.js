@@ -210,6 +210,18 @@ function bindInputHandlers() {
     if (dosageExerciseSelect) {
         dosageExerciseSelect.addEventListener('change', () => loadExerciseDosage());
     }
+
+    // Pattern modifiers: duration_seconds and hold_seconds are mutually exclusive
+    const modDuration = document.getElementById('modDuration');
+    const modHold = document.getElementById('modHold');
+    if (modDuration && modHold) {
+        modDuration.addEventListener('change', () => {
+            if (modDuration.checked) modHold.checked = false;
+        });
+        modHold.addEventListener('change', () => {
+            if (modHold.checked) modDuration.checked = false;
+        });
+    }
 }
 
 /**
