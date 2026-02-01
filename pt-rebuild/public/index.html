@@ -3281,16 +3281,22 @@ ${queueData}
 
                 messages.forEach(msg => {
                     const isFromPatient = msg.sender_id === viewerId;
-                    const createdAt = new Date(msg.created_at);
-                    const sentAt = formatLocalDateTime(createdAt);
-                    const readAt = msg.read_at
+                    const sentAtDate = msg.sent_at
+                        ? new Date(msg.sent_at)
+                        : (msg.created_at ? new Date(msg.created_at) : null);
+                    const sentAt = sentAtDate && !Number.isNaN(sentAtDate.getTime())
+                        ? formatLocalDateTime(sentAtDate)
+                        : 'Unknown';
+                    const readAtDate = msg.read_at
                         ? new Date(msg.read_at)
                         : (msg.read_by_recipient && msg.updated_at ? new Date(msg.updated_at) : null);
-                    const readAtLabel = readAt ? formatLocalDateTime(readAt) : 'Unread';
+                    const readAtLabel = readAtDate && !Number.isNaN(readAtDate.getTime())
+                        ? formatLocalDateTime(readAtDate)
+                        : 'Unread';
 
                     // Check if message can be undone (within 1 hour)
                     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-                    const canUndo = isFromPatient && createdAt > oneHourAgo;
+                    const canUndo = isFromPatient && sentAtDate && sentAtDate > oneHourAgo;
 
                     html += `
                         <div style="
@@ -3709,14 +3715,21 @@ ${queueData}
         }
 
         function formatDateTimeWithZone(date, options = {}) {
+            if (!date) {
+                return 'Unknown';
+            }
+            const safeDate = date instanceof Date ? date : new Date(date);
+            if (Number.isNaN(safeDate.getTime())) {
+                return 'Unknown';
+            }
             const baseOptions = { timeZoneName: 'short', ...options };
             try {
-                return new Intl.DateTimeFormat(undefined, baseOptions).format(date);
+                return new Intl.DateTimeFormat(undefined, baseOptions).format(safeDate);
             } catch (error) {
                 return new Intl.DateTimeFormat('en-US', {
                     ...baseOptions,
                     timeZone: 'America/New_York'
-                }).format(date);
+                }).format(safeDate);
             }
         }
 
