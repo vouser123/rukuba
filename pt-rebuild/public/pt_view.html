@@ -748,6 +748,34 @@
                 >
                 <button type="submit">Sign In</button>
                 <div id="authError" class="auth-error"></div>
+                <a href="#" id="forgotPasswordLink" style="display: block; text-align: center; margin-top: 1rem; color: #007bff; font-size: 14px;">Forgot password?</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="auth-modal hidden">
+        <div class="auth-content">
+            <h2>Reset Password</h2>
+            <p style="margin-bottom: 1rem; color: #666; font-size: 14px;">Enter your email and we'll send you a reset link.</p>
+            <form id="forgotPasswordForm" class="auth-form">
+                <input type="email" id="resetEmailInput" placeholder="Email" required autocomplete="email">
+                <button type="submit">Send Reset Link</button>
+                <div id="resetError" class="auth-error"></div>
+                <a href="#" id="backToLoginLink" style="display: block; text-align: center; margin-top: 1rem; color: #007bff; font-size: 14px;">Back to sign in</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Set New Password Modal -->
+    <div id="newPasswordModal" class="auth-modal hidden">
+        <div class="auth-content">
+            <h2>Set New Password</h2>
+            <form id="newPasswordForm" class="auth-form">
+                <input type="password" id="newPasswordInput" placeholder="New password" required minlength="6" autocomplete="new-password">
+                <input type="password" id="confirmPasswordInput" placeholder="Confirm password" required minlength="6" autocomplete="new-password">
+                <button type="submit">Update Password</button>
+                <div id="newPasswordError" class="auth-error"></div>
             </form>
         </div>
     </div>
@@ -954,10 +982,16 @@
 
             // Auth state listener
             supabaseClient.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_IN') {
+                if (event === 'PASSWORD_RECOVERY') {
+                    // User clicked password reset link - show new password form
+                    hideAuthModal();
+                    hideForgotPasswordModal();
+                    showNewPasswordModal();
+                } else if (event === 'SIGNED_IN') {
                     currentUser = session.user;
                     authToken = session.access_token;
                     hideAuthModal();
+                    hideNewPasswordModal();
                     updateUserDisplay();
                     await loadData();
                     checkForNewMessages();
@@ -980,6 +1014,35 @@
 
         function hideAuthModal() {
             document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function showForgotPasswordModal() {
+            document.getElementById('authModal').classList.add('hidden');
+            document.getElementById('forgotPasswordModal').classList.remove('hidden');
+        }
+
+        function hideForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.add('hidden');
+        }
+
+        function showNewPasswordModal() {
+            document.getElementById('newPasswordModal').classList.remove('hidden');
+        }
+
+        function hideNewPasswordModal() {
+            document.getElementById('newPasswordModal').classList.add('hidden');
+        }
+
+        async function requestPasswordReset(email) {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + window.location.pathname
+            });
+            return { error };
+        }
+
+        async function updatePassword(newPassword) {
+            const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+            return { error };
         }
 
         function updateUserDisplay() {
@@ -1423,6 +1486,72 @@
                     errorEl.textContent = '';
                 } catch (error) {
                     errorEl.textContent = error.message;
+                }
+            });
+
+            // Forgot password link
+            document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                showForgotPasswordModal();
+            });
+
+            // Back to login link
+            document.getElementById('backToLoginLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                hideForgotPasswordModal();
+                showAuthModal();
+            });
+
+            // Forgot password form
+            document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('resetEmailInput').value;
+                const errorEl = document.getElementById('resetError');
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+
+                try {
+                    const { error } = await requestPasswordReset(email);
+                    if (error) throw error;
+                    errorEl.style.color = '#28a745';
+                    errorEl.textContent = 'Check your email for the reset link.';
+                } catch (error) {
+                    errorEl.style.color = '';
+                    errorEl.textContent = error.message;
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send Reset Link';
+                }
+            });
+
+            // New password form
+            document.getElementById('newPasswordForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newPassword = document.getElementById('newPasswordInput').value;
+                const confirmPassword = document.getElementById('confirmPasswordInput').value;
+                const errorEl = document.getElementById('newPasswordError');
+
+                if (newPassword !== confirmPassword) {
+                    errorEl.textContent = 'Passwords do not match.';
+                    return;
+                }
+
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Updating...';
+
+                try {
+                    const { error } = await updatePassword(newPassword);
+                    if (error) throw error;
+                    hideNewPasswordModal();
+                    showToast('Password updated successfully!', 'success');
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Update Password';
                 }
             });
 
