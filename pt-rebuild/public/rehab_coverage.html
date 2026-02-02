@@ -1035,23 +1035,29 @@
          * @returns {number} 0-100 color score
          */
         function calculateColorScore(capacityBarData) {
-            const { high_exercises, medium_exercises, last_done_dates, current_date, focuses } = capacityBarData;
+            const { high_exercises, medium_exercises, low_exercises, last_done_dates, current_date, focuses } = capacityBarData;
 
-            // If no HIGH exercises, use MEDIUM (capped at 50 = yellow)
-            if (high_exercises.length === 0) {
-                const score = calculateColorForMedium(medium_exercises, last_done_dates, current_date);
-                return Math.min(score, 50);
+            // Determine which exercises to use based on highest available contribution
+            let targetExercises;
+            if (high_exercises.length > 0) {
+                targetExercises = high_exercises;
+            } else if (medium_exercises.length > 0) {
+                targetExercises = medium_exercises;
+            } else if (low_exercises && low_exercises.length > 0) {
+                targetExercises = low_exercises;
+            } else {
+                return 0; // No exercises
             }
 
-            // If focuses exist, calculate per-focus then aggregate
-            if (focuses && focuses.length > 1) {
+            // If focuses exist and using HIGH, calculate per-focus then aggregate
+            if (targetExercises === high_exercises && focuses && focuses.length > 1) {
                 return calculateColorWithFocuses(high_exercises, last_done_dates, current_date, focuses);
             }
 
-            // Find oldest HIGH (most neglected)
+            // Find oldest exercise (most neglected) among target exercises
             let maxDaysSince = 0;
 
-            for (const ex of high_exercises) {
+            for (const ex of targetExercises) {
                 const lastDone = last_done_dates.get(ex.id);
                 if (!lastDone) return 0; // Never done = deep red
 
@@ -1654,6 +1660,7 @@
 
                     const highExercises = exercises.filter(e => e.contribution === 'high');
                     const mediumExercises = exercises.filter(e => e.contribution === 'medium');
+                    const lowExercises = exercises.filter(e => e.contribution === 'low');
                     const focuses = Array.from(capData.focuses);
 
                     // Build history maps for this capacity
@@ -1672,6 +1679,7 @@
                     const barData = {
                         high_exercises: highExercises,
                         medium_exercises: mediumExercises,
+                        low_exercises: lowExercises,
                         history_7_days: capHistory7,
                         history_21_days: capHistory21,
                         last_done_dates: capLastDone,
