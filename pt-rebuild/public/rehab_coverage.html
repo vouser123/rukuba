@@ -922,6 +922,28 @@
 
             // Region bar weight exponent
             REGION_WEIGHT_EXPONENT: 1.3,
+
+            // Color score (recency) - days since last done -> score
+            // Higher score = greener (more recent)
+            COLOR_SCORE_DAY_0: 100,      // Done today
+            COLOR_SCORE_DAY_1: 85,       // Done yesterday
+            COLOR_SCORE_DAY_2: 60,       // 2 days ago
+            COLOR_SCORE_DAY_3: 35,       // 3 days ago
+            COLOR_SCORE_DAY_4: 15,       // 4 days ago
+            COLOR_SCORE_DECAY: 2,        // Points lost per day after day 4
+
+            // Recency text thresholds (based on color score)
+            RECENCY_RECENT_MIN: 80,      // "✓ done recently"
+            RECENCY_FEW_DAYS_MIN: 60,    // "~ a few days ago"
+            RECENCY_STALE_MIN: 40,       // "⚠ getting stale"
+            RECENCY_OVERDUE_MIN: 20,     // "! overdue"
+            // Below 20 = "!! very overdue"
+
+            // Trend text thresholds (based on opacity %)
+            TREND_STEADY_MIN: 70,        // "↑ steady"
+            TREND_OK_MIN: 50,            // "→ ok"
+            TREND_SLIPPING_MIN: 30,      // "↓ slipping"
+            // Below 30 = "↓↓ low"
         };
 
         // ============================================================================
@@ -1071,14 +1093,16 @@
         /**
          * Convert days-since-last to a 0-100 color score.
          * Higher score = greener, lower score = redder.
+         * Thresholds defined in COVERAGE_CONSTANTS.
          */
         function daysToColorScore(days) {
-            if (days === 0) return 100;
-            if (days === 1) return 85;
-            if (days === 2) return 60;
-            if (days === 3) return 35;
-            if (days === 4) return 15;
-            return Math.max(0, 15 - (days - 4) * 2);
+            const C = COVERAGE_CONSTANTS;
+            if (days === 0) return C.COLOR_SCORE_DAY_0;
+            if (days === 1) return C.COLOR_SCORE_DAY_1;
+            if (days === 2) return C.COLOR_SCORE_DAY_2;
+            if (days === 3) return C.COLOR_SCORE_DAY_3;
+            if (days === 4) return C.COLOR_SCORE_DAY_4;
+            return Math.max(0, C.COLOR_SCORE_DAY_4 - (days - 4) * C.COLOR_SCORE_DECAY);
         }
 
         function calculateColorForMedium(medium_exercises, last_done_dates, current_date) {
@@ -1879,18 +1903,19 @@
 
                     // Build descriptive subtitle for the bar
                     // Color score: 100=green, 0=red. Map to recency.
+                    const C = COVERAGE_CONSTANTS;
                     let recencyText = '';
-                    if (colorScore >= 80) recencyText = '✓ done recently';
-                    else if (colorScore >= 60) recencyText = '~ a few days ago';
-                    else if (colorScore >= 40) recencyText = '⚠ getting stale';
-                    else if (colorScore >= 20) recencyText = '! overdue';
+                    if (colorScore >= C.RECENCY_RECENT_MIN) recencyText = '✓ done recently';
+                    else if (colorScore >= C.RECENCY_FEW_DAYS_MIN) recencyText = '~ a few days ago';
+                    else if (colorScore >= C.RECENCY_STALE_MIN) recencyText = '⚠ getting stale';
+                    else if (colorScore >= C.RECENCY_OVERDUE_MIN) recencyText = '! overdue';
                     else recencyText = '!! very overdue';
 
                     // Make trend clearer with arrow
                     let trendText = '';
-                    if (opacity >= 70) trendText = `↑ steady (${opacity}%)`;
-                    else if (opacity >= 50) trendText = `→ ok (${opacity}%)`;
-                    else if (opacity >= 30) trendText = `↓ slipping (${opacity}%)`;
+                    if (opacity >= C.TREND_STEADY_MIN) trendText = `↑ steady (${opacity}%)`;
+                    else if (opacity >= C.TREND_OK_MIN) trendText = `→ ok (${opacity}%)`;
+                    else if (opacity >= C.TREND_SLIPPING_MIN) trendText = `↓ slipping (${opacity}%)`;
                     else trendText = `↓↓ low (${opacity}%)`;
 
                     const barExplanation = `This week: ${percent}% • Last done: ${recencyText} • 3-week: ${trendText}`;
