@@ -2344,7 +2344,7 @@
                         pauseTimer(); // Auto-pause at target, but allow user to continue
 
                         // Announce reps remaining for hold exercises
-                        const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+                        const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold';
                         if (hasHold) {
                             const repsLeft = timerState.totalReps - timerState.currentRep;
                             if (repsLeft <= 0) {
@@ -3173,7 +3173,7 @@ ${queueData}
 
             if (isTimerMode) {
                 // Timer mode: check if this is hold (per-rep) or duration (single timer)
-                const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+                const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold';
 
                 if (hasHold) {
                     // Hold exercise: track reps, create set only when all reps complete
@@ -3223,7 +3223,7 @@ ${queueData}
             currentSession.sets.push(set);
 
             // Reset timer rep counter for next set (hold exercises)
-            if (isTimerMode && currentExercise.pattern_modifiers?.includes('hold_seconds')) {
+            if (isTimerMode && (currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold')) {
                 timerState.currentRep = 1;
                 document.getElementById('timerRepInfo').textContent = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
             }
