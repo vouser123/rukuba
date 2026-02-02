@@ -922,6 +922,28 @@
 
             // Region bar weight exponent
             REGION_WEIGHT_EXPONENT: 1.3,
+
+            // Color score (recency) - days since last done -> score
+            // Higher score = greener (more recent)
+            COLOR_SCORE_DAY_0: 100,      // Done today
+            COLOR_SCORE_DAY_1: 85,       // Done yesterday
+            COLOR_SCORE_DAY_2: 60,       // 2 days ago
+            COLOR_SCORE_DAY_3: 35,       // 3 days ago
+            COLOR_SCORE_DAY_4: 15,       // 4 days ago
+            COLOR_SCORE_DECAY: 2,        // Points lost per day after day 4
+
+            // Recency text thresholds (based on color score)
+            RECENCY_RECENT_MIN: 80,      // "✓ done recently"
+            RECENCY_FEW_DAYS_MIN: 60,    // "~ a few days ago"
+            RECENCY_STALE_MIN: 40,       // "⚠ getting stale"
+            RECENCY_OVERDUE_MIN: 20,     // "! overdue"
+            // Below 20 = "!! very overdue"
+
+            // Trend text thresholds (based on opacity %)
+            TREND_STEADY_MIN: 70,        // "↑ steady"
+            TREND_OK_MIN: 50,            // "→ ok"
+            TREND_SLIPPING_MIN: 30,      // "↓ slipping"
+            // Below 30 = "↓↓ low"
         };
 
         // ============================================================================
@@ -1035,23 +1057,29 @@
          * @returns {number} 0-100 color score
          */
         function calculateColorScore(capacityBarData) {
-            const { high_exercises, medium_exercises, last_done_dates, current_date, focuses } = capacityBarData;
+            const { high_exercises, medium_exercises, low_exercises, last_done_dates, current_date, focuses } = capacityBarData;
 
-            // If no HIGH exercises, use MEDIUM (capped at 50 = yellow)
-            if (high_exercises.length === 0) {
-                const score = calculateColorForMedium(medium_exercises, last_done_dates, current_date);
-                return Math.min(score, 50);
+            // Determine which exercises to use based on highest available contribution
+            let targetExercises;
+            if (high_exercises.length > 0) {
+                targetExercises = high_exercises;
+            } else if (medium_exercises.length > 0) {
+                targetExercises = medium_exercises;
+            } else if (low_exercises && low_exercises.length > 0) {
+                targetExercises = low_exercises;
+            } else {
+                return 0; // No exercises
             }
 
-            // If focuses exist, calculate per-focus then aggregate
-            if (focuses && focuses.length > 1) {
+            // If focuses exist and using HIGH, calculate per-focus then aggregate
+            if (targetExercises === high_exercises && focuses && focuses.length > 1) {
                 return calculateColorWithFocuses(high_exercises, last_done_dates, current_date, focuses);
             }
 
-            // Find oldest HIGH (most neglected)
+            // Find oldest exercise (most neglected) among target exercises
             let maxDaysSince = 0;
 
-            for (const ex of high_exercises) {
+            for (const ex of targetExercises) {
                 const lastDone = last_done_dates.get(ex.id);
                 if (!lastDone) return 0; // Never done = deep red
 
@@ -1065,14 +1093,16 @@
         /**
          * Convert days-since-last to a 0-100 color score.
          * Higher score = greener, lower score = redder.
+         * Thresholds defined in COVERAGE_CONSTANTS.
          */
         function daysToColorScore(days) {
-            if (days === 0) return 100;
-            if (days === 1) return 85;
-            if (days === 2) return 60;
-            if (days === 3) return 35;
-            if (days === 4) return 15;
-            return Math.max(0, 15 - (days - 4) * 2);
+            const C = COVERAGE_CONSTANTS;
+            if (days === 0) return C.COLOR_SCORE_DAY_0;
+            if (days === 1) return C.COLOR_SCORE_DAY_1;
+            if (days === 2) return C.COLOR_SCORE_DAY_2;
+            if (days === 3) return C.COLOR_SCORE_DAY_3;
+            if (days === 4) return C.COLOR_SCORE_DAY_4;
+            return Math.max(0, C.COLOR_SCORE_DAY_4 - (days - 4) * C.COLOR_SCORE_DECAY);
         }
 
         function calculateColorForMedium(medium_exercises, last_done_dates, current_date) {
@@ -1659,6 +1689,7 @@
 
                     const highExercises = exercises.filter(e => e.contribution === 'high');
                     const mediumExercises = exercises.filter(e => e.contribution === 'medium');
+                    const lowExercises = exercises.filter(e => e.contribution === 'low');
                     const focuses = Array.from(capData.focuses);
 
                     // Build history maps for this capacity
@@ -1677,6 +1708,7 @@
                     const barData = {
                         high_exercises: highExercises,
                         medium_exercises: mediumExercises,
+                        low_exercises: lowExercises,
                         history_7_days: capHistory7,
                         history_21_days: capHistory21,
                         last_done_dates: capLastDone,
@@ -1879,18 +1911,19 @@
 
                     // Build descriptive subtitle for the bar
                     // Color score: 100=green, 0=red. Map to recency.
+                    const C = COVERAGE_CONSTANTS;
                     let recencyText = '';
-                    if (colorScore >= 80) recencyText = '✓ done recently';
-                    else if (colorScore >= 60) recencyText = '~ a few days ago';
-                    else if (colorScore >= 40) recencyText = '⚠ getting stale';
-                    else if (colorScore >= 20) recencyText = '! overdue';
+                    if (colorScore >= C.RECENCY_RECENT_MIN) recencyText = '✓ done recently';
+                    else if (colorScore >= C.RECENCY_FEW_DAYS_MIN) recencyText = '~ a few days ago';
+                    else if (colorScore >= C.RECENCY_STALE_MIN) recencyText = '⚠ getting stale';
+                    else if (colorScore >= C.RECENCY_OVERDUE_MIN) recencyText = '! overdue';
                     else recencyText = '!! very overdue';
 
                     // Make trend clearer with arrow
                     let trendText = '';
-                    if (opacity >= 70) trendText = `↑ steady (${opacity}%)`;
-                    else if (opacity >= 50) trendText = `→ ok (${opacity}%)`;
-                    else if (opacity >= 30) trendText = `↓ slipping (${opacity}%)`;
+                    if (opacity >= C.TREND_STEADY_MIN) trendText = `↑ steady (${opacity}%)`;
+                    else if (opacity >= C.TREND_OK_MIN) trendText = `→ ok (${opacity}%)`;
+                    else if (opacity >= C.TREND_SLIPPING_MIN) trendText = `↓ slipping (${opacity}%)`;
                     else trendText = `↓↓ low (${opacity}%)`;
 
                     const barExplanation = `This week: ${percent}% • Last done: ${recencyText} • 3-week: ${trendText}`;
