@@ -168,6 +168,21 @@
             display: none;
         }
 
+        .connectivity-indicator {
+            font-size: 16px;
+            position: relative;
+            margin-right: 0.5rem;
+        }
+
+        .connectivity-indicator.offline::after {
+            content: '🚫';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
         .sync-badge {
             background: #ffc107;
             color: #000;
@@ -1156,6 +1171,7 @@
     <div class="header">
         <h1>PT Tracker</h1>
         <div class="header-actions">
+            <span id="connectivityIndicator" class="connectivity-indicator" title="Online">📶</span>
             <span id="syncBadge" class="sync-badge hidden">0 unsynced</span>
             <button class="hamburger-btn" data-action="toggle-hamburger">☰</button>
         </div>
@@ -1490,6 +1506,12 @@
     <!-- Supabase Client -->
     <script src="/js/vendor/supabase.min.js"></script>
 
+    <!-- Offline Manager - IndexedDB Cache -->
+    <script type="module">
+        import { offlineManager } from '/js/offline.js';
+        window.offlineManager = offlineManager;
+    </script>
+
     <script>
         // Supabase initialization
         let supabaseClient = null;
@@ -1508,6 +1530,8 @@
         let offlineQueue = [];
         let currentSide = 'right'; // Default side: right
         const CUSTOM_PARAM_VALUE = '__custom__'; // Special value for "Other" option
+        let isOnline = navigator.onLine; // Track online status
+        let lastSyncTime = null; // Last successful sync timestamp
 
         async function loadSupabaseConfig() {
             const response = await fetch('/api/env');
@@ -1523,6 +1547,12 @@
         async function init() {
             const { supabaseUrl, supabaseAnonKey } = await loadSupabaseConfig();
             supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+            // Initialize offline manager (IndexedDB cache)
+            await initOfflineManager();
+
+            // Set up online/offline listeners for auto-sync
+            setupConnectivityListeners();
 
             // Check auth state
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -1577,6 +1607,125 @@
             // Bind event handlers
             bindEventHandlers();
             updateEditorLink();
+        }
+
+        /**
+         * Initialize the OfflineManager (IndexedDB cache).
+         * Wait briefly for module to load, then init the database.
+         */
+        async function initOfflineManager() {
+            // Wait for module to load (it's loaded async via type="module")
+            let attempts = 0;
+            while (!window.offlineManager && attempts < 20) {
+                await new Promise(r => setTimeout(r, 50));
+                attempts++;
+            }
+
+            if (window.offlineManager) {
+                try {
+                    await window.offlineManager.init();
+                    console.log('OfflineManager initialized');
+
+                    // Load last sync time from IndexedDB
+                    lastSyncTime = await window.offlineManager.getSyncMetadata('last_sync');
+                    updateSyncStatusUI();
+                } catch (error) {
+                    console.warn('Failed to initialize OfflineManager:', error);
+                }
+            } else {
+                console.warn('OfflineManager module not available');
+            }
+        }
+
+        /**
+         * Set up online/offline event listeners for auto-sync.
+         * When coming back online, automatically sync pending queue and refresh cache.
+         */
+        function setupConnectivityListeners() {
+            window.addEventListener('online', async () => {
+                isOnline = true;
+                updateSyncStatusUI();
+
+                // Auto-sync when coming back online
+                if (authToken && viewingPatientId) {
+                    // First sync any pending offline queue items
+                    if (offlineQueue.length > 0) {
+                        showToast('Syncing...', '', 2000);
+                        try {
+                            await syncOfflineQueue();
+                        } catch (error) {
+                            // Sync failed, will retry later
+                        }
+                    }
+
+                    // Only refresh UI if user is on the main picker view
+                    // Don't interrupt active exercise logging or history browsing
+                    const isOnPickerView = document.getElementById('pickerView')?.classList.contains('active');
+                    if (isOnPickerView) {
+                        // Reload fresh data and re-render
+                        await loadData();
+                    } else {
+                        // Just hydrate cache silently for next time
+                        await hydrateOfflineCache();
+                    }
+                }
+            });
+
+            window.addEventListener('offline', () => {
+                isOnline = false;
+                updateSyncStatusUI();
+                showToast('Offline - changes will sync later', '', 3000);
+            });
+        }
+
+        /**
+         * Hydrate IndexedDB cache from server APIs.
+         * Called after login and when coming back online.
+         */
+        async function hydrateOfflineCache() {
+            if (!window.offlineManager || !authToken || !viewingPatientId) return;
+
+            try {
+                const result = await window.offlineManager.hydrateCache(authToken, viewingPatientId);
+                if (result.success) {
+                    lastSyncTime = new Date().toISOString();
+                    updateSyncStatusUI();
+                    console.log('Offline cache hydrated successfully');
+                }
+            } catch (error) {
+                console.warn('Failed to hydrate offline cache:', error);
+            }
+        }
+
+        /**
+         * Update the sync status UI elements:
+         * - Connectivity indicator (wifi icon with slash when offline)
+         * - Sync badge (shows unsynced count)
+         */
+        function updateSyncStatusUI() {
+            // Update connectivity indicator
+            const indicator = document.getElementById('connectivityIndicator');
+            if (indicator) {
+                if (isOnline) {
+                    indicator.classList.remove('offline');
+                    indicator.title = 'Online';
+                } else {
+                    indicator.classList.add('offline');
+                    indicator.title = 'Offline';
+                }
+            }
+
+            // Update sync badge
+            const badge = document.getElementById('syncBadge');
+            if (!badge) return;
+
+            if (offlineQueue.length > 0) {
+                badge.textContent = `${offlineQueue.length} unsynced`;
+                badge.classList.remove('hidden');
+                badge.style.background = '#dc3545'; // Red for pending items
+            } else {
+                badge.classList.add('hidden');
+            }
         }
 
         // Auth functions
@@ -1741,7 +1890,27 @@
                     throw new Error('Could not determine patient ID');
                 }
 
-                // Load patient's assigned programs (exercises with dosages)
+                // OFFLINE-ONLY CACHE: Only use IndexedDB cache when offline
+                // When online, always fetch fresh data (cache is just for offline resilience)
+                if (!navigator.onLine && window.offlineManager) {
+                    try {
+                        const cachedPrograms = await window.offlineManager.getCachedPrograms(viewingPatientId);
+                        if (cachedPrograms && cachedPrograms.length > 0) {
+                            allExercises = transformProgramsToExercises(cachedPrograms);
+                            const cachedLogs = await window.offlineManager.getCachedLogs(viewingPatientId);
+                            allHistory = cachedLogs || [];
+                            renderExerciseList(allExercises);
+                            renderHistory(allHistory);
+                            showToast('Offline mode', '', 2000);
+                            loadOfflineQueue();
+                            updateSyncBadge();
+                            return;
+                        }
+                    } catch (cacheError) {
+                        // Cache read failed
+                    }
+                    throw new Error('Offline and no cached data available');
+                }
                 const result = await fetchWithAuth(`/api/programs?patient_id=${viewingPatientId}`);
                 const programs = result.programs || [];
 
@@ -1810,11 +1979,70 @@
                 await loadHistory();
                 renderExerciseList(allExercises);
 
+                // Hydrate offline cache in background (fire-and-forget)
+                hydrateOfflineCache();
+
             } catch (error) {
-                console.error('Failed to load data:', error);
+                // API failed - try IndexedDB cache as fallback
+                if (window.offlineManager) {
+                    try {
+                        const cachedPrograms = await window.offlineManager.getCachedPrograms(viewingPatientId);
+                        if (cachedPrograms && cachedPrograms.length > 0) {
+                            allExercises = transformProgramsToExercises(cachedPrograms);
+                            const cachedLogs = await window.offlineManager.getCachedLogs(viewingPatientId);
+                            allHistory = cachedLogs || [];
+                            renderExerciseList(allExercises);
+                            renderHistory(allHistory);
+                            showToast('Using cached data', '', 3000);
+                            loadOfflineQueue();
+                            updateSyncBadge();
+                            return;
+                        }
+                    } catch (cacheError) {
+                        // Cache also failed
+                    }
+                }
+
                 document.getElementById('exerciseList').innerHTML =
-                    '<div class="empty-state">Failed to load exercises. Using offline mode.</div>';
+                    '<div class="empty-state">Failed to load exercises. Check your connection.</div>';
             }
+        }
+
+        /**
+         * Transform program data from API/cache into exercise format.
+         * Used by both online and offline loading paths.
+         */
+        function transformProgramsToExercises(programs) {
+            return programs.map(program => {
+                const exercise = program.exercises || {};
+                return {
+                    // Exercise library fields
+                    id: exercise.id,
+                    canonical_name: exercise.canonical_name,
+                    description: exercise.description,
+                    pt_category: exercise.pt_category,
+                    pattern: exercise.pattern,
+                    pattern_modifiers: exercise.pattern_modifiers,
+                    archived: exercise.archived,
+
+                    // Patient dosage fields from patient_programs
+                    current_sets: program.current_sets ?? program.sets,
+                    current_reps: program.current_reps ?? program.reps_per_set,
+                    seconds_per_rep: program.seconds_per_rep,
+                    seconds_per_set: program.seconds_per_set,
+                    dosage_type: program.dosage_type,
+                    distance_feet: program.distance_feet,
+                    side: program.side,
+
+                    // Full nested data for reference
+                    equipment: exercise.equipment,
+                    primary_muscles: exercise.primary_muscles,
+                    secondary_muscles: exercise.secondary_muscles,
+                    form_parameters_required: exercise.form_parameters_required,
+                    guidance: exercise.guidance,
+                    roles: exercise.roles
+                };
+            });
         }
 
         async function loadHistory() {
@@ -4172,13 +4400,8 @@ ${queueData}
         }
 
         function updateSyncBadge() {
-            const badge = document.getElementById('syncBadge');
-            if (offlineQueue.length > 0) {
-                badge.textContent = `${offlineQueue.length} unsynced`;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
+            // Use the comprehensive sync status UI function
+            updateSyncStatusUI();
         }
 
         async function syncOfflineQueue() {
@@ -4258,8 +4481,9 @@ ${queueData}
                 showToast(`Synced ${successCount} sessions. ${failCount} failed (will retry later).`, 'error');
             }
 
-            // Reload history
+            // Reload history and refresh offline cache
             await loadHistory();
+            hydrateOfflineCache();
         }
 
         // View management

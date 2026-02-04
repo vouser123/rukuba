@@ -1,9 +1,9 @@
 /**
- * Offline Manager - IndexedDB Cache + Manual Sync
+ * Offline Manager - IndexedDB Cache + Auto-Sync
  *
  * CRITICAL SAFETY PRINCIPLES:
  * 1. Server is ONLY source of truth
- * 2. Manual sync ONLY - never auto-sync
+ * 2. Auto-sync when coming online + manual sync option
  * 3. Append-only queue - never modify items
  * 4. Auto-export before sync
  * 5. Server wins on conflict
@@ -80,6 +80,27 @@ class OfflineManager {
   }
 
   /**
+   * Helper: Promisify IDBRequest
+   */
+  _promisify(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Helper: Wait for transaction to complete
+   */
+  _waitForTransaction(tx) {
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(new Error('Transaction aborted'));
+    });
+  }
+
+  /**
    * Hydrate cache from server (replaces all cached data)
    * Server is source of truth.
    */
@@ -113,27 +134,27 @@ class OfflineManager {
 
       // Clear and repopulate exercises
       const exerciseStore = tx.objectStore('exercises');
-      await exerciseStore.clear();
+      exerciseStore.clear();
       for (const ex of exercises) {
-        await exerciseStore.put(ex);
+        exerciseStore.put(ex);
       }
 
       // Clear and repopulate programs
       const programStore = tx.objectStore('programs');
-      await programStore.clear();
+      programStore.clear();
       for (const prog of programs) {
-        await programStore.put(prog);
+        programStore.put(prog);
       }
 
       // Clear and repopulate activity logs
       const logStore = tx.objectStore('activity_logs');
-      await logStore.clear();
+      logStore.clear();
       for (const log of logs) {
-        await logStore.put(log);
+        logStore.put(log);
       }
 
-      // Wait for transaction to complete (idb library uses .done, not .complete)
-      await tx.done;
+      // Wait for transaction to complete
+      await this._waitForTransaction(tx);
 
       // Update sync metadata
       await this.setSyncMetadata('last_sync', new Date().toISOString());
@@ -150,17 +171,20 @@ class OfflineManager {
    * Add item to offline queue (append-only)
    */
   async addToQueue(operation, payload) {
-    const tx = this.db.transaction(['offline_queue'], 'readwrite');
-    const store = tx.objectStore('offline_queue');
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['offline_queue'], 'readwrite');
+      const store = tx.objectStore('offline_queue');
 
-    const item = {
-      operation,
-      payload,
-      created_at: new Date().toISOString()
-    };
+      const item = {
+        operation,
+        payload,
+        created_at: new Date().toISOString()
+      };
 
-    await store.add(item);
-    return { success: true };
+      const request = store.add(item);
+      request.onsuccess = () => resolve({ success: true });
+      request.onerror = () => reject(request.error);
+    });
   }
 
   /**
@@ -252,19 +276,22 @@ class OfflineManager {
 
       // Step 4: Remove successfully processed items
       onProgress?.('Updating queue...');
-      const tx = this.db.transaction(['offline_queue'], 'readwrite');
-      const store = tx.objectStore('offline_queue');
 
       // Build set of processed mutation IDs for O(1) lookup
       const processedIds = new Set(processed.map(item => item?.client_mutation_id).filter(Boolean));
 
-      // Get all items once, then delete matches
-      const allItems = await store.getAll();
+      // Get all items, then delete processed ones
+      const allItems = await this.getQueueItems();
+      const tx = this.db.transaction(['offline_queue'], 'readwrite');
+      const store = tx.objectStore('offline_queue');
+
       for (const queueItem of allItems) {
         if (processedIds.has(queueItem.payload?.client_mutation_id)) {
-          await store.delete(queueItem.id);
+          store.delete(queueItem.id);
         }
       }
+
+      await this._waitForTransaction(tx);
 
       // Step 5: Hydrate cache from server (server wins)
       onProgress?.('Refreshing cache...');
@@ -334,19 +361,31 @@ class OfflineManager {
   }
 
   /**
-   * Get/set sync metadata
+   * Get sync metadata value by key
    */
   async getSyncMetadata(key) {
-    const tx = this.db.transaction(['sync_metadata'], 'readonly');
-    const store = tx.objectStore('sync_metadata');
-    const result = await store.get(key);
-    return result?.value;
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['sync_metadata'], 'readonly');
+      const store = tx.objectStore('sync_metadata');
+      const request = store.get(key);
+
+      request.onsuccess = () => resolve(request.result?.value || null);
+      request.onerror = () => reject(request.error);
+    });
   }
 
+  /**
+   * Set sync metadata value
+   */
   async setSyncMetadata(key, value) {
-    const tx = this.db.transaction(['sync_metadata'], 'readwrite');
-    const store = tx.objectStore('sync_metadata');
-    await store.put({ key, value });
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['sync_metadata'], 'readwrite');
+      const store = tx.objectStore('sync_metadata');
+      const request = store.put({ key, value });
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
   }
 
   /**

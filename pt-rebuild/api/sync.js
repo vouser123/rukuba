@@ -7,14 +7,17 @@
  * Idempotent: duplicate client_mutation_ids return success without error.
  * Returns: { processed: [...], failed: [...] }
  *
+ * Also writes to offline_mutations table for server-side audit/debugging.
+ *
  * Patient-only endpoint.
  */
 
-import { getSupabaseClient } from '../lib/db.js';
+import { getSupabaseClient, getSupabaseAdmin } from '../lib/db.js';
 import { requirePatient } from '../lib/auth.js';
 
 async function processSync(req, res) {
   const supabase = getSupabaseClient();
+  const supabaseAdmin = getSupabaseAdmin();
   const { queue } = req.body;
 
   if (!queue || !Array.isArray(queue)) {
@@ -40,6 +43,21 @@ async function processSync(req, res) {
       // Only support create_activity_log for now
       if (item.operation === 'create_activity_log') {
         const result = await processActivityLog(supabase, req.user.id, item.payload);
+
+        // Write to offline_mutations table for audit (fire-and-forget, don't block on failure)
+        try {
+          await supabaseAdmin
+            .from('offline_mutations')
+            .insert({
+              user_id: req.user.id,
+              mutation_type: 'create_activity_log',
+              mutation_payload: item.payload,
+              processed_at: result.success ? new Date().toISOString() : null,
+              processing_error: result.success ? null : result.error
+            });
+        } catch (auditError) {
+          console.warn('Failed to write offline_mutations audit:', auditError.message);
+        }
 
         if (result.success) {
           processed.push({
