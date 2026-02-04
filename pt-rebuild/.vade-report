@@ -1,0 +1,56 @@
+# Vercel Speed Insights Integration
+
+## Summary
+Successfully implemented Vercel Speed Insights tracking scripts across all HTML pages in the PT Tracker application.
+
+## Changes Made
+
+### Modified Files
+1. **public/index.html** - Added Speed Insights scripts before closing body tag
+2. **public/pt_editor.html** - Added Speed Insights scripts before closing body tag
+3. **public/pt_view.html** - Added Speed Insights scripts before closing body tag
+4. **public/rehab_coverage.html** - Added Speed Insights scripts before closing body tag
+5. **public/reset-password.html** - Added Speed Insights scripts before closing body tag
+
+## Implementation Details
+
+Since this is a static HTML application (not a framework like Next.js or React), I followed the HTML implementation guide from the Vercel Speed Insights documentation.
+
+Added the following scripts before the closing `</body>` tag in all HTML files:
+
+```html
+<!-- Vercel Speed Insights -->
+<script>
+    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+```
+
+## What This Enables
+
+- **Performance Tracking**: Once deployed to Vercel with Speed Insights enabled in the dashboard, the application will automatically track real user performance metrics
+- **Script Loading**: The `/_vercel/speed-insights/script.js` route will be available after deployment
+- **No Package Installation**: As per the HTML implementation guide, no npm package installation is required
+
+## Next Steps (Manual)
+
+To complete the Speed Insights setup:
+
+1. Enable Speed Insights in the Vercel dashboard:
+   - Go to your project dashboard
+   - Select the "Speed Insights" tab
+   - Click "Enable"
+
+2. Deploy the application:
+   ```bash
+   vercel deploy
+   ```
+
+3. View metrics in the dashboard after users visit the site
+
+## Technical Notes
+
+- The scripts are loaded with the `defer` attribute to prevent blocking page load
+- The initialization function ensures the Speed Insights queue is available immediately
+- All 5 HTML pages in the application now include the tracking scripts
+- The implementation follows Vercel's official documentation for HTML/vanilla JavaScript applications
