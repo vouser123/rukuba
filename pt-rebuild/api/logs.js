@@ -254,6 +254,214 @@ async function createActivityLog(req, res) {
   }
 }
 
+/**
+ * PATCH /api/logs?id=X
+ *
+ * Update an activity log (date, notes, sets).
+ * Body: { performed_at?, notes?, sets? }
+ */
+async function updateActivityLog(req, res) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+  const { id } = req.query;
+  const { performed_at, notes, sets } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Missing log id' });
+  }
+
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return res.status(400).json({ error: 'Invalid log id format' });
+  }
+
+  try {
+    // First verify the log exists and user has access (RLS will enforce)
+    const { data: existing, error: fetchError } = await supabase
+      .from('patient_activity_logs')
+      .select('id, patient_id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!existing) {
+      return res.status(404).json({ error: 'Activity log not found' });
+    }
+
+    // Build update object
+    const updates = {};
+    if (performed_at !== undefined) {
+      updates.performed_at = performed_at;
+    }
+    if (notes !== undefined) {
+      updates.notes = notes;
+    }
+
+    // Update the log if there are changes
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await supabase
+        .from('patient_activity_logs')
+        .update(updates)
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+    }
+
+    // Update sets if provided
+    if (sets && Array.isArray(sets)) {
+      // Delete existing sets and their form data
+      const { data: existingSets } = await supabase
+        .from('patient_activity_sets')
+        .select('id')
+        .eq('activity_log_id', id);
+
+      if (existingSets && existingSets.length > 0) {
+        const existingSetIds = existingSets.map(s => s.id);
+
+        // Delete form data first (foreign key constraint)
+        await supabase
+          .from('patient_activity_set_form_data')
+          .delete()
+          .in('activity_set_id', existingSetIds);
+
+        // Delete existing sets
+        await supabase
+          .from('patient_activity_sets')
+          .delete()
+          .eq('activity_log_id', id);
+      }
+
+      // Insert new sets
+      const setsWithLogId = sets.map((set, index) => ({
+        activity_log_id: id,
+        set_number: set.set_number || index + 1,
+        reps: set.reps || null,
+        seconds: set.seconds || null,
+        distance_feet: set.distance_feet || null,
+        side: set.side || null,
+        manual_log: set.manual_log || false,
+        partial_rep: set.partial_rep || false,
+        performed_at: set.performed_at || performed_at || new Date().toISOString()
+      }));
+
+      const { data: createdSets, error: setsError } = await supabase
+        .from('patient_activity_sets')
+        .insert(setsWithLogId)
+        .select();
+
+      if (setsError) throw setsError;
+
+      // Insert form data for each set (if present)
+      const formDataRows = [];
+      for (let i = 0; i < sets.length; i++) {
+        const set = sets[i];
+        const createdSet = createdSets[i];
+
+        if (set.form_data && Array.isArray(set.form_data) && set.form_data.length > 0) {
+          for (const param of set.form_data) {
+            formDataRows.push({
+              activity_set_id: createdSet.id,
+              parameter_name: param.parameter_name,
+              parameter_value: param.parameter_value,
+              parameter_unit: param.parameter_unit || null
+            });
+          }
+        }
+      }
+
+      if (formDataRows.length > 0) {
+        const { error: formDataError } = await supabase
+          .from('patient_activity_set_form_data')
+          .insert(formDataRows);
+
+        if (formDataError) throw formDataError;
+      }
+    }
+
+    return res.status(200).json({ success: true });
+
+  } catch (error) {
+    console.error('Error updating activity log:', error);
+    return res.status(500).json({
+      error: 'Failed to update activity log',
+      details: error.message
+    });
+  }
+}
+
+/**
+ * DELETE /api/logs?id=X
+ *
+ * Delete an activity log and its sets.
+ */
+async function deleteActivityLog(req, res) {
+  const supabase = getSupabaseWithAuth(req.accessToken);
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Missing log id' });
+  }
+
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return res.status(400).json({ error: 'Invalid log id format' });
+  }
+
+  try {
+    // First verify the log exists and user has access (RLS will enforce)
+    const { data: existing, error: fetchError } = await supabase
+      .from('patient_activity_logs')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!existing) {
+      return res.status(404).json({ error: 'Activity log not found' });
+    }
+
+    // Get existing sets to delete their form data
+    const { data: existingSets } = await supabase
+      .from('patient_activity_sets')
+      .select('id')
+      .eq('activity_log_id', id);
+
+    if (existingSets && existingSets.length > 0) {
+      const existingSetIds = existingSets.map(s => s.id);
+
+      // Delete form data first (foreign key constraint)
+      await supabase
+        .from('patient_activity_set_form_data')
+        .delete()
+        .in('activity_set_id', existingSetIds);
+    }
+
+    // Delete sets (foreign key constraint)
+    await supabase
+      .from('patient_activity_sets')
+      .delete()
+      .eq('activity_log_id', id);
+
+    // Delete the log
+    const { error: deleteError } = await supabase
+      .from('patient_activity_logs')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
+
+    return res.status(200).json({ success: true, deleted: true });
+
+  } catch (error) {
+    console.error('Error deleting activity log:', error);
+    return res.status(500).json({
+      error: 'Failed to delete activity log',
+      details: error.message
+    });
+  }
+}
+
 // ============================================================================
 // CLINICAL MESSAGES HANDLERS
 // ============================================================================
@@ -554,6 +762,16 @@ export default async function handler(req, res) {
     // Both patients and therapists can create logs
     // Patients log their own data, therapists log on behalf of patients
     return requireAuth(createActivityLog)(req, res);
+  }
+
+  if (req.method === 'PATCH') {
+    // Update activity log (requires id query param)
+    return requireAuth(updateActivityLog)(req, res);
+  }
+
+  if (req.method === 'DELETE') {
+    // Delete activity log (requires id query param)
+    return requireAuth(deleteActivityLog)(req, res);
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

@@ -1337,6 +1337,11 @@
                 <label id="logSetInputLabel" for="logSetInput">Reps performed</label>
                 <input type="number" id="logSetInput" min="0" step="1" class="modal-input">
             </div>
+            <!-- Hold time input (shown for hold_seconds exercises) -->
+            <div id="logSetTimeContainer" class="form-group hidden">
+                <label id="logSetTimeLabel" for="logSetTimeInput">Seconds per rep</label>
+                <input type="number" id="logSetTimeInput" min="0" step="1" class="modal-input">
+            </div>
             <!-- Form Parameters (weight, band resistance, etc.) -->
             <div id="formParamsContainer" class="hidden" style="background: rgba(0,122,255,0.05); padding: 12px; border-radius: 8px; margin: 12px 0;">
                 <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333;">Form Parameters:</div>
@@ -1997,13 +2002,19 @@
                 });
                 const setsCount = log.sets ? log.sets.length : 0;
 
-                // Build sets summary with reps/seconds/distance
+                // Build sets summary with reps/seconds/distance and side
+                // Format: "10r × 5s (L)" for hold, "30s" for duration, "10r (R)" for sided reps
                 const setsSummary = log.sets ? log.sets.map(s => {
-                    if (s.reps && s.seconds) return `${s.reps} × ${s.seconds}s`;
-                    if (s.reps) return `${s.reps} reps`;
-                    if (s.seconds) return `${s.seconds}s`;
-                    if (s.distance_feet) return `${s.distance_feet} ft`;
-                    return '';
+                    let parts = [];
+                    if (s.reps) parts.push(`${s.reps}r`);
+                    if (s.seconds) parts.push(`${s.seconds}s`);
+                    if (s.distance_feet) parts.push(`${s.distance_feet}ft`);
+                    let summary = parts.join(' × ');
+                    // Add side indicator for sided exercises
+                    if (s.side) {
+                        summary += ` (${s.side === 'left' ? 'L' : 'R'})`;
+                    }
+                    return summary;
                 }).filter(Boolean).join(', ') : '';
 
                 // Extract form parameters from the first set (typically same across sets)
@@ -2739,6 +2750,7 @@ ${queueData}
          * Open "Log Set" modal for manual entry.
          * Pre-fills with TARGET dose (not counter value) for manual logging.
          * Shows form parameters prefilled with last used values.
+         * For hold_seconds exercises, shows both reps and time inputs.
          */
         function showLogSetModal() {
             if (!currentExercise) return;
@@ -2746,22 +2758,29 @@ ${queueData}
             const modal = document.getElementById('logSetModal');
             const input = document.getElementById('logSetInput');
             const label = document.getElementById('logSetInputLabel');
+            const timeContainer = document.getElementById('logSetTimeContainer');
+            const timeInput = document.getElementById('logSetTimeInput');
 
             const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds') || currentExercise.dosage_type === 'duration';
             const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold';
 
             if (hasDuration) {
-                // Duration: prefill with target seconds
+                // Duration: prefill with target seconds, hide time input
                 input.value = currentExercise.seconds_per_set || currentExercise.seconds_per_rep || 0;
                 label.textContent = 'Seconds performed';
+                timeContainer.classList.add('hidden');
             } else if (hasHold) {
-                // Hold: prefill with target reps (timer handles the hold time)
+                // Hold: show both reps and time inputs for manual SET logging
                 input.value = currentExercise.current_reps || 0;
                 label.textContent = 'Reps performed';
+                // Show time input and prefill with target hold time
+                timeContainer.classList.remove('hidden');
+                timeInput.value = currentExercise.seconds_per_rep || 0;
             } else {
-                // Reps: prefill with target reps
+                // Reps: prefill with target reps, hide time input
                 input.value = currentExercise.current_reps || 0;
                 label.textContent = 'Reps performed';
+                timeContainer.classList.add('hidden');
             }
 
             // Show/hide side selector
@@ -3294,12 +3313,16 @@ ${queueData}
         /**
          * Save the set from the modal (user reviewed/edited the value).
          * Collects form parameters (weight, band resistance, etc.) if present.
+         * For hold_seconds exercises opened via LOG SET, creates a complete set
+         * with reps and time from the form inputs.
          */
         function saveLoggedSet() {
             const counterMode = document.getElementById('counterMode');
             const isTimerMode = counterMode.classList.contains('hidden');
             const input = document.getElementById('logSetInput');
             const value = parseInt(input.value) || 0;
+            const timeInput = document.getElementById('logSetTimeInput');
+            const timeContainer = document.getElementById('logSetTimeContainer');
 
             if (value === 0) {
                 showToast('Please enter a value greater than 0', 'error');
@@ -3309,12 +3332,29 @@ ${queueData}
             let reps = null;
             let seconds = null;
 
-            if (isTimerMode) {
-                // Timer mode: check if this is hold (per-rep) or duration (single timer)
-                const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds') || currentExercise.dosage_type === 'hold';
+            const hasDuration = currentExercise.pattern_modifiers?.includes('duration_seconds') || currentExercise.dosage_type === 'duration';
 
+            // Check if time input is visible (manual LOG SET for hold exercise)
+            const isManualHoldEntry = hasHold && !timeContainer.classList.contains('hidden');
+
+            if (isManualHoldEntry) {
+                // Manual entry for hold exercise: user entered both reps and time
+                // Create a complete SET directly (not rep-by-rep)
+                reps = value;
+                seconds = parseInt(timeInput.value) || 0;
+                if (seconds === 0) {
+                    showToast('Please enter seconds per rep', 'error');
+                    return;
+                }
+                // Reset timer if it was running
+                if (isTimerMode) {
+                    resetTimer();
+                }
+            } else if (isTimerMode) {
+                // Timer mode: check if this is hold (per-rep) or duration (single timer)
                 if (hasHold) {
-                    // Hold exercise: track reps, create set only when all reps complete
+                    // Hold exercise via timer: track reps, create set only when all reps complete
                     timerState.currentRep++;  // Increment rep count
 
                     if (timerState.currentRep > timerState.totalReps) {
@@ -3330,9 +3370,13 @@ ${queueData}
                         showToast(`Rep ${timerState.currentRep - 1} complete`, 'success', 2000);
                         return;  // Don't create set yet
                     }
-                } else {
+                } else if (hasDuration) {
                     // Duration exercise: single set with just time
                     reps = 1;  // Always 1 rep for duration
+                    seconds = value;
+                } else {
+                    // Timer mode but not hold/duration - shouldn't happen but handle gracefully
+                    reps = 1;
                     seconds = value;
                 }
 
@@ -3346,6 +3390,9 @@ ${queueData}
 
             const formData = collectFormParameters('formParamsContainer');
 
+            // Determine if this is a manual log entry (using LOG SET button directly)
+            const isManualLog = isManualHoldEntry || (!isTimerMode && !hasHold && !hasDuration);
+
             const set = {
                 set_number: currentSession.sets.length + 1,
                 reps: reps,  // Always populated (never null)
@@ -3353,7 +3400,7 @@ ${queueData}
                 distance_feet: null, // TODO: Add distance mode
                 side: logSetSelectedSide || currentSide,
                 form_data: formData.length > 0 ? formData : null, // Normalized array
-                manual_log: false,
+                manual_log: isManualLog,
                 partial_rep: false,
                 performed_at: new Date().toISOString()
             };
@@ -3650,7 +3697,9 @@ ${queueData}
 
             // Find exercise info
             const exercise = allExercises.find(ex => ex.id === editingLog.exercise_id);
-            const isSided = exercise?.pattern === 'side';
+            // Detect sided from exercise pattern OR if any set has side data
+            const hasSideData = editingLog.sets?.some(s => s.side);
+            const isSided = exercise?.pattern === 'side' || hasSideData;
 
             // Populate exercise info
             document.getElementById('editSessionExerciseName').textContent = editingLog.exercise_name;
@@ -3675,9 +3724,19 @@ ${queueData}
         /**
          * Render the sets list in the Edit Session modal.
          */
+        /**
+         * Render sets in the edit session modal.
+         * Shows reps, seconds (for hold/duration), distance (for distance), side, and form params.
+         */
         function renderEditSessionSets(sets, isSided, exercise) {
             const container = document.getElementById('editSessionSetsList');
             const formParams = exercise?.form_parameters_required || [];
+
+            // Determine which fields to show based on exercise pattern modifiers
+            const hasHold = exercise?.pattern_modifiers?.includes('hold_seconds') || exercise?.dosage_type === 'hold';
+            const hasDuration = exercise?.pattern_modifiers?.includes('duration_seconds') || exercise?.dosage_type === 'duration';
+            const hasDistance = exercise?.pattern_modifiers?.includes('distance_feet') || exercise?.dosage_type === 'distance';
+            const showSeconds = hasHold || hasDuration;
 
             if (sets.length === 0) {
                 container.innerHTML = '<div style="color: #888; font-style: italic;">No sets logged</div>';
@@ -3698,20 +3757,38 @@ ${queueData}
                     `).join('');
                 }
 
+                // Determine label for reps field based on exercise type
+                const repsLabel = hasDuration ? 'Reps (usually 1)' : 'Reps';
+                const secondsLabel = hasHold ? 'Seconds/rep' : 'Seconds';
+
                 return `
                     <div class="edit-session-set" style="background: #1a1a1a; border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid #333;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="font-weight: 600;">Set ${index + 1}</span>
                             <button type="button" class="btn" style="background: transparent; color: #dc3545; padding: 4px 12px; font-size: 0.85rem;" data-action="delete-edit-session-set" data-set-index="${index}">Delete</button>
                         </div>
-                        <div style="display: flex; gap: 12px;">
-                            <div style="flex: 1;">
-                                <label style="font-size: 0.85rem; color: #888; display: block; margin-bottom: 4px;">Reps</label>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 80px;">
+                                <label style="font-size: 0.85rem; color: #888; display: block; margin-bottom: 4px;">${repsLabel}</label>
                                 <input type="number" class="edit-set-reps" data-set="${index}" value="${set.reps || 0}"
                                     style="width: 100%; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 1rem;">
                             </div>
+                            ${showSeconds ? `
+                            <div style="flex: 1; min-width: 80px;">
+                                <label style="font-size: 0.85rem; color: #888; display: block; margin-bottom: 4px;">${secondsLabel}</label>
+                                <input type="number" class="edit-set-seconds" data-set="${index}" value="${set.seconds || 0}"
+                                    style="width: 100%; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 1rem;">
+                            </div>
+                            ` : ''}
+                            ${hasDistance ? `
+                            <div style="flex: 1; min-width: 80px;">
+                                <label style="font-size: 0.85rem; color: #888; display: block; margin-bottom: 4px;">Distance (ft)</label>
+                                <input type="number" class="edit-set-distance" data-set="${index}" value="${set.distance_feet || 0}"
+                                    style="width: 100%; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 1rem;">
+                            </div>
+                            ` : ''}
                             ${isSided ? `
-                            <div style="flex: 1;">
+                            <div style="flex: 1; min-width: 80px;">
                                 <label style="font-size: 0.85rem; color: #888; display: block; margin-bottom: 4px;">Side</label>
                                 <select class="edit-set-side" data-set="${index}"
                                     style="width: 100%; padding: 10px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; font-size: 1rem;">
@@ -3731,18 +3808,23 @@ ${queueData}
 
         /**
          * Add a new set to the editing session.
+         * Pre-fills with default values based on exercise type.
          */
         function addEditSessionSet() {
             if (!editingLog) return;
 
             const exercise = allExercises.find(ex => ex.id === editingLog.exercise_id);
             const isSided = exercise?.pattern === 'side';
+            const hasHold = exercise?.pattern_modifiers?.includes('hold_seconds') || exercise?.dosage_type === 'hold';
+            const hasDuration = exercise?.pattern_modifiers?.includes('duration_seconds') || exercise?.dosage_type === 'duration';
+            const hasDistance = exercise?.pattern_modifiers?.includes('distance_feet') || exercise?.dosage_type === 'distance';
 
-            // Create new set with default values
+            // Create new set with default values based on exercise type
             const newSet = {
                 set_number: (editingLog.sets?.length || 0) + 1,
-                reps: exercise?.current_reps || 10,
-                seconds: null,
+                reps: hasDuration ? 1 : (exercise?.current_reps || 10),
+                seconds: (hasHold || hasDuration) ? (exercise?.seconds_per_rep || exercise?.seconds_per_set || 30) : null,
+                distance_feet: hasDistance ? (exercise?.distance_feet || 20) : null,
                 side: isSided ? 'right' : null,
                 form_data: null,
                 performed_at: new Date().toISOString()
@@ -3793,6 +3875,20 @@ ${queueData}
                 }
             });
 
+            document.querySelectorAll('.edit-set-seconds').forEach(input => {
+                const setIndex = parseInt(input.dataset.set);
+                if (editingLog.sets[setIndex]) {
+                    editingLog.sets[setIndex].seconds = parseInt(input.value) || null;
+                }
+            });
+
+            document.querySelectorAll('.edit-set-distance').forEach(input => {
+                const setIndex = parseInt(input.dataset.set);
+                if (editingLog.sets[setIndex]) {
+                    editingLog.sets[setIndex].distance_feet = parseInt(input.value) || null;
+                }
+            });
+
             document.querySelectorAll('.edit-set-side').forEach(select => {
                 const setIndex = parseInt(select.dataset.set);
                 if (editingLog.sets[setIndex]) {
@@ -3818,7 +3914,7 @@ ${queueData}
             });
 
             try {
-                const response = await fetchWithAuth(`/api/logs/${editingLog.id}`, {
+                const response = await fetchWithAuth(`/api/logs?id=${editingLog.id}`, {
                     method: 'PATCH',
                     body: JSON.stringify({
                         performed_at: new Date(dateInput.value).toISOString(),
@@ -3848,7 +3944,7 @@ ${queueData}
             }
 
             try {
-                await fetchWithAuth(`/api/logs/${editingLog.id}`, {
+                await fetchWithAuth(`/api/logs?id=${editingLog.id}`, {
                     method: 'DELETE'
                 });
 

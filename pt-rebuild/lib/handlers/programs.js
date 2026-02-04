@@ -24,17 +24,53 @@ export function normalizeProgramPatternModifiers(programs, formParamsByExercise 
     const exercise = program.exercises || null;
     const modifiers = exercise?.exercise_pattern_modifiers || [];
     const nestedFormParams = exercise?.exercise_form_parameters || [];
-    const { exercise_form_parameters, ...exercisePayload } = exercise || {};
+    const nestedEquipment = exercise?.exercise_equipment || [];
+    const nestedMuscles = exercise?.exercise_muscles || [];
+    const nestedGuidance = exercise?.exercise_guidance || [];
+
+    // Destructure nested relation arrays to exclude them from payload, keep all other fields
+    const {
+      exercise_form_parameters,
+      exercise_pattern_modifiers,
+      exercise_equipment,
+      exercise_muscles,
+      exercise_guidance,
+      ...exercisePayload
+    } = exercise || {};
+
     const adminFormParams = exercise?.id ? (formParamsByExercise[exercise.id] || []) : [];
     // Prefer admin-fetched params (RLS-safe) over nested query result
     const resolvedFormParams = adminFormParams.length > 0 ? adminFormParams : nestedFormParams;
+
+    // Transform equipment into { required: [...], optional: [...] } format
+    const equipment = {
+      required: nestedEquipment.filter(e => e.is_required).map(e => e.equipment_name),
+      optional: nestedEquipment.filter(e => !e.is_required).map(e => e.equipment_name)
+    };
+
+    // Transform muscles into primary_muscles and secondary_muscles arrays
+    const primary_muscles = nestedMuscles.filter(m => m.is_primary).map(m => m.muscle_name);
+    const secondary_muscles = nestedMuscles.filter(m => !m.is_primary).map(m => m.muscle_name);
+
+    // Transform guidance into { motor_cues: [...], compensation_warnings: [...], ... } format
+    const guidance = {
+      motor_cues: nestedGuidance.filter(g => g.section === 'motor_cues').sort((a, b) => a.sort_order - b.sort_order).map(g => g.content),
+      compensation_warnings: nestedGuidance.filter(g => g.section === 'compensation_warnings').sort((a, b) => a.sort_order - b.sort_order).map(g => g.content),
+      safety_flags: nestedGuidance.filter(g => g.section === 'safety_flags').sort((a, b) => a.sort_order - b.sort_order).map(g => g.content),
+      external_cues: nestedGuidance.filter(g => g.section === 'external_cues').sort((a, b) => a.sort_order - b.sort_order).map(g => g.content)
+    };
+
     return {
       ...program,
       exercises: exercise
         ? {
           ...exercisePayload,
           pattern_modifiers: modifiers.map((modifier) => modifier.modifier),
-          form_parameters_required: resolvedFormParams.map((param) => param.parameter_name)
+          form_parameters_required: resolvedFormParams.map((param) => param.parameter_name),
+          equipment,
+          primary_muscles,
+          secondary_muscles,
+          guidance
         }
         : exercise
     };
@@ -135,6 +171,7 @@ async function getPrograms(req, res) {
     const resolvedPatientId = actualPatientId;
 
     // Fetch patient programs with exercise details
+    // Include all exercise fields needed for exercise details modal via nested selects
     const { data: programs, error } = await supabase
       .from('patient_programs')
       .select(`
@@ -145,13 +182,26 @@ async function getPrograms(req, res) {
           description,
           pt_category,
           pattern,
+          archived,
           exercise_pattern_modifiers (
             modifier
           ),
           exercise_form_parameters (
             parameter_name
           ),
-          archived
+          exercise_equipment (
+            equipment_name,
+            is_required
+          ),
+          exercise_muscles (
+            muscle_name,
+            is_primary
+          ),
+          exercise_guidance (
+            section,
+            content,
+            sort_order
+          )
         )
       `)
       .eq('patient_id', resolvedPatientId)
