@@ -20,22 +20,35 @@ import { requireAuth, requirePatient } from '../lib/auth.js';
 /**
  * GET /api/logs?patient_id=X
  *
- * Returns recent activity logs (last 90 days) with sets.
+ * Returns recent activity logs with sets.
+ *
+ * Pagination options:
+ * - limit: max records to return (default: 300)
+ * - days: date range in days (default: 14)
+ * - before: cursor for pagination - ISO date string, returns logs older than this
+ * - include_all: if 'true', ignores days limit (still respects limit count)
+ *
+ * Logic: Returns logs from last {days} OR {limit} records, whichever is greater.
+ * For pagination, use 'before' param with the oldest performed_at from previous page.
  */
 async function getActivityLogs(req, res) {
   // Use client with JWT auth context - RLS policies will enforce access control
   const supabase = getSupabaseWithAuth(req.accessToken);
-  const { patient_id, limit } = req.query;
+  const { patient_id, limit, days, before, include_all } = req.query;
 
   // Default to current user's ID if not specified
   const targetPatientId = patient_id || req.user.id;
 
+  // Parse parameters with defaults
+  const recordLimit = parseInt(limit) || 300;
+  const dayRange = parseInt(days) || 14;
+  const includeAll = include_all === 'true' || include_all === '1';
+  const beforeCursor = before ? new Date(before) : null;
+
   try {
-    // Fetch activity logs (last 90 days by default, or all history when requested)
-    const { include_all } = req.query;
-    const includeAll = include_all === 'true' || include_all === '1';
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    // Calculate date cutoff
+    const dateCutoff = new Date();
+    dateCutoff.setDate(dateCutoff.getDate() - dayRange);
 
     // RLS policies will enforce access control (patients see own, therapists see their patients')
     let query = supabase
@@ -44,14 +57,18 @@ async function getActivityLogs(req, res) {
       .eq('patient_id', targetPatientId)
       .order('performed_at', { ascending: false });
 
-    if (!includeAll) {
-      query = query.gte('performed_at', ninetyDaysAgo.toISOString());
+    // Apply pagination cursor if provided
+    if (beforeCursor && !isNaN(beforeCursor.getTime())) {
+      query = query.lt('performed_at', beforeCursor.toISOString());
     }
 
-    // Apply limit if provided
-    if (limit) {
-      query = query.limit(parseInt(limit));
+    // Apply date filter unless include_all
+    if (!includeAll) {
+      query = query.gte('performed_at', dateCutoff.toISOString());
     }
+
+    // Apply limit
+    query = query.limit(recordLimit);
 
     const { data: logs, error: logsError } = await query;
 
@@ -106,9 +123,16 @@ async function getActivityLogs(req, res) {
       sets: setsByLog[log.id] || []
     }));
 
+    // Determine if there might be more logs (for "Load More" button)
+    // If we got exactly the limit, there might be more
+    const hasMore = logs.length === recordLimit;
+    const oldestPerformedAt = logs.length > 0 ? logs[logs.length - 1].performed_at : null;
+
     return res.status(200).json({
       logs: logsWithSets,
-      count: logsWithSets.length
+      count: logsWithSets.length,
+      hasMore,
+      nextCursor: hasMore ? oldestPerformedAt : null
     });
 
   } catch (error) {
