@@ -1,56 +1,72 @@
-# Vercel Speed Insights Integration
+# Vercel Web Analytics Implementation
 
 ## Summary
-Successfully implemented Vercel Speed Insights tracking scripts across all HTML pages in the PT Tracker application.
-
-## Changes Made
-
-### Modified Files
-1. **public/index.html** - Added Speed Insights scripts before closing body tag
-2. **public/pt_editor.html** - Added Speed Insights scripts before closing body tag
-3. **public/pt_view.html** - Added Speed Insights scripts before closing body tag
-4. **public/rehab_coverage.html** - Added Speed Insights scripts before closing body tag
-5. **public/reset-password.html** - Added Speed Insights scripts before closing body tag
+Successfully implemented Vercel Web Analytics across all HTML pages in the PT Tracker application. The analytics script tracks page views and user interactions to provide insights into application usage.
 
 ## Implementation Details
 
-Since this is a static HTML application (not a framework like Next.js or React), I followed the HTML implementation guide from the Vercel Speed Insights documentation.
+### Changes Made
+Added the Vercel Web Analytics script to all 5 HTML pages in the application:
 
-Added the following scripts before the closing `</body>` tag in all HTML files:
+1. **public/index.html** - Main PT Tracker application
+2. **public/pt_editor.html** - Exercise Library Manager
+3. **public/pt_view.html** - History Dashboard
+4. **public/rehab_coverage.html** - Coverage Analysis page
+5. **public/reset-password.html** - Password Reset page
+
+### Script Implementation
+For each HTML file, added the following code before the closing `</body>` tag:
 
 ```html
-<!-- Vercel Speed Insights -->
+<!-- Vercel Web Analytics -->
 <script>
-    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
-<script defer src="/_vercel/speed-insights/script.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
 ```
 
-## What This Enables
+This implementation:
+- Follows Vercel's recommended approach for HTML sites
+- Uses the `defer` attribute for optimal page load performance
+- Initializes the `window.va` function for queuing analytics calls
+- Loads the analytics script from `/_vercel/insights/script.js`
 
-- **Performance Tracking**: Once deployed to Vercel with Speed Insights enabled in the dashboard, the application will automatically track real user performance metrics
-- **Script Loading**: The `/_vercel/speed-insights/script.js` route will be available after deployment
-- **No Package Installation**: As per the HTML implementation guide, no npm package installation is required
+### Integration with Existing Analytics
+The Web Analytics script was added alongside the existing Vercel Speed Insights implementation, maintaining consistency across all pages. Both analytics tools work independently and complement each other:
+- **Speed Insights**: Tracks performance metrics
+- **Web Analytics**: Tracks page views and user behavior
 
-## Next Steps (Manual)
+## Next Steps
 
-To complete the Speed Insights setup:
+To complete the setup:
 
-1. Enable Speed Insights in the Vercel dashboard:
-   - Go to your project dashboard
-   - Select the "Speed Insights" tab
-   - Click "Enable"
+1. **Enable Web Analytics in Vercel Dashboard**
+   - Go to your project in the Vercel dashboard
+   - Navigate to the Analytics tab
+   - Click "Enable" to activate Web Analytics
 
-2. Deploy the application:
-   ```bash
-   vercel deploy
-   ```
+2. **Deploy the Application**
+   - Deploy to Vercel using `vercel deploy` or by pushing to the connected Git repository
+   - The `/_vercel/insights/*` routes will be automatically configured after deployment
 
-3. View metrics in the dashboard after users visit the site
+3. **View Analytics Data**
+   - After deployment, visit any page in the application
+   - Check the browser's Network tab for a request to `/_vercel/insights/view`
+   - View aggregated data in the Vercel dashboard under the Analytics tab
 
 ## Technical Notes
 
-- The scripts are loaded with the `defer` attribute to prevent blocking page load
-- The initialization function ensures the Speed Insights queue is available immediately
-- All 5 HTML pages in the application now include the tracking scripts
-- The implementation follows Vercel's official documentation for HTML/vanilla JavaScript applications
+- No package installation required (HTML implementation uses CDN)
+- No build process changes needed
+- Zero impact on existing functionality
+- Fully compatible with the project's serverless API architecture
+- Works in both development and production environments
+
+## Files Modified
+- public/index.html
+- public/pt_editor.html
+- public/pt_view.html
+- public/rehab_coverage.html
+- public/reset-password.html
+
+All changes are non-breaking and follow Vercel's best practices for Web Analytics integration in HTML applications.
