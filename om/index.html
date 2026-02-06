@@ -6,15 +6,14 @@
   <title>O&M Timing Practice Prototype</title>
   <style>
     :root {
-      color-scheme: light;
+      color-scheme: light dark;
       --bg: #f6f4ef;
       --text: #1b1b1b;
       --muted: #6c6c6c;
       --accent: #2f5d62;
       --outline: #1b1b1b;
-      /* A11Y ADDITIONS START */
       --base-font-size: 18px;
-      /* A11Y ADDITIONS END */
+      --ui-scale: 1;
     }
 
     body {
@@ -22,7 +21,7 @@
       font-family: "Helvetica Neue", Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
-      font-size: var(--base-font-size);
+      font-size: calc(var(--base-font-size) * var(--ui-scale));
       display: flex;
       min-height: 100vh;
       align-items: center;
@@ -229,8 +228,8 @@
     }
 
     .marker-shape {
-      width: 42px;
-      height: 42px;
+      width: 2.6rem;
+      height: 2.6rem;
       border-radius: 50%;
       border: 3px solid var(--outline);
       display: grid;
@@ -239,8 +238,8 @@
     }
 
     .marker-shape span {
-      width: 12px;
-      height: 12px;
+      width: 0.75rem;
+      height: 0.75rem;
       border-radius: 50%;
       border: 2px solid var(--outline);
     }
@@ -268,17 +267,32 @@
     }
 
     .action-btn {
-      width: min(320px, 80vw);
-      height: 220px;
+      width: min(22rem, 90vw);
+      min-height: 10rem;
+      height: clamp(10rem, 34vh, 14rem);
       margin: 0 auto;
       border-radius: 22px;
       border: 4px solid var(--outline);
       background: #fff;
-      font-size: 1.4rem;
+      font-size: clamp(1.1rem, 0.95rem + 1.1vw, 1.6rem);
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       cursor: pointer;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .action-btn::after {
+      content: "○";
+      font-size: 2rem;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0;
     }
 
     .action-btn.running {
@@ -291,16 +305,34 @@
     .action-btn.running.stage-start {
       background: #1b1b1b;
       color: #fff;
+      border-radius: 8px;
+      border-style: solid;
     }
 
-    .action-btn.running.stage-boundary {
+    .action-btn.running.stage-start::after {
+      content: "●";
+    }
+
+    .action-btn.running.stage-halfway {
       background: #005a9c;
       color: #fff;
+      border-radius: 999px;
+      border-style: dashed;
+    }
+
+    .action-btn.running.stage-halfway::after {
+      content: "▲";
     }
 
     .action-btn.running.stage-finish {
       background: #2f5d62;
       color: #fff;
+      border-radius: 0;
+      border-style: double;
+    }
+
+    .action-btn.running.stage-finish::after {
+      content: "■";
     }
 
     .action-btn:disabled {
@@ -366,11 +398,39 @@
     }
 
     body[data-text-size="large"] {
-      --base-font-size: 20px;
+      --ui-scale: 1.15;
     }
 
     body[data-text-size="largest"] {
-      --base-font-size: 22px;
+      --ui-scale: 1.3;
+    }
+
+    body[data-text-size="huge"] {
+      --ui-scale: 1.5;
+    }
+
+    body[data-theme="light"] {
+      --bg: #f6f4ef;
+      --text: #1b1b1b;
+      --muted: #5b5b5b;
+      --accent: #2f5d62;
+      --outline: #1b1b1b;
+    }
+
+    body[data-theme="dark"] {
+      --bg: #0f1315;
+      --text: #f2f6f7;
+      --muted: #c2c9cc;
+      --accent: #64d3bf;
+      --outline: #f2f6f7;
+    }
+
+    body[data-theme="inverted"] {
+      --bg: #000000;
+      --text: #ffff00;
+      --muted: #fff176;
+      --accent: #00ffff;
+      --outline: #ffff00;
     }
 
     body.high-contrast {
@@ -412,6 +472,8 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      max-height: min(90vh, 760px);
+      overflow: auto;
     }
 
     .modal-header {
@@ -441,6 +503,18 @@
       font-weight: 600;
     }
 
+    .exemplar-actions {
+      display: grid;
+      gap: 8px;
+    }
+
+    .help-list {
+      margin: 0;
+      padding-left: 1.2rem;
+      display: grid;
+      gap: 8px;
+    }
+
     button:focus-visible {
       outline: 4px solid #000;
       outline-offset: 2px;
@@ -464,8 +538,12 @@
         Settings
       </button>
       <button class="a11y-trigger" id="a11yTrigger" type="button" aria-label="Open accessibility settings">
-        <span aria-hidden="true">♿</span>
+        <span aria-hidden="true">🧍</span>
         Accessibility
+      </button>
+      <button class="settings-trigger" id="helpTrigger" type="button" aria-label="Open help and tutorial">
+        <span aria-hidden="true">❔</span>
+        Help
       </button>
     </div>
     <!-- A11Y ADDITIONS END -->
@@ -476,12 +554,12 @@
         Start → Finish
       </label>
       <label>
-        <input type="radio" name="mode" value="2b" aria-label="Start to boundary mode" />
-        Start → Boundary
+        <input type="radio" name="mode" value="2b" aria-label="Start to halfway mode" />
+        Start → Halfway
       </label>
       <label>
-        <input type="radio" name="mode" value="3" aria-label="Start boundary finish mode" />
-        Start → Boundary → Finish
+        <input type="radio" name="mode" value="3" aria-label="Start halfway finish mode" />
+        Start → Halfway → Finish
       </label>
     </div>
 
@@ -559,6 +637,14 @@
           <label for="fullTime">Full street time (seconds)</label>
           <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Full street time in seconds" />
         </div>
+        <div class="setup-group" aria-label="Training exemplars">
+          <h3>Training Exemplars</h3>
+          <div class="exemplar-actions" role="group" aria-label="Play timing exemplars">
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2b" aria-label="Play exemplar for start to halfway">Play: Start → Halfway</button>
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2" aria-label="Play exemplar for start to finish">Play: Start → Finish</button>
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="3" aria-label="Play exemplar for start to halfway to finish">Play: Start → Halfway → Finish</button>
+          </div>
+        </div>
         <div class="setup-group" aria-label="Margin of error">
           <h3>Margin of Error</h3>
           <label for="marginInput">Acceptable margin of error (seconds)</label>
@@ -570,6 +656,28 @@
             <input type="checkbox" id="debugToggle" />
             Show user times vs reference at replay start
           </label>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="helpModal" aria-label="Help and tutorial">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="helpTitle" tabindex="-1">Help / Tutorial</h2>
+        <button class="close-modal" type="button" id="closeHelp">Close</button>
+      </div>
+      <section class="setup" aria-label="Tutorial content">
+        <div class="setup-group" aria-label="How it works">
+          <h3>How It Works</h3>
+          <ol class="help-list">
+            <li>Choose one of the crossing modes.</li>
+            <li>Press Begin, then press Mark at each target moment.</li>
+            <li>Replay gives audio feedback for timing direction and magnitude.</li>
+            <li>Use Settings to preview sounds and Accessibility for display/speech options.</li>
+          </ol>
+          <button type="button" class="settings-action" id="playTutorialCues">Play tutorial cues</button>
+          <button type="button" class="settings-action" id="speakTutorial">Speak instructions</button>
         </div>
       </section>
     </div>
@@ -626,11 +734,19 @@
         </div>
         <div class="setup-group" aria-label="Vision preferences">
           <h3>Vision Preferences</h3>
+          <label for="a11yTheme">Theme</label>
+          <select id="a11yTheme">
+            <option value="system">System default</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="inverted">Inverted</option>
+          </select>
           <label for="a11yTextSize">Text size</label>
           <select id="a11yTextSize">
             <option value="default">Default</option>
             <option value="large">Large</option>
             <option value="largest">Largest</option>
+            <option value="huge">Huge</option>
           </select>
           <label>
             <input type="checkbox" id="a11yHighContrast" />
@@ -647,12 +763,17 @@
             <input type="checkbox" id="a11yAnnounceCues" />
             Announce cues
           </label>
+          <label>
+            <input type="checkbox" id="a11ySpokenCues" />
+            Speak cues and help instructions
+          </label>
         </div>
       </section>
     </div>
   </dialog>
   <!-- A11Y ADDITIONS END -->
 
+  <script src="https://cdn.jsdelivr.net/npm/jsfxr/jsfxr.js"></script>
   <script>
     /* A11Y ADDITIONS START
      * LocalStorage keys added:
@@ -662,10 +783,12 @@
      * - om-a11y-vibrate
      * - om-a11y-use-color-icon
      * - om-a11y-use-text-labels
+     * - om-a11y-theme
      * - om-a11y-text-size
      * - om-a11y-high-contrast
      * - om-a11y-focus-boost
      * - om-a11y-announce-cues
+     * - om-a11y-spoken-cues
      * Supported cue types:
      * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled
      * A11Y ADDITIONS END */
@@ -676,8 +799,14 @@
     const modeInputs = [...document.querySelectorAll("input[name='mode']")];
     const soundToggle = document.getElementById("soundToggle");
     const settingsTrigger = document.getElementById("settingsTrigger");
+    const helpTrigger = document.getElementById("helpTrigger");
     const settingsModal = document.getElementById("settingsModal");
     const closeSettings = document.getElementById("closeSettings");
+    const helpModal = document.getElementById("helpModal");
+    const helpTitle = document.getElementById("helpTitle");
+    const closeHelp = document.getElementById("closeHelp");
+    const playTutorialCuesBtn = document.getElementById("playTutorialCues");
+    const speakTutorialBtn = document.getElementById("speakTutorial");
     /* A11Y ADDITIONS START */
     const a11yTrigger = document.getElementById("a11yTrigger");
     const a11yModal = document.getElementById("a11yModal");
@@ -694,10 +823,12 @@
     const a11yVibrate = document.getElementById("a11yVibrate");
     const a11yUseColorIcon = document.getElementById("a11yUseColorIcon");
     const a11yUseTextLabels = document.getElementById("a11yUseTextLabels");
+    const a11yTheme = document.getElementById("a11yTheme");
     const a11yTextSize = document.getElementById("a11yTextSize");
     const a11yHighContrast = document.getElementById("a11yHighContrast");
     const a11yFocusBoost = document.getElementById("a11yFocusBoost");
     const a11yAnnounceCues = document.getElementById("a11yAnnounceCues");
+    const a11ySpokenCues = document.getElementById("a11ySpokenCues");
     /* A11Y ADDITIONS END */
     const previewUserSoundBtn = document.getElementById("previewUserSound");
     const replayUsesConfirm = document.getElementById("replayUsesConfirm");
@@ -708,8 +839,10 @@
     const acceptableInputs = [...document.querySelectorAll("input[name='acceptableSound']")];
     const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
     const previewButtons = [...document.querySelectorAll(".preview-btn")];
+    const exemplarButtons = [...document.querySelectorAll(".exemplar-btn")];
     const setupControls = [
       settingsTrigger,
+      helpTrigger,
       previewUserSoundBtn,
       clearTimeInput,
       fullTimeInput,
@@ -718,7 +851,8 @@
       debugToggle,
       ...acceptableInputs,
       ...outsideInputs,
-      ...previewButtons
+      ...previewButtons,
+      ...exemplarButtons
     ];
     /* A11Y ADDITIONS START */
     const a11yControls = [
@@ -728,18 +862,20 @@
       a11yVibrate,
       a11yUseColorIcon,
       a11yUseTextLabels,
+      a11yTheme,
       a11yTextSize,
       a11yHighContrast,
       a11yFocusBoost,
       a11yAnnounceCues,
+      a11ySpokenCues,
       ...outputModeInputs
     ];
     /* A11Y ADDITIONS END */
 
     const modes = {
       "2": { labels: ["Start", "Finish"] },
-      "2b": { labels: ["Start", "Boundary"] },
-      "3": { labels: ["Start", "Boundary", "Finish"] }
+      "2b": { labels: ["Start", "Halfway"] },
+      "3": { labels: ["Start", "Halfway", "Finish"] }
     };
 
     let audioContext;
@@ -749,8 +885,13 @@
     let stage = 0;
     let started = false;
     let replayTimeout;
+    let exemplarTimeout;
+    let exemplarVisualTimeouts = [];
     let replayUsesConfirmTone = false;
     let showDebug = false;
+    let speechUnavailableNotified = false;
+    const sfxrBufferCache = new Map();
+    const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
     /* A11Y ADDITIONS START */
     let lastDialogTrigger = null;
     let flashTimeout;
@@ -762,51 +903,85 @@
       vibrate: false,
       useColorIcon: true,
       useTextLabels: true,
+      theme: "system",
       textSize: "default",
       highContrast: false,
       focusBoost: false,
-      announceCues: true
+      announceCues: true,
+      spokenCues: false
     };
     /* A11Y ADDITIONS END */
 
     const tones = {
       confirm: { base: 350, harmonic: 700 },
-      user: { base: 410 },
-      reference: { acceptable: 600, outside: 320 }
+      user: { base: 410 }
+    };
+    const SOUND_SFXR_DATA = {
+      // Paste sfxr.me data here (URL hash value, export string, or JSON array).
+      // Leave blank ("") to use fallback tones in SOUND_FALLBACK_TONES below.
+      // Example: "0,,0.173,0.3984,0.4291,0.4291,,,,,,0.5327,0.5256,,,,,,1,,,,,0.5"
+      "acceptable-a": "",
+      "acceptable-b": "",
+      "outside-a": "",
+      "outside-b": "",
+      "user-marker": "",
+      "user-confirm": ""
+    };
+    const SOUND_FALLBACK_TONES = {
+      "acceptable-a": { duration: 0.12, partials: [{ freq: 540, gain: 0.22 }, { freq: 630, gain: 0.12 }] },
+      "acceptable-b": { duration: 0.12, partials: [{ freq: 523, gain: 0.2 }, { freq: 659, gain: 0.1 }] },
+      "outside-a": { duration: 0.12, partials: [{ freq: 240, gain: 0.2 }, { freq: 290, gain: 0.08 }] },
+      "outside-b": { duration: 0.12, partials: [{ freq: 260, gain: 0.18 }, { freq: 300, gain: 0.08 }] },
+      "user-marker": { duration: 0.14, partials: [{ freq: tones.user.base, gain: 0.2 }] },
+      "user-confirm": {
+        duration: 0.18,
+        partials: [
+          { freq: tones.confirm.base, gain: 0.22 },
+          { freq: tones.confirm.harmonic, gain: 0.1 }
+        ]
+      }
     };
 
     const feedbackOptions = {
       acceptable: {
         "acceptable-a": {
           label: "Chime A",
-          partials: [
-            { freq: 540, gain: 0.22 },
-            { freq: 630, gain: 0.12 }
-          ]
+          sfxrData: SOUND_SFXR_DATA["acceptable-a"],
+          duration: SOUND_FALLBACK_TONES["acceptable-a"].duration,
+          partials: SOUND_FALLBACK_TONES["acceptable-a"].partials
         },
         "acceptable-b": {
           label: "Chime B",
-          partials: [
-            { freq: 523, gain: 0.2 },
-            { freq: 659, gain: 0.1 }
-          ]
+          sfxrData: SOUND_SFXR_DATA["acceptable-b"],
+          duration: SOUND_FALLBACK_TONES["acceptable-b"].duration,
+          partials: SOUND_FALLBACK_TONES["acceptable-b"].partials
         }
       },
       outside: {
         "outside-a": {
           label: "Low Pulse A",
-          partials: [
-            { freq: 240, gain: 0.2 },
-            { freq: 290, gain: 0.08 }
-          ]
+          sfxrData: SOUND_SFXR_DATA["outside-a"],
+          duration: SOUND_FALLBACK_TONES["outside-a"].duration,
+          partials: SOUND_FALLBACK_TONES["outside-a"].partials
         },
         "outside-b": {
           label: "Low Pulse B",
-          partials: [
-            { freq: 260, gain: 0.18 },
-            { freq: 300, gain: 0.08 }
-          ]
+          sfxrData: SOUND_SFXR_DATA["outside-b"],
+          duration: SOUND_FALLBACK_TONES["outside-b"].duration,
+          partials: SOUND_FALLBACK_TONES["outside-b"].partials
         }
+      }
+    };
+    const userSoundOptions = {
+      marker: {
+        sfxrData: SOUND_SFXR_DATA["user-marker"],
+        duration: SOUND_FALLBACK_TONES["user-marker"].duration,
+        partials: SOUND_FALLBACK_TONES["user-marker"].partials
+      },
+      confirm: {
+        sfxrData: SOUND_SFXR_DATA["user-confirm"],
+        duration: SOUND_FALLBACK_TONES["user-confirm"].duration,
+        partials: SOUND_FALLBACK_TONES["user-confirm"].partials
       }
     };
 
@@ -858,43 +1033,143 @@
     }
 
     function playConfirmTone(startTime = 0, allowMuted = false) {
-      playCompositeTone(
-        [
-          { freq: tones.confirm.base, gain: 0.22 },
-          { freq: tones.confirm.harmonic, gain: 0.1 }
-        ],
-        0.18,
-        startTime,
-        allowMuted
-      );
+      playSoundOption(userSoundOptions.confirm, startTime, allowMuted);
     }
 
     function playUserMarkerTone(startTime = 0, allowMuted = false) {
-      playCompositeTone([{ freq: tones.user.base, gain: 0.2 }], 0.14, startTime, allowMuted);
+      playSoundOption(userSoundOptions.marker, startTime, allowMuted);
     }
 
-    function playReferenceTone(pitch, startTime = 0) {
-      playCompositeTone([{ freq: pitch, gain: 0.18 }], 0.14, startTime);
+    function getSelectionStorageKey(category) {
+      return category === "acceptable" ? "om-feedback-acceptable" : "om-feedback-outside";
+    }
+
+    function parseSfxrData(raw) {
+      const text = String(raw || "").trim();
+      if (!text) {
+        throw new Error("No custom sound data was entered.");
+      }
+      let normalized = text;
+      if (normalized.includes("#")) {
+        const hash = normalized.split("#").pop();
+        if (hash) {
+          normalized = hash;
+        }
+      }
+      try {
+        normalized = decodeURIComponent(normalized);
+      } catch {
+        // Keep original text when percent-decoding is not required.
+      }
+      if (normalized.startsWith("[")) {
+        return JSON.parse(normalized);
+      }
+      if (normalized.startsWith("{")) {
+        const parsed = JSON.parse(normalized);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+        if (Array.isArray(parsed.params)) {
+          return parsed.params;
+        }
+      }
+      return normalized;
+    }
+
+    function normalizeSfxrData(raw) {
+      const parsed = parseSfxrData(raw);
+      if (Array.isArray(parsed)) {
+        return JSON.stringify(parsed);
+      }
+      return String(parsed).trim();
+    }
+
+    function buildSfxrSource(raw) {
+      if (typeof window.jsfxr !== "function") {
+        throw new Error("Custom sound engine failed to load.");
+      }
+      const parsed = parseSfxrData(raw);
+      const attempts = [];
+      attempts.push(() => window.jsfxr(parsed));
+      if (typeof parsed === "string") {
+        const nums = parsed
+          .split(",")
+          .map((value) => Number(value.trim()))
+          .filter((value) => Number.isFinite(value));
+        if (nums.length > 0) {
+          attempts.push(() => window.jsfxr(nums));
+        }
+      }
+      if (Array.isArray(parsed)) {
+        attempts.push(() => window.jsfxr(parsed.join(",")));
+      }
+      for (const attempt of attempts) {
+        try {
+          const src = attempt();
+          if (typeof src === "string" && src.startsWith("data:audio/wav")) {
+            return src;
+          }
+        } catch {
+          // Try the next accepted input format.
+        }
+      }
+      throw new Error("Custom sound data is not in a supported sfxr format.");
+    }
+
+    async function getSfxrAudioBuffer(raw) {
+      const cacheKey = normalizeSfxrData(raw);
+      if (sfxrBufferCache.has(cacheKey)) {
+        return sfxrBufferCache.get(cacheKey);
+      }
+      const src = buildSfxrSource(cacheKey);
+      const context = ensureAudioContext();
+      const response = await fetch(src);
+      const bytes = await response.arrayBuffer();
+      const decoded = await context.decodeAudioData(bytes.slice(0));
+      sfxrBufferCache.set(cacheKey, decoded);
+      return decoded;
+    }
+
+    async function playSfxrSound(rawData, startTime = 0, allowMuted = false) {
+      /* A11Y ADDITIONS START */
+      if (a11ySettings.outputMode === "visual-only") return;
+      /* A11Y ADDITIONS END */
+      if (!soundEnabled && !allowMuted) return;
+      const context = ensureAudioContext();
+      const buffer = await getSfxrAudioBuffer(rawData);
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      const now = context.currentTime + Math.max(0, startTime);
+      source.start(now);
+    }
+
+    function playSoundOption(option, startTime = 0, allowMuted = false) {
+      if (!option) return;
+      if (option.sfxrData) {
+        playSfxrSound(option.sfxrData, startTime, allowMuted).catch(() => {
+          playCompositeTone(option.partials, option.duration || 0.12, startTime, allowMuted);
+        });
+        return;
+      }
+      playCompositeTone(option.partials, option.duration || 0.12, startTime, allowMuted);
     }
 
     function playFeedbackTone(type, startTime = 0) {
-      const selection =
-        type === "acceptable"
-          ? getSelectedSound("acceptable")
-          : getSelectedSound("outside");
+      const selection = getSelectedSound(type);
       const option = feedbackOptions[type][selection];
-      playCompositeTone(option.partials, 0.12, startTime);
+      playSoundOption(option, startTime);
     }
 
     function getSelectedSound(category) {
-      const key =
-        category === "acceptable"
-          ? "om-feedback-acceptable"
-          : "om-feedback-outside";
+      const key = getSelectionStorageKey(category);
       const inputs = category === "acceptable" ? acceptableInputs : outsideInputs;
       const stored = localStorage.getItem(key);
-      const fallback = inputs[0]?.value;
-      return stored && feedbackOptions[category][stored] ? stored : fallback;
+      const fallback = inputs.find((input) => input.value.endsWith("-a"))?.value || inputs[0]?.value;
+      if (stored && feedbackOptions[category][stored]) {
+        return stored;
+      }
+      return fallback;
     }
 
     function applyStoredSelections() {
@@ -915,11 +1190,7 @@
     }
 
     function storeSelection(category, value) {
-      const key =
-        category === "acceptable"
-          ? "om-feedback-acceptable"
-          : "om-feedback-outside";
-      localStorage.setItem(key, value);
+      localStorage.setItem(getSelectionStorageKey(category), value);
     }
 
     function lockSettings(lock) {
@@ -988,6 +1259,70 @@
       return [0, clearTime, fullTime];
     }
 
+    function getReferenceTimesForMode(mode) {
+      const { clearTime, fullTime } = getTimingInputs();
+      if (mode === "2") {
+        return [0, fullTime];
+      }
+      if (mode === "2b") {
+        return [0, clearTime];
+      }
+      return [0, clearTime, fullTime];
+    }
+
+    function playExemplar(mode) {
+      const labels = modes[mode]?.labels;
+      if (!labels) return;
+      const times = getReferenceTimesForMode(mode);
+      const needsClear = mode === "2b" || mode === "3";
+      const needsFull = mode === "2" || mode === "3";
+      const { clearTime, fullTime } = getTimingInputs();
+      if (needsClear && (!Number.isFinite(clearTime) || clearTime <= 0)) {
+        setStatus("Enter a time to clear from left before playing this exemplar.");
+        emitCue("validation_error", {
+          message: "Need a clear time for this exemplar."
+        });
+        return;
+      }
+      if (needsFull && (!Number.isFinite(fullTime) || fullTime <= 0)) {
+        setStatus("Enter a full street time before playing this exemplar.");
+        emitCue("validation_error", {
+          message: "Need a full street time for this exemplar."
+        });
+        return;
+      }
+
+      clearTimeout(exemplarTimeout);
+      clearExemplarVisuals();
+      actionBtn.classList.add("running");
+      actionBtn.disabled = true;
+      setActionButtonLabel("Exemplar");
+      const sequenceLabel = labels.join(" to ");
+      setStatus(`Playing exemplar: ${sequenceLabel}.`);
+      emitCue("replay_start", { mode, exemplar: true });
+      const baseDelay = 0.5;
+
+      labels.forEach((label, index) => {
+        const time = times[index] ?? 0;
+        exemplarVisualTimeouts.push(
+          setTimeout(() => {
+            setActionButtonStageByLabel(label);
+          }, (baseDelay + time) * 1000)
+        );
+        playUserMarkerTone(baseDelay + time, true);
+      });
+
+      const doneAt = (baseDelay + Math.max(...times) + 0.9) * 1000;
+      exemplarTimeout = setTimeout(() => {
+        actionBtn.classList.remove("running");
+        actionBtn.disabled = false;
+        setActionButtonLabel("Begin");
+        setActionButtonStageByLabel("");
+        setStatus("Exemplar complete. Ready.");
+        emitCue("replay_end", { message: "Exemplar complete. Ready." });
+      }, doneAt);
+    }
+
     function updateMode() {
       const selected = modeInputs.find((input) => input.checked);
       currentMode = selected?.value || "2";
@@ -1049,18 +1384,38 @@
     }
     /* A11Y ADDITIONS END */
 
+    function getStageClassForLabel(label) {
+      const normalized = String(label || "").toLowerCase();
+      if (normalized === "start") return "stage-start";
+      if (normalized === "halfway" || normalized === "boundary") return "stage-halfway";
+      if (normalized === "finish") return "stage-finish";
+      return "";
+    }
+
+    function setActionButtonStageByLabel(label) {
+      actionBtn.classList.remove("stage-start", "stage-halfway", "stage-finish");
+      const stageClass = getStageClassForLabel(label);
+      if (stageClass) {
+        actionBtn.classList.add(stageClass);
+      }
+    }
+
     function updateActionButtonStage() {
-      actionBtn.classList.remove("stage-start", "stage-boundary", "stage-finish");
-      if (!started || currentMode !== "3") {
+      setActionButtonStageByLabel("");
+      if (!started || stage <= 0) {
         return;
       }
-      if (stage === 1) {
-        actionBtn.classList.add("stage-start");
-      } else if (stage === 2) {
-        actionBtn.classList.add("stage-boundary");
-      } else if (stage >= 3) {
-        actionBtn.classList.add("stage-finish");
+      const labels = modes[currentMode]?.labels || [];
+      if (labels.length === 0) {
+        return;
       }
+      const clampedIndex = Math.min(stage - 1, labels.length - 1);
+      setActionButtonStageByLabel(labels[clampedIndex]);
+    }
+
+    function clearExemplarVisuals() {
+      exemplarVisualTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      exemplarVisualTimeouts = [];
     }
 
     function setStatus(message) {
@@ -1077,6 +1432,8 @@
     }
 
     function resetState(message = "Ready.") {
+      clearTimeout(exemplarTimeout);
+      clearExemplarVisuals();
       markerTimes = [];
       stage = 0;
       started = false;
@@ -1093,6 +1450,7 @@
       lockModeSelection(false);
       lockSettings(false);
       actionBtn.classList.remove("running");
+      setActionButtonStageByLabel("");
     }
 
     /* A11Y ADDITIONS START */
@@ -1162,11 +1520,20 @@
 
     function beginReplay() {
       const reference = getReferenceTimes();
+      const labels = modes[currentMode].labels;
       const baseDelay = 0.6;
       const maxTime = Math.max(
         ...markerTimes,
         ...reference
       );
+      clearExemplarVisuals();
+      if (labels[0]) {
+        exemplarVisualTimeouts.push(
+          setTimeout(() => {
+            setActionButtonStageByLabel(labels[0]);
+          }, baseDelay * 1000)
+        );
+      }
       /* A11Y ADDITIONS START */
       emitCue("replay_start", { referenceTimes: reference, markerTimes });
       /* A11Y ADDITIONS END */
@@ -1194,8 +1561,12 @@
           (audioContext?.baseLatency || 0) + (audioContext?.outputLatency || 0);
         const timingEpsilon = Math.max(0.02, latency);
         const feedbackType = diff <= getMargin() + timingEpsilon ? "acceptable" : "outside";
-        const pitch = tones.reference[feedbackType];
-        playReferenceTone(pitch, baseDelay + time);
+        playFeedbackTone(feedbackType, baseDelay + time);
+        exemplarVisualTimeouts.push(
+          setTimeout(() => {
+            setActionButtonStageByLabel(labels[index + 1]);
+          }, (baseDelay + time) * 1000)
+        );
         /* A11Y ADDITIONS START */
         const stageLabel = modes[currentMode].labels[index + 1] || "Reference";
         const cueType = feedbackType === "acceptable" ? "reference_ok" : "reference_bad";
@@ -1248,6 +1619,12 @@
       settingsModal.showModal();
       settingsTitle.focus();
     });
+
+    helpTrigger.addEventListener("click", () => {
+      lastDialogTrigger = helpTrigger;
+      helpModal.showModal();
+      helpTitle.focus();
+    });
     /* A11Y ADDITIONS END */
 
     closeSettings.addEventListener("click", () => {
@@ -1257,6 +1634,16 @@
     settingsModal.addEventListener("click", (event) => {
       if (event.target === settingsModal) {
         settingsModal.close();
+      }
+    });
+
+    closeHelp.addEventListener("click", () => {
+      helpModal.close();
+    });
+
+    helpModal.addEventListener("click", (event) => {
+      if (event.target === helpModal) {
+        helpModal.close();
       }
     });
 
@@ -1278,6 +1665,10 @@
     });
 
     settingsModal.addEventListener("close", () => {
+      lastDialogTrigger?.focus();
+    });
+
+    helpModal.addEventListener("close", () => {
       lastDialogTrigger?.focus();
     });
 
@@ -1303,11 +1694,11 @@
         ensureAudioContext();
         const soundId = button.dataset.sound;
         if (feedbackOptions.acceptable[soundId]) {
-          playCompositeTone(feedbackOptions.acceptable[soundId].partials, 0.16, 0, true);
+          playSoundOption(feedbackOptions.acceptable[soundId], 0, true);
           return;
         }
         if (feedbackOptions.outside[soundId]) {
-          playCompositeTone(feedbackOptions.outside[soundId].partials, 0.16, 0, true);
+          playSoundOption(feedbackOptions.outside[soundId], 0, true);
         }
       });
     });
@@ -1319,6 +1710,32 @@
         return;
       }
       playUserMarkerTone(0, true);
+    });
+
+    exemplarButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        ensureAudioContext();
+        const exemplarMode = button.dataset.exemplarMode;
+        playExemplar(exemplarMode);
+      });
+    });
+
+    playTutorialCuesBtn.addEventListener("click", () => {
+      ensureAudioContext();
+      playConfirmTone(0, true);
+      playUserMarkerTone(0.35, true);
+      playSoundOption(feedbackOptions.acceptable[getSelectedSound("acceptable")], 0.75, true);
+      playSoundOption(feedbackOptions.outside[getSelectedSound("outside")], 1.2, true);
+      setStatus("Tutorial cues played: button, marker, acceptable, outside.");
+      emitCue("replay_start", { message: "Tutorial cues played." });
+    });
+
+    speakTutorialBtn.addEventListener("click", () => {
+      speakText(
+        "Tutorial. Press Begin, then press Mark at each target point. Replay gives timing feedback. Acceptable means within margin. Outside means adjust your timing.",
+        true
+      );
+      setStatus("Spoken tutorial played.");
     });
 
     replayUsesConfirm.addEventListener("change", () => {
@@ -1344,6 +1761,25 @@
     });
 
     /* A11Y ADDITIONS START */
+    function speakText(text, force = false) {
+      if (!force && !a11ySettings.spokenCues) return;
+      if (!("speechSynthesis" in window)) {
+        if (force || a11ySettings.spokenCues) {
+          if (!speechUnavailableNotified) {
+            speechUnavailableNotified = true;
+            setStatus("Spoken cues are not available in this browser.");
+            srAnnouncer.textContent = "Spoken cues are not available in this browser.";
+          }
+        }
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      window.speechSynthesis.speak(utterance);
+    }
+
     function applyA11ySettings() {
       cueBanner.dataset.visible = String(a11ySettings.showBanner);
       cueBanner.dataset.colorIcon = String(a11ySettings.useColorIcon);
@@ -1351,6 +1787,11 @@
       document.body.dataset.textSize = a11ySettings.textSize;
       document.body.classList.toggle("high-contrast", a11ySettings.highContrast);
       document.body.classList.toggle("focus-boost", a11ySettings.focusBoost);
+      const resolvedTheme =
+        a11ySettings.theme === "system"
+          ? (prefersDarkScheme.matches ? "dark" : "light")
+          : a11ySettings.theme;
+      document.body.dataset.theme = resolvedTheme;
       if (a11ySettings.outputMode === "visual-only") {
         soundToggle.setAttribute("aria-pressed", "false");
         soundToggle.innerHTML = "<span aria-hidden=\"true\">🔇</span> Sound Off";
@@ -1378,6 +1819,7 @@
       if (a11ySettings.announceCues) {
         srAnnouncer.textContent = message;
       }
+      speakText(message);
       if (a11ySettings.vibrate && navigator.vibrate) {
         const patterns = {
           marker: [40],
@@ -1422,10 +1864,12 @@
       const storedVibrate = localStorage.getItem("om-a11y-vibrate");
       const storedUseColorIcon = localStorage.getItem("om-a11y-use-color-icon");
       const storedUseTextLabels = localStorage.getItem("om-a11y-use-text-labels");
+      const storedTheme = localStorage.getItem("om-a11y-theme");
       const storedTextSize = localStorage.getItem("om-a11y-text-size");
       const storedHighContrast = localStorage.getItem("om-a11y-high-contrast");
       const storedFocusBoost = localStorage.getItem("om-a11y-focus-boost");
       const storedAnnounceCues = localStorage.getItem("om-a11y-announce-cues");
+      const storedSpokenCues = localStorage.getItem("om-a11y-spoken-cues");
       /* A11Y ADDITIONS END */
 
       if (storedClear) {
@@ -1469,6 +1913,9 @@
       if (storedUseTextLabels) {
         a11ySettings.useTextLabels = storedUseTextLabels === "true";
       }
+      if (storedTheme) {
+        a11ySettings.theme = storedTheme;
+      }
       if (storedTextSize) {
         a11ySettings.textSize = storedTextSize;
       }
@@ -1481,15 +1928,20 @@
       if (storedAnnounceCues) {
         a11ySettings.announceCues = storedAnnounceCues === "true";
       }
+      if (storedSpokenCues) {
+        a11ySettings.spokenCues = storedSpokenCues === "true";
+      }
       a11yShowBanner.checked = a11ySettings.showBanner;
       a11yFlashAction.checked = a11ySettings.flashAction;
       a11yVibrate.checked = a11ySettings.vibrate;
       a11yUseColorIcon.checked = a11ySettings.useColorIcon;
       a11yUseTextLabels.checked = a11ySettings.useTextLabels;
+      a11yTheme.value = a11ySettings.theme;
       a11yTextSize.value = a11ySettings.textSize;
       a11yHighContrast.checked = a11ySettings.highContrast;
       a11yFocusBoost.checked = a11ySettings.focusBoost;
       a11yAnnounceCues.checked = a11ySettings.announceCues;
+      a11ySpokenCues.checked = a11ySettings.spokenCues;
       applyA11ySettings();
       /* A11Y ADDITIONS END */
     }
@@ -1532,6 +1984,12 @@
       applyA11ySettings();
     });
 
+    a11yTheme.addEventListener("change", () => {
+      a11ySettings.theme = a11yTheme.value;
+      localStorage.setItem("om-a11y-theme", a11ySettings.theme);
+      applyA11ySettings();
+    });
+
     a11yTextSize.addEventListener("change", () => {
       a11ySettings.textSize = a11yTextSize.value;
       localStorage.setItem("om-a11y-text-size", a11ySettings.textSize);
@@ -1553,6 +2011,20 @@
     a11yAnnounceCues.addEventListener("change", () => {
       a11ySettings.announceCues = a11yAnnounceCues.checked;
       localStorage.setItem("om-a11y-announce-cues", String(a11ySettings.announceCues));
+    });
+
+    a11ySpokenCues.addEventListener("change", () => {
+      a11ySettings.spokenCues = a11ySpokenCues.checked;
+      localStorage.setItem("om-a11y-spoken-cues", String(a11ySettings.spokenCues));
+      if (a11ySettings.spokenCues) {
+        speakText("Spoken cues on.", true);
+      }
+    });
+
+    prefersDarkScheme.addEventListener("change", () => {
+      if (a11ySettings.theme === "system") {
+        applyA11ySettings();
+      }
     });
     /* A11Y ADDITIONS END */
 
