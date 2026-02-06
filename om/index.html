@@ -57,7 +57,7 @@
 
     .setup h3 {
       margin: 0 0 8px;
-      font-size: 0.95rem;
+      font-size: 1.05rem;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--accent);
@@ -77,17 +77,38 @@
     }
 
     .setup label {
-      font-size: 0.9rem;
+      font-size: 1rem;
       color: var(--text);
+      line-height: 1.35;
     }
 
     .setup input[type="number"] {
       width: 100%;
-      padding: 8px 10px;
+      padding: 12px 12px;
       border-radius: 8px;
       border: 2px solid var(--outline);
-      font-size: 1rem;
+      font-size: 1.05rem;
       margin-top: 6px;
+    }
+
+    .setup select {
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 8px;
+      border: 2px solid var(--outline);
+      font-size: 1.05rem;
+      margin-top: 6px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .setup input[type="checkbox"],
+    .setup input[type="radio"] {
+      width: 1.45rem;
+      height: 1.45rem;
+      margin: 0;
+      accent-color: var(--accent);
+      flex: 0 0 auto;
     }
 
     .sound-options {
@@ -115,17 +136,17 @@
       display: grid;
       grid-template-columns: auto 1fr auto;
       align-items: center;
-      gap: 10px;
-      padding: 6px 0;
+      gap: 14px;
+      padding: 10px 0;
     }
 
     .sound-option button {
       border: 2px solid var(--outline);
       border-radius: 999px;
       background: #fff;
-      padding: 4px 12px;
+      padding: 10px 16px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
     }
 
     .sound-option button:disabled {
@@ -137,28 +158,42 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 20px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     .mode-toggle label {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.95rem;
+      gap: 12px;
+      font-size: 1.05rem;
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: #fff;
+      cursor: pointer;
+      min-height: 3rem;
     }
 
     .mode-toggle input[type="radio"] {
       accent-color: var(--accent);
+      width: 1.4rem;
+      height: 1.4rem;
+      flex: 0 0 auto;
+    }
+
+    .mode-toggle label:focus-within {
+      outline: 4px solid #000;
+      outline-offset: 2px;
     }
 
     .sound-toggle {
       align-self: center;
       border: 2px solid var(--outline);
       border-radius: 999px;
-      padding: 6px 14px;
+      padding: 10px 18px;
       background: #fff;
-      font-size: 1rem;
+      font-size: 1.1rem;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -173,9 +208,9 @@
       align-self: center;
       border: 3px solid var(--outline);
       border-radius: 999px;
-      padding: 10px 18px;
+      padding: 12px 20px;
       background: #fff;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
@@ -199,9 +234,9 @@
       align-self: center;
       border: 3px solid var(--outline);
       border-radius: 999px;
-      padding: 10px 18px;
+      padding: 12px 20px;
       background: #fff;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
@@ -487,8 +522,8 @@
       border: 2px solid var(--outline);
       background: #fff;
       border-radius: 999px;
-      padding: 6px 12px;
-      font-size: 1rem;
+      padding: 10px 14px;
+      font-size: 1.05rem;
       cursor: pointer;
     }
 
@@ -497,10 +532,11 @@
       border: 2px solid var(--outline);
       border-radius: 999px;
       background: #fff;
-      padding: 6px 14px;
+      padding: 10px 16px;
       cursor: pointer;
-      font-size: 0.95rem;
+      font-size: 1rem;
       font-weight: 600;
+      min-height: 2.9rem;
     }
 
     .exemplar-actions {
@@ -540,10 +576,6 @@
       <button class="a11y-trigger" id="a11yTrigger" type="button" aria-label="Open accessibility settings">
         <span aria-hidden="true">🧍</span>
         Accessibility
-      </button>
-      <button class="settings-trigger" id="helpTrigger" type="button" aria-label="Open help and tutorial">
-        <span aria-hidden="true">❔</span>
-        Help
       </button>
     </div>
     <!-- A11Y ADDITIONS END -->
@@ -661,28 +693,6 @@
     </div>
   </dialog>
 
-  <dialog id="helpModal" aria-label="Help and tutorial">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2 id="helpTitle" tabindex="-1">Help / Tutorial</h2>
-        <button class="close-modal" type="button" id="closeHelp">Close</button>
-      </div>
-      <section class="setup" aria-label="Tutorial content">
-        <div class="setup-group" aria-label="How it works">
-          <h3>How It Works</h3>
-          <ol class="help-list">
-            <li>Choose one of the crossing modes.</li>
-            <li>Press Begin, then press Mark at each target moment.</li>
-            <li>Replay gives audio feedback for timing direction and magnitude.</li>
-            <li>Use Settings to preview sounds and Accessibility for display/speech options.</li>
-          </ol>
-          <button type="button" class="settings-action" id="playTutorialCues">Play tutorial cues</button>
-          <button type="button" class="settings-action" id="speakTutorial">Speak instructions</button>
-        </div>
-      </section>
-    </div>
-  </dialog>
-
   <!-- A11Y ADDITIONS START -->
   <dialog id="a11yModal" aria-label="Accessibility settings">
     <div class="modal-card">
@@ -763,17 +773,13 @@
             <input type="checkbox" id="a11yAnnounceCues" />
             Announce cues
           </label>
-          <label>
-            <input type="checkbox" id="a11ySpokenCues" />
-            Speak cues and help instructions
-          </label>
         </div>
       </section>
     </div>
   </dialog>
   <!-- A11Y ADDITIONS END -->
 
-  <script src="https://cdn.jsdelivr.net/npm/jsfxr/jsfxr.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/jsfxr/jsfxr.js"></script> -->
   <script>
     /* A11Y ADDITIONS START
      * LocalStorage keys added:
@@ -788,7 +794,6 @@
      * - om-a11y-high-contrast
      * - om-a11y-focus-boost
      * - om-a11y-announce-cues
-     * - om-a11y-spoken-cues
      * Supported cue types:
      * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled
      * A11Y ADDITIONS END */
@@ -799,14 +804,8 @@
     const modeInputs = [...document.querySelectorAll("input[name='mode']")];
     const soundToggle = document.getElementById("soundToggle");
     const settingsTrigger = document.getElementById("settingsTrigger");
-    const helpTrigger = document.getElementById("helpTrigger");
     const settingsModal = document.getElementById("settingsModal");
     const closeSettings = document.getElementById("closeSettings");
-    const helpModal = document.getElementById("helpModal");
-    const helpTitle = document.getElementById("helpTitle");
-    const closeHelp = document.getElementById("closeHelp");
-    const playTutorialCuesBtn = document.getElementById("playTutorialCues");
-    const speakTutorialBtn = document.getElementById("speakTutorial");
     /* A11Y ADDITIONS START */
     const a11yTrigger = document.getElementById("a11yTrigger");
     const a11yModal = document.getElementById("a11yModal");
@@ -828,7 +827,6 @@
     const a11yHighContrast = document.getElementById("a11yHighContrast");
     const a11yFocusBoost = document.getElementById("a11yFocusBoost");
     const a11yAnnounceCues = document.getElementById("a11yAnnounceCues");
-    const a11ySpokenCues = document.getElementById("a11ySpokenCues");
     /* A11Y ADDITIONS END */
     const previewUserSoundBtn = document.getElementById("previewUserSound");
     const replayUsesConfirm = document.getElementById("replayUsesConfirm");
@@ -842,7 +840,6 @@
     const exemplarButtons = [...document.querySelectorAll(".exemplar-btn")];
     const setupControls = [
       settingsTrigger,
-      helpTrigger,
       previewUserSoundBtn,
       clearTimeInput,
       fullTimeInput,
@@ -867,7 +864,6 @@
       a11yHighContrast,
       a11yFocusBoost,
       a11yAnnounceCues,
-      a11ySpokenCues,
       ...outputModeInputs
     ];
     /* A11Y ADDITIONS END */
@@ -889,7 +885,6 @@
     let exemplarVisualTimeouts = [];
     let replayUsesConfirmTone = false;
     let showDebug = false;
-    let speechUnavailableNotified = false;
     const sfxrBufferCache = new Map();
     const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
     /* A11Y ADDITIONS START */
@@ -907,8 +902,7 @@
       textSize: "default",
       highContrast: false,
       focusBoost: false,
-      announceCues: true,
-      spokenCues: false
+      announceCues: true
     };
     /* A11Y ADDITIONS END */
 
@@ -1457,6 +1451,9 @@
     function setActionButtonLabel(label) {
       actionBtn.textContent = label;
       actionBtn.setAttribute("aria-label", label);
+      if (a11ySettings.announceCues) {
+        srAnnouncer.textContent = `Action button: ${label}.`;
+      }
     }
 
     function updateNextPrompt() {
@@ -1619,12 +1616,6 @@
       settingsModal.showModal();
       settingsTitle.focus();
     });
-
-    helpTrigger.addEventListener("click", () => {
-      lastDialogTrigger = helpTrigger;
-      helpModal.showModal();
-      helpTitle.focus();
-    });
     /* A11Y ADDITIONS END */
 
     closeSettings.addEventListener("click", () => {
@@ -1634,16 +1625,6 @@
     settingsModal.addEventListener("click", (event) => {
       if (event.target === settingsModal) {
         settingsModal.close();
-      }
-    });
-
-    closeHelp.addEventListener("click", () => {
-      helpModal.close();
-    });
-
-    helpModal.addEventListener("click", (event) => {
-      if (event.target === helpModal) {
-        helpModal.close();
       }
     });
 
@@ -1665,10 +1646,6 @@
     });
 
     settingsModal.addEventListener("close", () => {
-      lastDialogTrigger?.focus();
-    });
-
-    helpModal.addEventListener("close", () => {
       lastDialogTrigger?.focus();
     });
 
@@ -1720,24 +1697,6 @@
       });
     });
 
-    playTutorialCuesBtn.addEventListener("click", () => {
-      ensureAudioContext();
-      playConfirmTone(0, true);
-      playUserMarkerTone(0.35, true);
-      playSoundOption(feedbackOptions.acceptable[getSelectedSound("acceptable")], 0.75, true);
-      playSoundOption(feedbackOptions.outside[getSelectedSound("outside")], 1.2, true);
-      setStatus("Tutorial cues played: button, marker, acceptable, outside.");
-      emitCue("replay_start", { message: "Tutorial cues played." });
-    });
-
-    speakTutorialBtn.addEventListener("click", () => {
-      speakText(
-        "Tutorial. Press Begin, then press Mark at each target point. Replay gives timing feedback. Acceptable means within margin. Outside means adjust your timing.",
-        true
-      );
-      setStatus("Spoken tutorial played.");
-    });
-
     replayUsesConfirm.addEventListener("change", () => {
       replayUsesConfirmTone = replayUsesConfirm.checked;
       localStorage.setItem("om-replay-use-confirm", String(replayUsesConfirmTone));
@@ -1761,25 +1720,6 @@
     });
 
     /* A11Y ADDITIONS START */
-    function speakText(text, force = false) {
-      if (!force && !a11ySettings.spokenCues) return;
-      if (!("speechSynthesis" in window)) {
-        if (force || a11ySettings.spokenCues) {
-          if (!speechUnavailableNotified) {
-            speechUnavailableNotified = true;
-            setStatus("Spoken cues are not available in this browser.");
-            srAnnouncer.textContent = "Spoken cues are not available in this browser.";
-          }
-        }
-        return;
-      }
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      window.speechSynthesis.speak(utterance);
-    }
-
     function applyA11ySettings() {
       cueBanner.dataset.visible = String(a11ySettings.showBanner);
       cueBanner.dataset.colorIcon = String(a11ySettings.useColorIcon);
@@ -1819,7 +1759,6 @@
       if (a11ySettings.announceCues) {
         srAnnouncer.textContent = message;
       }
-      speakText(message);
       if (a11ySettings.vibrate && navigator.vibrate) {
         const patterns = {
           marker: [40],
@@ -1869,7 +1808,6 @@
       const storedHighContrast = localStorage.getItem("om-a11y-high-contrast");
       const storedFocusBoost = localStorage.getItem("om-a11y-focus-boost");
       const storedAnnounceCues = localStorage.getItem("om-a11y-announce-cues");
-      const storedSpokenCues = localStorage.getItem("om-a11y-spoken-cues");
       /* A11Y ADDITIONS END */
 
       if (storedClear) {
@@ -1928,9 +1866,6 @@
       if (storedAnnounceCues) {
         a11ySettings.announceCues = storedAnnounceCues === "true";
       }
-      if (storedSpokenCues) {
-        a11ySettings.spokenCues = storedSpokenCues === "true";
-      }
       a11yShowBanner.checked = a11ySettings.showBanner;
       a11yFlashAction.checked = a11ySettings.flashAction;
       a11yVibrate.checked = a11ySettings.vibrate;
@@ -1941,7 +1876,6 @@
       a11yHighContrast.checked = a11ySettings.highContrast;
       a11yFocusBoost.checked = a11ySettings.focusBoost;
       a11yAnnounceCues.checked = a11ySettings.announceCues;
-      a11ySpokenCues.checked = a11ySettings.spokenCues;
       applyA11ySettings();
       /* A11Y ADDITIONS END */
     }
@@ -2011,14 +1945,6 @@
     a11yAnnounceCues.addEventListener("change", () => {
       a11ySettings.announceCues = a11yAnnounceCues.checked;
       localStorage.setItem("om-a11y-announce-cues", String(a11ySettings.announceCues));
-    });
-
-    a11ySpokenCues.addEventListener("change", () => {
-      a11ySettings.spokenCues = a11ySpokenCues.checked;
-      localStorage.setItem("om-a11y-spoken-cues", String(a11ySettings.spokenCues));
-      if (a11ySettings.spokenCues) {
-        speakText("Spoken cues on.", true);
-      }
     });
 
     prefersDarkScheme.addEventListener("change", () => {
