@@ -945,10 +945,28 @@
       "user-confirm": ""
     };
     const SOUND_FALLBACK_TONES = {
-      "acceptable-a": { duration: 0.12, partials: [{ freq: 540, gain: 0.22 }, { freq: 630, gain: 0.12 }] },
-      "acceptable-b": { duration: 0.12, partials: [{ freq: 523, gain: 0.2 }, { freq: 659, gain: 0.1 }] },
-      "outside-a": { duration: 0.12, partials: [{ freq: 240, gain: 0.2 }, { freq: 290, gain: 0.08 }] },
-      "outside-b": { duration: 0.12, partials: [{ freq: 260, gain: 0.18 }, { freq: 300, gain: 0.08 }] },
+		"acceptable-a": {
+		  duration: 0.12,
+		  partials: [
+			{ freq: 659, gain: 0.16 },  // E5
+			{ freq: 823, gain: 0.07 }   // G#5 (major third)
+		  ]
+		},
+		"acceptable-b": { duration: 0.12, partials: [{ freq: 523, gain: 0.2 }, { freq: 659, gain: 0.1 }] },
+		 "outside-a": {
+		  duration: 0.12,
+		  partials: [
+			{ freq: 240, gain: 0.20 },
+			{ freq: 300, gain: 0.035 }
+		  ]
+		},
+		"outside-b": {
+		  duration: 0.12,
+		  partials: [
+			{ freq: 260, gain: 0.18 },
+			{ freq: 312, gain: 0.04 }   // low, dull, non-confirming
+		  ]
+		},
       "user-marker": { duration: 0.14, partials: [{ freq: tones.user.base, gain: 0.2 }] },
       "user-confirm": {
         duration: 0.18,
@@ -1551,7 +1569,7 @@
     function beginReplay() {
       const reference = getReferenceTimes();
       const labels = modes[currentMode].labels;
-      const baseDelay = 0.6;
+      const baseDelay = 5.8;
       const maxTime = Math.max(
         ...markerTimes,
         ...reference
