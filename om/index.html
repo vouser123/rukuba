@@ -1,4 +1,21 @@
 <!DOCTYPE html>
+<!--
+MAINTAINER QUICK JUMP (line numbers are approximate and can drift after edits)
+Search token                              Approx line
+---------------------------------------  -----------
+const TEST_TUNING                        ~1020
+const SOUND_PRESET_LIBRARY               ~1032
+function presetTone                      ~1058
+const SOUND_SFXR_DATA                    ~1072
+const SOUND_FALLBACK_TONES               ~1083
+function playCompositeTone               ~1146
+function playSoundOption                 ~1299
+function playExemplar                    ~1425
+function beginReplay                     ~1686
+function warnIfSfxrConfiguredWithout...  ~2051
+
+Tip: use your editor Find with the exact token; that is more stable than line numbers.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -12,6 +29,8 @@
       --muted: #6c6c6c;
       --accent: #2f5d62;
       --outline: #1b1b1b;
+      --surface: #ffffff;
+      --divider: #dedad1;
       --base-font-size: 18px;
       --ui-scale: 1;
     }
@@ -38,7 +57,7 @@
     }
 
     .setup {
-      background: #fff;
+      background: var(--surface);
       border: 2px solid var(--outline);
       border-radius: 18px;
       padding: 18px;
@@ -64,7 +83,7 @@
     }
 
     .setup-group {
-      border-top: 1px solid #dedad1;
+      border-top: 1px solid var(--divider);
       padding-top: 12px;
       display: flex;
       flex-direction: column;
@@ -89,6 +108,8 @@
       border: 2px solid var(--outline);
       font-size: 1.05rem;
       margin-top: 6px;
+      background: var(--surface);
+      color: var(--text);
     }
 
     .setup select {
@@ -98,7 +119,7 @@
       border: 2px solid var(--outline);
       font-size: 1.05rem;
       margin-top: 6px;
-      background: #fff;
+      background: var(--surface);
       color: var(--text);
     }
 
@@ -118,7 +139,7 @@
     }
 
     fieldset {
-      border: 1px solid #dedad1;
+      border: 1px solid var(--divider);
       border-radius: 12px;
       padding: 10px 12px 12px;
       margin: 0;
@@ -143,10 +164,11 @@
     .sound-option button {
       border: 2px solid var(--outline);
       border-radius: 999px;
-      background: #fff;
+      background: var(--surface);
       padding: 10px 16px;
       cursor: pointer;
       font-size: 0.95rem;
+      color: var(--text);
     }
 
     .sound-option button:disabled {
@@ -170,9 +192,10 @@
       border: 2px solid var(--outline);
       border-radius: 999px;
       padding: 12px 16px;
-      background: #fff;
+      background: var(--surface);
       cursor: pointer;
       min-height: 3rem;
+      color: var(--text);
     }
 
     .mode-toggle input[type="radio"] {
@@ -183,7 +206,7 @@
     }
 
     .mode-toggle label:focus-within {
-      outline: 4px solid #000;
+      outline: 4px solid var(--outline);
       outline-offset: 2px;
     }
 
@@ -198,7 +221,7 @@
       border: 2px solid var(--outline);
       border-radius: 999px;
       padding: 10px 18px;
-      background: #fff;
+      background: var(--surface);
       font-size: 1.1rem;
       display: inline-flex;
       align-items: center;
@@ -215,7 +238,7 @@
       border: 3px solid var(--outline);
       border-radius: 999px;
       padding: 12px 20px;
-      background: #fff;
+      background: var(--surface);
       font-size: 1.1rem;
       font-weight: 600;
       display: inline-flex;
@@ -241,7 +264,7 @@
       border: 3px solid var(--outline);
       border-radius: 999px;
       padding: 12px 20px;
-      background: #fff;
+      background: var(--surface);
       font-size: 1.1rem;
       font-weight: 600;
       display: inline-flex;
@@ -289,7 +312,7 @@
       border: 3px solid var(--outline);
       display: grid;
       place-items: center;
-      background: #fff;
+      background: var(--surface);
     }
 
     .marker-shape span {
@@ -305,12 +328,12 @@
     }
 
     .marker.complete .marker-shape span {
-      border-color: #fff;
-      background: #fff;
+      border-color: var(--surface);
+      background: var(--surface);
     }
 
     .marker.current .marker-shape {
-      background: #fff;
+      background: var(--surface);
       border-style: double;
     }
 
@@ -328,7 +351,7 @@
       margin: 0 auto;
       border-radius: 22px;
       border: 4px solid var(--outline);
-      background: #fff;
+      background: var(--surface);
       font-size: clamp(1.1rem, 0.95rem + 1.1vw, 1.6rem);
       font-weight: 600;
       letter-spacing: 0.08em;
@@ -406,7 +429,7 @@
       border: 2px solid var(--outline);
       border-radius: 12px;
       padding: 10px 12px;
-      background: #fff;
+      background: var(--surface);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -470,6 +493,8 @@
       --muted: #5b5b5b;
       --accent: #2f5d62;
       --outline: #1b1b1b;
+      --surface: #ffffff;
+      --divider: #dedad1;
     }
 
     body[data-theme="dark"] {
@@ -478,6 +503,8 @@
       --muted: #c2c9cc;
       --accent: #64d3bf;
       --outline: #f2f6f7;
+      --surface: #171d21;
+      --divider: #2f383f;
     }
 
     body[data-theme="inverted"] {
@@ -486,6 +513,8 @@
       --muted: #fff176;
       --accent: #00ffff;
       --outline: #ffff00;
+      --surface: #000000;
+      --divider: #ffff00;
     }
 
     body.high-contrast {
@@ -494,6 +523,8 @@
       --muted: #1a1a1a;
       --accent: #000000;
       --outline: #000000;
+      --surface: #ffffff;
+      --divider: #000000;
     }
 
     body.focus-boost :focus-visible {
@@ -504,7 +535,7 @@
 
     .debug {
       font-size: 0.95rem;
-      color: #000;
+      color: var(--text);
     }
 
     dialog {
@@ -520,7 +551,7 @@
     }
 
     .modal-card {
-      background: #fff;
+      background: var(--surface);
       border: 3px solid var(--outline);
       border-radius: 20px;
       padding: 20px;
@@ -540,23 +571,25 @@
 
     .close-modal {
       border: 2px solid var(--outline);
-      background: #fff;
+      background: var(--surface);
       border-radius: 999px;
       padding: 10px 14px;
       font-size: 1.05rem;
       cursor: pointer;
+      color: var(--text);
     }
 
     .preview-btn,
     .settings-action {
       border: 2px solid var(--outline);
       border-radius: 999px;
-      background: #fff;
+      background: var(--surface);
       padding: 10px 16px;
       cursor: pointer;
       font-size: 1rem;
       font-weight: 600;
       min-height: 2.9rem;
+      color: var(--text);
     }
 
     .exemplar-actions {
@@ -565,7 +598,7 @@
     }
 
     button:focus-visible {
-      outline: 4px solid #000;
+      outline: 4px solid var(--outline);
       outline-offset: 2px;
     }
 
@@ -681,7 +714,7 @@
           </button>
           <label>
             <input type="checkbox" id="replayUsesConfirm" />
-            Use button chime for replay marker sound
+            Optional: use button chime instead of marker tone during replay
           </label>
         </div>
         <div class="setup-group" aria-label="Time entry">
@@ -933,6 +966,142 @@
       confirm: { base: 350, harmonic: 700 },
       user: { base: 410 }
     };
+    /*
+     * ============================================================
+     * SOUND / TIMING TUNING GUIDE (edit here, no code changes needed)
+     * ============================================================
+     *
+     * 1) TEST_TUNING: timing and loudness controls
+     * ------------------------------------------------------------
+     * replayLeadInSec:
+     * - What it does: delay before replay starts after user finishes marking.
+     * - Typical: 0.4 to 1.2 sec
+     * - Test extremes: 0 to 6 sec
+     *
+     * exemplarLeadInSec:
+     * - What it does: delay before exemplar playback starts.
+     * - Typical: 0.3 to 0.8 sec
+     * - Test extremes: 0 to 3 sec
+     *
+     * replayEndPadSec / exemplarEndPadSec:
+     * - What they do: extra time after final cue before UI resets.
+     * - Typical: 0.8 to 1.5 sec
+     * - Test extremes: 0 to 4 sec
+     *
+     * masterVolume:
+     * - What it does: scales all sounds globally.
+     * - Typical: 0.7 to 1.2
+     * - Safe range: 0 to 2
+     *
+     * userVolume:
+     * - What it does: scales user marker tone loudness only.
+     * - Typical: 0.8 to 1.3
+     * - Safe range: 0 to 2
+     *
+     * feedbackVolume:
+     * - What it does: scales acceptable/outside feedback loudness only.
+     * - Typical: 0.8 to 1.4
+     * - Safe range: 0 to 2
+     *
+     * confirmVolume:
+     * - What it does: scales button chime loudness (Begin/Mark click tone).
+     * - Typical: 0.6 to 1.2
+     * - Safe range: 0 to 2
+     *
+     * 2) SOUND_PRESET_LIBRARY: named tone families
+     * ------------------------------------------------------------
+     * - Each preset has:
+     *   duration: seconds of tone (before release tail)
+     *   partials: freq + gain layers that shape timbre
+     * - For non-musicians, easiest path is:
+     *   A) pick a different preset name in SOUND_FALLBACK_TONES
+     *   B) then tweak gainScale / durationScale in presetTone(...)
+     *
+     * 3) SOUND_FALLBACK_TONES: assign presets to app sound roles
+     * ------------------------------------------------------------
+     * Roles:
+     * - acceptable-a / acceptable-b: within-margin feedback options
+     * - outside-a / outside-b: outside-margin feedback options
+     * - user-marker: replay marker tone (default replay tone)
+     * - user-confirm: optional replay alternative (button chime)
+     *
+     * 4) presetTone(...) options (most useful for tuning)
+     * ------------------------------------------------------------
+     * transposeSemitones:
+     * - What it means: pitch shift in semitone steps.
+     * - +12 = one octave higher, -12 = one octave lower.
+     * - +1 or -1 = very small pitch shift.
+     * - Typical: -3 to +3
+     * - Safe range: -24 to +24
+     *
+     * gainScale:
+     * - What it means: multiplier for partial gains in a preset.
+     * - Typical: 0.8 to 1.3
+     * - Safe range: 0 to 2
+     *
+     * durationScale:
+     * - What it means: multiplier for preset duration.
+     * - Typical: 0.8 to 1.4
+     * - Safe range: 0.3 to 3
+     *
+     * 5) SOUND_SFXR_DATA (optional)
+     * ------------------------------------------------------------
+     * - If you load local jsfxr (offline local file), non-empty values here
+     *   override fallback presets for that role.
+     * - If jsfxr is not loaded, app falls back to SOUND_FALLBACK_TONES.
+     */
+    const TEST_TUNING = {
+      // Timing controls for test/debug.
+      replayLeadInSec: 5.8,
+      exemplarLeadInSec: 0.5,
+      replayEndPadSec: 1.2,
+      exemplarEndPadSec: 0.9,
+      // Loudness mix controls.
+      masterVolume: 1,
+      userVolume: 1,
+      feedbackVolume: 1,
+      confirmVolume: 1
+    };
+    const SOUND_PRESET_LIBRARY = {
+      chime_soft: {
+        duration: 0.12,
+        partials: [{ freq: 659, gain: 0.16 }, { freq: 823, gain: 0.07 }]
+      },
+      chime_bright: {
+        duration: 0.12,
+        partials: [{ freq: 523, gain: 0.2 }, { freq: 659, gain: 0.1 }]
+      },
+      pulse_low: {
+        duration: 0.12,
+        partials: [{ freq: 240, gain: 0.2 }, { freq: 300, gain: 0.035 }]
+      },
+      pulse_dull: {
+        duration: 0.12,
+        partials: [{ freq: 260, gain: 0.18 }, { freq: 312, gain: 0.04 }]
+      },
+      marker_tone: {
+        duration: 0.14,
+        partials: [{ freq: tones.user.base, gain: 0.2 }]
+      },
+      confirm_chime: {
+        duration: 0.18,
+        partials: [{ freq: tones.confirm.base, gain: 0.22 }, { freq: tones.confirm.harmonic, gain: 0.1 }]
+      }
+    };
+    function presetTone(name, options = {}) {
+      const base = SOUND_PRESET_LIBRARY[name] || SOUND_PRESET_LIBRARY.marker_tone;
+      const transposeSemitones = Number(options.transposeSemitones || 0);
+      const transpose = Math.pow(2, transposeSemitones / 12);
+      const gainScale = Number(options.gainScale || 1);
+      const durationScale = Number(options.durationScale || 1);
+      return {
+        duration: base.duration * durationScale,
+        partials: base.partials.map((partial) => ({
+          freq: partial.freq * transpose,
+          gain: partial.gain * gainScale
+        }))
+      };
+    }
     const SOUND_SFXR_DATA = {
       // Paste sfxr.me data here (URL hash value, export string, or JSON array).
       // Leave blank ("") to use fallback tones in SOUND_FALLBACK_TONES below.
@@ -945,36 +1114,13 @@
       "user-confirm": ""
     };
     const SOUND_FALLBACK_TONES = {
-		"acceptable-a": {
-		  duration: 0.12,
-		  partials: [
-			{ freq: 659, gain: 0.16 },  // E5
-			{ freq: 823, gain: 0.07 }   // G#5 (major third)
-		  ]
-		},
-		"acceptable-b": { duration: 0.12, partials: [{ freq: 523, gain: 0.2 }, { freq: 659, gain: 0.1 }] },
-		 "outside-a": {
-		  duration: 0.12,
-		  partials: [
-			{ freq: 240, gain: 0.20 },
-			{ freq: 300, gain: 0.035 }
-		  ]
-		},
-		"outside-b": {
-		  duration: 0.12,
-		  partials: [
-			{ freq: 260, gain: 0.18 },
-			{ freq: 312, gain: 0.04 }   // low, dull, non-confirming
-		  ]
-		},
-      "user-marker": { duration: 0.14, partials: [{ freq: tones.user.base, gain: 0.2 }] },
-      "user-confirm": {
-        duration: 0.18,
-        partials: [
-          { freq: tones.confirm.base, gain: 0.22 },
-          { freq: tones.confirm.harmonic, gain: 0.1 }
-        ]
-      }
+      // Easier to edit: swap preset names/options instead of hand-editing frequencies.
+      "acceptable-a": presetTone("chime_soft"),
+      "acceptable-b": presetTone("chime_bright"),
+      "outside-a": presetTone("pulse_low"),
+      "outside-b": presetTone("pulse_dull"),
+      "user-marker": presetTone("marker_tone"),
+      "user-confirm": presetTone("confirm_chime")
     };
 
     const feedbackOptions = {
@@ -1034,7 +1180,8 @@
       partials,
       duration = 0.16,
       startTime = 0,
-      allowMuted = false
+      allowMuted = false,
+      volumeScale = 1
     ) {
       /* A11Y ADDITIONS START */
       if (a11ySettings.outputMode === "visual-only") return;
@@ -1043,7 +1190,7 @@
       const context = ensureAudioContext();
       if (context.state === "suspended") {
         context.resume().then(() => {
-          playCompositeTone(partials, duration, startTime, allowMuted);
+          playCompositeTone(partials, duration, startTime, allowMuted, volumeScale);
         });
         return;
       }
@@ -1051,8 +1198,9 @@
       const gain = context.createGain();
       const attack = 0.01;
       const release = 0.07;
+      const outputLevel = 0.25 * TEST_TUNING.masterVolume * volumeScale;
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.25, now + attack);
+      gain.gain.linearRampToValueAtTime(outputLevel, now + attack);
       gain.gain.linearRampToValueAtTime(0, now + duration + release);
       partials.forEach((partial) => {
         const osc = context.createOscillator();
@@ -1068,11 +1216,11 @@
     }
 
     function playConfirmTone(startTime = 0, allowMuted = false) {
-      playSoundOption(userSoundOptions.confirm, startTime, allowMuted);
+      playSoundOption(userSoundOptions.confirm, startTime, allowMuted, TEST_TUNING.confirmVolume);
     }
 
     function playUserMarkerTone(startTime = 0, allowMuted = false) {
-      playSoundOption(userSoundOptions.marker, startTime, allowMuted);
+      playSoundOption(userSoundOptions.marker, startTime, allowMuted, TEST_TUNING.userVolume);
     }
 
     function getSelectionStorageKey(category) {
@@ -1165,7 +1313,7 @@
       return decoded;
     }
 
-    async function playSfxrSound(rawData, startTime = 0, allowMuted = false) {
+    async function playSfxrSound(rawData, startTime = 0, allowMuted = false, volumeScale = 1) {
       /* A11Y ADDITIONS START */
       if (a11ySettings.outputMode === "visual-only") return;
       /* A11Y ADDITIONS END */
@@ -1173,27 +1321,29 @@
       const context = ensureAudioContext();
       const buffer = await getSfxrAudioBuffer(rawData);
       const source = context.createBufferSource();
+      const gainNode = context.createGain();
       source.buffer = buffer;
-      source.connect(context.destination);
+      gainNode.gain.value = TEST_TUNING.masterVolume * volumeScale;
+      source.connect(gainNode).connect(context.destination);
       const now = context.currentTime + Math.max(0, startTime);
       source.start(now);
     }
 
-    function playSoundOption(option, startTime = 0, allowMuted = false) {
+    function playSoundOption(option, startTime = 0, allowMuted = false, volumeScale = 1) {
       if (!option) return;
       if (option.sfxrData) {
-        playSfxrSound(option.sfxrData, startTime, allowMuted).catch(() => {
-          playCompositeTone(option.partials, option.duration || 0.12, startTime, allowMuted);
+        playSfxrSound(option.sfxrData, startTime, allowMuted, volumeScale).catch(() => {
+          playCompositeTone(option.partials, option.duration || 0.12, startTime, allowMuted, volumeScale);
         });
         return;
       }
-      playCompositeTone(option.partials, option.duration || 0.12, startTime, allowMuted);
+      playCompositeTone(option.partials, option.duration || 0.12, startTime, allowMuted, volumeScale);
     }
 
     function playFeedbackTone(type, startTime = 0) {
       const selection = getSelectedSound(type);
       const option = feedbackOptions[type][selection];
-      playSoundOption(option, startTime);
+      playSoundOption(option, startTime, false, TEST_TUNING.feedbackVolume);
     }
 
     function getSelectedSound(category) {
@@ -1336,7 +1486,7 @@
       const sequenceLabel = labels.join(" to ");
       setStatus(`Playing exemplar: ${sequenceLabel}.`);
       emitCue("replay_start", { mode, exemplar: true });
-      const baseDelay = 0.5;
+      const baseDelay = TEST_TUNING.exemplarLeadInSec;
 
       labels.forEach((label, index) => {
         const time = times[index] ?? 0;
@@ -1348,7 +1498,7 @@
         playUserMarkerTone(baseDelay + time, true);
       });
 
-      const doneAt = (baseDelay + Math.max(...times) + 0.9) * 1000;
+      const doneAt = (baseDelay + Math.max(...times) + TEST_TUNING.exemplarEndPadSec) * 1000;
       exemplarTimeout = setTimeout(() => {
         suppressSrAnnouncements = false;
         actionBtn.classList.remove("running");
@@ -1569,7 +1719,7 @@
     function beginReplay() {
       const reference = getReferenceTimes();
       const labels = modes[currentMode].labels;
-      const baseDelay = 5.8;
+      const baseDelay = TEST_TUNING.replayLeadInSec;
       const maxTime = Math.max(
         ...markerTimes,
         ...reference
@@ -1632,7 +1782,7 @@
         /* A11Y ADDITIONS START */
         emitCue("replay_end", { message: "Ready for another try." });
         /* A11Y ADDITIONS END */
-      }, (maxTime + baseDelay + 1.2) * 1000);
+      }, (maxTime + baseDelay + TEST_TUNING.replayEndPadSec) * 1000);
     }
 
     let startTimestamp = 0;
