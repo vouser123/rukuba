@@ -529,6 +529,18 @@ CREATE POLICY activity_logs_insert_own ON patient_activity_logs FOR INSERT TO au
     OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
   );
 
+CREATE POLICY activity_logs_update_own ON patient_activity_logs FOR UPDATE TO authenticated
+  USING (
+    patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY activity_logs_delete_own ON patient_activity_logs FOR DELETE TO authenticated
+  USING (
+    patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
+
 -- Activity Sets: Cascade from activity logs
 CREATE POLICY activity_sets_select ON patient_activity_sets FOR SELECT TO authenticated
   USING (
@@ -541,6 +553,24 @@ CREATE POLICY activity_sets_select ON patient_activity_sets FOR SELECT TO authen
 
 CREATE POLICY activity_sets_insert ON patient_activity_sets FOR INSERT TO authenticated
   WITH CHECK (
+    activity_log_id IN (
+      SELECT id FROM patient_activity_logs
+      WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    )
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY activity_sets_update ON patient_activity_sets FOR UPDATE TO authenticated
+  USING (
+    activity_log_id IN (
+      SELECT id FROM patient_activity_logs
+      WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+    )
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY activity_sets_delete ON patient_activity_sets FOR DELETE TO authenticated
+  USING (
     activity_log_id IN (
       SELECT id FROM patient_activity_logs
       WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
@@ -563,6 +593,30 @@ CREATE POLICY set_form_data_select ON patient_activity_set_form_data FOR SELECT 
 
 CREATE POLICY set_form_data_insert ON patient_activity_set_form_data FOR INSERT TO authenticated
   WITH CHECK (
+    activity_set_id IN (
+      SELECT id FROM patient_activity_sets
+      WHERE activity_log_id IN (
+        SELECT id FROM patient_activity_logs
+        WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+      )
+    )
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY set_form_data_update ON patient_activity_set_form_data FOR UPDATE TO authenticated
+  USING (
+    activity_set_id IN (
+      SELECT id FROM patient_activity_sets
+      WHERE activity_log_id IN (
+        SELECT id FROM patient_activity_logs
+        WHERE patient_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+      )
+    )
+    OR EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY set_form_data_delete ON patient_activity_set_form_data FOR DELETE TO authenticated
+  USING (
     activity_set_id IN (
       SELECT id FROM patient_activity_sets
       WHERE activity_log_id IN (
