@@ -77,13 +77,17 @@ async function getActivityLogs(req, res) {
     // Fetch all sets for these logs
     const logIds = logs.map(log => log.id);
 
-    const { data: sets, error: setsError } = await supabase
-      .from('patient_activity_sets')
-      .select('*')
-      .in('activity_log_id', logIds)
-      .order('set_number');
+    let sets = [];
+    if (logIds.length > 0) {
+      const { data: setsData, error: setsError } = await supabase
+        .from('patient_activity_sets')
+        .select('*')
+        .in('activity_log_id', logIds)
+        .order('set_number');
 
-    if (setsError) throw setsError;
+      if (setsError) throw setsError;
+      sets = setsData || [];
+    }
 
     const setIds = sets.map(set => set.id);
     let formDataBySet = {};
