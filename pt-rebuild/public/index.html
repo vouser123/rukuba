@@ -1423,6 +1423,18 @@
                 <div class="form-group">
                     <textarea id="sessionNotes" placeholder="How did it feel? Any pain? Progress notes..."></textarea>
                 </div>
+                <!-- Backdate button + datetime picker -->
+                <div style="margin-bottom: 16px;">
+                    <button type="button" class="btn btn-secondary" data-action="toggle-backdate" style="width: 100%; font-size: 0.9rem; padding: 10px;">
+                        Change Date/Time
+                    </button>
+                    <div id="backdateContainer" class="hidden" style="margin-top: 10px;">
+                        <input type="datetime-local" id="backdateInput" style="width: 100%; padding: 10px; border: 1px solid #555; border-radius: 6px; font-size: 1rem;">
+                        <div id="backdateWarning" class="hidden" style="margin-top: 8px; padding: 10px; background: rgba(255,165,0,0.15); border-radius: 6px; font-size: 0.85rem; color: #e8a020;">
+                            Date/time changed from now. Session will be logged at the selected time.
+                        </div>
+                    </div>
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" data-action="cancel-session">Cancel</button>
                     <button type="submit" class="btn">Save & Finish</button>
@@ -3668,6 +3680,29 @@ ${queueData}
 
         function closeNotesModal() {
             document.getElementById('notesModal').classList.add('hidden');
+            // Reset backdate UI
+            document.getElementById('backdateContainer').classList.add('hidden');
+            document.getElementById('backdateWarning').classList.add('hidden');
+            document.getElementById('backdateInput').value = '';
+        }
+
+        function toggleBackdate() {
+            const container = document.getElementById('backdateContainer');
+            const input = document.getElementById('backdateInput');
+            const isHidden = container.classList.contains('hidden');
+
+            if (isHidden) {
+                // Show and default to session start time (now)
+                const date = new Date(currentSession.date);
+                const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                input.value = localDate.toISOString().slice(0, 16);
+                container.classList.remove('hidden');
+                document.getElementById('backdateWarning').classList.add('hidden');
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('backdateWarning').classList.add('hidden');
+                input.value = '';
+            }
         }
 
         // ============================================================================
@@ -4263,6 +4298,17 @@ ${queueData}
             const hasNotes = notes && notes.trim().length > 0;
             currentSession.notes = hasNotes ? notes.trim() : null;
 
+            // Apply backdate if user changed the date/time
+            const backdateInput = document.getElementById('backdateInput');
+            if (backdateInput.value) {
+                const backdateISO = new Date(backdateInput.value).toISOString();
+                currentSession.date = backdateISO;
+                // Update all set timestamps to match the session date
+                currentSession.sets.forEach(set => {
+                    set.performed_at = backdateISO;
+                });
+            }
+
             // Add to offline queue
             offlineQueue.push(currentSession);
             saveOfflineQueue();
@@ -4283,7 +4329,7 @@ ${queueData}
                 id: savedSession.sessionId,
                 exercise_id: savedSession.exerciseId,
                 exercise_name: savedSession.exerciseName,
-                performed_at: savedSession.performedAt || new Date().toISOString(),
+                performed_at: savedSession.date || new Date().toISOString(),
                 sets: savedSession.sets,
                 notes: savedSession.notes
             });
@@ -4643,6 +4689,22 @@ ${queueData}
                 document.getElementById('sessionNotes').value = '';
             });
 
+            // Backdate input change - show warning when date differs from session start
+            document.getElementById('backdateInput').addEventListener('change', () => {
+                const input = document.getElementById('backdateInput');
+                const warning = document.getElementById('backdateWarning');
+                if (input.value) {
+                    const selected = new Date(input.value).getTime();
+                    const sessionStart = new Date(currentSession.date).getTime();
+                    // Show warning if more than 2 minutes different from session start
+                    if (Math.abs(selected - sessionStart) > 120000) {
+                        warning.classList.remove('hidden');
+                    } else {
+                        warning.classList.add('hidden');
+                    }
+                }
+            });
+
             /**
              * Bind iOS-safe pointer event handlers to elements with data-action attributes.
              *
@@ -4729,6 +4791,9 @@ ${queueData}
                         break;
                     case 'close-notes-modal':
                         closeNotesModal();
+                        break;
+                    case 'toggle-backdate':
+                        toggleBackdate();
                         break;
                     case 'cancel-session':
                         if (confirm('Cancel without saving?')) {
