@@ -18,6 +18,24 @@ import { getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
 import { requireAuth, requirePatient } from '../lib/auth.js';
 
 /**
+ * Batch a Supabase .in() query to avoid PostgREST URL length limits.
+ * Splits ids into chunks and merges results.
+ */
+async function batchedIn(supabase, table, column, ids, { select = '*', order } = {}) {
+  const CHUNK_SIZE = 200;
+  const results = [];
+  for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + CHUNK_SIZE);
+    let query = supabase.from(table).select(select).in(column, chunk);
+    if (order) query = query.order(order);
+    const { data, error } = await query;
+    if (error) throw error;
+    if (data) results.push(...data);
+  }
+  return results;
+}
+
+/**
  * GET /api/logs?patient_id=X
  *
  * Returns recent activity logs with sets.
@@ -77,24 +95,18 @@ async function getActivityLogs(req, res) {
     // Fetch all sets for these logs
     const logIds = logs.map(log => log.id);
 
-    const { data: sets, error: setsError } = await supabase
-      .from('patient_activity_sets')
-      .select('*')
-      .in('activity_log_id', logIds)
-      .order('set_number');
-
-    if (setsError) throw setsError;
+    let sets = [];
+    if (logIds.length > 0) {
+      sets = await batchedIn(supabase, 'patient_activity_sets', 'activity_log_id', logIds, {
+        order: 'set_number'
+      });
+    }
 
     const setIds = sets.map(set => set.id);
     let formDataBySet = {};
 
     if (setIds.length > 0) {
-      const { data: formDataRows, error: formDataError } = await supabase
-        .from('patient_activity_set_form_data')
-        .select('*')
-        .in('activity_set_id', setIds);
-
-      if (formDataError) throw formDataError;
+      const formDataRows = await batchedIn(supabase, 'patient_activity_set_form_data', 'activity_set_id', setIds);
 
       formDataBySet = formDataRows.reduce((acc, row) => {
         if (!acc[row.activity_set_id]) acc[row.activity_set_id] = [];
