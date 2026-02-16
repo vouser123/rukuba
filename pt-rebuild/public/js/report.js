@@ -2,11 +2,7 @@
  * PT Therapist Portal
  */
 
-const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+let supabase = null;
 let currentUser = null;
 let currentPatient = null;
 let allExercises = [];
@@ -27,6 +23,11 @@ function escapeHtml(str) {
 }
 
 async function init() {
+  // Load Supabase config from Vercel environment
+  const envResponse = await fetch('/api/env');
+  const { supabaseUrl, supabaseAnonKey } = await envResponse.json();
+  supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     currentUser = session.user;
@@ -243,7 +244,7 @@ function filterExercises() {
   const query = document.getElementById('exercise-search').value.toLowerCase();
   const filtered = allExercises.filter(ex =>
     ex.canonical_name.toLowerCase().includes(query) ||
-    ex.description.toLowerCase().includes(query)
+    (ex.description || '').toLowerCase().includes(query)
   );
   displayExercises(filtered);
 }

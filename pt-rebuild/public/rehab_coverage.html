@@ -68,8 +68,6 @@
             color: var(--text-primary);
             -webkit-font-smoothing: antialiased;
             touch-action: manipulation; /* Prevent iOS double-tap zoom */
-            -webkit-user-select: none;
-            user-select: none;
         }
 
         .hidden {
@@ -1502,14 +1500,10 @@
                 userEmailEl.textContent = currentUser.email || 'Unknown';
             }
 
+            // PT Tracker link is always visible - useful for all roles to navigate back
             const ptTrackerLink = document.getElementById('ptTrackerLink');
             if (ptTrackerLink) {
-                // Only show PT Tracker link for patients
-                if (userRole !== 'patient') {
-                    ptTrackerLink.classList.add('hidden');
-                } else {
-                    ptTrackerLink.classList.remove('hidden');
-                }
+                ptTrackerLink.classList.remove('hidden');
             }
         }
 
@@ -2089,6 +2083,13 @@
 
         // Start the app
         init();
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
     </script>
 
     <!-- Vercel Speed Insights -->
