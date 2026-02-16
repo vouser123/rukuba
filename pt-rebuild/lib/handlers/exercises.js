@@ -132,7 +132,7 @@ async function getExercises(req, res) {
     console.error('Error fetching exercises:', error);
     return res.status(500).json({
       error: 'Failed to fetch exercises',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -456,7 +456,7 @@ async function createExercise(req, res) {
 
     return res.status(500).json({
       error: 'Failed to create exercise',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -644,7 +644,7 @@ async function updateExercise(req, res, exerciseId) {
     console.error('Error updating exercise:', error);
     return res.status(500).json({
       error: 'Failed to update exercise',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -680,7 +680,7 @@ async function deleteExercise(req, res, exerciseId) {
     console.error('Error deleting exercise:', error);
     return res.status(500).json({
       error: 'Failed to delete exercise',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

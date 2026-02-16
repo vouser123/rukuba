@@ -1,6 +1,3 @@
-const FALLBACK_SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
-
 let supabaseClient = null;
 
 let currentUser = null;
@@ -29,14 +26,8 @@ async function loadSupabaseConfig() {
             return await response.json();
         }
     } catch (error) {
-        // Fall through to fallback values.
+        throw new Error('Failed to load Supabase config from /api/env. Check server status.');
     }
-
-    return {
-        supabaseUrl: FALLBACK_SUPABASE_URL,
-        supabaseAnonKey: FALLBACK_SUPABASE_ANON_KEY,
-        warning: 'Using fallback Supabase credentials. If this persists, check /api/env.'
-    };
 }
 
 function readAuthParams() {
