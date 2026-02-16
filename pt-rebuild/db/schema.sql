@@ -348,6 +348,7 @@ CREATE TABLE clinical_messages (
 
   -- Read/archive status (per role)
   read_by_recipient BOOLEAN NOT NULL DEFAULT FALSE,
+  read_at TIMESTAMPTZ,
   archived_by_sender BOOLEAN NOT NULL DEFAULT FALSE,
   archived_by_recipient BOOLEAN NOT NULL DEFAULT FALSE,
 
