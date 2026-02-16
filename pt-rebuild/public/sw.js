@@ -1,16 +1,13 @@
 /**
  * Service Worker - PWA Offline Support
  *
- * Strategy:
- * - API calls: Network-first, NO caching (always fresh data from server)
- * - Static assets: Cache-first (HTML/CSS/JS)
- * - Offline fallback: Show "Offline" message for failed API calls
- *
- * CRITICAL: Service Worker does NOT cache API responses.
- * All data goes through IndexedDB cache managed by offline.js.
+ * Strategy: Network-first for everything.
+ * - Online: always fetch from server, update cache with fresh copy
+ * - Offline: fall back to cached version
+ * - API calls: network-only (no caching, offline.js manages IndexedDB)
  */
 
-const CACHE_NAME = 'pt-tracker-v7'; // Bumped to force clean cache
+const CACHE_NAME = 'pt-tracker-v9';
 const STATIC_ASSETS = [
   '/index.html',
   '/pt_editor.html',
@@ -28,7 +25,7 @@ const STATIC_ASSETS = [
 ];
 
 /**
- * Install - cache static assets
+ * Install - pre-cache static assets for offline use
  */
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -56,13 +53,13 @@ self.addEventListener('activate', (event) => {
 });
 
 /**
- * Fetch - handle requests
+ * Fetch - network-first for all requests
  */
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // API calls: Network-first, NO caching
+  // API calls: network-only, no caching (offline.js handles IndexedDB)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request).catch(() => {
@@ -78,15 +75,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: Cache-first
+  // Everything else: network-first, cache fallback for offline
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(request).then((response) => {
-        // Cache successful responses
+    fetch(request)
+      .then((response) => {
         if (response.ok) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -94,7 +86,21 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return response;
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // No cache available — return offline message for navigation
+          if (request.mode === 'navigate') {
+            return new Response('Offline - no cached version available', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain' }
+            });
+          }
+          return new Response('', { status: 503 });
+        });
+      })
   );
 });
