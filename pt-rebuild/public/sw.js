@@ -3,14 +3,15 @@
  *
  * Strategy:
  * - API calls: Network-first, NO caching (always fresh data from server)
- * - Static assets: Cache-first (HTML/CSS/JS)
- * - Offline fallback: Show "Offline" message for failed API calls
+ * - HTML navigation: Network-first, cache fallback (reload always gets latest)
+ * - Sub-resources (CSS/JS/icons): Cache-first
+ * - Offline fallback: cached HTML or "Offline" message
  *
  * CRITICAL: Service Worker does NOT cache API responses.
  * All data goes through IndexedDB cache managed by offline.js.
  */
 
-const CACHE_NAME = 'pt-tracker-v7'; // Bumped to force clean cache
+const CACHE_NAME = 'pt-tracker-v8'; // v8: network-first for HTML navigation
 const STATIC_ASSETS = [
   '/index.html',
   '/pt_editor.html',
@@ -78,7 +79,33 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: Cache-first
+  // Navigation requests (HTML pages): Network-first
+  // Ensures reload always fetches latest HTML from server
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cachedResponse) => {
+            return cachedResponse || new Response('Offline', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain' }
+            });
+          });
+        })
+    );
+    return;
+  }
+
+  // Sub-resources (CSS/JS/icons): Cache-first
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
