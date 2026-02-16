@@ -798,7 +798,7 @@ async function deleteMessage(req, res) {
  * Called by Vercel Cron once daily. Sends a digest email to each user
  * who has unread messages. Secured via CRON_SECRET, not JWT.
  *
- * Required env vars: CRON_SECRET, RESEND_API_KEY, EMAIL_FROM
+ * Required env vars: CRON_SECRET, SENDGRID_API_KEY, EMAIL_FROM
  */
 async function handleNotify(req, res) {
   // Verify cron secret
@@ -852,8 +852,8 @@ async function handleNotify(req, res) {
     const senderMap = {};
     for (const s of (senders || [])) senderMap[s.id] = `${s.first_name} ${s.last_name}`;
 
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.EMAIL_FROM || 'notifications@rukuba.app';
+    const apiKey = process.env.SENDGRID_API_KEY;
+    const from = process.env.EMAIL_FROM; // Verified single-sender email (e.g. yourname@gmail.com)
     let sent = 0;
 
     for (const [recipientId, messages] of Object.entries(byRecipient)) {
@@ -868,17 +868,17 @@ async function handleNotify(req, res) {
 <p>You have <strong>${count}</strong> unread message${count > 1 ? 's' : ''} from ${senderNames.join(', ')}.</p>
 <p>Open the app to read and reply.</p>`;
 
-      const resp = await fetch('https://api.resend.com/emails', {
+      const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from,
-          to: user.email,
+          personalizations: [{ to: [{ email: user.email }] }],
+          from: { email: from },
           subject: `You have ${count} unread message${count > 1 ? 's' : ''}`,
-          html
+          content: [{ type: 'text/html', value: html }]
         })
       });
 
