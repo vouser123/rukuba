@@ -10,16 +10,14 @@
  * All data goes through IndexedDB cache managed by offline.js.
  */
 
-const CACHE_NAME = 'pt-tracker-v6'; // Bumped to force clean cache
+const CACHE_NAME = 'pt-tracker-v7'; // Bumped to force clean cache
 const STATIC_ASSETS = [
   '/index.html',
   '/pt_editor.html',
   '/pt_view.html',
   '/rehab_coverage.html',
   '/reset-password.html',
-  '/js/tracker.js',
   '/js/offline.js',
-  '/js/report.js',
   '/js/pt_editor.js',
   '/js/hamburger-menu.js',
   '/js/vendor/supabase.min.js',

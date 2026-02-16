@@ -46,7 +46,7 @@ async function getUsers(req, res) {
     console.error('Error fetching users:', error);
     return res.status(500).json({
       error: 'Failed to fetch users',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

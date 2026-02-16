@@ -92,7 +92,7 @@ async function getVocabularies(req, res) {
     console.error('Error fetching vocabularies:', error);
     return res.status(500).json({
       error: 'Failed to fetch vocabularies',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -150,7 +150,7 @@ async function addVocabulary(req, res) {
     console.error('Error adding vocabulary:', error);
     return res.status(500).json({
       error: 'Failed to add vocabulary term',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -198,7 +198,7 @@ async function updateVocabulary(req, res) {
     console.error('Error updating vocabulary:', error);
     return res.status(500).json({
       error: 'Failed to update vocabulary term',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -241,7 +241,7 @@ async function deleteVocabulary(req, res) {
     console.error('Error deleting vocabulary:', error);
     return res.status(500).json({
       error: 'Failed to delete vocabulary term',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

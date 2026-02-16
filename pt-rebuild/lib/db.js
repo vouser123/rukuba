@@ -59,13 +59,18 @@ export function getSupabaseWithAuth(accessToken) {
  * Use ONLY for admin operations like offline queue processing
  * @returns {import('@supabase/supabase-js').SupabaseClient}
  */
+let supabaseAdminClient = null;
+
 export function getSupabaseAdmin() {
-  // Supabase Vercel integration uses SUPABASE_SERVICE_ROLE_KEY
-  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if (!supabaseAdminClient) {
+    // Supabase Vercel integration uses SUPABASE_SERVICE_ROLE_KEY
+    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
-  if (!SUPABASE_SERVICE_KEY) {
-    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+    if (!SUPABASE_SERVICE_KEY) {
+      throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+    }
+
+    supabaseAdminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   }
-
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  return supabaseAdminClient;
 }

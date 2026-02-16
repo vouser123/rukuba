@@ -245,7 +245,7 @@ async function getPrograms(req, res) {
     console.error('Error fetching programs:', error);
     return res.status(500).json({
       error: 'Failed to fetch programs',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -395,7 +395,7 @@ async function createProgram(req, res) {
     console.error('Error creating program:', error);
     return res.status(500).json({
       error: 'Failed to create program',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -519,7 +519,7 @@ async function updateProgram(req, res, programId) {
     console.error('Error updating program:', error);
     return res.status(500).json({
       error: 'Failed to update program',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -579,7 +579,7 @@ async function deleteProgram(req, res, programId) {
     console.error('Error deleting program:', error);
     return res.status(500).json({
       error: 'Failed to delete program',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

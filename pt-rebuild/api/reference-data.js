@@ -53,7 +53,7 @@ async function getReferenceData(req, res) {
     console.error('Error fetching reference data:', error);
     return res.status(500).json({
       error: 'Failed to fetch reference data',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

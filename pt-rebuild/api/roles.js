@@ -50,7 +50,7 @@ async function getRoles(req, res) {
     console.error('Error fetching roles:', error);
     return res.status(500).json({
       error: 'Failed to fetch roles',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -118,7 +118,7 @@ async function createRole(req, res) {
     console.error('Error creating role:', error);
     return res.status(500).json({
       error: 'Failed to create role',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -154,7 +154,7 @@ async function deleteRole(req, res, roleId) {
     console.error('Error deleting role:', error);
     return res.status(500).json({
       error: 'Failed to delete role',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

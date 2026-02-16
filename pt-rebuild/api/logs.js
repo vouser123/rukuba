@@ -151,7 +151,7 @@ async function getActivityLogs(req, res) {
     console.error('Error fetching activity logs:', error);
     return res.status(500).json({
       error: 'Failed to fetch activity logs',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -285,7 +285,7 @@ async function createActivityLog(req, res) {
     console.error('Error creating activity log:', error);
     return res.status(500).json({
       error: 'Failed to create activity log',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -355,16 +355,20 @@ async function updateActivityLog(req, res) {
         const existingSetIds = existingSets.map(s => s.id);
 
         // Delete form data first (foreign key constraint)
-        await supabase
+        const { error: formDeleteError } = await supabase
           .from('patient_activity_set_form_data')
           .delete()
           .in('activity_set_id', existingSetIds);
 
+        if (formDeleteError) throw formDeleteError;
+
         // Delete existing sets
-        await supabase
+        const { error: setsDeleteError } = await supabase
           .from('patient_activity_sets')
           .delete()
           .eq('activity_log_id', id);
+
+        if (setsDeleteError) throw setsDeleteError;
       }
 
       // Insert new sets
@@ -420,7 +424,7 @@ async function updateActivityLog(req, res) {
     console.error('Error updating activity log:', error);
     return res.status(500).json({
       error: 'Failed to update activity log',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -493,7 +497,7 @@ async function deleteActivityLog(req, res) {
     console.error('Error deleting activity log:', error);
     return res.status(500).json({
       error: 'Failed to delete activity log',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -541,7 +545,7 @@ async function getMessages(req, res) {
     console.error('Error fetching messages:', error);
     return res.status(500).json({
       error: 'Failed to fetch messages',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -608,7 +612,7 @@ async function createMessage(req, res) {
     console.error('Error creating message:', error);
     return res.status(500).json({
       error: 'Failed to create message',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -639,7 +643,7 @@ async function updateMessage(req, res) {
     // Use maybeSingle() to return null instead of throwing PGRST116 when not found
     const { data: existing, error: fetchError } = await supabase
       .from('clinical_messages')
-      .select('sender_id, recipient_id')
+      .select('sender_id, recipient_id, read_at')
       .eq('id', id)
       .maybeSingle();
 
@@ -660,6 +664,10 @@ async function updateMessage(req, res) {
 
     if (read !== undefined && isRecipient) {
       updates.read_by_recipient = read;
+      // Record first-read timestamp (only set once, never cleared)
+      if (read && !existing.read_at) {
+        updates.read_at = new Date().toISOString();
+      }
     }
 
     if (archived !== undefined) {
@@ -688,7 +696,7 @@ async function updateMessage(req, res) {
     console.error('Error updating message:', error);
     return res.status(500).json({
       error: 'Failed to update message',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -763,7 +771,7 @@ async function deleteMessage(req, res) {
     console.error('Error deleting message:', error);
     return res.status(500).json({
       error: 'Failed to delete message',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
