@@ -207,21 +207,28 @@ class OfflineManager {
   async createAutoExport() {
     const queue = await this.getQueueItems();
 
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(['auto_exports'], 'readwrite');
-      const store = tx.objectStore('auto_exports');
+    const tx = this.db.transaction(['auto_exports'], 'readwrite');
+    const store = tx.objectStore('auto_exports');
 
-      // Deep clone queue to ensure it's serializable (avoid DataCloneError)
-      const backup = {
-        timestamp: new Date().toISOString(),
-        queue_snapshot: JSON.parse(JSON.stringify(queue))
-      };
+    // Deep clone queue to ensure it's serializable (avoid DataCloneError)
+    const backup = {
+      timestamp: new Date().toISOString(),
+      queue_snapshot: JSON.parse(JSON.stringify(queue))
+    };
 
-      const request = store.add(backup);
+    store.add(backup);
 
-      request.onsuccess = () => resolve({ success: true });
-      request.onerror = () => reject(request.error);
-    });
+    // Trim old exports, keep only the last 10
+    const allExports = await this._promisify(store.getAll());
+    if (allExports.length > 10) {
+      const toDelete = allExports.slice(0, allExports.length - 10);
+      for (const old of toDelete) {
+        store.delete(old.id);
+      }
+    }
+
+    await this._waitForTransaction(tx);
+    return { success: true };
   }
 
   /**
