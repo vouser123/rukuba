@@ -10,6 +10,9 @@
  * PATCH /api/logs?type=messages&id=X - Update message (mark read/archive)
  * DELETE /api/logs?type=messages&id=X - Soft delete message
  *
+ * Email Notifications (type=notify, Vercel Cron):
+ * GET /api/logs?type=notify - Send daily digest email for unread messages
+ *
  * Patient-only endpoint (therapists cannot log on behalf of patients).
  * GET enforces: patients see own logs only, therapists see their patients' logs.
  */
@@ -785,9 +788,123 @@ async function deleteMessage(req, res) {
   }
 }
 
+// ============================================================================
+// DAILY EMAIL NOTIFICATION (Vercel Cron)
+// ============================================================================
+
+/**
+ * GET /api/logs?type=notify
+ *
+ * Called by Vercel Cron once daily. Sends a digest email to each user
+ * who has unread messages. Secured via CRON_SECRET, not JWT.
+ *
+ * Required env vars: CRON_SECRET, RESEND_API_KEY, EMAIL_FROM
+ */
+async function handleNotify(req, res) {
+  // Verify cron secret
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.headers.authorization !== `Bearer ${secret}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  try {
+    // Find all unread, non-deleted messages
+    const { data: unread, error: msgError } = await supabase
+      .from('clinical_messages')
+      .select('recipient_id, sender_id, subject, created_at')
+      .eq('read_by_recipient', false)
+      .is('deleted_at', null);
+
+    if (msgError) throw msgError;
+    if (!unread || unread.length === 0) {
+      return res.status(200).json({ sent: 0 });
+    }
+
+    // Group by recipient
+    const byRecipient = {};
+    for (const msg of unread) {
+      if (!byRecipient[msg.recipient_id]) byRecipient[msg.recipient_id] = [];
+      byRecipient[msg.recipient_id].push(msg);
+    }
+
+    const recipientIds = Object.keys(byRecipient);
+
+    // Fetch recipient emails + names
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('id, email, first_name')
+      .in('id', recipientIds);
+
+    if (userError) throw userError;
+
+    const userMap = {};
+    for (const u of users) userMap[u.id] = u;
+
+    // Fetch sender names for the email body
+    const senderIds = [...new Set(unread.map(m => m.sender_id))];
+    const { data: senders } = await supabase
+      .from('users')
+      .select('id, first_name, last_name')
+      .in('id', senderIds);
+
+    const senderMap = {};
+    for (const s of (senders || [])) senderMap[s.id] = `${s.first_name} ${s.last_name}`;
+
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.EMAIL_FROM || 'notifications@rukuba.app';
+    let sent = 0;
+
+    for (const [recipientId, messages] of Object.entries(byRecipient)) {
+      const user = userMap[recipientId];
+      if (!user?.email) continue;
+
+      const count = messages.length;
+      const senderNames = [...new Set(messages.map(m => senderMap[m.sender_id] || 'your care team'))];
+      const name = user.first_name || 'there';
+
+      const html = `<p>Hi ${name},</p>
+<p>You have <strong>${count}</strong> unread message${count > 1 ? 's' : ''} from ${senderNames.join(', ')}.</p>
+<p>Open the app to read and reply.</p>`;
+
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from,
+          to: user.email,
+          subject: `You have ${count} unread message${count > 1 ? 's' : ''}`,
+          html
+        })
+      });
+
+      if (resp.ok) sent++;
+    }
+
+    return res.status(200).json({ sent, recipients: recipientIds.length });
+
+  } catch (error) {
+    console.error('Error sending notifications:', error);
+    return res.status(500).json({
+      error: 'Notification failed',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
 // Export with method routing
 export default async function handler(req, res) {
   const { type } = req.query;
+
+  // Cron: daily email notifications (no JWT, uses CRON_SECRET)
+  if (type === 'notify') {
+    if (req.method === 'GET') return handleNotify(req, res);
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   // Route to messages handlers if type=messages
   if (type === 'messages') {
