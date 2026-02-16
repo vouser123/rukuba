@@ -668,7 +668,7 @@ function updateVocabReference() {
 
             vocabularies[section.key].forEach(item => {
                 html += `<div style="margin-bottom: 4px;">
-                    <strong>${item.code}</strong>: ${item.definition}
+                    <strong>${escapeHtml(item.code)}</strong>: ${escapeHtml(item.definition || '')}
                 </div>`;
             });
 
@@ -1459,8 +1459,8 @@ function renderCurrentRoles() {
         currentRoles.map(role => `
             <div style="background: var(--bg-tertiary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--ios-blue); color: white; font-size: 11px; font-weight: 600; margin-right: 8px;">${role.contribution.toUpperCase()}</span>
-                    <strong>${role.region}</strong> / ${role.capacity}${role.focus ? ' / ' + role.focus : ''}
+                    <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--ios-blue); color: white; font-size: 11px; font-weight: 600; margin-right: 8px;">${escapeHtml(role.contribution.toUpperCase())}</span>
+                    <strong>${escapeHtml(role.region)}</strong> / ${escapeHtml(role.capacity)}${role.focus ? ' / ' + escapeHtml(role.focus) : ''}
                 </div>
                 <button type="button" class="btn-danger" data-action="removeRole" data-role-id="${role.id}" style="padding: 6px 12px; font-size: 12px;">Remove</button>
             </div>
@@ -1784,8 +1784,8 @@ async function loadVocabTerms() {
         termsContent.innerHTML = terms.map(term => `
             <div style="background: var(--bg-secondary); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
                 <div style="flex: 1;">
-                    <strong style="color: var(--ios-blue);">${term.code}</strong>
-                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${term.definition || '(no definition)'}</div>
+                    <strong style="color: var(--ios-blue);">${escapeHtml(term.code)}</strong>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${escapeHtml(term.definition || '(no definition)')}</div>
                 </div>
                 <button type="button" class="btn-secondary" data-action="editVocab" data-code="${term.code}" data-definition="${encodeURIComponent(term.definition || '')}" style="padding: 6px 12px; font-size: 12px; margin-left: 10px;">Edit</button>
             </div>

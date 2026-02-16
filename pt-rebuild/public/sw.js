@@ -16,11 +16,15 @@ const STATIC_ASSETS = [
   '/pt_editor.html',
   '/pt_view.html',
   '/rehab_coverage.html',
+  '/reset-password.html',
+  '/js/tracker.js',
   '/js/offline.js',
+  '/js/report.js',
   '/js/pt_editor.js',
   '/js/hamburger-menu.js',
   '/js/vendor/supabase.min.js',
   '/css/main.css',
+  '/css/hamburger-menu.css',
   '/icons/icon.svg',
   '/manifest.json'
 ];

@@ -28,8 +28,6 @@
             background: #f5f5f5;
             overflow-x: hidden;
             touch-action: manipulation; /* Prevent iOS double-tap zoom */
-            -webkit-user-select: none;
-            user-select: none;
         }
 
         /* Utility Classes */
@@ -4870,11 +4868,18 @@ ${queueData}
         }
 
         function generateSessionId() {
-            return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            return `session_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
         }
 
         // Start the app
         init();
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
     </script>
 
     <!-- Vercel Speed Insights -->

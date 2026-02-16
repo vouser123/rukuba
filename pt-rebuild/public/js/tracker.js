@@ -7,12 +7,8 @@
 
 import { offlineManager } from './offline.js';
 
-const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_pdyqh56HqQQ6OfHl3GG11A_W6IxqqWp';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 // App state
+let supabase = null;
 let currentUser = null;
 let currentExercise = null;
 let currentSets = [];
@@ -35,6 +31,11 @@ function escapeHtml(str) {
  * Initialize app
  */
 async function init() {
+  // Load Supabase config from Vercel environment
+  const envResponse = await fetch('/api/env');
+  const { supabaseUrl, supabaseAnonKey } = await envResponse.json();
+  supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
   await offlineManager.init();
 
   // Check auth state
@@ -287,7 +288,7 @@ function filterExercises() {
   const items = document.querySelectorAll('#exercise-list li');
 
   items.forEach(item => {
-    const name = item.dataset.exerciseName.toLowerCase();
+    const name = (item.dataset.exerciseName || '').toLowerCase();
     item.style.display = name.includes(query) ? 'block' : 'none';
   });
 }
@@ -441,8 +442,8 @@ async function showHistory() {
     const li = document.createElement('li');
     const date = new Date(log.performed_at).toLocaleDateString();
     li.innerHTML = `
-      <strong>${log.exercise_name}</strong>
-      <span>${date} - ${log.sets?.length || 0} sets</span>
+      <strong>${escapeHtml(log.exercise_name)}</strong>
+      <span>${escapeHtml(date)} - ${log.sets?.length || 0} sets</span>
     `;
     list.appendChild(li);
   });
