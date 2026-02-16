@@ -16,6 +16,9 @@ import { getSupabaseClient, getSupabaseAdmin } from '../lib/db.js';
 import { requirePatient } from '../lib/auth.js';
 
 async function processSync(req, res) {
+  // TODO: Security — Use getSupabaseWithAuth(req.accessToken) instead of anon client.
+  // The anon client bypasses RLS user context. requirePatient middleware guarantees
+  // the token exists, so this should be safe to swap. (P0, medium risk)
   const supabase = getSupabaseClient();
   const supabaseAdmin = getSupabaseAdmin();
   const { queue } = req.body;
@@ -195,6 +198,10 @@ async function processActivityLog(supabase, patientId, payload) {
       .insert(setsWithLogId);
 
     if (setsError) {
+      // TODO: Data integrity — Clean up orphaned log if sets insert fails.
+      // Currently the log row persists with no sets. Should delete the log here,
+      // but be careful: if the delete also fails, we lose idempotency because the
+      // client_mutation_id check won't find the record on retry. (P1, medium risk)
       return { success: false, error: setsError.message };
     }
 

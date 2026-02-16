@@ -12,6 +12,9 @@ import { requireAuth } from '../lib/auth.js';
 
 async function getUsers(req, res) {
   // Use admin client to bypass RLS, then filter based on role
+  // TODO: Performance — Add .eq() filters at DB level per role instead of fetching
+  // all users and filtering in memory. Therapists/patients fetch every user just to
+  // filter down to 1-2 records. (P2, low risk)
   const supabaseAdmin = getSupabaseAdmin();
 
   try {

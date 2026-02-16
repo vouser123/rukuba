@@ -4,6 +4,11 @@
  * Provides consistent hamburger menu functionality across all PT Tracker pages.
  * Uses data-action pattern for iOS Safari/PWA compatibility.
  *
+ * TODO: UI consistency — Audit hamburger menu across all 4 HTML pages (index.html,
+ * pt_view.html, pt_editor.html, rehab_coverage.html). Each page has slightly different
+ * menu items and inline event handling. Ensure all pages use this shared JS/CSS, have
+ * matching menu structure, and follow data-action + pointerup pattern. (P3)
+ *
  * Usage:
  * 1. Include the CSS styles in your page (or link shared-hamburger.css)
  * 2. Add the hamburger HTML structure

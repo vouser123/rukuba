@@ -64,3 +64,61 @@ This file tracks development progress on the Supabase/Vercel rebuild of the PT t
 - **2026-02-04** — **Problem:** History display didn't show side information for sided exercises, and side selector wasn't shown if exercise wasn't found in allExercises. **What I did:** (1) Updated history `setsSummary` to append "(L)" or "(R)" for sets with side data. (2) Updated `openEditSessionModal()` to detect `isSided` from either exercise pattern OR presence of side data in existing sets, ensuring side selector appears even if exercise lookup fails. **Files:** `pt-rebuild/public/index.html`.
 
 - **2026-02-04** — **PWA Offline Support Implementation.** **Problem:** App was intended to work offline as a PWA, but data didn't persist to IndexedDB. The `OfflineManager` class existed in `/js/offline.js` but wasn't wired up to `index.html`. **What I did:** (1) Fixed `offline.js` to use proper native IndexedDB patterns (added `_waitForTransaction()` helper, fixed transaction completion handling). (2) Wired up `OfflineManager` in `index.html`: imports module, initializes on app start, sets up online/offline event listeners. (3) Implemented offline-only cache: when offline, loads from IndexedDB; when online, fetches from API directly (no stale-then-refresh pattern which would cause jarring re-renders and scroll position loss). (4) Added auto-sync on reconnection: when coming back online, syncs pending queue items and refreshes cache. (5) Added `updateSyncStatusUI()` function showing sync badge states: red for pending items, gray for offline. (6) Updated `/api/sync.js` to write to `offline_mutations` table for server-side audit. (7) Cache hydration happens in background after successful API load. **Architecture:** Online: API fetch → render once → hydrate cache in background. Offline: IndexedDB cache → render once. Auto-sync: online event → sync pending queue → hydrate cache. **Files:** `pt-rebuild/public/js/offline.js`, `pt-rebuild/public/index.html`, `pt-rebuild/api/sync.js`.
+
+## 2026-02-16
+
+### Security Hardening (Low-Risk Only)
+
+All changes are low-risk, non-breaking hardening. Medium/high-risk items deferred (see Remaining Work below).
+
+- **2026-02-16** — **Removed hardcoded Supabase fallback credentials from `pt_editor.js`.** The client-side editor had `FALLBACK_SUPABASE_URL` and `FALLBACK_SUPABASE_ANON_KEY` constants used when `/api/env` failed. Removed these and replaced with an explicit `throw new Error(...)` so a config failure is visible rather than silently using stale credentials. **Files:** `pt-rebuild/public/js/pt_editor.js`.
+
+- **2026-02-16** — **Restricted `/api/debug` endpoint to admin role only.** Previously any authenticated user could call `GET /api/debug` and see their full user context object. Now returns 403 for non-admins. **Files:** `pt-rebuild/api/debug.js`.
+
+- **2026-02-16** — **Cached admin Supabase client as singleton in `db.js`.** The anon client was already cached, but `getSupabaseAdmin()` created a new `createClient()` instance on every call. Now uses `supabaseAdminClient` singleton matching the anon client pattern. **Files:** `pt-rebuild/lib/db.js`.
+
+- **2026-02-16** — **Added error checks on delete operations in `logs.js` update path.** The `updateActivityLog()` PATCH handler deleted existing sets and form_data before inserting replacements, but never checked the delete results. If deletes failed silently, subsequent inserts would create duplicate sets. Now checks `formDeleteError` and `setsDeleteError` and throws on failure. **Files:** `pt-rebuild/api/logs.js` (lines 357-371).
+
+- **2026-02-16** — **Stripped `error.message` from all 500 responses in production.** 25 instances across 8 API files were leaking internal error details (stack traces, DB error messages) to clients. Changed all to `details: process.env.NODE_ENV === 'development' ? error.message : undefined` so details only appear in dev mode. **Files:** `api/logs.js`, `api/vocab.js`, `api/roles.js`, `api/reference-data.js`, `api/users.js`, `lib/handlers/exercises.js`, `lib/handlers/programs.js`.
+
+- **2026-02-16** — **Deleted dead code files `tracker.js` and `report.js`.** Verified zero HTML references and zero `import` statements across the entire `public/` directory. Removed from `sw.js` STATIC_ASSETS list and bumped service worker cache to v7 to force clients to drop the stale cached copies. **Files:** deleted `public/js/tracker.js`, deleted `public/js/report.js`, `public/sw.js`.
+
+### Read Receipts Feature
+
+- **2026-02-16** — **Added `read_at` timestamp column to `clinical_messages`.** Created migration `011_add_message_read_at.sql` (idempotent with `IF NOT EXISTS`). Column was also added directly to live Supabase DB by user, so migration is documentation/safety net only. Updated `schema.sql` to match live DB (also added `sent_at` column that existed in live DB but was missing from repo schema). **Files:** `db/migrations/011_add_message_read_at.sql`, `db/schema.sql`.
+
+- **2026-02-16** — **Added `supabase_schema.sql` to repo.** User exported live Supabase schema and committed to main. Merged into feature branch. This file is the authoritative reference for live DB state. **Files:** `db/supabase_schema.sql` (from main).
+
+- **2026-02-16** — **Wired up server-side read tracking in `logs.js` `updateMessage()`.** When `PATCH` is called with `{ read: true }`, the handler now also sets `read_at` to the current timestamp — but only on first read (never overwritten, never cleared). The existing `read_by_recipient` boolean still gets set/unset normally. **Files:** `api/logs.js` (lines 661-667).
+
+- **2026-02-16** — **Wired up read receipts in both frontend views.** (1) **Mark as read server-side:** When messages modal opens, `markReceivedMessagesAsRead()` fetches all messages, finds unread ones where current user is the recipient, and fires PATCH `{ read: true }` for each (fire-and-forget, non-blocking). (2) **Display read status on sent messages:** Each sent message now shows "Read [local datetime]" in green (using existing `formatMessageDateTime()` which uses local timezone) or "Delivered" in grey if unread. Read receipt appears bottom-right of the message card. **Files:** `public/index.html`, `public/pt_view.html`.
+
+---
+
+## Remaining Work (For Next Session)
+
+### Priority 0 — Security (Medium Risk, Deferred)
+
+1. **`sync.js` uses anon Supabase client instead of auth-context client.** Line 19 calls `getSupabaseClient()` (anon key) for patient data inserts. Should use `getSupabaseWithAuth(req.accessToken)` so RLS policies enforce access control per user. Risk: if `req.accessToken` is ever invalid, inserts fail where they previously worked — but `requirePatient` middleware guarantees the token. **Files:** `api/sync.js`.
+
+2. **No therapist→patient authorization check in `createActivityLog()`.** Any authenticated user can POST to `/api/logs` with any `patient_id`. Should verify that the therapist has a relationship to the patient (via `therapist_id` in users table) before allowing cross-user logging. Risk: could block legitimate operations if therapist-patient relationships aren't fully populated in DB. **Files:** `api/logs.js` (lines 170-188).
+
+### Priority 1 — Data Integrity (Medium/High Risk, Deferred)
+
+3. **`sync.js` has no cleanup on partial failure.** If the activity log insert succeeds but the sets insert fails, the log is left orphaned with no sets. Should either delete the orphaned log or wrap in a transaction. Risk: cleanup logic could make things worse if the delete also fails (loses idempotency via `client_mutation_id`). **Files:** `api/sync.js` (lines 161-199).
+
+4. **Form data matched to sets by array index, not `set_number`.** In both `createActivityLog()` and `updateActivityLog()`, form_data is associated with sets via array index (`createdSets[i]`). If Supabase returns sets in a different order than submitted, form_data gets attached to wrong sets. **HIGH RISK to change** — current approach works in practice because Supabase returns inserted rows in order. Changing to `set_number` matching could break if clients don't consistently populate `set_number`. **Files:** `api/logs.js` (lines 252-254, 392-405).
+
+5. **`offline.js` `addToQueue()` resolves on `request.onsuccess` instead of `tx.oncomplete`.** The write could still be rolled back after the promise resolves. Should resolve on transaction complete instead. Low-medium risk, unlikely to matter in practice. **Files:** `public/js/offline.js` (lines 184-186).
+
+### Priority 2 — Reliability/Performance (Low Risk, Deferred)
+
+6. **`users.js` fetches all users then filters in memory.** For admins this is fine, but therapists and patients fetch every user in the system just to filter down to 1-2 records. Should add `.eq()` filters at the DB query level per role. **Files:** `api/users.js` (lines 18-41).
+
+### Priority 3 — UI/UX
+
+7. **Hamburger menu consistency across views.** The hamburger menu implementation exists in 4 HTML files (`index.html`, `pt_view.html`, `pt_editor.html`, `rehab_coverage.html`) plus shared `js/hamburger-menu.js` and `css/hamburger-menu.css`. Each page has slightly different menu items and inline event handling. Should audit for consistency: ensure all pages use the shared JS/CSS, have matching menu structure, and follow the same `data-action` + `pointerup` pattern. **Files:** `public/js/hamburger-menu.js`, `public/css/hamburger-menu.css`, all 4 HTML files.
+
+### Reference: Live DB vs Repo Schema
+
+The file `db/supabase_schema.sql` is the authoritative live DB export. The file `db/schema.sql` is the repo's CREATE TABLE script (used for documentation and fresh deploys). These should be kept in sync. As of 2026-02-16 they match, including the `read_at` and `sent_at` columns on `clinical_messages`.
