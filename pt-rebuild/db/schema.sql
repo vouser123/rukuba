@@ -357,7 +357,8 @@ CREATE TABLE clinical_messages (
   deleted_by UUID REFERENCES users(id) ON DELETE SET NULL,
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_clinical_messages_patient ON clinical_messages(patient_id);
