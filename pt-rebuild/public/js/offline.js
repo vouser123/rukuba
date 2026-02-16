@@ -182,6 +182,8 @@ class OfflineManager {
       };
 
       const request = store.add(item);
+      // TODO: Data integrity — Resolve on tx.oncomplete instead of request.onsuccess.
+      // The write could still be rolled back after the promise resolves. (P1, low risk)
       request.onsuccess = () => resolve({ success: true });
       request.onerror = () => reject(request.error);
     });

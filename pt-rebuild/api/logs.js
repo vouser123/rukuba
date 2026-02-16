@@ -184,6 +184,10 @@ async function createActivityLog(req, res) {
   // Determine target patient_id:
   // - If patient_id provided (therapist logging on behalf), use that
   // - Otherwise default to logged-in user's ID (patient logging own data)
+  // TODO: Security — When patient_id differs from req.user.id, verify the caller
+  // is a therapist with a relationship to this patient (therapist_id in users table).
+  // Currently any authenticated user can log to any patient_id. (P0, medium risk —
+  // could block legitimate ops if therapist-patient relationships aren't fully populated)
   const targetPatientId = patient_id || req.user.id;
 
   // Validation
@@ -248,6 +252,10 @@ async function createActivityLog(req, res) {
 
     // Insert form data for each set (if present)
     // form_data is an array of {parameter_name, parameter_value, parameter_unit}
+    // TODO: Data integrity — Match form_data to sets by set_number instead of array
+    // index. If Supabase ever returns inserted rows in different order than submitted,
+    // form_data would attach to wrong sets. Currently works because Supabase preserves
+    // insert order. HIGH RISK to change — clients must consistently populate set_number.
     const formDataRows = [];
     for (let i = 0; i < sets.length; i++) {
       const set = sets[i];
@@ -392,6 +400,7 @@ async function updateActivityLog(req, res) {
       if (setsError) throw setsError;
 
       // Insert form data for each set (if present)
+      // TODO: Same array-index matching issue as createActivityLog — see TODO above.
       const formDataRows = [];
       for (let i = 0; i < sets.length; i++) {
         const set = sets[i];

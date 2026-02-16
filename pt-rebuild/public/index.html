@@ -3719,13 +3719,42 @@ ${queueData}
             document.getElementById('messagesModal').classList.remove('hidden');
             await loadMessages();
 
-            // Mark messages as read
+            // Mark messages as read (locally + server-side)
             lastReadMessageTime = new Date().toISOString();
             localStorage.setItem('lastReadMessageTime', lastReadMessageTime);
+            markReceivedMessagesAsRead();
 
             // Hide badge
             const badge = document.getElementById('messagesBadge');
             if (badge) badge.classList.add('hidden');
+        }
+
+        async function markReceivedMessagesAsRead() {
+            if (!currentUser || !authToken) return;
+            try {
+                const response = await fetch('/api/logs?type=messages', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                const viewerId = currentUserProfileId || currentUser.id;
+                const unread = (data.messages || []).filter(msg =>
+                    msg.recipient_id === viewerId && !msg.read_by_recipient
+                );
+                // Fire-and-forget PATCH for each unread message
+                for (const msg of unread) {
+                    fetch(`/api/logs?type=messages&id=${msg.id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ read: true })
+                    }).catch(() => {}); // Best-effort, don't block UI
+                }
+            } catch (e) {
+                // Non-critical, don't surface to user
+            }
         }
 
         function closeMessagesModal() {
@@ -3772,6 +3801,17 @@ ${queueData}
                     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
                     const canUndo = isFromPatient && createdAt > oneHourAgo;
 
+                    // Read receipt for sent messages
+                    let readReceipt = '';
+                    if (isFromPatient) {
+                        if (msg.read_at) {
+                            const readTime = formatMessageDateTime(new Date(msg.read_at));
+                            readReceipt = `<span style="font-size: 11px; color: #28a745;">Read ${readTime}</span>`;
+                        } else {
+                            readReceipt = `<span style="font-size: 11px; color: #aaa;">Delivered</span>`;
+                        }
+                    }
+
                     html += `
                         <div style="
                             padding: 12px;
@@ -3787,9 +3827,12 @@ ${queueData}
                                 <span style="font-size: 11px; color: #888;">${sentDateTime}</span>
                             </div>
                             <div style="font-size: 14px; color: #333; white-space: pre-wrap;">${escapeHtml(msg.body)}</div>
-                            <div style="margin-top: 8px; display: flex; gap: 8px;">
-                                <button data-action="archive-message" data-id="${msg.id}" style="background: transparent; border: none; color: #888; cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
-                                ${canUndo ? `<button data-action="undo-send-message" data-id="${msg.id}" style="background: transparent; border: none; color: #dc3545; cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                            <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; gap: 8px;">
+                                    <button data-action="archive-message" data-id="${msg.id}" style="background: transparent; border: none; color: #888; cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
+                                    ${canUndo ? `<button data-action="undo-send-message" data-id="${msg.id}" style="background: transparent; border: none; color: #dc3545; cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                                </div>
+                                ${readReceipt}
                             </div>
                         </div>
                     `;

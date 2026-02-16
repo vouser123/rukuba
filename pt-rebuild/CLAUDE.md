@@ -41,6 +41,22 @@ This folder contains the Supabase/Vercel rebuild of the PT tracker app.
 - Include `-webkit-tap-highlight-color: transparent` on buttons
 - Minimum touch target size: 44px (Apple HIG)
 
+## Remaining Work (TODOs in Code)
+
+Search codebase for `TODO:` comments — each has priority and risk level. Summary:
+
+| Priority | File | Issue |
+|----------|------|-------|
+| P0 | `api/sync.js` | Uses anon Supabase client, should use auth-context (`getSupabaseWithAuth`) |
+| P0 | `api/logs.js` | No therapist→patient auth check when `patient_id` differs from caller |
+| P1 | `api/sync.js` | No cleanup of orphaned log if sets insert fails |
+| P1 | `api/logs.js` (x2) | Form data matched to sets by array index, not `set_number` (HIGH RISK to change) |
+| P1 | `public/js/offline.js` | `addToQueue` resolves on `request.onsuccess` not `tx.oncomplete` |
+| P2 | `api/users.js` | Fetches all users then filters in memory instead of DB-level filtering |
+| P3 | `public/js/hamburger-menu.js` | Menu structure inconsistent across 4 HTML pages |
+
+Full details with rationale in `DEV_NOTES.md` under "Remaining Work (For Next Session)".
+
 ## Post-Change Checklist
 
 1. Test on iOS Safari/PWA if UI changes
