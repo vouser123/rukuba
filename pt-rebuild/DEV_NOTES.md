@@ -122,3 +122,5 @@ All changes are low-risk, non-breaking hardening. Medium/high-risk items deferre
 ### Reference: Live DB vs Repo Schema
 
 The file `db/supabase_schema.sql` is the authoritative live DB export. The file `db/schema.sql` is the repo's CREATE TABLE script (used for documentation and fresh deploys). These should be kept in sync. As of 2026-02-16 they match, including the `read_at` and `sent_at` columns on `clinical_messages`.
+
+- **2026-02-17** — **Documentation:** Added `public/docs/API_SLOT_STRATEGY_2026-02-17.md` to preserve a risk-weighted API slot allocation analysis (current endpoint usage, callsite mapping, and cost-vs-benefit recommendations for merges/splits under Vercel free-tier limits) so future local Codex runs can reuse findings without repeating discovery.
