@@ -1314,7 +1314,7 @@ async function saveExercise() {
         // Determine if creating or updating
         const isUpdate = currentExercise !== null;
         const method = isUpdate ? 'PUT' : 'POST';
-        const url = isUpdate ? `/api/exercises/${exerciseId}` : '/api/exercises';
+        const url = isUpdate ? `/api/exercises?id=${encodeURIComponent(exerciseId)}` : '/api/exercises';
 
         const result = await fetchWithAuth(url, {
             method: method,
@@ -1720,7 +1720,7 @@ async function updateDosage() {
 
         if (existing) {
             // Update existing program
-            await fetchWithAuth(`/api/programs/${existing.id}`, {
+            await fetchWithAuth(`/api/programs?id=${encodeURIComponent(existing.id)}`, {
                 method: 'PUT',
                 body: JSON.stringify(dosageData)
             });

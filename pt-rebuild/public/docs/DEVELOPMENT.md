@@ -44,7 +44,6 @@ These API routes are the public surface area for the frontend. Keep route count 
 - `GET /api/vocab` → vocabulary tables.
 - `GET /api/users` → user lookup.
 - `POST /api/sync` → sync logs payloads.
-- `GET /api/debug` → debug helper.
 
 ## Data model (Supabase)
 
