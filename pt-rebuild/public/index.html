@@ -2707,6 +2707,10 @@
             timerState.isRunning = true;
             timerState.startTime = Date.now() - timerState.elapsedMs;
 
+            if (timerState.targetSeconds > 10) {
+                speakText('Start');
+            }
+
             timerState.intervalId = setInterval(() => {
                 timerState.elapsedMs = Date.now() - timerState.startTime;
                 const elapsedSeconds = Math.floor(timerState.elapsedMs / 1000);
@@ -2726,7 +2730,7 @@
 
                     if (clampedRemaining === 0) {
                         playCompletionSound();
-                        pauseTimer(); // Auto-pause at target, but allow user to continue
+                        pauseTimer(false); // Auto-pause at target, but allow user to continue
 
                         // Announce reps remaining for hold exercises
                         const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
@@ -2750,7 +2754,7 @@
                         } else {
                             // Duration exercise completed - keep elapsedMs at target time
                             // so confirmNextSet() captures the actual elapsed seconds
-                            speakText('Time');
+                            speakText('Set complete');
                             timerState.elapsedMs = timerState.targetSeconds * 1000;
                             timerState.lastAnnouncedSecond = null;
                             document.getElementById('timerDisplay').textContent = formatTime(0);
@@ -2764,17 +2768,20 @@
             updateTimerButton();
         }
 
-        function pauseTimer() {
+        function pauseTimer(announce = true) {
             timerState.isRunning = false;
             if (timerState.intervalId) {
                 clearInterval(timerState.intervalId);
                 timerState.intervalId = null;
             }
+            if (announce && timerState.targetSeconds > 10) {
+                speakText('Pause');
+            }
             updateTimerButton();
         }
 
         function resetTimer() {
-            pauseTimer();
+            pauseTimer(false);
             timerState.elapsedMs = 0;
             timerState.lastAnnouncedSecond = null;
             // Reset to target time (countdown starts from target)

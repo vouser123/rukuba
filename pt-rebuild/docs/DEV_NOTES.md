@@ -93,6 +93,16 @@ Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-18
 
+### 2026-02-18 — Timer audio cues aligned for duration/hold and >10s start/pause voice
+- Problem: `duration_seconds` timer flow diverged from `hold_seconds` behavior by announcing "Time" at completion, and long timers lacked explicit start/pause voice cues.
+- Root cause: Duration completion branch in `startTimer()` had a duration-specific speech fallback, and timer controls had no threshold-gated voice announcements for start/pause actions.
+- Change made: Updated duration completion speech to use `Set complete` so duration/hold share the same near-zero cue flow (countdown beeps at `3/2/1` and completion triple-beep at `0`). Added voice announcements for `Start` and `Pause` when `timerState.targetSeconds > 10`. Added `pauseTimer(announce = true)` parameter so auto-pause at completion and reset call `pauseTimer(false)` and do not produce extra pause announcements.
+- Files touched: `pt-rebuild/public/index.html`
+- Validation: Verified timer logic in `startTimer()`/`pauseTimer()`/`resetTimer()` now includes `speakText('Start')` and `speakText('Pause')` only for targets over 10s, keeps auto-complete and reset silent for pause voice, and retains existing countdown/completion beep behavior.
+- Follow-ups: Optional UX decision: keep `Set complete` spoken for duration completion, or switch completion to sound-only for both duration and hold for strict audio parity.
+- Tags: [ui,reliability]
+
+
 ### 2026-02-18 — DEV_NOTES converted to AI-optimized ops format
 - Problem: Active TODOs, risk context, and workflow guidance were split across legacy sections, making agent handoff and consistent triage harder.
 - Root cause: Historical notes evolved with mixed styles (`Remaining Work`, freeform notes, and legacy prose) and no single machine-stable open-work section.
