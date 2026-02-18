@@ -16,6 +16,13 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - Preserve offline/PWA behavior and iOS-safe interaction patterns (`pointerup`, touch-safe UI behavior).
 - Respect Vercel/serverless limits: avoid endpoint sprawl and prefer extending existing handlers.
 
+## iOS PWA Interaction Rules
+
+- Always use `touch-action: manipulation` on interactive elements.
+- Use `pointerup` events instead of `onclick` for reliable touch handling.
+- Include `-webkit-tap-highlight-color: transparent` on buttons.
+- Minimum touch target size: 44px (Apple HIG).
+
 ## Required Final Step
 
 Before reporting any fix/feature/behavior change as complete, append a dated note to:

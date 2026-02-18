@@ -28,13 +28,6 @@ Operational rules and required final steps are in `pt-rebuild/AGENTS.md` — fol
 - **patient_activity_logs** - Session logs with sets array (performed_at, sets[], notes)
 - **clinical_messages** - PT-patient messaging (served via logs.js API)
 
-## iOS PWA Considerations
-
-- Always use `touch-action: manipulation` on interactive elements
-- Use `pointerup` events instead of `onclick` for reliable touch handling
-- Include `-webkit-tap-highlight-color: transparent` on buttons
-- Minimum touch target size: 44px (Apple HIG)
-
 ## Open Work
 
 See `pt-rebuild/docs/DEV_NOTES.md` under `Open Items` for all tracked issues with priority, risk, context, and constraints.
