@@ -475,6 +475,58 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       box-shadow: 0 0 0 6px rgba(47, 93, 98, 0.35);
     }
 
+    .visual-replay-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 9999;
+    }
+
+    .visual-replay-overlay[data-active="true"] {
+      opacity: 1;
+    }
+
+    .visual-replay-flash,
+    .visual-replay-shape-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .visual-replay-flash {
+      background: #000000;
+    }
+
+    .visual-replay-shape-layer {
+      display: grid;
+      place-items: center;
+      z-index: 1;
+    }
+
+    .visual-replay-shape {
+      width: 70vmin;
+      height: 70vmin;
+      display: none;
+    }
+
+    .visual-replay-shape[data-type="acceptable"] {
+      border-radius: 50%;
+      background: #00FF66;
+    }
+
+    .visual-replay-shape[data-type="outside"] {
+      background: #FF5500;
+      clip-path: polygon(50% 0%, 6.7% 75%, 93.3% 75%);
+    }
+
+    .visual-replay-shape[data-outside-variant="down"] {
+      transform: rotate(180deg);
+    }
+
     body[data-text-size="large"] {
       --ui-scale: 1.15;
     }
@@ -717,6 +769,22 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             Optional: use button chime instead of marker tone during replay
           </label>
         </div>
+        <div class="setup-group" aria-label="Visual calibration">
+          <h3>Visual Calibration</h3>
+          <label>
+            <input type="radio" name="outsideVisualVariant" value="up" checked />
+            Outside triangle orientation: Up
+          </label>
+          <label>
+            <input type="radio" name="outsideVisualVariant" value="down" />
+            Outside triangle orientation: Down
+          </label>
+          <div class="exemplar-actions" role="group" aria-label="Preview visual cues">
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="user" aria-label="Preview user visual cue">Preview: User flash</button>
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="acceptable" aria-label="Preview acceptable reference visual cue">Preview: Acceptable shape</button>
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="outside" aria-label="Preview outside reference visual cue">Preview: Outside shape</button>
+          </div>
+        </div>
         <div class="setup-group" aria-label="Time entry">
           <h3>Time Entry</h3>
           <label for="clearTime">Time to clear from left (seconds)</label>
@@ -796,6 +864,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             <input type="checkbox" id="a11yUseTextLabels" />
             Use text labels
           </label>
+          <label>
+            <input type="checkbox" id="a11ySyncVisualReplay" />
+            Synchronized visual replay (AudioContext-timed)
+          </label>
         </div>
         <div class="setup-group" aria-label="Vision preferences">
           <h3>Vision Preferences</h3>
@@ -833,6 +905,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     </div>
   </dialog>
   <!-- A11Y ADDITIONS END -->
+
+  <div class="visual-replay-overlay" id="visualReplayOverlay" aria-hidden="true" data-active="false">
+    <div class="visual-replay-flash" id="visualReplayFlash"></div>
+    <div class="visual-replay-shape-layer">
+      <div class="visual-replay-shape" id="visualReplayShape" data-type="acceptable" data-outside-variant="up"></div>
+    </div>
+  </div>
 
   <!-- Optional: add a local jsfxr script for offline sfxr data support, e.g. <script src="./jsfxr.js"></script> -->
   <script>
@@ -877,6 +956,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const a11yVibrate = document.getElementById("a11yVibrate");
     const a11yUseColorIcon = document.getElementById("a11yUseColorIcon");
     const a11yUseTextLabels = document.getElementById("a11yUseTextLabels");
+    const a11ySyncVisualReplay = document.getElementById("a11ySyncVisualReplay");
     const a11yTheme = document.getElementById("a11yTheme");
     const a11yTextSize = document.getElementById("a11yTextSize");
     const a11yHighContrast = document.getElementById("a11yHighContrast");
@@ -893,6 +973,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
     const previewButtons = [...document.querySelectorAll(".preview-btn")];
     const exemplarButtons = [...document.querySelectorAll(".exemplar-btn")];
+    const visualPreviewButtons = [...document.querySelectorAll(".visual-preview-btn")];
+    const outsideVisualVariantInputs = [...document.querySelectorAll("input[name='outsideVisualVariant']")];
+    const visualReplayOverlay = document.getElementById("visualReplayOverlay");
+    const visualReplayFlash = document.getElementById("visualReplayFlash");
+    const visualReplayShape = document.getElementById("visualReplayShape");
     const setupControls = [
       settingsTrigger,
       previewUserSoundBtn,
@@ -904,6 +989,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       ...acceptableInputs,
       ...outsideInputs,
       ...previewButtons,
+      ...visualPreviewButtons,
+      ...outsideVisualVariantInputs,
       ...exemplarButtons
     ];
     /* A11Y ADDITIONS START */
@@ -914,6 +1001,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       a11yVibrate,
       a11yUseColorIcon,
       a11yUseTextLabels,
+      a11ySyncVisualReplay,
       a11yTheme,
       a11yTextSize,
       a11yHighContrast,
@@ -946,6 +1034,17 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     /* A11Y ADDITIONS START */
     let lastDialogTrigger = null;
     let flashTimeout;
+    const VISUAL_PULSE_SEC = 0.2;
+    const visualReplayState = {
+      rafId: null,
+      nextIndex: 0,
+      events: [],
+      endAtSec: 0,
+      replayStartTime: 0,
+      userFlashUntilSec: 0,
+      referenceUntilSec: 0,
+      currentReferenceType: null,
+    };
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const a11ySettings = {
       outputMode: "audio-visual",
@@ -954,6 +1053,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       vibrate: false,
       useColorIcon: true,
       useTextLabels: true,
+      syncVisualReplay: false,
+      outsideVisualVariant: "up",
       theme: "system",
       textSize: "default",
       highContrast: false,
@@ -1455,6 +1556,121 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       return [0, clearTime, fullTime];
     }
 
+    function applyVisualReplayFrame(elapsedSec) {
+      const isUserPulseActive = elapsedSec < visualReplayState.userFlashUntilSec;
+      const isReferencePulseActive = elapsedSec < visualReplayState.referenceUntilSec;
+      visualReplayOverlay.dataset.active = "true";
+      visualReplayFlash.style.background = isUserPulseActive ? "#FFFFFF" : "#000000";
+      if (isReferencePulseActive && visualReplayState.currentReferenceType) {
+        visualReplayShape.style.display = "block";
+        visualReplayShape.dataset.type = visualReplayState.currentReferenceType;
+        visualReplayShape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
+      } else {
+        visualReplayShape.style.display = "none";
+      }
+    }
+
+    function hideVisualReplayFrame() {
+      visualReplayOverlay.dataset.active = "false";
+      visualReplayFlash.style.background = "transparent";
+      visualReplayShape.style.display = "none";
+      visualReplayState.userFlashUntilSec = 0;
+      visualReplayState.referenceUntilSec = 0;
+      visualReplayState.currentReferenceType = null;
+    }
+
+    function showUserVisualPulse(startDelaySec = 0) {
+      visualReplayOverlay.dataset.active = "true";
+      visualReplayFlash.style.background = "#FFFFFF";
+      setTimeout(() => {
+        visualReplayFlash.style.background = "#000000";
+      }, (startDelaySec + VISUAL_PULSE_SEC) * 1000);
+      setTimeout(() => {
+        hideVisualReplayFrame();
+      }, (startDelaySec + VISUAL_PULSE_SEC + 0.05) * 1000);
+    }
+
+    function showReferenceVisualPulse(feedbackType, startDelaySec = 0) {
+      visualReplayOverlay.dataset.active = "true";
+      visualReplayFlash.style.background = "#000000";
+      visualReplayShape.dataset.type = feedbackType;
+      visualReplayShape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
+      setTimeout(() => {
+        visualReplayShape.style.display = "block";
+      }, startDelaySec * 1000);
+      setTimeout(() => {
+        visualReplayShape.style.display = "none";
+        hideVisualReplayFrame();
+      }, (startDelaySec + VISUAL_PULSE_SEC) * 1000);
+    }
+
+    function triggerVisualReplayEvent(event, elapsedSec) {
+      if (event.type === "user") {
+        visualReplayState.userFlashUntilSec = Math.max(
+          visualReplayState.userFlashUntilSec,
+          elapsedSec + VISUAL_PULSE_SEC
+        );
+        return;
+      }
+      if (event.type === "reference") {
+        visualReplayState.currentReferenceType = event.feedbackType;
+        visualReplayState.referenceUntilSec = Math.max(
+          visualReplayState.referenceUntilSec,
+          elapsedSec + VISUAL_PULSE_SEC
+        );
+      }
+    }
+
+    function stopVisualReplay() {
+      if (visualReplayState.rafId !== null) {
+        cancelAnimationFrame(visualReplayState.rafId);
+        visualReplayState.rafId = null;
+      }
+      hideVisualReplayFrame();
+    }
+
+    function startSynchronizedVisualReplay(events, endAtSec) {
+      if (!a11ySettings.syncVisualReplay) {
+        return;
+      }
+      stopVisualReplay();
+      const context = ensureAudioContext();
+      visualReplayState.events = [...events].sort((a, b) => a.timeSec - b.timeSec);
+      visualReplayState.nextIndex = 0;
+      visualReplayState.endAtSec = endAtSec;
+      visualReplayState.replayStartTime = context.currentTime;
+      visualReplayState.userFlashUntilSec = 0;
+      visualReplayState.referenceUntilSec = 0;
+      visualReplayState.currentReferenceType = null;
+
+      const frame = () => {
+        const elapsedSec = context.currentTime - visualReplayState.replayStartTime;
+        while (
+          visualReplayState.nextIndex < visualReplayState.events.length &&
+          elapsedSec >= visualReplayState.events[visualReplayState.nextIndex].timeSec
+        ) {
+          triggerVisualReplayEvent(
+            visualReplayState.events[visualReplayState.nextIndex],
+            elapsedSec
+          );
+          visualReplayState.nextIndex += 1;
+        }
+        applyVisualReplayFrame(elapsedSec);
+        const done =
+          elapsedSec >= visualReplayState.endAtSec &&
+          visualReplayState.nextIndex >= visualReplayState.events.length &&
+          elapsedSec >= visualReplayState.userFlashUntilSec &&
+          elapsedSec >= visualReplayState.referenceUntilSec;
+        if (done) {
+          stopVisualReplay();
+          return;
+        }
+        visualReplayState.rafId = requestAnimationFrame(frame);
+      };
+
+      visualReplayState.rafId = requestAnimationFrame(frame);
+    }
+
     function playExemplar(mode) {
       const labels = modes[mode]?.labels;
       if (!labels) return;
@@ -1487,6 +1703,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       setStatus(`Playing exemplar: ${sequenceLabel}.`);
       emitCue("replay_start", { mode, exemplar: true });
       const baseDelay = TEST_TUNING.exemplarLeadInSec;
+      const visualEvents = labels.map((_, index) => ({
+        timeSec: baseDelay + (times[index] ?? 0),
+        type: "user"
+      }));
+      const doneAtSec = baseDelay + Math.max(...times) + TEST_TUNING.exemplarEndPadSec;
+      startSynchronizedVisualReplay(visualEvents, doneAtSec);
 
       labels.forEach((label, index) => {
         const time = times[index] ?? 0;
@@ -1498,7 +1720,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         playUserMarkerTone(baseDelay + time, true);
       });
 
-      const doneAt = (baseDelay + Math.max(...times) + TEST_TUNING.exemplarEndPadSec) * 1000;
+      const doneAt = doneAtSec * 1000;
       exemplarTimeout = setTimeout(() => {
         suppressSrAnnouncements = false;
         actionBtn.classList.remove("running");
@@ -1603,6 +1825,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     function clearExemplarVisuals() {
       exemplarVisualTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
       exemplarVisualTimeouts = [];
+      stopVisualReplay();
     }
 
     function setStatus(message) {
@@ -1775,6 +1998,28 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         /* A11Y ADDITIONS END */
       });
 
+      const visualEvents = [
+        ...markerTimes.map((time) => ({
+          timeSec: baseDelay + time,
+          type: "user"
+        })),
+        ...reference.slice(1).map((time, index) => {
+          const userTime = markerTimes[index + 1] ?? 0;
+          const diff = Math.abs(userTime - time);
+          const latency =
+            (audioContext?.baseLatency || 0) + (audioContext?.outputLatency || 0);
+          const timingEpsilon = Math.max(0.02, latency);
+          const feedbackType = diff <= getMargin() + timingEpsilon ? "acceptable" : "outside";
+          return {
+            timeSec: baseDelay + time,
+            type: "reference",
+            feedbackType
+          };
+        })
+      ];
+      const replayDoneAtSec = maxTime + baseDelay + TEST_TUNING.replayEndPadSec;
+      startSynchronizedVisualReplay(visualEvents, replayDoneAtSec);
+
       clearTimeout(replayTimeout);
       replayTimeout = setTimeout(() => {
         suppressSrAnnouncements = false;
@@ -1890,6 +2135,30 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         return;
       }
       playUserMarkerTone(0, true);
+    });
+
+    visualPreviewButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const type = button.dataset.visualType;
+        if (type === "user") {
+          showUserVisualPulse(0);
+          return;
+        }
+        if (type === "acceptable") {
+          showReferenceVisualPulse("acceptable", 0);
+          return;
+        }
+        if (type === "outside") {
+          showReferenceVisualPulse("outside", 0);
+        }
+      });
+    });
+
+    outsideVisualVariantInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        a11ySettings.outsideVisualVariant = input.value;
+        localStorage.setItem("om-a11y-outside-visual-variant", a11ySettings.outsideVisualVariant);
+      });
     });
 
     exemplarButtons.forEach((button) => {
@@ -2009,6 +2278,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const storedHighContrast = localStorage.getItem("om-a11y-high-contrast");
       const storedFocusBoost = localStorage.getItem("om-a11y-focus-boost");
       const storedAnnounceCues = localStorage.getItem("om-a11y-announce-cues");
+      const storedSyncVisualReplay = localStorage.getItem("om-a11y-sync-visual-replay");
+      const storedOutsideVisualVariant = localStorage.getItem("om-a11y-outside-visual-variant");
       /* A11Y ADDITIONS END */
 
       if (storedClear) {
@@ -2067,11 +2338,21 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (storedAnnounceCues) {
         a11ySettings.announceCues = storedAnnounceCues === "true";
       }
+      if (storedSyncVisualReplay) {
+        a11ySettings.syncVisualReplay = storedSyncVisualReplay === "true";
+      }
+      if (storedOutsideVisualVariant === "up" || storedOutsideVisualVariant === "down") {
+        a11ySettings.outsideVisualVariant = storedOutsideVisualVariant;
+      }
       a11yShowBanner.checked = a11ySettings.showBanner;
       a11yFlashAction.checked = a11ySettings.flashAction;
       a11yVibrate.checked = a11ySettings.vibrate;
       a11yUseColorIcon.checked = a11ySettings.useColorIcon;
       a11yUseTextLabels.checked = a11ySettings.useTextLabels;
+      a11ySyncVisualReplay.checked = a11ySettings.syncVisualReplay;
+      outsideVisualVariantInputs.forEach((input) => {
+        input.checked = input.value === a11ySettings.outsideVisualVariant;
+      });
       a11yTheme.value = a11ySettings.theme;
       a11yTextSize.value = a11ySettings.textSize;
       a11yHighContrast.checked = a11ySettings.highContrast;
@@ -2155,6 +2436,14 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     a11yAnnounceCues.addEventListener("change", () => {
       a11ySettings.announceCues = a11yAnnounceCues.checked;
       localStorage.setItem("om-a11y-announce-cues", String(a11ySettings.announceCues));
+    });
+
+    a11ySyncVisualReplay.addEventListener("change", () => {
+      a11ySettings.syncVisualReplay = a11ySyncVisualReplay.checked;
+      localStorage.setItem("om-a11y-sync-visual-replay", String(a11ySettings.syncVisualReplay));
+      if (!a11ySettings.syncVisualReplay) {
+        stopVisualReplay();
+      }
     });
 
     prefersDarkScheme.addEventListener("change", () => {
