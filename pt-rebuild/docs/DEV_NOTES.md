@@ -93,6 +93,14 @@ Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-18
 
+### 2026-02-18 — Removed redundant client-side form parameter backfill from index.html
+- Problem: `loadData()` in `index.html` made a second serial fetch to `/api/exercises` whenever any exercise in the program had an empty `form_parameters_required` array, blocking LCP and contributing to 8.4s LCP on mobile.
+- Root cause: The backfill (commit `a7efd59`, 2026-01-30) was added as a workaround for RLS silently blocking patients from reading `exercise_form_parameters` via nested Supabase joins. A server-side fix (commit `4fc6973`, 78 minutes earlier) using an admin-client fetch in `programs.js` already resolved the same issue authoritatively. The client-side backfill was never removed after the server fix was confirmed working.
+- Change made: Removed the `missingFormParams` block (28 lines) from `loadData()` in `index.html`. The programs API already returns correct `form_parameters_required` for all exercises via the admin client fetch in `lib/handlers/programs.js` (lines 219-235). Verified live: 12 of 33 exercises return form parameters correctly, band resistance defaults to last used value, logging modal renders all required fields.
+- Files touched: `pt-rebuild/public/index.html`
+- Validation: Confirmed `/api/programs` response contains correct `form_parameters_required` for all exercises with parameters. Opened Log Set modal for Ankle Inversion (TheraBand) — band_resistance field present, populated from history, defaulting to last used value ("black"). No regressions.
+- Tags: [performance,lcp,cleanup]
+
 ### 2026-02-18 — Timer audio cues aligned for duration/hold and >10s start/pause voice
 - Problem: `duration_seconds` timer flow diverged from `hold_seconds` behavior by announcing "Time" at completion, and long timers lacked explicit start/pause voice cues.
 - Root cause: Duration completion branch in `startTimer()` had a duration-specific speech fallback, and timer controls had no threshold-gated voice announcements for start/pause actions.
