@@ -22,12 +22,17 @@ Before reporting any fix/feature/behavior change as complete, append a dated not
 
 - `pt-rebuild/docs/DEV_NOTES.md`
 
-Minimum note content:
+Use the `Entry Schema` in `DEV_NOTES.md` for new dated entries:
 
-- Date
-- Problem
-- Change made
-- Files touched
+- `Problem:`
+- `Root cause:`
+- `Change made:`
+- `Files touched:`
+- `Validation:`
+- `Follow-ups:`
+- `Tags: [...]`
+
+If the change resolves an outstanding item, update `Open Items` in `DEV_NOTES.md` (close-loop: remove resolved item and reference the dated entry).
 
 ## Change Hygiene
 

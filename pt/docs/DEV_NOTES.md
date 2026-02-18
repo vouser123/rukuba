@@ -1,34 +1,77 @@
 # PT Tracker - Development Notes
 
-Going forward, entries should follow this structure as applicable:
-- Problem
-- Root cause
-- What I did
-- Fix applied
-- Notes
-
 ## Table of Contents
-- [2026-01-19](#2026-01-19)
-- [2026-01-18](#2026-01-18)
-- [2026-01-17](#2026-01-17)
-- [2026-01-16](#2026-01-16)
-- [2026-01-14](#2026-01-14)
-- [2026-01-13](#2026-01-13)
-- [2026-01-12](#2026-01-12)
-- [2026-01-11](#2026-01-11)
-- [2026-01-10](#2026-01-10)
-- [2026-01-08](#2026-01-08)
-- [2026-01-06](#2026-01-06)
-- [2026-01-05](#2026-01-05)
-  - [2026-01-05 — iOS-friendly Next Set modal buttons](#2026-01-05--ios-friendly-next-set-modal-buttons)
-  - [2026-01-05 — Enforce pointer-based activation in PT Tracker](#2026-01-05--enforce-pointer-based-activation-in-pt-tracker)
-  - [2026-01-05 — Bug Fixes: Exercise Creation & Save Issues](#2026-01-05--bug-fixes-exercise-creation--save-issues)
-  - [Lower Priority TODOs](#lower-priority-todos)
-  - [2026-01-05 — Deep Dive Audit: Firestore Save Operations](#2026-01-05--deep-dive-audit-firestore-save-operations)
-  - [Known Remaining Issues](#known-remaining-issues)
-- [2025-01-05](#2025-01-05)
+- [How to Use This File](#how-to-use-this-file)
+- [Priority Levels](#priority-levels)
+- [Status Values](#status-values)
+- [Tag Vocabulary](#tag-vocabulary)
+- [Entry Schema](#entry-schema)
+- [Migration Approach](#migration-approach)
+- [Open Items](#open-items)
+- [Dated Entries](#dated-entries)
+- [Legacy Entries (Pre-Format)](#legacy-entries-pre-format)
 
----
+## How to Use This File
+- Purpose: operational log for agents and humans maintaining the PT app.
+- Keep newest entries first.
+- Keep active work only in `Open Items`.
+- Close-loop rule: when an item is resolved, remove it from `Open Items` and link the dated entry that resolved it.
+
+## Priority Levels
+- `P0`: critical safety/security/data-loss risk, immediate.
+- `P1`: high impact, near-term.
+- `P2`: medium impact, planned.
+- `P3`: low impact, nice-to-have.
+
+## Status Values
+- `open`
+- `in_progress`
+- `blocked`
+- `done`
+
+## Tag Vocabulary
+- `ui`: UX and interface behavior.
+- `ios`: iOS Safari/PWA specific behavior.
+- `pwa`: service worker, installability, and web app shell behavior.
+- `offline`: offline loading/storage/sync behavior.
+- `firestore`: Firestore reads/writes/rules/persistence.
+- `auth`: authentication/session state.
+- `sync`: cross-device or queued synchronization logic.
+- `data-model`: schema/field mapping/normalization concerns.
+- `api`: endpoint and request/response behavior.
+- `performance`: speed, batching, and resource usage.
+- `reliability`: correctness and failure handling.
+- `security`: access control, secrets, and hardening.
+- `migration`: one-time transforms or data movement.
+- `docs`: documentation/process-only changes.
+
+## Entry Schema
+Use this exact field order for all new dated entries:
+- `Problem:`
+- `Root cause:`
+- `Change made:`
+- `Files touched:`
+- `Validation:`
+- `Follow-ups:`
+- `Tags: [...]`
+
+## Migration Approach
+- Legacy content is frozen under `Legacy Entries (Pre-Format)`.
+- Active TODOs are normalized first in `Open Items`.
+- Convert legacy entries to the new schema only when touched.
+
+## Open Items
+- [ ] DN-001 | status:open | priority:P1 | tags:[ui,reliability,firestore] | file:pt/pt_report.html | issue:PT Report save UX does not clearly show unsaved/saved state; add unsaved indicator, save confirmation, and robust save-state feedback.
+- [ ] DN-002 | status:open | priority:P2 | tags:[offline,pwa,reliability] | file:pt/rehab_coverage.html | issue:Rehab Coverage offline caching still unreliable; verify service worker/dependency caching and offline load path.
+- [ ] DN-003 | status:open | priority:P2 | tags:[ui] | file:pt/pt_report.html | issue:Exercise form field order is confusing and should be reorganized to match workflow.
+- [ ] DN-004 | status:open | priority:P1 | tags:[reliability,ui] | file:pt/pt_report.html | issue:Tier-1 in-memory modifications can be lost if user closes page before "Commit All Changes".
+- [ ] DN-005 | status:open | priority:P2 | tags:[auth,offline,reliability] | file:pt/* | issue:Offline auth-expiry behavior is undefined; define fallback/re-auth flow.
+- [ ] DN-006 | status:open | priority:P2 | tags:[offline,pwa] | file:pt/rehab_coverage.html | issue:Coverage page offline load issue remains listed as known remaining issue.
+
+## Dated Entries
+Use this section for all new entries in reverse chronological order.
+
+## Legacy Entries (Pre-Format)
 
 ## 2026-01-19
 

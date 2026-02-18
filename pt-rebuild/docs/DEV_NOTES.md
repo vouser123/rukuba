@@ -2,6 +2,108 @@
 
 This file is the canonical development history for the Supabase/Vercel PT rebuild.
 
+## Table of Contents
+- [How to Use This File](#how-to-use-this-file)
+- [Priority Levels](#priority-levels)
+- [Risk Levels](#risk-levels)
+- [Status Values](#status-values)
+- [Tag Vocabulary](#tag-vocabulary)
+- [Entry Schema](#entry-schema)
+- [Migration Approach](#migration-approach)
+- [Open Items](#open-items)
+- [Dated Entries](#dated-entries)
+- [Legacy Entries (Pre-Format)](#legacy-entries-pre-format)
+
+## How to Use This File
+- Purpose: operational log for agents and humans maintaining the PT rebuild.
+- Keep newest entries first.
+- Keep active work only in `Open Items`.
+- Close-loop rule: when an item is resolved, remove it from `Open Items` and link the dated entry that resolved it.
+
+## Priority Levels
+- `P0`: critical safety/security/data-loss risk, immediate.
+- `P1`: high impact, near-term.
+- `P2`: medium impact, planned.
+- `P3`: low impact, nice-to-have.
+
+## Risk Levels
+- `high`: changes likely to cause regressions, data integrity issues, or access-control mistakes without careful validation.
+- `medium`: meaningful behavior impact possible; requires focused testing.
+- `low`: localized/safe change surface with limited blast radius.
+
+## Status Values
+- `open`
+- `in_progress`
+- `blocked`
+- `done`
+
+## Tag Vocabulary
+- `ui`: UX and interface behavior.
+- `ios`: iOS Safari/PWA specific behavior.
+- `pwa`: service worker, installability, and web app shell behavior.
+- `offline`: offline loading/storage/sync behavior.
+- `supabase`: Supabase client, RLS, and data-access behavior.
+- `auth`: authentication/session state.
+- `sync`: cross-device or queued synchronization logic.
+- `data-model`: schema/field mapping/normalization concerns.
+- `api`: endpoint and request/response behavior.
+- `performance`: speed, batching, and resource usage.
+- `reliability`: correctness and failure handling.
+- `security`: access control, secrets, and hardening.
+- `migration`: one-time transforms or data movement.
+- `docs`: documentation/process-only changes.
+
+## Entry Schema
+Use this exact field order for all new dated entries:
+- `Problem:`
+- `Root cause:`
+- `Change made:`
+- `Files touched:`
+- `Validation:`
+- `Follow-ups:`
+- `Tags: [...]`
+
+## Migration Approach
+- Legacy content is frozen under `Legacy Entries (Pre-Format)`.
+- Active TODOs were normalized first in `Open Items`.
+- Convert legacy entries to the new schema only when touched.
+
+## Open Items
+- [ ] DN-001 | status:open | priority:P0 | risk:medium | tags:[security,supabase,api,auth] | file:pt-rebuild/api/sync.js | issue:Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client.
+  - Context: `api/sync.js` currently uses `getSupabaseClient()` (anon key) for patient data inserts, which weakens user-context enforcement.
+  - Constraints/Caveats: `requirePatient` middleware already attaches/validates token context, so expected behavior should remain stable, but auth-token edge cases still require regression checks.
+- [ ] DN-002 | status:open | priority:P0 | risk:medium | tags:[security,api,auth] | file:pt-rebuild/api/logs.js | issue:Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller.
+  - Context: Any authenticated caller can currently post to `/api/logs` with arbitrary `patient_id`, which is an access-control gap.
+  - Constraints/Caveats: Relationship checks depend on accurate therapist-patient linkage data; incomplete linkage could block valid operations and needs explicit fallback/error messaging.
+- [ ] DN-003 | status:open | priority:P1 | risk:high | tags:[data-model,reliability,sync,api] | file:pt-rebuild/api/sync.js | issue:Prevent orphaned logs when sets insert fails (cleanup or transactional behavior).
+  - Context: Partial success path can create an activity log row without sets when set insertion fails.
+  - Constraints/Caveats: Cleanup logic must preserve idempotency (`client_mutation_id`) and avoid turning partial failure into data loss.
+- [ ] DN-004 | status:open | priority:P1 | risk:high | tags:[data-model,reliability,api] | file:pt-rebuild/api/logs.js | issue:Form data is matched to sets by array index instead of `set_number` in create/update flows.
+  - Context: Current mapping assumes stable insert-order response; if row order changes, form data can attach to the wrong set.
+  - Constraints/Caveats: Switching to strict `set_number` matching may break clients with inconsistent or missing `set_number` values.
+- [ ] DN-005 | status:open | priority:P2 | risk:low | tags:[performance,api] | file:pt-rebuild/api/users.js | issue:Push role-based filtering to DB query (`.eq()` etc.) instead of fetching all users then filtering in memory.
+  - Context: Therapists/patients currently fetch full user sets before reducing in app logic.
+  - Constraints/Caveats: Behavior parity (who can see which users) must remain identical after query-level filtering.
+- [ ] DN-006 | status:open | priority:P3 | risk:low | tags:[ui,ios,pwa,reliability] | file:pt-rebuild/public/js/hamburger-menu.js | issue:Audit and align hamburger menu consistency across index/pt_view/pt_editor/rehab_coverage.
+  - Context: Menu structure and handlers drift across pages despite shared assets.
+  - Constraints/Caveats: Must preserve page-specific links/workflows while standardizing interaction model (`data-action` + `pointerup`).
+
+## Dated Entries
+Use this section for all new entries in reverse chronological order.
+
+## 2026-02-18
+
+### 2026-02-18 — DEV_NOTES converted to AI-optimized ops format
+- Problem: Active TODOs, risk context, and workflow guidance were split across legacy sections, making agent handoff and consistent triage harder.
+- Root cause: Historical notes evolved with mixed styles (`Remaining Work`, freeform notes, and legacy prose) and no single machine-stable open-work section.
+- Change made: Added canonical top-of-file ops sections (`How to Use`, priority/risk/status enums, tag vocabulary, entry schema, migration approach), moved active outstanding work into `Open Items` (`DN-001` to `DN-006`), removed duplicated legacy `Remaining Work` block, and preserved historical entries under `Legacy Entries (Pre-Format)`. Added prose `Context` and `Constraints/Caveats` per open item for cross-agent compatibility (including Claude Code). Aligned guidance docs to the new behavior (`AGENTS.md`, `CLAUDE.md`, `DEV_PRACTICES.md`).
+- Files touched: `pt-rebuild/docs/DEV_NOTES.md`, `pt-rebuild/docs/DEV_PRACTICES.md`, `pt-rebuild/AGENTS.md`, `pt-rebuild/CLAUDE.md`
+- Validation: Verified `Open Items` now contains the previously active unresolved items with preserved priority and explicit risk; verified guidance references now point to `Open Items` + schema-based dated entries; confirmed legacy historical content remains intact.
+- Follow-ups: Keep future updates schema-compliant and close-loop `Open Items` whenever tracked work is completed.
+- Tags: [docs,reliability,migration]
+
+## Legacy Entries (Pre-Format)
+
 ## 2026-01-19
 
 - **2026-01-19** — **Progress:** Implemented core tracker features in rebuilt index.html. **What was done:** (1) Added timer mode with countdown display, beeps at 5 seconds and completion, and voice announcements ("5 seconds left", "4", "3", "2", "1", "Time"). Timer counts up to show elapsed time and auto-pauses at target but allows continuing beyond. (2) Created big tappable circle for reps counting (320px diameter, iOS-optimized with scale feedback on tap). Removed +/- buttons in favor of single tap-to-increment interface with undo button. (3) Added voice countdown for reps mode - announces "5 reps left", "4 reps left", etc. when approaching target. (4) Implemented pattern modifier detection to show timer mode for `duration_seconds` and `hold_seconds` exercises, counter mode for standard reps. (5) Created `formatDosage()` function to display exercise prescriptions as "3 × 10 reps", "3 × 30 sec", "20 feet", or "3 × 10 reps (5 sec hold)" based on patient_programs data. (6) Used CSS variables (--counter-color, --counter-bg, --timer-color) for future dark mode support. (7) All interactions use data-action with pointerup events per iOS PWA requirements (no onclick handlers). **Files:** `pt-rebuild/public/index.html`. **Notes:** Timer uses Web Audio API for beeps and Web Speech API for voice - both require user interaction on iOS to initialize. Set data is saved with either reps or seconds based on mode.
@@ -324,29 +426,6 @@ All changes are low-risk, non-breaking hardening. Medium/high-risk items deferre
 
 ---
 
-## Remaining Work (For Next Session)
-
-### Priority 0 — Security (Medium Risk, Deferred)
-
-1. **`sync.js` uses anon Supabase client instead of auth-context client.** Line 19 calls `getSupabaseClient()` (anon key) for patient data inserts. Should use `getSupabaseWithAuth(req.accessToken)` so RLS policies enforce access control per user. Risk: if `req.accessToken` is ever invalid, inserts fail where they previously worked — but `requirePatient` middleware guarantees the token. **Files:** `api/sync.js`.
-
-2. **No therapist→patient authorization check in `createActivityLog()`.** Any authenticated user can POST to `/api/logs` with any `patient_id`. Should verify that the therapist has a relationship to the patient (via `therapist_id` in users table) before allowing cross-user logging. Risk: could block legitimate operations if therapist-patient relationships aren't fully populated in DB. **Files:** `api/logs.js` (lines 170-188).
-
-### Priority 1 — Data Integrity (Medium/High Risk, Deferred)
-
-3. **`sync.js` has no cleanup on partial failure.** If the activity log insert succeeds but the sets insert fails, the log is left orphaned with no sets. Should either delete the orphaned log or wrap in a transaction. Risk: cleanup logic could make things worse if the delete also fails (loses idempotency via `client_mutation_id`). **Files:** `api/sync.js` (lines 161-199).
-
-4. **Form data matched to sets by array index, not `set_number`.** In both `createActivityLog()` and `updateActivityLog()`, form_data is associated with sets via array index (`createdSets[i]`). If Supabase returns sets in a different order than submitted, form_data gets attached to wrong sets. **HIGH RISK to change** — current approach works in practice because Supabase returns inserted rows in order. Changing to `set_number` matching could break if clients don't consistently populate `set_number`. **Files:** `api/logs.js` (lines 252-254, 392-405).
-
-5. ~~**`offline.js` `addToQueue()` resolves on `request.onsuccess` instead of `tx.oncomplete`.**~~ **DONE 2026-02-17:** `addToQueue()` now resolves on `tx.oncomplete` with transaction-level error/abort handling to prevent false-success on rollback. **Files:** `public/js/offline.js` (lines 184-201).
-
-### Priority 2 — Reliability/Performance (Low Risk, Deferred)
-
-6. **`users.js` fetches all users then filters in memory.** For admins this is fine, but therapists and patients fetch every user in the system just to filter down to 1-2 records. Should add `.eq()` filters at the DB query level per role. **Files:** `api/users.js` (lines 18-41).
-
-### Priority 3 — UI/UX
-
-7. **Hamburger menu consistency across views.** The hamburger menu implementation exists in 4 HTML files (`index.html`, `pt_view.html`, `pt_editor.html`, `rehab_coverage.html`) plus shared `js/hamburger-menu.js` and `css/hamburger-menu.css`. Each page has slightly different menu items and inline event handling. Should audit for consistency: ensure all pages use the shared JS/CSS, have matching menu structure, and follow the same `data-action` + `pointerup` pattern. **Files:** `public/js/hamburger-menu.js`, `public/css/hamburger-menu.css`, all 4 HTML files.
 
 ### Reference: Live DB vs Repo Schema
 
