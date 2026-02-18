@@ -102,6 +102,15 @@ Use this section for all new entries in reverse chronological order.
 - Follow-ups: Keep future updates schema-compliant and close-loop `Open Items` whenever tracked work is completed.
 - Tags: [docs,reliability,migration]
 
+### 2026-02-18 — API docs aligned to post-consolidation route model
+- Problem: API documentation still mixed pre-consolidation assumptions (12-slot snapshot and debug endpoint presence) with post-change behavior, creating ambiguity for future edits and endpoint work.
+- Root cause: Wrapper consolidation and `api/debug.js` removal were implemented after the original slot strategy memo and guide were written, but docs were not fully synchronized in one pass.
+- Change made: Updated API strategy memo to add an implementation status section, revise inventory to 9 current API files, mark wrapper consolidation/debug removal as completed, and note query/body id routing for programs/exercises updates. Updated development guide API surface text to reflect current methods and query/body id usage, and removed stale script reference.
+- Files touched: `pt-rebuild/docs/API_SLOT_STRATEGY_2026-02-17.md`, `pt-rebuild/docs/DEVELOPMENT.md`
+- Validation: Re-ran `rg` checks for `/api/programs/`, `/api/exercises/`, and `/api/debug` app callsites (none remaining in `pt-rebuild/public`); verified docs now state 9-file inventory and no debug route listing.
+- Follow-ups: If a dedicated messages endpoint is introduced later, update both docs in the same change set and add migration notes for callsite contract changes.
+- Tags: [docs,api,reliability]
+
 ## Legacy Entries (Pre-Format)
 
 ## 2026-01-19
