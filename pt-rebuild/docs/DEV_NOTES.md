@@ -87,6 +87,9 @@ Use this exact field order for all new dated entries:
 - [ ] DN-006 | status:open | priority:P3 | risk:low | tags:[ui,ios,pwa,reliability] | file:pt-rebuild/public/js/hamburger-menu.js | issue:Audit and align hamburger menu consistency across index/pt_view/pt_editor/rehab_coverage.
   - Context: Menu structure and handlers drift across pages despite shared assets.
   - Constraints/Caveats: Must preserve page-specific links/workflows while standardizing interaction model (`data-action` + `pointerup`).
+- [ ] DN-007 | status:open | priority:P1 | risk:medium | tags:[performance,ui,ios] | file:pt-rebuild/public/index.html,pt-rebuild/public/rehab_coverage.html | issue:Reduce INP from 800ms mobile average; worst offenders identified from Vercel Speed Insights real-user data.
+  - Context: Field data (mobile, 2026-02-18) shows processing duration (not input delay) is the bottleneck — handlers are doing too much synchronous work on tap. Worst offenders by element: `#hamburgerMenu` 3,488ms (2 interactions), `#timerMode` 1,768ms, `#cap-back-tolerance` 1,480ms, `#messagesModal` 1,296ms, `#sessionNotes` 1,368ms, `#cap-ankle-tolerance` 1,192ms, `#logSetModal` 632ms, `body>div.header` 520ms. LCP on index.html is 8.4s (mobile, 12 data points) — LCP element is `#exerciseList>div.exercise-card>div.exercise-name`, caused by serial API waterfall (users → programs → history before first render). Backfill fetch removed 2026-02-18 as first LCP fix.
+  - Constraints/Caveats: Handler code for hamburger menu and capacity elements has not yet been read — root cause of synchronous blocking work is unconfirmed. Must not change clinical logging workflows. iOS PWA `pointerup`/`data-action` pattern must be preserved. rehab_coverage.html capacity tap handlers are separate from index.html and need independent investigation.
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
