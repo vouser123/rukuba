@@ -182,10 +182,23 @@ class OfflineManager {
       };
 
       const request = store.add(item);
-      // TODO: Data integrity — Resolve on tx.oncomplete instead of request.onsuccess.
-      // The write could still be rolled back after the promise resolves. (P1, low risk)
-      request.onsuccess = () => resolve({ success: true });
-      request.onerror = () => reject(request.error);
+      let settled = false;
+      const rejectOnce = (error) => {
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      };
+
+      tx.oncomplete = () => {
+        if (!settled) {
+          settled = true;
+          resolve({ success: true });
+        }
+      };
+      tx.onerror = () => rejectOnce(tx.error || request.error);
+      tx.onabort = () => rejectOnce(tx.error || request.error || new Error('Transaction aborted'));
+      request.onerror = () => rejectOnce(request.error);
     });
   }
 

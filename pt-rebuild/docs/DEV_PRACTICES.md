@@ -30,5 +30,6 @@ Before deploying to Vercel:
 
 ## Documentation updates
 
-- Update `pt-rebuild/public/docs/` if you change architecture, routes, or data model.
-- Append a dated note to `pt-rebuild/DEV_NOTES.md` after each fix.
+- Update `pt-rebuild/docs/` if you change architecture, routes, or data model.
+- Append a dated note to `pt-rebuild/docs/DEV_NOTES.md` after each fix.
+

@@ -19,7 +19,7 @@ Key traits:
   - `pt_view.html`: PT-facing view (read-only / review patient progress).
   - `pt_editor.html`: exercise editor (create/edit exercises).
   - `rehab_coverage.html`: rehab coverage view (manage exercise roles).
-  - `js/`: app scripts including `offline.js` (IndexedDB cache), `pt_editor.js`, `report.js`.
+  - `js/`: app scripts including `offline.js` (IndexedDB cache) and `pt_editor.js`.
   - `js/vendor/supabase.min.js`: self-hosted Supabase SDK (auto-updated monthly via GitHub Action).
   - `css/`: stylesheets.
   - `sw.js`, `manifest.json`: PWA shell (service worker caches static assets).
@@ -35,8 +35,8 @@ Key traits:
 These API routes are the public surface area for the frontend. Keep route count low to stay within Vercel’s Hobby plan limits.
 
 - `GET /api/env` → returns Supabase URL + anon key.
-- `GET/POST/PUT/DELETE /api/exercises` → manage exercises + related metadata.
-- `GET/POST/PUT /api/programs` → manage patient programs (dosages/prescriptions).
+- `GET/POST/PUT/DELETE /api/exercises` → manage exercises + related metadata (`PUT`/`DELETE` pass exercise id via query/body).
+- `GET/POST/PUT/DELETE /api/programs` → manage patient programs (dosages/prescriptions; `PUT`/`DELETE` pass program id via query/body).
 - `GET/POST /api/logs` → manage activity logs + sets + form data.
 - `GET/POST/PATCH/DELETE /api/logs?type=messages` → clinical messages (PT-patient communication).
 - `GET/POST/DELETE /api/roles` → exercise roles/coverage.
