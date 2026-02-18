@@ -4,29 +4,36 @@ _Date:_ 2026-02-17
 _Scope:_ `/pt-rebuild/api`  
 _Purpose:_ Preserve the analysis performed in this session so future local Codex runs can reuse it instead of repeating discovery work.
 
+## Status update (implemented 2026-02-17)
+
+The recommended low-risk changes from this memo have now been applied:
+
+1. Consolidated wrapper pairs for `programs` and `exercises` (removed `[id].js` wrappers).
+2. Removed `api/debug.js`.
+3. Updated frontend update callsites to use query-param id for programs/exercises `PUT` requests.
+
+Current API file count is now **9**.
+
 ## Why this exists
 
-The app is currently at 12 API files in `/pt-rebuild/api`, matching the Vercel free-tier constraint referenced by the team. This memo captures:
+This memo captures:
 
 1. What each API file currently does
 2. Which front-end callsites depend on each endpoint
 3. Cost/benefit and break-risk analysis for possible merges/splits
-4. A risk-first recommendation for better use of the same 12 slots
+4. A risk-first recommendation and implementation outcome
 
-## Current API file inventory (12)
+## Current API file inventory (9)
 
 1. `api/env.js`
-2. `api/debug.js`
-3. `api/logs.js`
-4. `api/reference-data.js`
-5. `api/roles.js`
-6. `api/sync.js`
-7. `api/users.js`
-8. `api/vocab.js`
-9. `api/programs/index.js`
-10. `api/programs/[id].js`
-11. `api/exercises/index.js`
-12. `api/exercises/[id].js`
+2. `api/logs.js`
+3. `api/reference-data.js`
+4. `api/roles.js`
+5. `api/sync.js`
+6. `api/users.js`
+7. `api/vocab.js`
+8. `api/programs/index.js`
+9. `api/exercises/index.js`
 
 ## Endpoint roles and active usage
 
@@ -39,10 +46,9 @@ The app is currently at 12 API files in `/pt-rebuild/api`, matching the Vercel f
   - `public/reset-password.html`
 - Operational note: tiny endpoint, high fan-out dependency.
 
-### `api/debug.js`
-- Purpose: admin-only auth-context debugging helper.
-- Called from: no current app UI callsites found in `public/`.
-- Operational note: optional in production depending on support/debug workflow.
+### `api/debug.js` (removed)
+- Status: deleted on 2026-02-17 to reclaim an API slot.
+- Called from: no app UI callsites were present at removal time.
 
 ### `api/logs.js`
 - Purpose: dual-domain endpoint.
@@ -87,22 +93,22 @@ The app is currently at 12 API files in `/pt-rebuild/api`, matching the Vercel f
   - `public/js/pt_editor.js`
 - Note: editorial taxonomy ownership; separate lifecycle from dynamic reference data.
 
-### `api/programs/index.js` + `api/programs/[id].js`
-- Purpose: route wrappers only; both delegate to `lib/handlers/programs.js`.
+### `api/programs/index.js`
+- Purpose: single route wrapper delegating to `lib/handlers/programs.js`.
 - Called from:
   - `public/index.html`
   - `public/pt_view.html`
   - `public/js/pt_editor.js`
   - `public/js/offline.js`
-- Note: good candidate for structural consolidation (same handler).
+- Note: update path now uses query/body id (not `/api/programs/:id`).
 
-### `api/exercises/index.js` + `api/exercises/[id].js`
-- Purpose: route wrappers only; both delegate to `lib/handlers/exercises.js`.
+### `api/exercises/index.js`
+- Purpose: single route wrapper delegating to `lib/handlers/exercises.js`.
 - Called from:
   - `public/index.html`
   - `public/js/pt_editor.js`
   - `public/js/offline.js`
-- Note: good candidate for structural consolidation (same handler).
+- Note: update path now uses query/body id (not `/api/exercises/:id`).
 
 ## Cost-benefit matrix (risk heavily weighted)
 
@@ -156,8 +162,8 @@ The app is currently at 12 API files in `/pt-rebuild/api`, matching the Vercel f
 
 ## Recommended slot strategy (risk-first)
 
-1. **Do first:** consolidate wrapper duplication (`programs` pair + `exercises` pair).
-2. **Then decide:** keep or remove `debug.js` based on operational need.
+1. **Completed:** consolidated wrapper duplication (`programs` pair + `exercises` pair).
+2. **Completed:** removed `debug.js` after confirming no app callsites.
 3. **Only after that:** consider whether to spend reclaimed slot(s) on a dedicated messages endpoint for cleaner boundaries.
 4. **Avoid for now:** merging `sync`, `users`, `roles`, `vocab`, `reference-data` into broader multi-domain files.
 
@@ -193,5 +199,5 @@ Use these callsite searches first before endpoint changes:
 - Read API file inventory from `/pt-rebuild/api`.
 - Traced endpoint callsites in `public/` and `public/js/` with `rg`.
 - Reviewed docs noting function-limit guidance and prior route merges.
-- Confirmed no code behavior changes were made in this session.
+- Confirmed implementation changes were applied: wrapper consolidation, query-id callsite updates, and debug endpoint removal.
 
