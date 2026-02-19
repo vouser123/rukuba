@@ -177,6 +177,10 @@ function bindInputHandlers() {
     if (exerciseSearch) {
         exerciseSearch.addEventListener('input', () => filterExercises());
     }
+    const showArchivedExercises = document.getElementById('showArchivedExercises');
+    if (showArchivedExercises) {
+        showArchivedExercises.addEventListener('change', () => refreshExerciseDropdowns());
+    }
     const exerciseSelect = document.getElementById('exerciseSelect');
     if (exerciseSelect) {
         exerciseSelect.addEventListener('change', () => loadExerciseForEdit());
@@ -679,23 +683,10 @@ async function loadExercises() {
         const result = await fetchWithAuth('/api/exercises');
         allExercises = result.exercises || [];
 
-        // Populate exercise select
-        const exerciseSelect = document.getElementById('exerciseSelect');
-        exerciseSelect.innerHTML = '<option value="">-- Add New Exercise (leave blank) --</option>';
-
         // Sort exercises alphabetically
         allExercises.sort((a, b) => a.canonical_name.localeCompare(b.canonical_name));
 
-        allExercises.forEach(exercise => {
-            const option = document.createElement('option');
-            option.value = exercise.id;
-            option.textContent = exercise.canonical_name;
-            exerciseSelect.appendChild(option);
-        });
-
-        // Populate roles and dosage section dropdowns
-        populateRoleExerciseDropdown();
-        populateDosageExerciseDropdown();
+        refreshExerciseDropdowns();
 
     } catch (error) {
         console.error('Failed to load exercises:', error);
@@ -704,45 +695,15 @@ async function loadExercises() {
 }
 
 function populateRoleExerciseDropdown() {
-    const select = document.getElementById('roleExerciseSelect');
-    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
-    allExercises.forEach(exercise => {
-        const option = document.createElement('option');
-        option.value = exercise.id;
-        option.textContent = exercise.canonical_name;
-        select.appendChild(option);
-    });
+    filterExerciseDropdown('roleExerciseSelect', 'roleExerciseSearch', '-- Choose an exercise --');
 }
 
 function populateDosageExerciseDropdown() {
-    const select = document.getElementById('dosageExerciseSelect');
-    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
-    allExercises.forEach(exercise => {
-        const option = document.createElement('option');
-        option.value = exercise.id;
-        option.textContent = exercise.canonical_name;
-        select.appendChild(option);
-    });
+    filterExerciseDropdown('dosageExerciseSelect', 'dosageExerciseSearch', '-- Choose an exercise --');
 }
 
 function filterExercises() {
-    const searchTerm = document.getElementById('exerciseSearch').value.toLowerCase();
-    const select = document.getElementById('exerciseSelect');
-
-    // Clear current options
-    select.innerHTML = '<option value="">-- Add New Exercise (leave blank) --</option>';
-
-    // Filter exercises
-    const filteredExercises = allExercises.filter(exercise =>
-        exercise.canonical_name.toLowerCase().includes(searchTerm)
-    );
-
-    filteredExercises.forEach(exercise => {
-        const option = document.createElement('option');
-        option.value = exercise.id;
-        option.textContent = exercise.canonical_name;
-        select.appendChild(option);
-    });
+    filterExerciseDropdown('exerciseSelect', 'exerciseSearch', '-- Add New Exercise (leave blank) --');
 }
 
 window.filterExercises = filterExercises;
@@ -1384,30 +1345,80 @@ let selectedExerciseForRoles = null;
 let currentRoles = [];
 
 function filterRoleExercises() {
-    filterExerciseDropdown('roleExerciseSelect', 'roleExerciseSearch');
+    filterExerciseDropdown('roleExerciseSelect', 'roleExerciseSearch', '-- Choose an exercise --');
 }
 
 window.filterRoleExercises = filterRoleExercises;
 
 function filterDosageExercises() {
-    filterExerciseDropdown('dosageExerciseSelect', 'dosageExerciseSearch');
+    filterExerciseDropdown('dosageExerciseSelect', 'dosageExerciseSearch', '-- Choose an exercise --');
 }
 
 window.filterDosageExercises = filterDosageExercises;
 
-function filterExerciseDropdown(selectId, searchId) {
-    const searchTerm = document.getElementById(searchId).value.toLowerCase();
-    const select = document.getElementById(selectId);
+function isArchivedExercise(exercise) {
+    return exercise.lifecycle_status === 'archived' || exercise.archived === true;
+}
 
-    // Clear and repopulate
-    select.innerHTML = '<option value="">-- Choose an exercise --</option>';
-    allExercises.filter(ex => ex.canonical_name.toLowerCase().includes(searchTerm))
-        .forEach(exercise => {
-            const option = document.createElement('option');
-            option.value = exercise.id;
-            option.textContent = exercise.canonical_name;
-            select.appendChild(option);
-        });
+function getExerciseFilterState(searchId) {
+    const searchTerm = document.getElementById(searchId)?.value.toLowerCase() || '';
+    const showArchived = document.getElementById('showArchivedExercises')?.checked || false;
+    return { searchTerm, showArchived };
+}
+
+function appendExerciseOptions(container, exercises) {
+    exercises.forEach(exercise => {
+        const option = document.createElement('option');
+        option.value = exercise.id;
+        option.textContent = exercise.canonical_name;
+        container.appendChild(option);
+    });
+}
+
+function filterExerciseDropdown(selectId, searchId, defaultOptionText) {
+    const { searchTerm, showArchived } = getExerciseFilterState(searchId);
+    const select = document.getElementById(selectId);
+    const selectedValue = select.value;
+
+    select.innerHTML = `<option value="">${defaultOptionText}</option>`;
+
+    const matchingExercises = allExercises.filter(exercise =>
+        exercise.canonical_name.toLowerCase().includes(searchTerm)
+    );
+
+    const activeExercises = matchingExercises.filter(exercise => !isArchivedExercise(exercise));
+    const archivedExercises = matchingExercises.filter(exercise => isArchivedExercise(exercise));
+
+    appendExerciseOptions(select, activeExercises);
+
+    if (showArchived && archivedExercises.length > 0) {
+        const archivedGroup = document.createElement('optgroup');
+        archivedGroup.label = 'Archived Exercises';
+        appendExerciseOptions(archivedGroup, archivedExercises);
+        select.appendChild(archivedGroup);
+    }
+
+    if (selectedValue && Array.from(select.options).some(option => option.value === selectedValue)) {
+        select.value = selectedValue;
+        return;
+    }
+
+    select.value = '';
+    if (selectId === 'exerciseSelect') {
+        loadExerciseForEdit();
+    }
+    if (selectId === 'roleExerciseSelect') {
+        loadExerciseRoles();
+    }
+    if (selectId === 'dosageExerciseSelect') {
+        loadExerciseDosage();
+    }
+}
+
+function refreshExerciseDropdowns() {
+    filterExercises();
+    populateRoleExerciseDropdown();
+    populateDosageExerciseDropdown();
 }
 
 async function loadExerciseRoles() {

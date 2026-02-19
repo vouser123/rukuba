@@ -94,6 +94,17 @@ Use this exact field order for all new dated entries:
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
+## 2026-02-19
+
+### 2026-02-19 — PT Editor archived exercise visibility toggles for Edit/Roles/Dosage selectors
+- Problem: Archived exercises were always shown in PT Editor selection dropdowns, making active workflows noisier and increasing risk of picking archived items unintentionally.
+- Root cause: Dropdown population/filtering logic used `allExercises` directly without lifecycle-based filtering or any user-controlled archived visibility toggle.
+- Change made: Added a `Show Archived` checkbox to the exercise edit selector panel and refactored dropdown filtering/population for all three selectors (Edit, Roles, Dosage) to hide archived by default, include archived only when requested, and show archived items in a separate `Archived Exercises` section below active items. Implemented live re-render on search and toggle changes without page reload.
+- Files touched: `pt-rebuild/public/pt_editor.html`, `pt-rebuild/public/js/pt_editor.js`
+- Validation: Verified filtering flow in code paths for `loadExercises()`, `filterExercises()`, roles/dosage search handlers, and shared dropdown render helper now consistently applies lifecycle filtering and immediate re-render behavior.
+- Follow-ups: If therapists want independent archived visibility controls per section later, split the single toggle into scoped controls while preserving current default-hidden safety behavior.
+- Tags: [ui,reliability]
+
 ## 2026-02-18
 
 ### 2026-02-18 — Removed redundant client-side form parameter backfill from index.html
