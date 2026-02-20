@@ -722,6 +722,7 @@ function loadExerciseForEdit() {
     currentExercise = exercise;
 
     // Populate basic fields
+    document.getElementById('exerciseIdDisplay').value = exercise.id;
     document.getElementById('canonicalName').value = exercise.canonical_name || '';
     document.getElementById('description').value = exercise.description || '';
     document.getElementById('ptCategory').value = exercise.pt_category || '';
@@ -824,6 +825,9 @@ function clearForm() {
     renderGuidanceList('compensationList', compensationWarnings);
     renderGuidanceList('safetyList', safetyFlags);
     renderGuidanceList('externalCuesList', externalCues);
+
+    // Pre-generate a ULID for the new exercise so it's visible before the user saves
+    document.getElementById('exerciseIdDisplay').value = generateExerciseId(null);
 }
 
 window.clearForm = clearForm;
@@ -1146,7 +1150,7 @@ function collectFormData() {
         : (updatedDateInput || today);
 
     const exerciseData = {
-        id: currentExercise?.id || generateExerciseId(canonicalName),
+        id: currentExercise?.id || document.getElementById('exerciseIdDisplay').value,
         canonical_name: canonicalName,
         description: description,
         pt_category: ptCategory,
@@ -1295,12 +1299,16 @@ async function saveExercise() {
     }
 }
 
+/**
+ * Generate a UUID for a new exercise ID.
+ * Uses the native crypto.randomUUID() available in all modern browsers.
+ * Consistent with how other tables in the DB generate their primary keys (gen_random_uuid()).
+ * The name parameter is accepted for API compatibility but not used.
+ * @param {string} name - Canonical exercise name (unused, kept for compatibility)
+ * @returns {string} UUID v4 string (e.g. "550e8400-e29b-41d4-a716-446655440000")
+ */
 function generateExerciseId(name) {
-    return name.toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
+    return crypto.randomUUID();
 }
 
 function escapeHtml(text) {

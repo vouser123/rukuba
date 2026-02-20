@@ -90,9 +90,51 @@ Use this exact field order for all new dated entries:
 - [ ] DN-007 | status:open | priority:P1 | risk:medium | tags:[performance,ui,ios] | file:pt-rebuild/public/index.html,pt-rebuild/public/rehab_coverage.html | issue:Reduce INP from 800ms mobile average; worst offenders identified from Vercel Speed Insights real-user data.
   - Context: Field data (mobile, 2026-02-18) shows processing duration (not input delay) is the bottleneck — handlers are doing too much synchronous work on tap. Worst offenders by element: `#hamburgerMenu` 3,488ms (2 interactions), `#timerMode` 1,768ms, `#cap-back-tolerance` 1,480ms, `#messagesModal` 1,296ms, `#sessionNotes` 1,368ms, `#cap-ankle-tolerance` 1,192ms, `#logSetModal` 632ms, `body>div.header` 520ms. LCP on index.html is 8.4s (mobile, 12 data points) — LCP element is `#exerciseList>div.exercise-card>div.exercise-name`, caused by serial API waterfall (users → programs → history before first render). Backfill fetch removed 2026-02-18 as first LCP fix.
   - Constraints/Caveats: Handler code for hamburger menu and capacity elements has not yet been read — root cause of synchronous blocking work is unconfirmed. Must not change clinical logging workflows. iOS PWA `pointerup`/`data-action` pattern must be preserved. rehab_coverage.html capacity tap handlers are separate from index.html and need independent investigation.
+- [ ] DN-008 | status:open | priority:P2 | risk:low | tags:[data-model,migration] | file:pt-rebuild/supabase | issue:Drop backup table `exercises_backup_20260221` after confirming exercise ID migration is working correctly in production.
+  - Context: Table was created as a safety net during the atomic migration that remapped 13 non-UUID exercise IDs (ex000X and slug IDs) to proper UUIDs. All 34 exercises and 11 FK constraint tables verified correct post-migration. See dated entry 2026-02-20.
+  - Constraints/Caveats: Confirm pt_editor loads/saves exercises correctly and no FK errors appear in logs before dropping.
+- [ ] DN-009 | status:open | priority:P2 | risk:medium | tags:[performance,supabase,security] | file:pt-rebuild/supabase | issue:Resolve duplicate permissive SELECT policies on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables.
+  - Context: Supabase performance advisor flags 9 tables with two SELECT policies for `authenticated` on the same table. Both policies are evaluated per query. The older `_select_own` / `patient_activity_*_select` policies predate the broader `activity_logs_select` / `activity_sets_select` / `set_form_data_select` policies. The broader policies cover all cases the older ones do, plus therapist access. The older narrow ones can likely be dropped — but access behavior must be verified first.
+  - Constraints/Caveats: Read both policy bodies carefully before dropping anything. Verify that the broader policy covers every case the narrow one does (patient own access + therapist access + admin access). Do not drop without testing patient and therapist SELECT access in staging.
+- [ ] DN-010 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
+  - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
+  - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
+
+## 2026-02-20
+
+### 2026-02-20 — RLS auth.uid() initialization plan fix (performance)
+- Problem: Supabase performance advisor flagged 17 RLS policies across 9 tables for re-evaluating `auth.uid()` once per row instead of once per query.
+- Root cause: Policies used bare `auth.uid()` in WHERE conditions. PostgreSQL re-evaluates this for every row scanned. Wrapping in `(select auth.uid())` forces a single evaluation per query.
+- Change made: Dropped and recreated 15 affected policies on `patient_activity_logs` (select/update/delete), `patient_activity_sets` (select/update/delete), `patient_activity_set_form_data` (select/update/delete), and all 6 `vocab_*` tables (`_modify` policy on each). Replaced all bare `auth.uid()` with `(SELECT auth.uid())`. Zero behavior change — purely a query planner optimization.
+- Files touched: DB only (migration `fix_rls_auth_uid_initplan` applied via Supabase MCP)
+- Validation: Migration applied successfully. Re-run performance advisor to confirm warnings cleared.
+- Follow-ups: DN-009 — duplicate permissive SELECT policies still present on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables. Requires careful review before fixing (medium risk). DN-010 — 13 unused indexes flagged; defer until real query traffic confirms they're unneeded.
+- Tags: [performance,supabase,security]
+
+### 2026-02-20 — Supabase migrations file corrupted by storage-internal trigger lines
+- Problem: VS Code Supabase extension reported errors on `20260220000755_remote_schema.sql`. The file is a full `pg_dump`-style schema export that GPT inserted after truncating `supabase_migrations.schema_migrations`. It contained `drop extension if exists "pg_net"` and 5 `CREATE TRIGGER` statements on `storage.objects` / `storage.prefixes` — internal Supabase objects that cannot be created by user migrations.
+- Root cause: GPT truncated the migrations table and inserted a single mega-migration row pointing at a full schema dump. The dump included storage-internal triggers at the end that Supabase tooling rejects. The DB itself was unaffected (the migration row was already marked applied), but the local file caused tooling errors.
+- Change made: Removed lines 2034–2045 from `pt-rebuild/supabase/migrations/20260220000755_remote_schema.sql` — specifically `drop extension if exists "pg_net"` and the 5 `CREATE TRIGGER` statements on `storage.objects` and `storage.prefixes`. No DB changes were needed.
+- Files touched: `pt-rebuild/supabase/migrations/20260220000755_remote_schema.sql`
+- Validation: Verified zero `storage.` and `pg_net` matches remain in the file.
+- Follow-ups: None — DB was never affected. If the VS Code extension still reports issues, verify the migration row in `supabase_migrations.schema_migrations` is still present and marked applied.
+- Tags: [migration,supabase,reliability]
+
+### 2026-02-20 — Exercise IDs: bug fix + data migration to proper UUID format
+- Problem: 13 of 34 exercises had non-UUID IDs. 9 had sequential `ex000X` IDs from the original Firebase migration (Jan 18). 4 had slug IDs like `passive-great-toe-plantarflexion-stretch` added Jan 28 – Feb 3 via `pt_editor`. All 13 had linked records across 11 child tables that had to be preserved.
+- Root cause: `generateExerciseId(name)` in `pt_editor.js` slugified the canonical name instead of generating a UUID. The 9 `ex000X` IDs were grandfathered from Firebase. The 4 slug IDs were created when exercises were manually added through the editor after the Firebase migration.
+- Change made:
+  1. **Bug fix** — Replaced `generateExerciseId(name)` body to use `crypto.randomUUID()` (native browser API, no vendor dependency). Removed the vendored `ulid.js` library that was briefly added.
+  2. **Display field** — Added a read-only Exercise ID display field in `pt_editor.html` above the Canonical Name field (both add and edit modes). Pre-generates a UUID when adding; shows existing ID when editing. Field is monospace, readonly, not user-editable.
+  3. **JS wiring** — `loadExerciseForEdit()` populates `exerciseIdDisplay` from `exercise.id`. `clearForm()` pre-generates a fresh UUID into `exerciseIdDisplay`. `collectFormData()` reads from `exerciseIdDisplay` instead of calling `generateExerciseId(canonicalName)`.
+  4. **Data migration** — Applied atomic migration `20260221000001_fix_exercise_ids.sql` via Supabase MCP: dropped all 11 FK constraints, updated all 13 bad IDs in `exercises` and all child tables (using a temp mapping table), re-added FK constraints with original ON DELETE behavior. Backup table `exercises_backup_20260221` preserved.
+- Files touched: `pt-rebuild/public/js/pt_editor.js`, `pt-rebuild/public/pt_editor.html`, `pt-rebuild/supabase/migrations/20260221000001_fix_exercise_ids.sql`, `pt-rebuild/db/migrations/012_fix_exercise_ids.sql`
+- Validation: 34 exercises total (unchanged). 0 old IDs remaining in `exercises`. All 11 FK constraints restored. Backup table `exercises_backup_20260221` contains 34 rows.
+- Follow-ups: Drop `exercises_backup_20260221` after confirming app behavior is correct in production.
+- Tags: [data-model,migration,reliability,ui]
 
 ## 2026-02-19
 
