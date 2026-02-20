@@ -102,6 +102,17 @@ Use this exact field order for all new dated entries:
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
+## 2026-02-21
+
+### 2026-02-21 — Admin-role user blocked from patient app (programs, sync)
+- Problem: Admin user (who is also the sole patient) could not see their programs in the patient app, and the offline sync queue was rejected entirely with 403.
+- Root cause: (1) `patient_programs` and `patient_program_history` SELECT RLS policies had no admin bypass — they only allowed own `patient_id` or therapist relationship. (2) `/api/sync` used `requirePatient` middleware which rejects any non-`patient` role, blocking the admin user even though they are also a patient.
+- Change made: (1) Dropped and recreated `patient_programs_select_own` and `patient_program_history_select` RLS policies to add `OR (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin'))`. (2) Changed `sync.js` from `requirePatient` → `requireAuth`; updated comment to reflect that RLS on `patient_activity_logs` still enforces own-`patient_id` inserts. All other exercise/role/vocab write endpoints already allowed admin.
+- Files touched: DB (migration `fix_admin_patient_rls`), `pt-rebuild/api/sync.js`
+- Validation: Migration applied successfully. RLS SELECT policies now include admin bypass. Sync endpoint accepts any authenticated user; RLS still blocks cross-patient inserts.
+- Follow-ups: None.
+- Tags: [security,auth,supabase,api]
+
 ## 2026-02-20
 
 ### 2026-02-20 — P0 security: auth client in sync.js + therapist-patient authorization in logs.js

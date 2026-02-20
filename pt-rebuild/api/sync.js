@@ -9,15 +9,17 @@
  *
  * Also writes to offline_mutations table for server-side audit/debugging.
  *
- * Patient-only endpoint.
+ * Requires authentication. Patients and admin-role users (who are also patients)
+ * may call this endpoint. RLS on patient_activity_logs enforces that inserts
+ * can only target the caller's own patient_id.
  */
 
 import { getSupabaseWithAuth, getSupabaseAdmin } from '../lib/db.js';
-import { requirePatient } from '../lib/auth.js';
+import { requireAuth } from '../lib/auth.js';
 
 async function processSync(req, res) {
   // Use auth-context client so RLS policies enforce patient identity on all inserts.
-  // requirePatient middleware guarantees req.accessToken is present and valid.
+  // requireAuth middleware guarantees req.accessToken is present and valid.
   const supabase = getSupabaseWithAuth(req.accessToken);
   const supabaseAdmin = getSupabaseAdmin();
   const { queue } = req.body;
@@ -211,4 +213,4 @@ async function processActivityLog(supabase, patientId, payload) {
   }
 }
 
-export default requirePatient(processSync);
+export default requireAuth(processSync);
