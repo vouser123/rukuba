@@ -69,12 +69,8 @@ Use this exact field order for all new dated entries:
 - Convert legacy entries to the new schema only when touched.
 
 ## Open Items
-- [ ] DN-001 | status:open | priority:P0 | risk:medium | tags:[security,supabase,api,auth] | file:pt-rebuild/api/sync.js | issue:Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client.
-  - Context: `api/sync.js` currently uses `getSupabaseClient()` (anon key) for patient data inserts, which weakens user-context enforcement.
-  - Constraints/Caveats: `requirePatient` middleware already attaches/validates token context, so expected behavior should remain stable, but auth-token edge cases still require regression checks.
-- [ ] DN-002 | status:open | priority:P0 | risk:medium | tags:[security,api,auth] | file:pt-rebuild/api/logs.js | issue:Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller.
-  - Context: Any authenticated caller can currently post to `/api/logs` with arbitrary `patient_id`, which is an access-control gap.
-  - Constraints/Caveats: Relationship checks depend on accurate therapist-patient linkage data; incomplete linkage could block valid operations and needs explicit fallback/error messaging.
+- [x] DN-001 | status:done | priority:P0 | risk:medium | tags:[security,supabase,api,auth] | file:pt-rebuild/api/sync.js | issue:Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client. | resolved:2026-02-20
+- [x] DN-002 | status:done | priority:P0 | risk:medium | tags:[security,api,auth] | file:pt-rebuild/api/logs.js | issue:Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller. | resolved:2026-02-20
 - [ ] DN-003 | status:open | priority:P1 | risk:high | tags:[data-model,reliability,sync,api] | file:pt-rebuild/api/sync.js | issue:Prevent orphaned logs when sets insert fails (cleanup or transactional behavior).
   - Context: Partial success path can create an activity log row without sets when set insertion fails.
   - Constraints/Caveats: Cleanup logic must preserve idempotency (`client_mutation_id`) and avoid turning partial failure into data loss.
@@ -90,13 +86,16 @@ Use this exact field order for all new dated entries:
 - [ ] DN-007 | status:open | priority:P1 | risk:medium | tags:[performance,ui,ios] | file:pt-rebuild/public/index.html,pt-rebuild/public/rehab_coverage.html | issue:Reduce INP from 800ms mobile average; worst offenders identified from Vercel Speed Insights real-user data.
   - Context: Field data (mobile, 2026-02-18) shows processing duration (not input delay) is the bottleneck — handlers are doing too much synchronous work on tap. Worst offenders by element: `#hamburgerMenu` 3,488ms (2 interactions), `#timerMode` 1,768ms, `#cap-back-tolerance` 1,480ms, `#messagesModal` 1,296ms, `#sessionNotes` 1,368ms, `#cap-ankle-tolerance` 1,192ms, `#logSetModal` 632ms, `body>div.header` 520ms. LCP on index.html is 8.4s (mobile, 12 data points) — LCP element is `#exerciseList>div.exercise-card>div.exercise-name`, caused by serial API waterfall (users → programs → history before first render). Backfill fetch removed 2026-02-18 as first LCP fix.
   - Constraints/Caveats: Handler code for hamburger menu and capacity elements has not yet been read — root cause of synchronous blocking work is unconfirmed. Must not change clinical logging workflows. iOS PWA `pointerup`/`data-action` pattern must be preserved. rehab_coverage.html capacity tap handlers are separate from index.html and need independent investigation.
-- [ ] DN-008 | status:open | priority:P2 | risk:low | tags:[data-model,migration] | file:pt-rebuild/supabase | issue:Drop backup table `exercises_backup_20260221` after confirming exercise ID migration is working correctly in production.
+- [ ] DN-008 | status:open | priority:P2 | risk:low | tags:[data-model,migration] | file:pt-rebuild/supabase/migrations | issue:Delete `20260220000755_remote_schema.sql.bak` once VS Code Supabase extension confirms no more storage trigger errors.
+  - Context: Created as a backup before stripping the storage-internal trigger lines from the migrations file. Safe to delete once tooling is confirmed clean.
+  - Constraints/Caveats: Verify VS Code extension no longer flags the file before deleting.
+- [ ] DN-009 | status:open | priority:P2 | risk:low | tags:[data-model,migration] | file:pt-rebuild/supabase | issue:Drop backup table `exercises_backup_20260221` after confirming exercise ID migration is working correctly in production.
   - Context: Table was created as a safety net during the atomic migration that remapped 13 non-UUID exercise IDs (ex000X and slug IDs) to proper UUIDs. All 34 exercises and 11 FK constraint tables verified correct post-migration. See dated entry 2026-02-20.
   - Constraints/Caveats: Confirm pt_editor loads/saves exercises correctly and no FK errors appear in logs before dropping.
-- [ ] DN-009 | status:open | priority:P2 | risk:medium | tags:[performance,supabase,security] | file:pt-rebuild/supabase | issue:Resolve duplicate permissive SELECT policies on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables.
+- [ ] DN-010 | status:open | priority:P2 | risk:medium | tags:[performance,supabase,security] | file:pt-rebuild/supabase | issue:Resolve duplicate permissive SELECT policies on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables.
   - Context: Supabase performance advisor flags 9 tables with two SELECT policies for `authenticated` on the same table. Both policies are evaluated per query. The older `_select_own` / `patient_activity_*_select` policies predate the broader `activity_logs_select` / `activity_sets_select` / `set_form_data_select` policies. The broader policies cover all cases the older ones do, plus therapist access. The older narrow ones can likely be dropped — but access behavior must be verified first.
   - Constraints/Caveats: Read both policy bodies carefully before dropping anything. Verify that the broader policy covers every case the narrow one does (patient own access + therapist access + admin access). Do not drop without testing patient and therapist SELECT access in staging.
-- [ ] DN-010 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
+- [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
 
@@ -104,6 +103,15 @@ Use this exact field order for all new dated entries:
 Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-20
+
+### 2026-02-20 — P0 security: auth client in sync.js + therapist-patient authorization in logs.js
+- Problem: (1) `api/sync.js` used the anon Supabase client for patient data inserts, bypassing RLS user context. (2) `createActivityLog()` in `api/logs.js` allowed any authenticated caller to post an activity log to any arbitrary `patient_id` with no relationship check.
+- Root cause: (1) `getSupabaseClient()` was used instead of `getSupabaseWithAuth()` — the token was available on `req.accessToken` but not passed to the client. (2) `targetPatientId` was set from the request body `patient_id` without verifying the caller had a therapist relationship to that patient.
+- Change made: (1) Swapped `getSupabaseClient()` → `getSupabaseWithAuth(req.accessToken)` in `sync.js`. (2) Added authorization block in `createActivityLog()`: when `patient_id` differs from `req.user.id`, rejects non-therapist/non-admin callers with 403; for therapists, queries `users` table via admin client to confirm `therapist_id` matches, rejects with 403 if not assigned.
+- Files touched: `pt-rebuild/api/sync.js`, `pt-rebuild/api/logs.js`
+- Validation: Code paths verified by inspection. Regression: patients logging own data unaffected (no `patient_id` body field). Therapists logging for assigned patients pass the relationship check. Unassigned callers receive 403.
+- Follow-ups: None. DN-001 and DN-002 closed.
+- Tags: [security,api,auth,supabase]
 
 ### 2026-02-20 — RLS auth.uid() initialization plan fix (performance)
 - Problem: Supabase performance advisor flagged 17 RLS policies across 9 tables for re-evaluating `auth.uid()` once per row instead of once per query.

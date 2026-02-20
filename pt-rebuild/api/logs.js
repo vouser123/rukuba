@@ -182,13 +182,31 @@ async function createActivityLog(req, res) {
   } = req.body;
 
   // Determine target patient_id:
-  // - If patient_id provided (therapist logging on behalf), use that
-  // - Otherwise default to logged-in user's ID (patient logging own data)
-  // TODO: Security — When patient_id differs from req.user.id, verify the caller
-  // is a therapist with a relationship to this patient (therapist_id in users table).
-  // Currently any authenticated user can log to any patient_id. (P0, medium risk —
-  // could block legitimate ops if therapist-patient relationships aren't fully populated)
+  // - If patient_id provided and differs from caller, verify therapist relationship.
+  // - Otherwise default to logged-in user's ID (patient logging own data).
   const targetPatientId = patient_id || req.user.id;
+
+  if (patient_id && patient_id !== req.user.id) {
+    // Caller is logging on behalf of someone else — must be a therapist assigned to this patient.
+    if (req.user.role !== 'therapist' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only therapists or admins may log on behalf of a patient' });
+    }
+
+    if (req.user.role === 'therapist') {
+      // Verify the target patient is actually assigned to this therapist.
+      const supabaseAdmin = getSupabaseAdmin();
+      const { data: patientRecord, error: patientError } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', patient_id)
+        .eq('therapist_id', req.user.id)
+        .single();
+
+      if (patientError || !patientRecord) {
+        return res.status(403).json({ error: 'Patient is not assigned to this therapist' });
+      }
+    }
+  }
 
   // Validation
   if (!exercise_name || !activity_type || !performed_at || !client_mutation_id || !sets || !Array.isArray(sets)) {

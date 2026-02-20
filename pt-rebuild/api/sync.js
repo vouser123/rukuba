@@ -12,14 +12,13 @@
  * Patient-only endpoint.
  */
 
-import { getSupabaseClient, getSupabaseAdmin } from '../lib/db.js';
+import { getSupabaseWithAuth, getSupabaseAdmin } from '../lib/db.js';
 import { requirePatient } from '../lib/auth.js';
 
 async function processSync(req, res) {
-  // TODO: Security — Use getSupabaseWithAuth(req.accessToken) instead of anon client.
-  // The anon client bypasses RLS user context. requirePatient middleware guarantees
-  // the token exists, so this should be safe to swap. (P0, medium risk)
-  const supabase = getSupabaseClient();
+  // Use auth-context client so RLS policies enforce patient identity on all inserts.
+  // requirePatient middleware guarantees req.accessToken is present and valid.
+  const supabase = getSupabaseWithAuth(req.accessToken);
   const supabaseAdmin = getSupabaseAdmin();
   const { queue } = req.body;
 
