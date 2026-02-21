@@ -3,6 +3,19 @@
 This file summarizes notable rebuild milestones for the public docs bundle.
 For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
 
+## 2026-02-21
+
+### Exercise Date Fields Not Showing When Editing (pt_editor)
+
+- **Problem:** When selecting an exercise to edit, the Added Date and Last Updated fields were blank — the data existed in the database but never appeared in the UI.
+- **Root causes (two bugs):**
+  1. **Missing HTML elements:** The JS tried to populate `#addedDate` and `#updatedDate` inputs, but those elements didn't exist in the HTML. The optional chaining (`if (addedDateEl)`) silently skipped them.
+  2. **ISO timestamp vs date input format:** Once the HTML elements were added, the fields were still blank because the DB stores full ISO timestamps (`2026-01-15T12:34:56.000Z`) but `<input type="date">` requires `YYYY-MM-DD`. The browser silently rejects mismatched formats.
+- **What I did:**
+  - Added `#addedDate` and `#updatedDate` readonly inputs to the Lifecycle & Status section, hidden for new exercises, shown when editing
+  - Added `toDateInput()` helper to strip the time portion from ISO timestamps
+  - Also fixed lifecycle field mapping: the API returns lifecycle data nested (`exercise.lifecycle.status`) but the JS was referencing flat paths (`exercise.lifecycle_status`), so effective start/end dates also never populated
+
 ## 2026-01-31 (Audit Fixes)
 
 ### Deep Dive Audit - Critical Bug Fixes
