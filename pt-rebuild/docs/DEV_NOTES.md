@@ -111,15 +111,15 @@ Use this exact field order for all new dated entries:
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
-## 2026-02-19
+## 2026-02-21
 
-### 2026-02-19 — Email notifications for clinical messages (Resend integration)
+### 2026-02-21 — Email notifications for clinical messages (Resend integration)
 - Problem: The daily cron (`handleNotify` in `logs.js`) used SendGrid (never configured), sent only a count (no message bodies), had no "new since last email" guard (re-sent daily for old unread messages), and had no opt-out support.
 - Root cause: Feature was scaffolded but never fully implemented. `SENDGRID_API_KEY` was never set in Vercel.
 - Change made: Rewrote `handleNotify` to use Resend API (`RESEND_API_KEY` already configured via Vercel integration). Added `last_notified_at` timestamptz column to track per-user send time. Added `email_notifications_enabled` boolean column (default true) for opt-out. New logic: skip opted-out users, skip if notified within 23 hours, filter to messages newer than `last_notified_at`, skip if no new messages, send HTML email with message bodies + role-based deep link + opt-out footer, update `last_notified_at` on success. Added `PATCH /api/users` handler (own record only, boolean only). Added email notify toggle to messages modal in both `index.html` and `pt_view.html`. Fixed message font sizes (body 14→16px, labels 13→15px, timestamps/buttons 11→13px). Added `font-size: 16px` to compose textarea (prevents iOS auto-zoom).
 - Files touched: `pt-rebuild/api/logs.js`, `pt-rebuild/api/users.js`, `pt-rebuild/public/index.html`, `pt-rebuild/public/pt_view.html`; Vercel env vars added: `EMAIL_FROM`, `APP_URL`, `CRON_SECRET`; Supabase migrations: `add_last_notified_at_to_users`, `add_email_notifications_opt_out`
 - Validation: Triggered cron manually — `{"sent":1,"skipped":0,"total":1}`. DB `last_notified_at` updated for therapist. Re-triggered immediately — `{"sent":0,"skipped":1,"total":1}` (23-hour guard working).
-- Follow-ups: Verify opt-out toggle works in app UI on device. Remove `SENDGRID_API_KEY` from Vercel if it exists.
+- Follow-ups: Remove `SENDGRID_API_KEY` from Vercel if it exists (was never set, but worth confirming).
 - Tags: [notifications,email,api,ui,ios,data-model,migration]
 
 ## 2026-02-22
