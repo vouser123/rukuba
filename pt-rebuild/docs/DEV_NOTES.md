@@ -71,12 +71,8 @@ Use this exact field order for all new dated entries:
 ## Open Items
 - [x] DN-001 | status:done | priority:P0 | risk:medium | tags:[security,supabase,api,auth] | file:pt-rebuild/api/sync.js | issue:Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client. | resolved:2026-02-20
 - [x] DN-002 | status:done | priority:P0 | risk:medium | tags:[security,api,auth] | file:pt-rebuild/api/logs.js | issue:Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller. | resolved:2026-02-20
-- [ ] DN-003 | status:open | priority:P1 | risk:high | tags:[data-model,reliability,sync,api] | file:pt-rebuild/api/sync.js | issue:Prevent orphaned logs when sets insert fails (cleanup or transactional behavior).
-  - Context: Partial success path can create an activity log row without sets when set insertion fails.
-  - Constraints/Caveats: Cleanup logic must preserve idempotency (`client_mutation_id`) and avoid turning partial failure into data loss.
-- [ ] DN-004 | status:open | priority:P1 | risk:high | tags:[data-model,reliability,api] | file:pt-rebuild/api/logs.js | issue:Form data is matched to sets by array index instead of `set_number` in create/update flows.
-  - Context: Current mapping assumes stable insert-order response; if row order changes, form data can attach to the wrong set.
-  - Constraints/Caveats: Switching to strict `set_number` matching may break clients with inconsistent or missing `set_number` values.
+- [x] DN-003 | status:done | priority:P1 | risk:high | tags:[data-model,reliability,sync,api] | file:pt-rebuild/api/sync.js,pt-rebuild/api/logs.js | issue:Prevent orphaned logs when sets insert fails (cleanup or transactional behavior). | resolved:2026-02-21
+- [x] DN-004 | status:done | priority:P1 | risk:high | tags:[data-model,reliability,api] | file:pt-rebuild/api/logs.js | issue:Form data is matched to sets by array index instead of `set_number` in create/update flows. | resolved:2026-02-21
 - [ ] DN-005 | status:open | priority:P2 | risk:low | tags:[performance,api] | file:pt-rebuild/api/users.js | issue:Push role-based filtering to DB query (`.eq()` etc.) instead of fetching all users then filtering in memory.
   - Context: Therapists/patients currently fetch full user sets before reducing in app logic.
   - Constraints/Caveats: Behavior parity (who can see which users) must remain identical after query-level filtering.
@@ -110,6 +106,14 @@ Use this exact field order for all new dated entries:
 - [ ] DN-016 | status:open | priority:P2 | risk:medium | tags:[ui,auth,api] | file:pt-rebuild/api/users.js,pt-rebuild/public | issue:No user profile editor — users cannot change their own name, email, or password from within the app.
   - Context: Currently `PATCH /api/users` only accepts `email_notifications_enabled`. A profile editor would allow users to update `first_name`, `last_name`, email (requires Supabase Auth update), and password (requires Supabase Auth password change flow). Admin may also need ability to edit other users' profiles.
   - Constraints/Caveats: Email/password changes must go through Supabase Auth API (`supabase.auth.updateUser()`), not just the `users` table. Need to consider whether therapist can edit patient profiles or only admins can.
+- [ ] DN-018 | status:open | priority:P2 | risk:medium | tags:[offline,api,reliability] | file:pt-rebuild/api/sync.js,pt-rebuild/public/js/offline.js,pt-rebuild/public/index.html | issue:Two competing offline sync systems exist — the active one (localStorage + `/api/logs` per item in index.html) and a dead one (`offline.js` IndexedDB queue + `/api/sync` batch endpoint). `manualSync()` in offline.js is never called; `/api/sync` is reachable but unused by any UI flow.
+  - Context: `offline.js` is imported in index.html and used for IndexedDB read-caching only (exercises, programs, logs). Its queue/sync functionality was never wired up. The active offline pattern is entirely in `syncOfflineQueue()` in index.html using localStorage. `/api/sync` takes up one of Vercel's 12-function free-tier slots.
+  - Options: (A) Remove `/api/sync` and dead offline.js sync code — cleans up confusion, frees function slot, but requires careful audit of what IndexedDB code is safe to remove. (B) Activate `/api/sync` as a proper batch endpoint replacing per-item `/api/logs` calls — significant redesign. (C) Leave as-is but document clearly.
+  - Constraints/Caveats: Do not touch index.html IndexedDB hydration code without fully understanding what it caches and whether anything reads from it. This is a full separate project, not a quick cleanup.
+- [ ] DN-017 | status:open | priority:P2 | risk:low | tags:[docs,data-model,supabase] | file:pt-rebuild/db/schema.sql | issue:`schema.sql` drifts out of sync with the live database every time a migration is applied — no automated mechanism keeps it current.
+  - Context: `schema.sql` is a manually maintained snapshot. Each migration in `pt-rebuild/db/migrations/` changes the live DB but does not update `schema.sql`. Over time the file becomes unreliable as a reference for the current DB structure.
+  - Options: (A) After each migration, regenerate `schema.sql` using `supabase db dump --schema public > pt-rebuild/db/schema.sql` as a manual step. (B) Treat `schema.sql` as deprecated documentation and rely solely on numbered migration files as source of truth. (C) Add a note in CLAUDE.md reminding agents to update `schema.sql` after applying migrations.
+  - Constraints/Caveats: `supabase db dump` requires Supabase CLI and project credentials. Option B is safest but means agents must read all migration files to understand current schema. Option A keeps a single readable file but relies on discipline to run it.
 - [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
@@ -118,6 +122,15 @@ Use this exact field order for all new dated entries:
 Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-21
+
+### 2026-02-21 — DN-003 + DN-004: Atomic activity log creation via Postgres RPC
+- Problem: (DN-003) When `patient_activity_sets` insert failed after `patient_activity_logs` was already written, the log row was left orphaned with no sets — silent data corruption in clinical records with no error visible to the patient. (DN-004) Form data (e.g. band resistance, weight) was matched to sets by array index position; if Supabase returned inserted rows in a different order than submitted, form parameters would attach to the wrong clinical set with no error raised. Both bugs existed in `createActivityLog` (logs.js) and DN-003 also existed in `processActivityLog` (sync.js).
+- Root cause: Three-table insert was done in separate sequential statements with no transaction boundary. Cleanup-on-error was considered but rejected: if the log insert succeeds but the cleanup delete also fails, the `client_mutation_id` unique constraint entry persists — the clinical record becomes permanently unrecoverable on retry. Array-index matching assumed Supabase preserves insert-order in responses, which is not guaranteed.
+- Change made: Created Postgres function `create_activity_log_atomic` (`SECURITY INVOKER` — all existing RLS policies remain in full effect, no privilege escalation). Function wraps all three inserts in a single implicit PL/pgSQL transaction; any failure rolls back atomically so no orphaned row is ever written and `client_mutation_id` is only committed on full success. Form data is matched to sets by `set_number` captured from each set's `RETURNING id` clause — not by array index. Replaced three-step inline insert in `createActivityLog` and two-step insert in `processActivityLog` with `supabase.rpc('create_activity_log_atomic', {...})`. Fixed `updateActivityLog` array-index form data matching with a `set_number`-keyed Map lookup. Added `set_number` validation to `createActivityLog` (consistent with `sync.js`). Also: `processActivityLog` in `sync.js` previously never inserted `patient_activity_set_form_data` at all — the RPC now handles all three tables in both code paths.
+- Files touched: `pt-rebuild/api/logs.js`, `pt-rebuild/api/sync.js`, `pt-rebuild/db/migrations/013_create_activity_log_rpc.sql` (new)
+- Validation: Migration applied via Supabase MCP. Function confirmed in DB (`SECURITY_TYPE: INVOKER`). Deployment `dpl_AhHBKZ9xpiaxfeJG4v9qb3QZoj9b` READY (commit cd566b5). Existing log history loads correctly in app.
+- Follow-ups: None.
+- Tags: [data-model,reliability,sync,api,supabase,migration]
 
 ### 2026-02-21 — Email notifications for clinical messages (Resend integration)
 - Problem: The daily cron (`handleNotify` in `logs.js`) used SendGrid (never configured), sent only a count (no message bodies), had no "new since last email" guard (re-sent daily for old unread messages), and had no opt-out support.
@@ -128,9 +141,7 @@ Use this section for all new entries in reverse chronological order.
 - Follow-ups: Remove `SENDGRID_API_KEY` from Vercel if it exists (was never set, but worth confirming).
 - Tags: [notifications,email,api,ui,ios,data-model,migration]
 
-## 2026-02-22
-
-### 2026-02-22 — pt_editor date fields blank when editing existing exercises
+### 2026-02-21 — pt_editor date fields blank when editing existing exercises
 - Problem: `added_date` and `updated_date` fields were blank when opening an exercise for editing, even when values existed in the database.
 - Root cause: Values are stored as full ISO 8601 timestamps (e.g. `2026-02-20T00:00:00.000Z`) but `<input type="date">` requires `YYYY-MM-DD` format. Browser silently rejected the value, leaving fields blank.
 - Change made: Added `toDateInput()` helper that converts any valid date value to `YYYY-MM-DD` using `new Date().toISOString().split('T')[0]`. Applied to both `addedDate` and `updatedDate` fields in `loadExerciseForEdit()`.
@@ -138,8 +149,6 @@ Use this section for all new entries in reverse chronological order.
 - Validation: Cherry-picked from branch `claude/review-public-directory-I9eT4` (commit 37c15d1). Date fields now populate correctly when editing.
 - Follow-ups: None.
 - Tags: [ui,data-model]
-
-## 2026-02-21
 
 ### 2026-02-21 — Admin-role user blocked from patient app (programs, sync)
 - Problem: Admin user (who is also the sole patient) could not see their programs in the patient app, and the offline sync queue was rejected entirely with 403.
