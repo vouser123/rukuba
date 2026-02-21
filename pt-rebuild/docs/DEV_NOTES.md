@@ -141,15 +141,6 @@ Use this section for all new entries in reverse chronological order.
 - Follow-ups: Remove `SENDGRID_API_KEY` from Vercel if it exists (was never set, but worth confirming).
 - Tags: [notifications,email,api,ui,ios,data-model,migration]
 
-### 2026-02-21 — pt_editor date fields blank when editing existing exercises
-- Problem: `added_date` and `updated_date` fields were blank when opening an exercise for editing, even when values existed in the database.
-- Root cause: Values are stored as full ISO 8601 timestamps (e.g. `2026-02-20T00:00:00.000Z`) but `<input type="date">` requires `YYYY-MM-DD` format. Browser silently rejected the value, leaving fields blank.
-- Change made: Added `toDateInput()` helper that converts any valid date value to `YYYY-MM-DD` using `new Date().toISOString().split('T')[0]`. Applied to both `addedDate` and `updatedDate` fields in `loadExerciseForEdit()`.
-- Files touched: `pt-rebuild/public/js/pt_editor.js`
-- Validation: Cherry-picked from branch `claude/review-public-directory-I9eT4` (commit 37c15d1). Date fields now populate correctly when editing.
-- Follow-ups: None.
-- Tags: [ui,data-model]
-
 ### 2026-02-21 — Admin-role user blocked from patient app (programs, sync)
 - Problem: Admin user (who is also the sole patient) could not see their programs in the patient app, and the offline sync queue was rejected entirely with 403.
 - Root cause: (1) `patient_programs` and `patient_program_history` SELECT RLS policies had no admin bypass — they only allowed own `patient_id` or therapist relationship. (2) `/api/sync` used `requirePatient` middleware which rejects any non-`patient` role, blocking the admin user even though they are also a patient.
@@ -202,6 +193,15 @@ Use this section for all new entries in reverse chronological order.
 - Tags: [data-model,migration,reliability,ui]
 
 ## 2026-02-19
+
+### 2026-02-19 — pt_editor date fields blank when editing existing exercises
+- Problem: `added_date` and `updated_date` fields were blank when opening an exercise for editing, even when values existed in the database.
+- Root cause: Values are stored as full ISO 8601 timestamps (e.g. `2026-02-20T00:00:00.000Z`) but `<input type="date">` requires `YYYY-MM-DD` format. Browser silently rejected the value, leaving fields blank.
+- Change made: Added `toDateInput()` helper that converts any valid date value to `YYYY-MM-DD` using `new Date().toISOString().split('T')[0]`. Applied to both `addedDate` and `updatedDate` fields in `loadExerciseForEdit()`.
+- Files touched: `pt-rebuild/public/js/pt_editor.js`
+- Validation: Cherry-picked from branch `claude/review-public-directory-I9eT4` (commit 37c15d1). Date fields now populate correctly when editing.
+- Follow-ups: None.
+- Tags: [ui,data-model]
 
 ### 2026-02-19 — PT Editor archived exercise visibility toggles for Edit/Roles/Dosage selectors
 - Problem: Archived exercises were always shown in PT Editor selection dropdowns, making active workflows noisier and increasing risk of picking archived items unintentionally.
