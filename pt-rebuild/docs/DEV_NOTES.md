@@ -111,6 +111,17 @@ Use this exact field order for all new dated entries:
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
+## 2026-02-22
+
+### 2026-02-22 — pt_editor date fields blank when editing existing exercises
+- Problem: `added_date` and `updated_date` fields were blank when opening an exercise for editing, even when values existed in the database.
+- Root cause: Values are stored as full ISO 8601 timestamps (e.g. `2026-02-20T00:00:00.000Z`) but `<input type="date">` requires `YYYY-MM-DD` format. Browser silently rejected the value, leaving fields blank.
+- Change made: Added `toDateInput()` helper that converts any valid date value to `YYYY-MM-DD` using `new Date().toISOString().split('T')[0]`. Applied to both `addedDate` and `updatedDate` fields in `loadExerciseForEdit()`.
+- Files touched: `pt-rebuild/public/js/pt_editor.js`
+- Validation: Cherry-picked from branch `claude/review-public-directory-I9eT4` (commit 37c15d1). Date fields now populate correctly when editing.
+- Follow-ups: None.
+- Tags: [ui,data-model]
+
 ## 2026-02-21
 
 ### 2026-02-21 — Admin-role user blocked from patient app (programs, sync)
