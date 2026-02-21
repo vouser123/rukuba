@@ -225,84 +225,76 @@ async function createActivityLog(req, res) {
     });
   }
 
-  try {
-    // Create activity log (with deduplication)
-    const { data: log, error: logError } = await supabase
-      .from('patient_activity_logs')
-      .insert({
-        patient_id: targetPatientId, // Patient logging own data OR therapist logging for patient
-        exercise_id: exercise_id || null,
-        exercise_name,
-        client_mutation_id,
-        activity_type,
-        notes: notes || null,
-        performed_at,
-        client_created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+  // Validate set_number on every set before touching the DB.
+  // Required for the RPC's set_number-keyed form_data matching (DN-004).
+  for (let i = 0; i < sets.length; i++) {
+    if (typeof sets[i].set_number !== 'number' || sets[i].set_number < 1) {
+      return res.status(400).json({
+        error: `Invalid set_number at index ${i} — must be a positive integer`
+      });
+    }
+  }
 
-    if (logError) {
-      // Check for duplicate
-      if (logError.code === '23505') { // Unique constraint violation
+  try {
+    // Atomically insert patient_activity_logs + patient_activity_sets +
+    // patient_activity_set_form_data in a single Postgres transaction via RPC.
+    //
+    // DN-003 fix: if the sets or form_data inserts fail, Postgres rolls back the
+    // entire transaction — no orphaned log row is left behind, and
+    // client_mutation_id is never written, so the client can safely retry.
+    //
+    // DN-004 fix: the RPC matches form_data to sets by set_number (captured from
+    // the RETURNING clause of each set insert), not by array index position.
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      'create_activity_log_atomic',
+      {
+        p_patient_id:         targetPatientId,
+        p_exercise_id:        exercise_id || null,
+        p_exercise_name:      exercise_name,
+        p_client_mutation_id: client_mutation_id,
+        p_activity_type:      activity_type,
+        p_notes:              notes || null,
+        p_performed_at:       performed_at,
+        p_client_created_at:  new Date().toISOString(),
+        p_sets:               sets
+      }
+    );
+
+    if (rpcError) {
+      // Unique constraint violation — concurrent duplicate (race condition)
+      if (rpcError.code === '23505') {
         return res.status(409).json({
           error: 'Duplicate activity log (client_mutation_id already exists)'
         });
       }
-      throw logError;
+      throw rpcError;
     }
 
-    // Insert sets (without form_data - that goes in separate table)
-    const setsWithLogId = sets.map(set => ({
-      activity_log_id: log.id,
-      set_number: set.set_number,
-      reps: set.reps || null,
-      seconds: set.seconds || null,
-      distance_feet: set.distance_feet || null,
-      side: set.side || null,
-      manual_log: set.manual_log || false,
-      partial_rep: set.partial_rep || false,
-      performed_at: set.performed_at || performed_at
-    }));
+    // RPC idempotency: duplicate detected inside the function before any insert
+    if (rpcResult && rpcResult.duplicate === true) {
+      return res.status(409).json({
+        error: 'Duplicate activity log (client_mutation_id already exists)'
+      });
+    }
 
-    const { data: createdSets, error: setsError } = await supabase
+    // Fetch the created log + sets for the response body (same shape as before)
+    const logId = rpcResult.log_id;
+
+    const { data: log, error: logFetchError } = await supabase
+      .from('patient_activity_logs')
+      .select('*')
+      .eq('id', logId)
+      .single();
+
+    if (logFetchError) throw logFetchError;
+
+    const { data: createdSets, error: setsFetchError } = await supabase
       .from('patient_activity_sets')
-      .insert(setsWithLogId)
-      .select();
+      .select('*')
+      .eq('activity_log_id', logId)
+      .order('set_number');
 
-    if (setsError) throw setsError;
-
-    // Insert form data for each set (if present)
-    // form_data is an array of {parameter_name, parameter_value, parameter_unit}
-    // TODO: Data integrity — Match form_data to sets by set_number instead of array
-    // index. If Supabase ever returns inserted rows in different order than submitted,
-    // form_data would attach to wrong sets. Currently works because Supabase preserves
-    // insert order. HIGH RISK to change — clients must consistently populate set_number.
-    const formDataRows = [];
-    for (let i = 0; i < sets.length; i++) {
-      const set = sets[i];
-      const createdSet = createdSets[i];
-
-      if (set.form_data && Array.isArray(set.form_data) && set.form_data.length > 0) {
-        for (const param of set.form_data) {
-          formDataRows.push({
-            activity_set_id: createdSet.id,
-            parameter_name: param.parameter_name,
-            parameter_value: param.parameter_value,
-            parameter_unit: param.parameter_unit || null
-          });
-        }
-      }
-    }
-
-    // Insert form data if any
-    if (formDataRows.length > 0) {
-      const { error: formDataError } = await supabase
-        .from('patient_activity_set_form_data')
-        .insert(formDataRows);
-
-      if (formDataError) throw formDataError;
-    }
+    if (setsFetchError) throw setsFetchError;
 
     return res.status(201).json({
       log: {
@@ -421,12 +413,25 @@ async function updateActivityLog(req, res) {
 
       if (setsError) throw setsError;
 
-      // Insert form data for each set (if present)
-      // TODO: Same array-index matching issue as createActivityLog — see TODO above.
+      // Insert form data for each set (if present).
+      // Build a lookup map from set_number → created set row so form_data is
+      // attached to the correct set regardless of DB return order (DN-004 fix).
+      //
+      // Use setsWithLogId (not the raw request sets) for the key: setsWithLogId
+      // has the resolved set_number (set.set_number || index + 1) that was actually
+      // written to the DB, guaranteeing the map key matches the returned rows.
+      const createdSetByNumber = new Map(createdSets.map(s => [s.set_number, s]));
+
       const formDataRows = [];
       for (let i = 0; i < sets.length; i++) {
         const set = sets[i];
-        const createdSet = createdSets[i];
+        const resolvedSetNumber = setsWithLogId[i].set_number; // matches what was inserted
+        const createdSet = createdSetByNumber.get(resolvedSetNumber);
+        if (!createdSet) {
+          // set_number written to DB but missing from returned rows — clinical
+          // data integrity error; throw to surface a 500.
+          throw new Error(`No created set found for set_number ${resolvedSetNumber} — clinical data integrity error`);
+        }
 
         if (set.form_data && Array.isArray(set.form_data) && set.form_data.length > 0) {
           for (const param of set.form_data) {

@@ -148,7 +148,9 @@ async function processActivityLog(supabase, patientId, payload) {
   }
 
   try {
-    // Check if already exists (idempotent)
+    // Pre-flight idempotency check: skip the RPC call if we already know this
+    // client_mutation_id was processed. This is an optimization — the RPC also
+    // checks internally, but this avoids unnecessary round-trips on retries.
     const { data: existing } = await supabase
       .from('patient_activity_logs')
       .select('id')
@@ -161,49 +163,38 @@ async function processActivityLog(supabase, patientId, payload) {
       return { success: true, duplicate: true };
     }
 
-    // Create activity log
-    const { data: log, error: logError } = await supabase
-      .from('patient_activity_logs')
-      .insert({
-        patient_id: patientId,
-        exercise_id: exercise_id || null,
-        exercise_name,
-        client_mutation_id,
-        activity_type,
-        notes: notes || null,
-        performed_at,
-        client_created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    // Atomically insert patient_activity_logs + patient_activity_sets +
+    // patient_activity_set_form_data in a single Postgres transaction via RPC.
+    //
+    // DN-003 fix: if any insert fails, Postgres rolls back the entire transaction.
+    // No orphaned log row is left behind, and client_mutation_id is never written,
+    // so the client can safely retry.
+    //
+    // DN-004 fix: the RPC matches form_data to sets by set_number (captured from
+    // the RETURNING clause of each set insert), not by array index position.
+    // Also adds form_data insertion — previously this path silently dropped it.
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      'create_activity_log_atomic',
+      {
+        p_patient_id:         patientId,
+        p_exercise_id:        exercise_id || null,
+        p_exercise_name:      exercise_name,
+        p_client_mutation_id: client_mutation_id,
+        p_activity_type:      activity_type,
+        p_notes:              notes || null,
+        p_performed_at:       performed_at,
+        p_client_created_at:  new Date().toISOString(),
+        p_sets:               sets
+      }
+    );
 
-    if (logError) {
-      return { success: false, error: logError.message };
+    if (rpcError) {
+      return { success: false, error: rpcError.message };
     }
 
-    // Insert sets
-    const setsWithLogId = sets.map(set => ({
-      activity_log_id: log.id,
-      set_number: set.set_number,
-      reps: set.reps || null,
-      seconds: set.seconds || null,
-      distance_feet: set.distance_feet || null,
-      side: set.side || null,
-      manual_log: set.manual_log || false,
-      partial_rep: set.partial_rep || false,
-      performed_at: set.performed_at || performed_at
-    }));
-
-    const { error: setsError } = await supabase
-      .from('patient_activity_sets')
-      .insert(setsWithLogId);
-
-    if (setsError) {
-      // TODO: Data integrity — Clean up orphaned log if sets insert fails.
-      // Currently the log row persists with no sets. Should delete the log here,
-      // but be careful: if the delete also fails, we lose idempotency because the
-      // client_mutation_id check won't find the record on retry. (P1, medium risk)
-      return { success: false, error: setsError.message };
+    // RPC idempotency: duplicate detected inside the function before any insert
+    if (rpcResult && rpcResult.duplicate === true) {
+      return { success: true, duplicate: true };
     }
 
     return { success: true };
