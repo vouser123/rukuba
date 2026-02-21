@@ -117,11 +117,23 @@ Use this exact field order for all new dated entries:
 - [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
+- [ ] DN-019 | status:open | priority:P2 | risk:low | tags:[pwa,reliability,offline] | file:pt-rebuild/public/sw.js | issue:Service worker tries to cache POST responses, which is unsupported by the Cache API — logs `TypeError: Failed to execute 'put' on 'Cache': Request method 'POST' is unsupported` on every activity log save.
+  - Context: The fetch handler in sw.js caches all successful responses regardless of method. POST requests cannot be cached. Error is silent to the user but noisy in the console and wastes a cache.open() call on every log.
+  - Constraints/Caveats: Fix is to check `request.method === 'GET'` before attempting to cache. Low risk change but must not break offline GET caching behavior.
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-21
+
+### 2026-02-21 — Regression: exercises without form data failed to log (500) after RPC migration
+- Problem: Any exercise without form parameters (e.g. Ankle Inversion — Isometric) returned a 500 error immediately after the DN-003/DN-004 RPC migration. Existing offline queue sessions failed to sync.
+- Root cause: The client sends `"form_data": null` in set objects when an exercise has no form parameters. In Postgres JSONB, `v_set->'form_data'` on a JSON null value returns a JSONB null — not a SQL NULL. The RPC's guard `v_set->'form_data' IS NOT NULL` evaluated to `true` for JSON nulls, causing `jsonb_array_length()` to be called on a non-array type, raising an exception and rolling back the transaction with a 500.
+- Change made: Replaced `IS NOT NULL` check with `jsonb_typeof(v_set->'form_data') = 'array'`. This correctly handles `null`, missing key, and empty array without error. Fix applied directly in DB via Supabase MCP (`apply_migration`) — no Vercel deployment required.
+- Files touched: DB only — migration `014_fix_activity_log_rpc_null_form_data.sql` (new); `pt-rebuild/db/migrations/014_fix_activity_log_rpc_null_form_data.sql` saved to repo.
+- Validation: Tested RPC directly with `"form_data": null` payload — returned `log_id`, no error. Confirmed Ankle Inversion — Isometric log from offline queue synced correctly: set_count=1, reps=10, seconds=10, side=right, manual_log=true.
+- Follow-ups: None. Should have tested with a no-form-data exercise before shipping DN-003/DN-004.
+- Tags: [reliability,api,supabase,migration]
 
 ### 2026-02-21 — DN-003 + DN-004: Atomic activity log creation via Postgres RPC
 - Problem: (DN-003) When `patient_activity_sets` insert failed after `patient_activity_logs` was already written, the log row was left orphaned with no sets — silent data corruption in clinical records with no error visible to the patient. (DN-004) Form data (e.g. band resistance, weight) was matched to sets by array index position; if Supabase returned inserted rows in a different order than submitted, form parameters would attach to the wrong clinical set with no error raised. Both bugs existed in `createActivityLog` (logs.js) and DN-003 also existed in `processActivityLog` (sync.js).
