@@ -759,12 +759,16 @@ function loadExerciseForEdit() {
     renderGuidanceList('safetyList', safetyFlags);
     renderGuidanceList('externalCuesList', externalCues);
 
-    // Lifecycle fields - use lifecycle_status as source of truth, default to 'active'
-    const lifecycleStatus = exercise.lifecycle_status || (exercise.archived ? 'archived' : 'active');
+    // Lifecycle fields - use lifecycle.status as source of truth, default to 'active'
+    const lifecycleStatus = exercise.lifecycle?.status || (exercise.archived ? 'archived' : 'active');
     document.getElementById('lifecycleStatus').value = lifecycleStatus;
     document.getElementById('archived').checked = lifecycleStatus === 'archived';
-    document.getElementById('effectiveStartDate').value = exercise.lifecycle_effective_start_date || '';
-    document.getElementById('effectiveEndDate').value = exercise.lifecycle_effective_end_date || '';
+    document.getElementById('effectiveStartDate').value = exercise.lifecycle?.effective_start_date || '';
+    document.getElementById('effectiveEndDate').value = exercise.lifecycle?.effective_end_date || '';
+
+    // Show record dates when editing an existing exercise
+    const datesGroup = document.getElementById('exerciseDatesGroup');
+    if (datesGroup) datesGroup.classList.remove('hidden');
 
     // Optional lifecycle fields (may not exist in UI)
     const supersedesEl = document.getElementById('supersedesExercise');
@@ -804,6 +808,10 @@ function clearForm() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('effectiveStartDate').value = today;
     document.getElementById('effectiveEndDate').value = '';
+
+    // Hide record dates for new exercises (they don't exist yet)
+    const datesGroup = document.getElementById('exerciseDatesGroup');
+    if (datesGroup) datesGroup.classList.add('hidden');
 
     // Clear tag arrays
     requiredEquipment = [];
