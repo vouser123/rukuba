@@ -819,10 +819,10 @@ function loadExerciseForEdit() {
     if (supersededDateEl) supersededDateEl.value = exercise.superseded_date || '';
 
     const addedDateEl = document.getElementById('addedDate');
-    if (addedDateEl) addedDateEl.value = exercise.added_date || '';
+    if (addedDateEl) addedDateEl.value = toDateInput(exercise.added_date);
 
     const updatedDateEl = document.getElementById('updatedDate');
-    if (updatedDateEl) updatedDateEl.value = exercise.updated_date || '';
+    if (updatedDateEl) updatedDateEl.value = toDateInput(exercise.updated_date);
 
     // Update buttons
     document.querySelector('#exerciseForm button[type="submit"]').textContent = 'Update Exercise';
@@ -1348,6 +1348,13 @@ function generateExerciseId(name) {
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .trim();
+}
+
+function toDateInput(value) {
+    if (!value) return '';
+    const d = new Date(value);
+    if (isNaN(d)) return '';
+    return d.toISOString().split('T')[0];
 }
 
 function escapeHtml(text) {
