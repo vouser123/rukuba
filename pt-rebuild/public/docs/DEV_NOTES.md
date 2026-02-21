@@ -3,7 +3,7 @@
 This file summarizes notable rebuild milestones for the public docs bundle.
 For internal development history, see `/pt-rebuild/DEV_NOTES.md`.
 
-## 2026-02-21
+## 2026-02-19
 
 ### Exercise Date Fields Not Showing When Editing (pt_editor)
 
