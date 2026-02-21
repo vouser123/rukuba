@@ -1452,7 +1452,11 @@
                 <!-- Messages loaded here -->
             </div>
             <div style="border-top: 1px solid #ddd; padding-top: 1rem;">
-                <textarea id="newMessageText" placeholder="Write a message to your PT..." style="width: 100%; min-height: 80px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; resize: vertical; margin-bottom: 12px;"></textarea>
+                <textarea id="newMessageText" placeholder="Write a message to your PT..." style="width: 100%; min-height: 80px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 16px; resize: vertical; margin-bottom: 12px;"></textarea>
+                <div id="notifyToggleRow" style="display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:15px; color:#555;">
+                    <input type="checkbox" id="emailNotifyToggle" data-action="toggle-email-notify" style="cursor:pointer; width:18px; height:18px; flex-shrink:0;">
+                    <label for="emailNotifyToggle" style="cursor:pointer;">Notify me by email when I receive messages</label>
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" data-action="close-messages-modal">Cancel</button>
                     <button type="button" class="btn" data-action="send-message">Send</button>
@@ -1533,6 +1537,7 @@
         let currentUserProfileId = null;
         let therapistId = null; // Patient's assigned therapist for messaging
         let viewingPatientId = null; // Patient whose data we're viewing (for therapists)
+        let currentEmailNotifyEnabled = true; // Mirrors users.email_notifications_enabled for toggle UI
         let allExercises = [];
         let allHistory = []; // All activity logs for smart dropdowns
         let currentExercise = null;
@@ -1835,6 +1840,11 @@
                         console.warn('Could not find current user in users list');
                         throw new Error('User not found');
                     }
+
+                    // Sync email notification toggle state from user profile
+                    currentEmailNotifyEnabled = me.email_notifications_enabled !== false;
+                    const notifyToggle = document.getElementById('emailNotifyToggle');
+                    if (notifyToggle) notifyToggle.checked = currentEmailNotifyEnabled;
 
                     // Helper to get display name
                     const getDisplayName = (user) => {
@@ -3695,6 +3705,11 @@ ${queueData}
 
             toggleHamburger(); // Close menu
             document.getElementById('messagesModal').classList.remove('hidden');
+
+            // Sync notification toggle to current preference each time modal opens
+            const notifyToggle = document.getElementById('emailNotifyToggle');
+            if (notifyToggle) notifyToggle.checked = currentEmailNotifyEnabled;
+
             await loadMessages();
 
             // Mark messages as read (locally + server-side)
@@ -3784,9 +3799,9 @@ ${queueData}
                     if (isFromPatient) {
                         if (msg.read_at) {
                             const readTime = formatMessageDateTime(new Date(msg.read_at));
-                            readReceipt = `<span style="font-size: 11px; color: #28a745;">Read ${readTime}</span>`;
+                            readReceipt = `<span style="font-size: 13px; color: #28a745;">Read ${readTime}</span>`;
                         } else {
-                            readReceipt = `<span style="font-size: 11px; color: #aaa;">Delivered</span>`;
+                            readReceipt = `<span style="font-size: 13px; color: #aaa;">Delivered</span>`;
                         }
                     }
 
@@ -3799,16 +3814,16 @@ ${queueData}
                             background: ${isFromPatient ? '#f0fff0' : '#f0f7ff'};
                         ">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <span style="font-weight: 600; font-size: 13px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
+                                <span style="font-weight: 600; font-size: 15px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
                                     ${isFromPatient ? 'You → PT' : 'PT → You'}
                                 </span>
-                                <span style="font-size: 11px; color: #888;">${sentDateTime}</span>
+                                <span style="font-size: 13px; color: #888;">${sentDateTime}</span>
                             </div>
-                            <div style="font-size: 14px; color: #333; white-space: pre-wrap;">${escapeHtml(msg.body)}</div>
+                            <div style="font-size: 16px; color: #333; white-space: pre-wrap;">${escapeHtml(msg.body)}</div>
                             <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
                                 <div style="display: flex; gap: 8px;">
-                                    <button data-action="archive-message" data-id="${msg.id}" style="background: transparent; border: none; color: #888; cursor: pointer; padding: 4px 8px; font-size: 11px;">Hide</button>
-                                    ${canUndo ? `<button data-action="undo-send-message" data-id="${msg.id}" style="background: transparent; border: none; color: #dc3545; cursor: pointer; padding: 4px 8px; font-size: 11px;">Undo Send</button>` : ''}
+                                    <button data-action="archive-message" data-id="${msg.id}" style="background: transparent; border: none; color: #888; cursor: pointer; padding: 4px 8px; font-size: 13px;">Hide</button>
+                                    ${canUndo ? `<button data-action="undo-send-message" data-id="${msg.id}" style="background: transparent; border: none; color: #dc3545; cursor: pointer; padding: 4px 8px; font-size: 13px;">Undo Send</button>` : ''}
                                 </div>
                                 ${readReceipt}
                             </div>
@@ -3821,6 +3836,33 @@ ${queueData}
             } catch (error) {
                 console.error('Error loading messages:', error);
                 messagesList.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 2rem;">Failed to load messages</div>';
+            }
+        }
+
+        /**
+         * Toggle email notification preference for current user.
+         * Calls PATCH /api/users with { email_notifications_enabled: boolean }.
+         * Reverts the checkbox on failure and shows a toast.
+         *
+         * Note: checkbox `change` event is reliable on iOS Safari — no pointerup needed for checkboxes.
+         *
+         * @param {boolean} enabled - The new preference value
+         */
+        async function toggleEmailNotifications(enabled) {
+            try {
+                await fetchWithAuth('/api/users', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email_notifications_enabled: enabled })
+                });
+                currentEmailNotifyEnabled = enabled;
+                showToast(enabled ? 'Email notifications enabled' : 'Email notifications turned off');
+            } catch (e) {
+                console.error('Failed to update notification preference:', e);
+                showToast('Failed to update notification preference', 'error');
+                // Revert checkbox to previous state on failure
+                const toggle = document.getElementById('emailNotifyToggle');
+                if (toggle) toggle.checked = !enabled;
             }
         }
 
@@ -4877,6 +4919,14 @@ ${queueData}
                     case 'delete-edit-session-set':
                         deleteEditSessionSet(parseInt(target.dataset.setIndex));
                         break;
+                }
+            });
+
+            // Checkbox `change` event is reliable on iOS Safari (unlike pointerup for checkboxes).
+            // Listen on document for delegation since the checkbox is in a modal.
+            document.addEventListener('change', (e) => {
+                if (e.target.dataset.action === 'toggle-email-notify') {
+                    toggleEmailNotifications(e.target.checked);
                 }
             });
         }

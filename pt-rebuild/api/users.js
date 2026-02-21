@@ -1,10 +1,14 @@
 /**
- * Users API - Get list of users
+ * Users API
  *
- * Returns users based on role:
- * - Patients: see only themselves
- * - Therapists: see themselves and their assigned patients
- * - Admins: see all users
+ * GET  /api/users — Returns users based on role:
+ *   - Patients: see only themselves
+ *   - Therapists: see themselves and their assigned patients
+ *   - Admins: see all users
+ *
+ * PATCH /api/users — Update own profile preferences.
+ *   Allowed fields: email_notifications_enabled (boolean only)
+ *   Users can only update their own record.
  */
 
 import { getSupabaseAdmin, getSupabaseWithAuth } from '../lib/db.js';
@@ -20,7 +24,7 @@ async function getUsers(req, res) {
   try {
     const { data: allUsers, error } = await supabaseAdmin
       .from('users')
-      .select('id, auth_id, email, role, therapist_id, first_name, last_name, created_at')
+      .select('id, auth_id, email, role, therapist_id, first_name, last_name, created_at, email_notifications_enabled')
       .order('email');
 
     if (error) throw error;
@@ -54,4 +58,45 @@ async function getUsers(req, res) {
   }
 }
 
-export default requireAuth(getUsers);
+/**
+ * PATCH /api/users — Update own notification preferences.
+ *
+ * Only accepts: { email_notifications_enabled: boolean }
+ * Always scoped to req.user.id — cannot update other users' records.
+ *
+ * @param {import('../lib/auth.js').AuthedRequest} req
+ * @param {import('express').Response} res
+ */
+async function updateUser(req, res) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const { email_notifications_enabled } = req.body;
+
+  // Validate — only boolean accepted; reject any other type
+  if (typeof email_notifications_enabled !== 'boolean') {
+    return res.status(400).json({ error: 'Invalid value for email_notifications_enabled — must be boolean' });
+  }
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ email_notifications_enabled })
+      .eq('id', req.user.id);
+
+    if (error) throw error;
+
+    return res.status(200).json({ updated: true });
+
+  } catch (error) {
+    console.error('Error updating user preferences:', error);
+    return res.status(500).json({
+      error: 'Failed to update preferences',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+export default async function handler(req, res) {
+  if (req.method === 'GET') return requireAuth(getUsers)(req, res);
+  if (req.method === 'PATCH') return requireAuth(updateUser)(req, res);
+  return res.status(405).json({ error: 'Method not allowed' });
+}
