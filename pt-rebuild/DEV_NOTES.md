@@ -121,7 +121,18 @@ All changes are low-risk, non-breaking hardening. Medium/high-risk items deferre
 
 ## 2026-02-21
 
-- **2026-02-21** — **Exercise date fields missing from pt_editor edit view.** **Problem:** When selecting an exercise to edit, Added Date and Last Updated fields were always blank despite data existing in the database. **Root causes (two bugs):** (1) Missing HTML elements — the JS tried to populate `#addedDate` and `#updatedDate` inputs but those elements didn't exist in the HTML. The optional chaining (`if (addedDateEl)`) silently skipped them. (2) ISO timestamp vs date input format — the DB stores full ISO timestamps (`2026-01-15T12:34:56.000Z`) but `<input type="date">` requires `YYYY-MM-DD`. The browser silently rejects mismatched formats. **What I did:** (1) Added `#addedDate` and `#updatedDate` readonly inputs to the Lifecycle & Status section, hidden for new exercises, shown when editing. (2) Added `toDateInput()` helper to strip the time portion from ISO timestamps. (3) Fixed lifecycle field mapping — the API returns lifecycle data nested (`exercise.lifecycle.status`) but the JS was referencing flat paths (`exercise.lifecycle_status`), so effective start/end dates also never populated when editing. **Files:** `pt-rebuild/public/pt_editor.html`, `pt-rebuild/public/js/pt_editor.js`.
+### Exercise Date Fields Not Showing When Editing (pt_editor)
+
+- **Problem:** When selecting an exercise to edit, the Added Date and Last Updated fields were always blank despite data existing in the database.
+- **Root causes (two bugs):**
+  1. The JS tried to populate `#addedDate` and `#updatedDate` inputs, but those HTML elements didn't exist. The optional chaining (`if (addedDateEl)`) silently skipped them.
+  2. The DB stores full ISO timestamps (`2026-01-15T12:34:56.000Z`) but `<input type="date">` requires `YYYY-MM-DD`. The browser silently rejects mismatched formats.
+- **What I did:**
+  - Added `#addedDate` and `#updatedDate` readonly inputs to the Lifecycle & Status section, hidden for new exercises, shown when editing
+  - Added `toDateInput()` helper to strip the time portion from ISO timestamps
+  - Fixed lifecycle field mapping: the API returns lifecycle data nested (`exercise.lifecycle.status`) but the JS was referencing flat paths (`exercise.lifecycle_status`), so effective start/end dates also never populated
+
+---
 
 ### Reference: Live DB vs Repo Schema
 
