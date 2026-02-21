@@ -10,6 +10,7 @@ This file is the canonical development history for the Supabase/Vercel PT rebuil
 - [Tag Vocabulary](#tag-vocabulary)
 - [Entry Schema](#entry-schema)
 - [Migration Approach](#migration-approach)
+- [Activity Log Testing Checklist](#activity-log-testing-checklist)
 - [Open Items](#open-items)
 - [Dated Entries](#dated-entries)
 - [Legacy Entries (Pre-Format)](#legacy-entries-pre-format)
@@ -68,6 +69,60 @@ Use this exact field order for all new dated entries:
 - Active TODOs were normalized first in `Open Items`.
 - Convert legacy entries to the new schema only when touched.
 
+## Activity Log Testing Checklist
+
+When modifying any part of the activity log flow (`createActivityLog`, `updateActivityLog`, `processActivityLog`, `create_activity_log_atomic`), test all of the following variable combinations. Skipping any of these has caused regressions.
+
+### Exercise type variables
+- Exercise **with** form parameters (e.g. Theraband Row — has resistance/color form param)
+- Exercise **without** form parameters (e.g. Ankle Inversion — Isometric — form_data is null in payload)
+- Exercise with pattern modifier only (duration_seconds or hold_seconds — not form_data)
+- Exercise with distance_feet set
+- Exercise with reps only (no seconds, no distance)
+
+### Set variables
+- Single set
+- Multiple sets (3+) — test that form data ends up on the correct set_number, not shifted
+- Sets with different form_data per set (e.g. set 1: band=blue, set 2: band=red) — verifies DN-004 fix
+- Sets where set_number is not contiguous (e.g. 1, 3, 5 — edit flow)
+
+### Side variables
+- `side = null` (exercises that do not track side)
+- `side = 'left'`
+- `side = 'right'`
+- `side = 'both'`
+
+### Log path variables
+- Online, direct POST to `/api/logs` (createActivityLog)
+- Offline, queued to localStorage then synced via `syncOfflineQueue` → POST to `/api/logs` (same endpoint, different entry point)
+- Edit/update via PATCH to `/api/logs/:id` (updateActivityLog)
+- Sync path via POST to `/api/sync` (processActivityLog) — reachable endpoint, tests separately
+
+### Idempotency
+- POST same `client_mutation_id` twice — must return 409, no duplicate rows
+- Confirm exactly one row in `patient_activity_logs` for the mutation ID after double-post
+
+### DB verification query (paste into Supabase SQL editor)
+```sql
+SELECT
+  l.id AS log_id,
+  l.exercise_name,
+  s.set_number,
+  s.reps,
+  s.seconds,
+  s.distance_feet,
+  s.side,
+  s.manual_log,
+  f.parameter_name,
+  f.parameter_value,
+  f.parameter_unit
+FROM patient_activity_logs l
+LEFT JOIN patient_activity_sets s ON s.activity_log_id = l.id
+LEFT JOIN patient_activity_set_form_data f ON f.activity_set_id = s.id
+WHERE l.patient_id = '35c3ec8d-...'  -- replace with real patient UUID
+ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
+```
+
 ## Open Items
 - [x] DN-001 | status:done | priority:P0 | risk:medium | tags:[security,supabase,api,auth] | file:pt-rebuild/api/sync.js | issue:Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client. | resolved:2026-02-20
 - [x] DN-002 | status:done | priority:P0 | risk:medium | tags:[security,api,auth] | file:pt-rebuild/api/logs.js | issue:Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller. | resolved:2026-02-20
@@ -117,9 +172,6 @@ Use this exact field order for all new dated entries:
 - [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
-- [ ] DN-019 | status:open | priority:P2 | risk:low | tags:[pwa,reliability,offline] | file:pt-rebuild/public/sw.js | issue:Service worker tries to cache POST responses, which is unsupported by the Cache API — logs `TypeError: Failed to execute 'put' on 'Cache': Request method 'POST' is unsupported` on every activity log save.
-  - Context: The fetch handler in sw.js caches all successful responses regardless of method. POST requests cannot be cached. Error is silent to the user but noisy in the console and wastes a cache.open() call on every log.
-  - Constraints/Caveats: Fix is to check `request.method === 'GET'` before attempting to cache. Low risk change but must not break offline GET caching behavior.
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
