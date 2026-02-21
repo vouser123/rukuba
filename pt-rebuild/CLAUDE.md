@@ -8,7 +8,7 @@ This folder contains the Supabase/Vercel rebuild of the PT tracker app.
 |----------|---------|
 | `/pt-rebuild/public/docs/DEVELOPMENT.md` | Architecture reference, API endpoints, data models |
 | `/pt-rebuild/public/docs/DEV_PRACTICES.md` | Day-to-day workflows, troubleshooting |
-| `/pt-rebuild/public/docs/DEV_NOTES.md` | Dated updates and milestones - **add notes here after changes** |
+| `/pt-rebuild/DEV_NOTES.md` | Dated updates and milestones - **add notes here after changes** |
 | `/pt-rebuild/public/docs/vocabularies.md` | Controlled vocabulary for field names |
 | `/pt-rebuild/agent.md` | Brief operational guidance |
 
