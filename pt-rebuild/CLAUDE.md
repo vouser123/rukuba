@@ -18,7 +18,7 @@ Operational rules and required final steps are in `pt-rebuild/AGENTS.md` — fol
 
 ## Required Dev-Tracking Rules
 
-- JSON is canonical: update `docs/dev_notes.json` directly.
+- JSON is canonical: `docs/dev_notes.json` is the only hand-edited dev-tracking file.
 - Markdown is generated: run `npm run dev-notes:build` after JSON changes.
 - Drift check is required before handoff: `npm run dev-notes:check`.
 - Lifecycle is mandatory: **intake → execute → close-loop**.

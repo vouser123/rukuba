@@ -22,41 +22,41 @@ This file is generated from `docs/dev_notes.json`. Do not hand-edit this Markdow
 - Close-loop rule: when an item is resolved, remove/resolve it in `open_items` and add a dated entry linked to the issue ID.
 
 ## Priority Levels
-- `P0`
-- `P1`
-- `P2`
-- `P3`
+- `P0`: Critical: production-breaking or patient-safety/security risk; address immediately.
+- `P1`: High: major functionality degraded or high regression risk; schedule next.
+- `P2`: Normal: meaningful improvement or bugfix; prioritize with roadmap context.
+- `P3`: Low: polish, cleanup, or non-urgent enhancement.
 
 ## Risk Levels
-- `high`
-- `medium`
-- `low`
+- `high`: Likely to cause data loss, auth bypass, or severe workflow failure if wrong.
+- `medium`: Could disrupt workflows or require manual recovery; moderate blast radius.
+- `low`: Limited impact; straightforward rollback/recovery expected.
 
 ## Status Values
-- `open`
-- `in_progress`
-- `blocked`
-- `done`
+- `open`: Tracked and ready for intake/execution.
+- `in_progress`: Actively being implemented or investigated.
+- `blocked`: Cannot proceed pending dependency/decision/access.
+- `done`: Completed and close-looped with dated entry.
 
 ## Tag Vocabulary
-- `ui`
-- `ios`
-- `pwa`
-- `offline`
-- `supabase`
-- `auth`
-- `sync`
-- `data-model`
-- `api`
-- `performance`
-- `reliability`
-- `security`
-- `migration`
-- `docs`
-- `cleanup`
-- `email`
-- `lcp`
-- `notifications`
+- `ui`: Interface/UX behavior and rendering.
+- `ios`: Apple device or Safari-specific behavior.
+- `pwa`: Progressive web app install/offline shell concerns.
+- `offline`: Offline queueing/sync and local persistence paths.
+- `supabase`: Supabase platform, SQL, RLS, or client usage.
+- `auth`: Authentication/authorization concerns.
+- `sync`: Sync pipeline and idempotent mutation handling.
+- `data-model`: Schema, relationships, or record-shape correctness.
+- `api`: Serverless endpoint logic and request/response behavior.
+- `performance`: Latency, throughput, or resource-usage optimization.
+- `reliability`: Fault tolerance, retries, and consistency guarantees.
+- `security`: Access control, privacy, and exploit prevention.
+- `migration`: Database/data migration planning and execution.
+- `docs`: Documentation or workflow process updates.
+- `cleanup`: Refactors, debt paydown, and housekeeping.
+- `email`: Notification or email delivery behavior.
+- `lcp`: Largest Contentful Paint and first-render metrics.
+- `notifications`: In-app or push notification behavior.
 
 ## Entry Schema
 Use this exact field order for all new dated entries:
