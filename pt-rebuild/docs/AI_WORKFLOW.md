@@ -1,7 +1,7 @@
 # AI Workflow for Dev Tracking (`pt-rebuild`)
 
 This workflow defines how agents (Codex/Claude) must track work using:
-- Canonical source: `docs/dev_notes.json`
+- Canonical source: `docs/dev_notes.json` (only hand-edited dev-tracking file)
 - Generated artifact: `docs/DEV_NOTES.md`
 
 ## 1) Intake

@@ -22,41 +22,41 @@ This file is generated from `docs/dev_notes.json`. Do not hand-edit this Markdow
 - Close-loop rule: when an item is resolved, remove/resolve it in `open_items` and add a dated entry linked to the issue ID.
 
 ## Priority Levels
-- `P0`
-- `P1`
-- `P2`
-- `P3`
+- `P0`: Critical: production-breaking or patient-safety/security risk; address immediately.
+- `P1`: High: major functionality degraded or high regression risk; schedule next.
+- `P2`: Normal: meaningful improvement or bugfix; prioritize with roadmap context.
+- `P3`: Low: polish, cleanup, or non-urgent enhancement.
 
 ## Risk Levels
-- `high`
-- `medium`
-- `low`
+- `high`: Likely to cause data loss, auth bypass, or severe workflow failure if wrong.
+- `medium`: Could disrupt workflows or require manual recovery; moderate blast radius.
+- `low`: Limited impact; straightforward rollback/recovery expected.
 
 ## Status Values
-- `open`
-- `in_progress`
-- `blocked`
-- `done`
+- `open`: Tracked and ready for intake/execution.
+- `in_progress`: Actively being implemented or investigated.
+- `blocked`: Cannot proceed pending dependency/decision/access.
+- `done`: Completed and close-looped with dated entry.
 
 ## Tag Vocabulary
-- `ui`
-- `ios`
-- `pwa`
-- `offline`
-- `supabase`
-- `auth`
-- `sync`
-- `data-model`
-- `api`
-- `performance`
-- `reliability`
-- `security`
-- `migration`
-- `docs`
-- `cleanup`
-- `email`
-- `lcp`
-- `notifications`
+- `ui`: Interface/UX behavior and rendering.
+- `ios`: Apple device or Safari-specific behavior.
+- `pwa`: Progressive web app install/offline shell concerns.
+- `offline`: Offline queueing/sync and local persistence paths.
+- `supabase`: Supabase platform, SQL, RLS, or client usage.
+- `auth`: Authentication/authorization concerns.
+- `sync`: Sync pipeline and idempotent mutation handling.
+- `data-model`: Schema, relationships, or record-shape correctness.
+- `api`: Serverless endpoint logic and request/response behavior.
+- `performance`: Latency, throughput, or resource-usage optimization.
+- `reliability`: Fault tolerance, retries, and consistency guarantees.
+- `security`: Access control, privacy, and exploit prevention.
+- `migration`: Database/data migration planning and execution.
+- `docs`: Documentation or workflow process updates.
+- `cleanup`: Refactors, debt paydown, and housekeeping.
+- `email`: Notification or email delivery behavior.
+- `lcp`: Largest Contentful Paint and first-render metrics.
+- `notifications`: In-app or push notification behavior.
 
 ## Entry Schema
 Use this exact field order for all new dated entries:
@@ -189,11 +189,23 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
 - [x] DN-023 | status:done | priority:P2 | risk:low | tags:[docs,reliability] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md | issue:Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion. | resolved:2026-02-22
+- [x] DN-024 | status:done | priority:P3 | risk:low | tags:[docs] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md | issue:Confirm follow-up dev-tracking for JSON-canonical migration review and record validation commands run. | resolved:2026-02-22
+  - Context: Follow-up request asked whether a dev note was added and whether required generator commands were run.
+  - Constraints/Caveats: Keep tracking in canonical JSON and regenerate Markdown artifact only via script.
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-22
+
+### 2026-02-22 — DN-024 follow-up dev note and validation confirmation
+- Problem: Review follow-up asked for explicit confirmation that dev-tracking was updated and required commands were executed.
+- Root cause: Previous change set did not include a dedicated dated entry explicitly documenting this follow-up verification step.
+- Change made: Added DN-024 in `open_items` as resolved and added this dated entry to close-loop the follow-up request while preserving existing DN sequence and history.
+- Files touched: `pt-rebuild/docs/dev_notes.json`, `pt-rebuild/docs/DEV_NOTES.md`
+- Validation: Ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully after updating canonical JSON.
+- Follow-ups: None.
+- Tags: [docs]
 
 ### 2026-02-22 — DN-023: Documented intake→execute→close-loop completion for dev-notes migration follow-up
 - Problem: Review follow-up asked whether the migration work actually followed the required lifecycle and requested explicit create/close tracking in dev notes.

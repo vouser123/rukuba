@@ -4,6 +4,7 @@ import process from 'node:process';
 
 const rootDir = path.resolve(process.cwd());
 const jsonPath = path.join(rootDir, 'docs', 'dev_notes.json');
+const schemaPath = path.join(rootDir, 'docs', 'dev_notes.schema.json');
 const markdownPath = path.join(rootDir, 'docs', 'DEV_NOTES.md');
 const checkMode = process.argv.includes('--check');
 
@@ -23,40 +24,70 @@ function fail(message) {
   process.exit(1);
 }
 
-function readJson() {
-  if (!fs.existsSync(jsonPath)) {
-    fail(`Missing canonical JSON file at ${jsonPath}`);
+function readJson(filePath, label) {
+  if (!fs.existsSync(filePath)) {
+    fail(`Missing ${label} file at ${filePath}`);
   }
 
   try {
-    return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
-    fail(`Invalid JSON: ${error.message}`);
+    fail(`Invalid ${label} JSON: ${error.message}`);
   }
 }
 
-function validate(data) {
+function getEnumValues(enumEntries, key) {
+  if (!Array.isArray(enumEntries) || enumEntries.length === 0) {
+    fail(`enums.${key} must be a non-empty array.`);
+  }
+
+  const values = [];
+
+  for (const entry of enumEntries) {
+    if (!entry || typeof entry !== 'object' || !entry.value || !entry.definition) {
+      fail(`enums.${key} entries must include { value, definition }.`);
+    }
+    values.push(entry.value);
+  }
+
+  return values;
+}
+
+function validateAgainstSchema(data, schema) {
+  if (!schema || typeof schema !== 'object') {
+    fail('Schema file must contain a JSON object.');
+  }
+
+  const requiredRoot = schema.required ?? [];
+  for (const key of requiredRoot) {
+    if (!(key in data)) {
+      fail(`Schema validation failed: missing root key '${key}'.`);
+    }
+  }
+
+  if (schema.properties?.metadata?.required) {
+    for (const key of schema.properties.metadata.required) {
+      if (!(key in (data.metadata ?? {}))) {
+        fail(`Schema validation failed: missing metadata.${key}.`);
+      }
+    }
+  }
+
+  if (schema.properties?.enums?.required) {
+    for (const key of schema.properties.enums.required) {
+      if (!(key in (data.enums ?? {}))) {
+        fail(`Schema validation failed: missing enums.${key}.`);
+      }
+    }
+  }
+}
+
+function validate(data, schema) {
   if (!data || typeof data !== 'object') {
     fail('Root JSON object is required.');
   }
 
-  if (!data.metadata || typeof data.metadata !== 'object') {
-    fail('metadata object is required.');
-  }
-
-  if (!data.metadata.schema_version || !data.metadata.last_updated) {
-    fail('metadata.schema_version and metadata.last_updated are required.');
-  }
-
-  if (!data.enums || typeof data.enums !== 'object') {
-    fail('enums object is required.');
-  }
-
-  for (const key of REQUIRED_ENUM_KEYS) {
-    if (!Array.isArray(data.enums[key]) || data.enums[key].length === 0) {
-      fail(`enums.${key} must be a non-empty array.`);
-    }
-  }
+  validateAgainstSchema(data, schema);
 
   if (!Array.isArray(data.open_items)) {
     fail('open_items array is required.');
@@ -66,7 +97,16 @@ function validate(data) {
     fail('dated_entries array is required.');
   }
 
-  const { priority_levels: priorities, risk_levels: risks, status_values: statuses, tag_vocabulary: tags } = data.enums;
+  const priorities = getEnumValues(data.enums.priority_levels, 'priority_levels');
+  const risks = getEnumValues(data.enums.risk_levels, 'risk_levels');
+  const statuses = getEnumValues(data.enums.status_values, 'status_values');
+  const tags = getEnumValues(data.enums.tag_vocabulary, 'tag_vocabulary');
+
+  for (const key of REQUIRED_ENUM_KEYS) {
+    if (!Array.isArray(data.enums[key]) || data.enums[key].length === 0) {
+      fail(`enums.${key} must be a non-empty array.`);
+    }
+  }
 
   for (const item of data.open_items) {
     if (!item.id || !item.status || !item.priority || !item.risk || !Array.isArray(item.tags) || !item.file || !item.issue) {
@@ -109,6 +149,10 @@ function validate(data) {
       }
     }
   }
+}
+
+function renderEnumSection(entries) {
+  return entries.map((entry) => `- \`${entry.value}\`: ${entry.definition}`).join('\n');
 }
 
 function renderOpenItem(item) {
@@ -178,16 +222,16 @@ This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markd
 - Close-loop rule: when an item is resolved, remove/resolve it in \`open_items\` and add a dated entry linked to the issue ID.
 
 ## Priority Levels
-${data.enums.priority_levels.map((value) => `- \`${value}\``).join('\n')}
+${renderEnumSection(data.enums.priority_levels)}
 
 ## Risk Levels
-${data.enums.risk_levels.map((value) => `- \`${value}\``).join('\n')}
+${renderEnumSection(data.enums.risk_levels)}
 
 ## Status Values
-${data.enums.status_values.map((value) => `- \`${value}\``).join('\n')}
+${renderEnumSection(data.enums.status_values)}
 
 ## Tag Vocabulary
-${data.enums.tag_vocabulary.map((value) => `- \`${value}\``).join('\n')}
+${renderEnumSection(data.enums.tag_vocabulary)}
 
 ## Entry Schema
 Use this exact field order for all new dated entries:
@@ -218,8 +262,9 @@ ${legacy}
 `.trimEnd() + '\n';
 }
 
-const data = readJson();
-validate(data);
+const schema = readJson(schemaPath, 'schema');
+const data = readJson(jsonPath, 'canonical');
+validate(data, schema);
 const markdown = buildMarkdown(data);
 
 if (checkMode) {

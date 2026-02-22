@@ -27,7 +27,7 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 
 ## Dev Notes Workflow (Required)
 
-- Canonical tracking file: `pt-rebuild/docs/dev_notes.json`.
+- Canonical tracking file: `pt-rebuild/docs/dev_notes.json` (the only hand-edited dev-tracking file).
 - Generated artifact: `pt-rebuild/docs/DEV_NOTES.md` (never hand-edit).
 - After any change to dev notes JSON, run `npm run dev-notes:build`.
 - Before finishing, run `npm run dev-notes:check` to ensure no drift.
