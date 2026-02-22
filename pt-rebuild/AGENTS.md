@@ -7,6 +7,8 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/docs/DEVELOPMENT.md` - architecture and implementation reference
 - `pt-rebuild/docs/DEV_PRACTICES.md` - day-to-day workflow and troubleshooting
 - `pt-rebuild/docs/vocabularies.md` - canonical field names and data contracts
+- `pt-rebuild/docs/dev_notes.json` - canonical development tracking log (source of truth)
+- `pt-rebuild/docs/AI_WORKFLOW.md` - required intake/execute/close-loop workflow
 
 ## Core Rules
 
@@ -23,23 +25,23 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - Include `-webkit-tap-highlight-color: transparent` on buttons.
 - Minimum touch target size: 44px (Apple HIG).
 
-## Required Final Step
+## Dev Notes Workflow (Required)
 
-Before reporting any fix/feature/behavior change as complete, append a dated note to:
+- Canonical tracking file: `pt-rebuild/docs/dev_notes.json`.
+- Generated artifact: `pt-rebuild/docs/DEV_NOTES.md` (never hand-edit).
+- After any change to dev notes JSON, run `npm run dev-notes:build`.
+- Before finishing, run `npm run dev-notes:check` to ensure no drift.
 
-- `pt-rebuild/docs/DEV_NOTES.md`
+### Lifecycle enforcement: intake → execute → close-loop
 
-Use the `Entry Schema` in `DEV_NOTES.md` for new dated entries:
-
-- `Problem:`
-- `Root cause:`
-- `Change made:`
-- `Files touched:`
-- `Validation:`
-- `Follow-ups:`
-- `Tags: [...]`
-
-If the change resolves an outstanding item, update `Open Items` in `DEV_NOTES.md` (close-loop: remove resolved item and reference the dated entry).
+1. **Intake**
+   - For every request, check whether work already exists in `open_items`.
+   - If user asks for ad-hoc work not already tracked, create a new issue ID (`DN-###`, next available number) in `open_items` before execution or at the start of execution.
+2. **Execute**
+   - Keep status/notes current in `open_items` while work is active.
+3. **Close-loop**
+   - When resolved, remove/resolve from `open_items` and add a `dated_entries` record using the required field order (`Problem`, `Root cause`, `Change made`, `Files touched`, `Validation`, `Follow-ups`, `Tags`).
+   - Regenerate Markdown after JSON edits.
 
 ## Change Hygiene
 
