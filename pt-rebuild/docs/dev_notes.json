@@ -407,9 +407,37 @@
       "checkbox": "open",
       "context": "Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.",
       "constraints_caveats": "Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows."
+    },
+    {
+      "id": "DN-023",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "tags": [
+        "docs",
+        "reliability"
+      ],
+      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md",
+      "issue": "Follow-up review requested explicit intake\u2192execute\u2192close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion.",
+      "resolved": "2026-02-22",
+      "checkbox": "done"
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-22",
+      "title": "2026-02-22 \u2014 DN-023: Documented intake\u2192execute\u2192close-loop completion for dev-notes migration follow-up",
+      "problem": "Review follow-up asked whether the migration work actually followed the required lifecycle and requested explicit create/close tracking in dev notes.",
+      "root_cause": "The prior change migrated formats and guidance but did not include a dedicated DN issue closure entry proving the lifecycle was executed for the migration request itself.",
+      "change_made": "Added DN-023 as a tracked and resolved issue in canonical JSON and added this dated entry to close the loop, then regenerated DEV_NOTES.md via the generator.",
+      "files_touched": "pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md",
+      "validation": "Ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully; markdown is synchronized with canonical JSON.",
+      "follow_ups": "None.",
+      "tags": [
+        "docs",
+        "reliability"
+      ]
+    },
     {
       "date": "2026-02-21",
       "title": "2026-02-21 \u2014 Regression: exercises without form data failed to log (500) after RPC migration",

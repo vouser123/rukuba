@@ -188,9 +188,21 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
+- [x] DN-023 | status:done | priority:P2 | risk:low | tags:[docs,reliability] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md | issue:Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion. | resolved:2026-02-22
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
+
+## 2026-02-22
+
+### 2026-02-22 — DN-023: Documented intake→execute→close-loop completion for dev-notes migration follow-up
+- Problem: Review follow-up asked whether the migration work actually followed the required lifecycle and requested explicit create/close tracking in dev notes.
+- Root cause: The prior change migrated formats and guidance but did not include a dedicated DN issue closure entry proving the lifecycle was executed for the migration request itself.
+- Change made: Added DN-023 as a tracked and resolved issue in canonical JSON and added this dated entry to close the loop, then regenerated DEV_NOTES.md via the generator.
+- Files touched: pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md
+- Validation: Ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully; markdown is synchronized with canonical JSON.
+- Follow-ups: None.
+- Tags: [docs,reliability]
 
 ## 2026-02-21
 
