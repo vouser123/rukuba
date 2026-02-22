@@ -10,9 +10,20 @@ Operational rules and required final steps are in `pt-rebuild/AGENTS.md` — fol
 |----------|---------|
 | `/pt-rebuild/docs/DEVELOPMENT.md` | Architecture reference, API endpoints, data models |
 | `/pt-rebuild/docs/DEV_PRACTICES.md` | Day-to-day workflows, troubleshooting |
-| `/pt-rebuild/docs/DEV_NOTES.md` | Canonical ops log (`Open Items` + dated entries) |
+| `/pt-rebuild/docs/dev_notes.json` | Canonical ops log source (`open_items` + `dated_entries`) |
+| `/pt-rebuild/docs/DEV_NOTES.md` | Generated dev log artifact (do not hand-edit) |
+| `/pt-rebuild/docs/AI_WORKFLOW.md` | Intake → execute → close-loop workflow for agents |
 | `/pt-rebuild/docs/vocabularies.md` | Controlled vocabulary for field names |
 | `/pt-rebuild/AGENTS.md` | Canonical operational guidance for all agents |
+
+## Required Dev-Tracking Rules
+
+- JSON is canonical: update `docs/dev_notes.json` directly.
+- Markdown is generated: run `npm run dev-notes:build` after JSON changes.
+- Drift check is required before handoff: `npm run dev-notes:check`.
+- Lifecycle is mandatory: **intake → execute → close-loop**.
+  - Intake rule for ad-hoc requests: if work is not already tracked, create a new `DN-###` item in `open_items` before or at start of execution.
+  - Close-loop rule: when resolved, remove/resolve from `open_items` and add a `dated_entries` record using required field order.
 
 ## File Structure
 
@@ -21,13 +32,3 @@ Operational rules and required final steps are in `pt-rebuild/AGENTS.md` — fol
 - `/pt-rebuild/public/js/pt_editor.js` - Exercise program editor
 - `/pt-rebuild/api/` - Vercel serverless functions (9 files, at free-tier limit — do not add new files)
 - `/pt-rebuild/lib/` - Shared utilities and Supabase client
-
-## Data Model
-
-- **patient_programs** - Exercise assignments with dosage (sets, reps, seconds)
-- **patient_activity_logs** - Session logs with sets array (performed_at, sets[], notes)
-- **clinical_messages** - PT-patient messaging (served via logs.js API)
-
-## Open Work
-
-See `pt-rebuild/docs/DEV_NOTES.md` under `Open Items` for all tracked issues with priority, risk, context, and constraints.

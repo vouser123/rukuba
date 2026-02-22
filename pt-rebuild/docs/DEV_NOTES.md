@@ -1,6 +1,6 @@
 # PT Tracker Rebuild - Public Dev Notes
 
-This file is the canonical development history for the Supabase/Vercel PT rebuild.
+This file is generated from `docs/dev_notes.json`. Do not hand-edit this Markdown.
 
 ## Table of Contents
 - [How to Use This File](#how-to-use-this-file)
@@ -16,21 +16,21 @@ This file is the canonical development history for the Supabase/Vercel PT rebuil
 - [Legacy Entries (Pre-Format)](#legacy-entries-pre-format)
 
 ## How to Use This File
-- Purpose: operational log for agents and humans maintaining the PT rebuild.
-- Keep newest entries first.
+- Canonical source of truth: `docs/dev_notes.json`.
+- Run `npm run dev-notes:build` after JSON updates.
 - Keep active work only in `Open Items`.
-- Close-loop rule: when an item is resolved, remove it from `Open Items` and link the dated entry that resolved it.
+- Close-loop rule: when an item is resolved, remove/resolve it in `open_items` and add a dated entry linked to the issue ID.
 
 ## Priority Levels
-- `P0`: critical safety/security/data-loss risk, immediate.
-- `P1`: high impact, near-term.
-- `P2`: medium impact, planned.
-- `P3`: low impact, nice-to-have.
+- `P0`
+- `P1`
+- `P2`
+- `P3`
 
 ## Risk Levels
-- `high`: changes likely to cause regressions, data integrity issues, or access-control mistakes without careful validation.
-- `medium`: meaningful behavior impact possible; requires focused testing.
-- `low`: localized/safe change surface with limited blast radius.
+- `high`
+- `medium`
+- `low`
 
 ## Status Values
 - `open`
@@ -39,20 +39,24 @@ This file is the canonical development history for the Supabase/Vercel PT rebuil
 - `done`
 
 ## Tag Vocabulary
-- `ui`: UX and interface behavior.
-- `ios`: iOS Safari/PWA specific behavior.
-- `pwa`: service worker, installability, and web app shell behavior.
-- `offline`: offline loading/storage/sync behavior.
-- `supabase`: Supabase client, RLS, and data-access behavior.
-- `auth`: authentication/session state.
-- `sync`: cross-device or queued synchronization logic.
-- `data-model`: schema/field mapping/normalization concerns.
-- `api`: endpoint and request/response behavior.
-- `performance`: speed, batching, and resource usage.
-- `reliability`: correctness and failure handling.
-- `security`: access control, secrets, and hardening.
-- `migration`: one-time transforms or data movement.
-- `docs`: documentation/process-only changes.
+- `ui`
+- `ios`
+- `pwa`
+- `offline`
+- `supabase`
+- `auth`
+- `sync`
+- `data-model`
+- `api`
+- `performance`
+- `reliability`
+- `security`
+- `migration`
+- `docs`
+- `cleanup`
+- `email`
+- `lcp`
+- `notifications`
 
 ## Entry Schema
 Use this exact field order for all new dated entries:
@@ -66,8 +70,8 @@ Use this exact field order for all new dated entries:
 
 ## Migration Approach
 - Legacy content is frozen under `Legacy Entries (Pre-Format)`.
-- Active TODOs were normalized first in `Open Items`.
-- Convert legacy entries to the new schema only when touched.
+- Active TODOs are tracked in `open_items`.
+- Convert legacy entries to full schema only when touched.
 
 ## Activity Log Testing Checklist
 
@@ -184,9 +188,21 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
+- [x] DN-023 | status:done | priority:P2 | risk:low | tags:[docs,reliability] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md | issue:Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion. | resolved:2026-02-22
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
+
+## 2026-02-22
+
+### 2026-02-22 — DN-023: Documented intake→execute→close-loop completion for dev-notes migration follow-up
+- Problem: Review follow-up asked whether the migration work actually followed the required lifecycle and requested explicit create/close tracking in dev notes.
+- Root cause: The prior change migrated formats and guidance but did not include a dedicated DN issue closure entry proving the lifecycle was executed for the migration request itself.
+- Change made: Added DN-023 as a tracked and resolved issue in canonical JSON and added this dated entry to close the loop, then regenerated DEV_NOTES.md via the generator.
+- Files touched: pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md
+- Validation: Ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully; markdown is synchronized with canonical JSON.
+- Follow-ups: None.
+- Tags: [docs,reliability]
 
 ## 2026-02-21
 
@@ -199,15 +215,6 @@ Use this section for all new entries in reverse chronological order.
 - Follow-ups: None. Should have tested with a no-form-data exercise before shipping DN-003/DN-004.
 - Tags: [reliability,api,supabase,migration]
 
-### 2026-02-21 — DN-003 + DN-004: Atomic activity log creation via Postgres RPC
-- Problem: (DN-003) When `patient_activity_sets` insert failed after `patient_activity_logs` was already written, the log row was left orphaned with no sets — silent data corruption in clinical records with no error visible to the patient. (DN-004) Form data (e.g. band resistance, weight) was matched to sets by array index position; if Supabase returned inserted rows in a different order than submitted, form parameters would attach to the wrong clinical set with no error raised. Both bugs existed in `createActivityLog` (logs.js) and DN-003 also existed in `processActivityLog` (sync.js).
-- Root cause: Three-table insert was done in separate sequential statements with no transaction boundary. Cleanup-on-error was considered but rejected: if the log insert succeeds but the cleanup delete also fails, the `client_mutation_id` unique constraint entry persists — the clinical record becomes permanently unrecoverable on retry. Array-index matching assumed Supabase preserves insert-order in responses, which is not guaranteed.
-- Change made: Created Postgres function `create_activity_log_atomic` (`SECURITY INVOKER` — all existing RLS policies remain in full effect, no privilege escalation). Function wraps all three inserts in a single implicit PL/pgSQL transaction; any failure rolls back atomically so no orphaned row is ever written and `client_mutation_id` is only committed on full success. Form data is matched to sets by `set_number` captured from each set's `RETURNING id` clause — not by array index. Replaced three-step inline insert in `createActivityLog` and two-step insert in `processActivityLog` with `supabase.rpc('create_activity_log_atomic', {...})`. Fixed `updateActivityLog` array-index form data matching with a `set_number`-keyed Map lookup. Added `set_number` validation to `createActivityLog` (consistent with `sync.js`). Also: `processActivityLog` in `sync.js` previously never inserted `patient_activity_set_form_data` at all — the RPC now handles all three tables in both code paths.
-- Files touched: `pt-rebuild/api/logs.js`, `pt-rebuild/api/sync.js`, `pt-rebuild/db/migrations/013_create_activity_log_rpc.sql` (new)
-- Validation: Migration applied via Supabase MCP. Function confirmed in DB (`SECURITY_TYPE: INVOKER`). Deployment `dpl_AhHBKZ9xpiaxfeJG4v9qb3QZoj9b` READY (commit cd566b5). Existing log history loads correctly in app.
-- Follow-ups: None.
-- Tags: [data-model,reliability,sync,api,supabase,migration]
-
 ### 2026-02-21 — Email notifications for clinical messages (Resend integration)
 - Problem: The daily cron (`handleNotify` in `logs.js`) used SendGrid (never configured), sent only a count (no message bodies), had no "new since last email" guard (re-sent daily for old unread messages), and had no opt-out support.
 - Root cause: Feature was scaffolded but never fully implemented. `SENDGRID_API_KEY` was never set in Vercel.
@@ -217,6 +224,15 @@ Use this section for all new entries in reverse chronological order.
 - Follow-ups: Remove `SENDGRID_API_KEY` from Vercel if it exists (was never set, but worth confirming).
 - Tags: [notifications,email,api,ui,ios,data-model,migration]
 
+### 2026-02-21 — DN-003 + DN-004: Atomic activity log creation via Postgres RPC
+- Problem: (DN-003) When `patient_activity_sets` insert failed after `patient_activity_logs` was already written, the log row was left orphaned with no sets — silent data corruption in clinical records with no error visible to the patient. (DN-004) Form data (e.g. band resistance, weight) was matched to sets by array index position; if Supabase returned inserted rows in a different order than submitted, form parameters would attach to the wrong clinical set with no error raised. Both bugs existed in `createActivityLog` (logs.js) and DN-003 also existed in `processActivityLog` (sync.js).
+- Root cause: Three-table insert was done in separate sequential statements with no transaction boundary. Cleanup-on-error was considered but rejected: if the log insert succeeds but the cleanup delete also fails, the `client_mutation_id` unique constraint entry persists — the clinical record becomes permanently unrecoverable on retry. Array-index matching assumed Supabase preserves insert-order in responses, which is not guaranteed.
+- Change made: Created Postgres function `create_activity_log_atomic` (`SECURITY INVOKER` — all existing RLS policies remain in full effect, no privilege escalation). Function wraps all three inserts in a single implicit PL/pgSQL transaction; any failure rolls back atomically so no orphaned row is ever written and `client_mutation_id` is only committed on full success. Form data is matched to sets by `set_number` captured from each set's `RETURNING id` clause — not by array index. Replaced three-step inline insert in `createActivityLog` and two-step insert in `processActivityLog` with `supabase.rpc('create_activity_log_atomic', {...})`. Fixed `updateActivityLog` array-index form data matching with a `set_number`-keyed Map lookup. Added `set_number` validation to `createActivityLog` (consistent with `sync.js`). Also: `processActivityLog` in `sync.js` previously never inserted `patient_activity_set_form_data` at all — the RPC now handles all three tables in both code paths.
+- Files touched: `pt-rebuild/api/logs.js`, `pt-rebuild/api/sync.js`, `pt-rebuild/db/migrations/013_create_activity_log_rpc.sql` (new)
+- Validation: Migration applied via Supabase MCP. Function confirmed in DB (`SECURITY_TYPE: INVOKER`). Deployment `dpl_AhHBKZ9xpiaxfeJG4v9qb3QZoj9b` READY (commit cd566b5). Existing log history loads correctly in app.
+- Follow-ups: None.
+- Tags: [data-model,reliability,sync,api,supabase,migration]
+
 ### 2026-02-21 — Admin-role user blocked from patient app (programs, sync)
 - Problem: Admin user (who is also the sole patient) could not see their programs in the patient app, and the offline sync queue was rejected entirely with 403.
 - Root cause: (1) `patient_programs` and `patient_program_history` SELECT RLS policies had no admin bypass — they only allowed own `patient_id` or therapist relationship. (2) `/api/sync` used `requirePatient` middleware which rejects any non-`patient` role, blocking the admin user even though they are also a patient.
@@ -224,27 +240,9 @@ Use this section for all new entries in reverse chronological order.
 - Files touched: DB (migration `fix_admin_patient_rls`), `pt-rebuild/api/sync.js`
 - Validation: Migration applied successfully. RLS SELECT policies now include admin bypass. Sync endpoint accepts any authenticated user; RLS still blocks cross-patient inserts.
 - Follow-ups: None.
-- Tags: [security,auth,supabase,api]
+- Tags: []
 
 ## 2026-02-20
-
-### 2026-02-20 — P0 security: auth client in sync.js + therapist-patient authorization in logs.js
-- Problem: (1) `api/sync.js` used the anon Supabase client for patient data inserts, bypassing RLS user context. (2) `createActivityLog()` in `api/logs.js` allowed any authenticated caller to post an activity log to any arbitrary `patient_id` with no relationship check.
-- Root cause: (1) `getSupabaseClient()` was used instead of `getSupabaseWithAuth()` — the token was available on `req.accessToken` but not passed to the client. (2) `targetPatientId` was set from the request body `patient_id` without verifying the caller had a therapist relationship to that patient.
-- Change made: (1) Swapped `getSupabaseClient()` → `getSupabaseWithAuth(req.accessToken)` in `sync.js`. (2) Added authorization block in `createActivityLog()`: when `patient_id` differs from `req.user.id`, rejects non-therapist/non-admin callers with 403; for therapists, queries `users` table via admin client to confirm `therapist_id` matches, rejects with 403 if not assigned.
-- Files touched: `pt-rebuild/api/sync.js`, `pt-rebuild/api/logs.js`
-- Validation: Code paths verified by inspection. Regression: patients logging own data unaffected (no `patient_id` body field). Therapists logging for assigned patients pass the relationship check. Unassigned callers receive 403.
-- Follow-ups: None. DN-001 and DN-002 closed.
-- Tags: [security,api,auth,supabase]
-
-### 2026-02-20 — RLS auth.uid() initialization plan fix (performance)
-- Problem: Supabase performance advisor flagged 17 RLS policies across 9 tables for re-evaluating `auth.uid()` once per row instead of once per query.
-- Root cause: Policies used bare `auth.uid()` in WHERE conditions. PostgreSQL re-evaluates this for every row scanned. Wrapping in `(select auth.uid())` forces a single evaluation per query.
-- Change made: Dropped and recreated 15 affected policies on `patient_activity_logs` (select/update/delete), `patient_activity_sets` (select/update/delete), `patient_activity_set_form_data` (select/update/delete), and all 6 `vocab_*` tables (`_modify` policy on each). Replaced all bare `auth.uid()` with `(SELECT auth.uid())`. Zero behavior change — purely a query planner optimization.
-- Files touched: DB only (migration `fix_rls_auth_uid_initplan` applied via Supabase MCP)
-- Validation: Migration applied successfully. Re-run performance advisor to confirm warnings cleared.
-- Follow-ups: DN-009 — duplicate permissive SELECT policies still present on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables. Requires careful review before fixing (medium risk). DN-010 — 13 unused indexes flagged; defer until real query traffic confirms they're unneeded.
-- Tags: [performance,supabase,security]
 
 ### 2026-02-20 — Supabase migrations file corrupted by storage-internal trigger lines
 - Problem: VS Code Supabase extension reported errors on `20260220000755_remote_schema.sql`. The file is a full `pg_dump`-style schema export that GPT inserted after truncating `supabase_migrations.schema_migrations`. It contained `drop extension if exists "pg_net"` and 5 `CREATE TRIGGER` statements on `storage.objects` / `storage.prefixes` — internal Supabase objects that cannot be created by user migrations.
@@ -255,18 +253,35 @@ Use this section for all new entries in reverse chronological order.
 - Follow-ups: None — DB was never affected. If the VS Code extension still reports issues, verify the migration row in `supabase_migrations.schema_migrations` is still present and marked applied.
 - Tags: [migration,supabase,reliability]
 
+### 2026-02-20 — RLS auth.uid() initialization plan fix (performance)
+- Problem: Supabase performance advisor flagged 17 RLS policies across 9 tables for re-evaluating `auth.uid()` once per row instead of once per query.
+- Root cause: Policies used bare `auth.uid()` in WHERE conditions. PostgreSQL re-evaluates this for every row scanned. Wrapping in `(select auth.uid())` forces a single evaluation per query.
+- Change made: Dropped and recreated 15 affected policies on `patient_activity_logs` (select/update/delete), `patient_activity_sets` (select/update/delete), `patient_activity_set_form_data` (select/update/delete), and all 6 `vocab_*` tables (`_modify` policy on each). Replaced all bare `auth.uid()` with `(SELECT auth.uid())`. Zero behavior change — purely a query planner optimization.
+- Files touched: DB only (migration `fix_rls_auth_uid_initplan` applied via Supabase MCP)
+- Validation: Migration applied successfully. Re-run performance advisor to confirm warnings cleared.
+- Follow-ups: DN-009 — duplicate permissive SELECT policies still present on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables. Requires careful review before fixing (medium risk). DN-010 — 13 unused indexes flagged; defer until real query traffic confirms they're unneeded.
+- Tags: [performance,supabase,security]
+
+### 2026-02-20 — P0 security: auth client in sync.js + therapist-patient authorization in logs.js
+- Problem: (1) `api/sync.js` used the anon Supabase client for patient data inserts, bypassing RLS user context. (2) `createActivityLog()` in `api/logs.js` allowed any authenticated caller to post an activity log to any arbitrary `patient_id` with no relationship check.
+- Root cause: (1) `getSupabaseClient()` was used instead of `getSupabaseWithAuth()` — the token was available on `req.accessToken` but not passed to the client. (2) `targetPatientId` was set from the request body `patient_id` without verifying the caller had a therapist relationship to that patient.
+- Change made: (1) Swapped `getSupabaseClient()` → `getSupabaseWithAuth(req.accessToken)` in `sync.js`. (2) Added authorization block in `createActivityLog()`: when `patient_id` differs from `req.user.id`, rejects non-therapist/non-admin callers with 403; for therapists, queries `users` table via admin client to confirm `therapist_id` matches, rejects with 403 if not assigned.
+- Files touched: `pt-rebuild/api/sync.js`, `pt-rebuild/api/logs.js`
+- Validation: Code paths verified by inspection. Regression: patients logging own data unaffected (no `patient_id` body field). Therapists logging for assigned patients pass the relationship check. Unassigned callers receive 403.
+- Follow-ups: None. DN-001 and DN-002 closed.
+- Tags: [security,api,auth,supabase]
+
 ### 2026-02-20 — Exercise IDs: bug fix + data migration to proper UUID format
 - Problem: 13 of 34 exercises had non-UUID IDs. 9 had sequential `ex000X` IDs from the original Firebase migration (Jan 18). 4 had slug IDs like `passive-great-toe-plantarflexion-stretch` added Jan 28 – Feb 3 via `pt_editor`. All 13 had linked records across 11 child tables that had to be preserved.
 - Root cause: `generateExerciseId(name)` in `pt_editor.js` slugified the canonical name instead of generating a UUID. The 9 `ex000X` IDs were grandfathered from Firebase. The 4 slug IDs were created when exercises were manually added through the editor after the Firebase migration.
-- Change made:
-  1. **Bug fix** — Replaced `generateExerciseId(name)` body to use `crypto.randomUUID()` (native browser API, no vendor dependency). Removed the vendored `ulid.js` library that was briefly added.
+- Change made: 1. **Bug fix** — Replaced `generateExerciseId(name)` body to use `crypto.randomUUID()` (native browser API, no vendor dependency). Removed the vendored `ulid.js` library that was briefly added.
   2. **Display field** — Added a read-only Exercise ID display field in `pt_editor.html` above the Canonical Name field (both add and edit modes). Pre-generates a UUID when adding; shows existing ID when editing. Field is monospace, readonly, not user-editable.
   3. **JS wiring** — `loadExerciseForEdit()` populates `exerciseIdDisplay` from `exercise.id`. `clearForm()` pre-generates a fresh UUID into `exerciseIdDisplay`. `collectFormData()` reads from `exerciseIdDisplay` instead of calling `generateExerciseId(canonicalName)`.
   4. **Data migration** — Applied atomic migration `20260221000001_fix_exercise_ids.sql` via Supabase MCP: dropped all 11 FK constraints, updated all 13 bad IDs in `exercises` and all child tables (using a temp mapping table), re-added FK constraints with original ON DELETE behavior. Backup table `exercises_backup_20260221` preserved.
 - Files touched: `pt-rebuild/public/js/pt_editor.js`, `pt-rebuild/public/pt_editor.html`, `pt-rebuild/supabase/migrations/20260221000001_fix_exercise_ids.sql`, `pt-rebuild/db/migrations/012_fix_exercise_ids.sql`
 - Validation: 34 exercises total (unchanged). 0 old IDs remaining in `exercises`. All 11 FK constraints restored. Backup table `exercises_backup_20260221` contains 34 rows.
 - Follow-ups: Drop `exercises_backup_20260221` after confirming app behavior is correct in production.
-- Tags: [data-model,migration,reliability,ui]
+- Tags: []
 
 ## 2026-02-19
 
@@ -286,17 +301,9 @@ Use this section for all new entries in reverse chronological order.
 - Files touched: `pt-rebuild/public/pt_editor.html`, `pt-rebuild/public/js/pt_editor.js`
 - Validation: Verified filtering flow in code paths for `loadExercises()`, `filterExercises()`, roles/dosage search handlers, and shared dropdown render helper now consistently applies lifecycle filtering and immediate re-render behavior.
 - Follow-ups: If therapists want independent archived visibility controls per section later, split the single toggle into scoped controls while preserving current default-hidden safety behavior.
-- Tags: [ui,reliability]
+- Tags: []
 
 ## 2026-02-18
-
-### 2026-02-18 — Removed redundant client-side form parameter backfill from index.html
-- Problem: `loadData()` in `index.html` made a second serial fetch to `/api/exercises` whenever any exercise in the program had an empty `form_parameters_required` array, blocking LCP and contributing to 8.4s LCP on mobile.
-- Root cause: The backfill (commit `a7efd59`, 2026-01-30) was added as a workaround for RLS silently blocking patients from reading `exercise_form_parameters` via nested Supabase joins. A server-side fix (commit `4fc6973`, 78 minutes earlier) using an admin-client fetch in `programs.js` already resolved the same issue authoritatively. The client-side backfill was never removed after the server fix was confirmed working.
-- Change made: Removed the `missingFormParams` block (28 lines) from `loadData()` in `index.html`. The programs API already returns correct `form_parameters_required` for all exercises via the admin client fetch in `lib/handlers/programs.js` (lines 219-235). Verified live: 12 of 33 exercises return form parameters correctly, band resistance defaults to last used value, logging modal renders all required fields.
-- Files touched: `pt-rebuild/public/index.html`
-- Validation: Confirmed `/api/programs` response contains correct `form_parameters_required` for all exercises with parameters. Opened Log Set modal for Ankle Inversion (TheraBand) — band_resistance field present, populated from history, defaulting to last used value ("black"). No regressions.
-- Tags: [performance,lcp,cleanup]
 
 ### 2026-02-18 — Timer audio cues aligned for duration/hold and >10s start/pause voice
 - Problem: `duration_seconds` timer flow diverged from `hold_seconds` behavior by announcing "Time" at completion, and long timers lacked explicit start/pause voice cues.
@@ -307,6 +314,14 @@ Use this section for all new entries in reverse chronological order.
 - Follow-ups: Optional UX decision: keep `Set complete` spoken for duration completion, or switch completion to sound-only for both duration and hold for strict audio parity.
 - Tags: [ui,reliability]
 
+### 2026-02-18 — Removed redundant client-side form parameter backfill from index.html
+- Problem: `loadData()` in `index.html` made a second serial fetch to `/api/exercises` whenever any exercise in the program had an empty `form_parameters_required` array, blocking LCP and contributing to 8.4s LCP on mobile.
+- Root cause: The backfill (commit `a7efd59`, 2026-01-30) was added as a workaround for RLS silently blocking patients from reading `exercise_form_parameters` via nested Supabase joins. A server-side fix (commit `4fc6973`, 78 minutes earlier) using an admin-client fetch in `programs.js` already resolved the same issue authoritatively. The client-side backfill was never removed after the server fix was confirmed working.
+- Change made: Removed the `missingFormParams` block (28 lines) from `loadData()` in `index.html`. The programs API already returns correct `form_parameters_required` for all exercises via the admin client fetch in `lib/handlers/programs.js` (lines 219-235). Verified live: 12 of 33 exercises return form parameters correctly, band resistance defaults to last used value, logging modal renders all required fields.
+- Files touched: `pt-rebuild/public/index.html`
+- Validation: Confirmed `/api/programs` response contains correct `form_parameters_required` for all exercises with parameters. Opened Log Set modal for Ankle Inversion (TheraBand) — band_resistance field present, populated from history, defaulting to last used value ("black"). No regressions.
+- Follow-ups: 
+- Tags: [performance,lcp,cleanup]
 
 ### 2026-02-18 — DEV_NOTES converted to AI-optimized ops format
 - Problem: Active TODOs, risk context, and workflow guidance were split across legacy sections, making agent handoff and consistent triage harder.
@@ -325,6 +340,7 @@ Use this section for all new entries in reverse chronological order.
 - Validation: Re-ran `rg` checks for `/api/programs/`, `/api/exercises/`, and `/api/debug` app callsites (none remaining in `pt-rebuild/public`); verified docs now state 9-file inventory and no debug route listing.
 - Follow-ups: If a dedicated messages endpoint is introduced later, update both docs in the same change set and add migration notes for callsite contract changes.
 - Tags: [docs,api,reliability]
+
 
 ## Legacy Entries (Pre-Format)
 
