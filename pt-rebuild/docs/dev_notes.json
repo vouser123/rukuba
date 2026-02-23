@@ -440,11 +440,13 @@
     },
     {
       "id": "DN-018",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
       "agent": ["claude"],
+      "resolved": "2026-02-23",
+      "checkbox": "done",
       "tags": [
         "offline",
         "api",
@@ -643,6 +645,17 @@
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-23",
+      "title": "2026-02-23 — DN-018: Remove dead offline sync system (Option A)",
+      "problem": "Two competing offline sync systems existed: the active one (localStorage queue + syncOfflineQueue() → POST /api/logs per item in index.html) and a dead one (IndexedDB queue + manualSync() in offline.js → POST /api/sync). manualSync() was never called from any UI flow. /api/sync was reachable but unused, occupying one of 12 Vercel free-tier function slots. The IndexedDB parts of offline.js were legitimately used for read caching (exercises, programs, logs).",
+      "root_cause": "The IndexedDB-based sync system was built but never wired into the UI. The localStorage-based system in index.html became the de-facto implementation. Both systems coexisted, creating confusion for agents and risk of accidental reactivation of the dead path.",
+      "change_made": "Chose Option A: removed the dead queue/sync code. Deleted api/sync.js entirely (frees one Vercel function slot). Stripped addToQueue, getQueueItems, createAutoExport, manualSync, getQueueCount, getSyncMetadata, setSyncMetadata from offline.js. Removed offline_queue, auto_exports, sync_metadata IndexedDB stores from onupgradeneeded — bumped DB_VERSION from 1 to 2 so the upgrade handler drops those stores from existing browsers. Kept all read-caching code (hydrateCache, getCachedExercises, getCachedPrograms, getCachedLogs) unchanged. Updated file header comment to accurately describe offline.js as a read cache only.",
+      "files_touched": "pt-rebuild/api/sync.js (deleted), pt-rebuild/public/js/offline.js (dead queue/sync methods removed, DB_VERSION bumped to 2)",
+      "validation": "Verified all callers of removed methods — none exist in index.html or any other file. Active sync path (syncOfflineQueue in index.html) untouched. Caching methods (getCachedExercises etc.) still present and unchanged. PR created for preview deployment before merge.",
+      "follow_ups": "Verify preview deployment: app loads, exercise logging works online and offline, history loads correctly. Merge only after PT session confirms no regressions.",
+      "tags": ["offline", "api", "reliability", "cleanup"]
+    },
     {
       "date": "2026-02-23",
       "title": "2026-02-23 — DN-026: Fix mutable search_path on create_activity_log_atomic RPC",
