@@ -93,6 +93,10 @@ function validate(data, schema) {
     fail('open_items array is required.');
   }
 
+  if (!Array.isArray(data.closed_items)) {
+    fail('closed_items array is required.');
+  }
+
   if (!Array.isArray(data.dated_entries)) {
     fail('dated_entries array is required.');
   }
@@ -108,9 +112,13 @@ function validate(data, schema) {
     }
   }
 
+  const activeStatuses = ['open', 'in_progress', 'blocked'];
   for (const item of data.open_items) {
     if (!item.id || !item.status || !item.priority || !item.risk || !Array.isArray(item.tags) || !item.file || !item.issue) {
       fail(`Invalid open item: ${JSON.stringify(item)}`);
+    }
+    if (!activeStatuses.includes(item.status)) {
+      fail(`open_items item ${item.id} has status '${item.status}' — done items must be in closed_items.`);
     }
     if (!priorities.includes(item.priority)) {
       fail(`Open item ${item.id} has invalid priority '${item.priority}'.`);
@@ -118,12 +126,23 @@ function validate(data, schema) {
     if (!risks.includes(item.risk)) {
       fail(`Open item ${item.id} has invalid risk '${item.risk}'.`);
     }
-    if (!statuses.includes(item.status)) {
-      fail(`Open item ${item.id} has invalid status '${item.status}'.`);
-    }
     for (const tag of item.tags) {
       if (!tags.includes(tag)) {
         fail(`Open item ${item.id} has invalid tag '${tag}'.`);
+      }
+    }
+  }
+
+  for (const item of data.closed_items) {
+    if (!item.id || !item.status || !item.priority || !item.risk || !Array.isArray(item.tags) || !item.file || !item.issue) {
+      fail(`Invalid closed item: ${JSON.stringify(item)}`);
+    }
+    if (item.status !== 'done') {
+      fail(`closed_items item ${item.id} has status '${item.status}' — only done items belong in closed_items.`);
+    }
+    for (const tag of item.tags) {
+      if (!tags.includes(tag)) {
+        fail(`Closed item ${item.id} has invalid tag '${tag}'.`);
       }
     }
   }
@@ -212,14 +231,18 @@ This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markd
 - [Migration Approach](#migration-approach)
 - [Activity Log Testing Checklist](#activity-log-testing-checklist)
 - [Open Items](#open-items)
+- [Closed Items](#closed-items)
 - [Dated Entries](#dated-entries)
 - [Legacy Entries (Pre-Format)](#legacy-entries-pre-format)
 
 ## How to Use This File
 - Canonical source of truth: \`docs/dev_notes.json\`.
 - Run \`npm run dev-notes:build\` after JSON updates.
-- Keep active work only in \`Open Items\`.
-- Close-loop rule: when an item is resolved, remove/resolve it in \`open_items\` and add a dated entry linked to the issue ID.
+- \`open_items\`: active work queue — statuses \`open\`, \`in_progress\`, \`blocked\` only.
+- \`closed_items\`: completed items — status \`done\` only.
+- \`in_progress\`: item is actively being worked on this session.
+- \`blocked\`: cannot proceed; must include a \`constraints_caveats\` note explaining the blocker.
+- Close-loop rule: when an item is resolved, move it from \`open_items\` to \`closed_items\` (set status to \`done\`, add \`resolved\` date) and add a \`dated_entries\` record linked to the issue ID.
 
 ## Priority Levels
 ${renderEnumSection(data.enums.priority_levels)}
@@ -245,13 +268,16 @@ Use this exact field order for all new dated entries:
 
 ## Migration Approach
 - Legacy content is frozen under \`Legacy Entries (Pre-Format)\`.
-- Active TODOs are tracked in \`open_items\`.
+- Active TODOs are tracked in \`open_items\`. Completed items live in \`closed_items\`.
 - Convert legacy entries to full schema only when touched.
 
 ${checklist}
 
 ## Open Items
 ${data.open_items.map(renderOpenItem).join('\n')}
+
+## Closed Items
+${data.closed_items.map(renderOpenItem).join('\n')}
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.

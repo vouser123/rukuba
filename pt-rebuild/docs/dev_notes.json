@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schema_version": "1.4.0",
+    "schema_version": "1.5.0",
     "last_updated": "2026-02-23"
   },
   "enums": {
@@ -176,64 +176,6 @@
   },
   "open_items": [
     {
-      "id": "DN-001",
-      "status": "done",
-      "priority": "P0",
-      "risk": "medium",
-      "tags": [
-        "security",
-        "supabase",
-        "api",
-        "auth"
-      ],
-      "file": "pt-rebuild/api/sync.js",
-      "issue": "Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client.",
-      "resolved": "2026-02-20"
-    },
-    {
-      "id": "DN-002",
-      "status": "done",
-      "priority": "P0",
-      "risk": "medium",
-      "tags": [
-        "security",
-        "api",
-        "auth"
-      ],
-      "file": "pt-rebuild/api/logs.js",
-      "issue": "Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller.",
-      "resolved": "2026-02-20"
-    },
-    {
-      "id": "DN-003",
-      "status": "done",
-      "priority": "P1",
-      "risk": "high",
-      "tags": [
-        "data-model",
-        "reliability",
-        "sync",
-        "api"
-      ],
-      "file": "pt-rebuild/api/sync.js,pt-rebuild/api/logs.js",
-      "issue": "Prevent orphaned logs when sets insert fails (cleanup or transactional behavior).",
-      "resolved": "2026-02-21"
-    },
-    {
-      "id": "DN-004",
-      "status": "done",
-      "priority": "P1",
-      "risk": "high",
-      "tags": [
-        "data-model",
-        "reliability",
-        "api"
-      ],
-      "file": "pt-rebuild/api/logs.js",
-      "issue": "Form data is matched to sets by array index instead of `set_number` in create/update flows.",
-      "resolved": "2026-02-21"
-    },
-    {
       "id": "DN-005",
       "status": "open",
       "priority": "P2",
@@ -370,24 +312,6 @@
       "constraints_caveats": "Needs a way to pass exercise context to the History tab (e.g. in-memory state or scroll-to). Should still allow clearing the filter to see full history."
     },
     {
-      "id": "DN-013",
-      "status": "done",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": [
-        "codex"
-      ],
-      "tags": [
-        "ui"
-      ],
-      "file": "pt-rebuild/public/index.html",
-      "issue": "History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not.",
-      "resolved": "2026-02-23",
-      "context": "Notes are already fetched with the activity log data — just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.",
-      "constraints_caveats": "Check pt_view.html notes rendering and replicate the same pattern on index."
-    },
-    {
       "id": "DN-012",
       "status": "open",
       "priority": "P2",
@@ -446,27 +370,6 @@
       "constraints_caveats": "Email/password changes must go through Supabase Auth API (`supabase.auth.updateUser()`), not just the `users` table. Need to consider whether therapist can edit patient profiles or only admins can."
     },
     {
-      "id": "DN-018",
-      "status": "done",
-      "priority": "P2",
-      "risk": "medium",
-      "scope": "current",
-      "agent": [
-        "claude"
-      ],
-      "resolved": "2026-02-23",
-      "tags": [
-        "offline",
-        "api",
-        "reliability"
-      ],
-      "file": "pt-rebuild/api/sync.js,pt-rebuild/public/js/offline.js,pt-rebuild/public/index.html",
-      "issue": "Two competing offline sync systems exist — the active one (localStorage + `/api/logs` per item in index.html) and a dead one (`offline.js` IndexedDB queue + `/api/sync` batch endpoint). `manualSync()` in offline.js is never called; `/api/sync` is reachable but unused by any UI flow.",
-      "context": "`offline.js` is imported in index.html and used for IndexedDB read-caching only (exercises, programs, logs). Its queue/sync functionality was never wired up. The active offline pattern is entirely in `syncOfflineQueue()` in index.html using localStorage. `/api/sync` takes up one of Vercel's 12-function free-tier slots.",
-      "options": "(A) Remove `/api/sync` and dead offline.js sync code — cleans up confusion, frees function slot, but requires careful audit of what IndexedDB code is safe to remove. (B) Activate `/api/sync` as a proper batch endpoint replacing per-item `/api/logs` calls — significant redesign. (C) Leave as-is but document clearly.",
-      "constraints_caveats": "Do not touch index.html IndexedDB hydration code without fully understanding what it caches and whether anything reads from it. This is a full separate project, not a quick cleanup."
-    },
-    {
       "id": "DN-019",
       "status": "open",
       "priority": "P1",
@@ -490,39 +393,6 @@
       "resolved": null,
       "context": "Current logic allows any authenticated caller to target any existing `users.id` as `recipient_id` if RLS permits the insert. The intended messaging model is patient-therapist communication, so relationship checks should mirror assignment rules used elsewhere.",
       "constraints_caveats": "Define and preserve intended matrix explicitly (patient→assigned therapist only; therapist→assigned patient only; admin behavior defined). Verify against current `clinical_messages` RLS policy bodies before tightening endpoint logic."
-    },
-    {
-      "id": "DN-020",
-      "status": "done",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "tags": [
-        "api",
-        "reliability"
-      ],
-      "file": "pt-rebuild/api/logs.js",
-      "issue": "Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings.",
-      "resolved": "2026-02-23",
-      "context": "Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.",
-      "constraints_caveats": "Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts."
-    },
-    {
-      "id": "DN-021",
-      "status": "done",
-      "priority": "P2",
-      "risk": "medium",
-      "scope": "current",
-      "tags": [
-        "api",
-        "reliability",
-        "ui"
-      ],
-      "file": "pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json",
-      "issue": "Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`.",
-      "resolved": "2026-02-23",
-      "context": "`pt_editor.js` calls `/api/roles/${roleId}` and `api/roles.js` parses a path suffix from `req.url`, but there is no explicit rewrite for nested `/api/roles/:id` in `vercel.json`.",
-      "constraints_caveats": "Confirm behavior in deployed Vercel environment before changing API shape. If needed, support both `DELETE /api/roles?id=...` and path variant to avoid breaking existing clients."
     },
     {
       "id": "DN-022",
@@ -592,86 +462,23 @@
       "resolved": null,
       "context": "Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.",
       "constraints_caveats": "Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows."
-    },
-    {
-      "id": "DN-026",
-      "status": "done",
-      "priority": "P1",
-      "risk": "low",
-      "scope": "current",
-      "agent": [
-        "claude"
-      ],
-      "tags": [
-        "security",
-        "supabase",
-        "api"
-      ],
-      "file": "pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql",
-      "issue": "Function public.create_activity_log_atomic has a mutable search_path — Supabase security advisor flag.",
-      "resolved": "2026-02-23",
-      "context": "Supabase security advisor flagged the RPC function for missing SET search_path, which allows schema injection if an attacker can create objects in a schema earlier in the search path."
-    },
-    {
-      "id": "DN-025",
-      "status": "done",
-      "priority": "P1",
-      "risk": "low",
-      "tags": [
-        "auth",
-        "supabase",
-        "ui"
-      ],
-      "file": "pt-rebuild/public/reset-password.html",
-      "issue": "Password reset link always shows 'Invalid or Expired Link' — Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash.",
-      "resolved": "2026-02-23"
-    },
-    {
-      "id": "DN-023",
-      "status": "done",
-      "priority": "P2",
-      "risk": "low",
-      "tags": [
-        "docs",
-        "reliability"
-      ],
-      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md",
-      "issue": "Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion.",
-      "resolved": "2026-02-22"
-    },
-    {
-      "id": "DN-024",
-      "status": "done",
-      "priority": "P3",
-      "risk": "low",
-      "tags": [
-        "docs"
-      ],
-      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md",
-      "issue": "Confirm follow-up dev-tracking for JSON-canonical migration review and record validation commands run.",
-      "resolved": "2026-02-22",
-      "context": "Follow-up request asked whether a dev note was added and whether required generator commands were run.",
-      "constraints_caveats": "Keep tracking in canonical JSON and regenerate Markdown artifact only via script."
-    },
-    {
-      "id": "DN-027",
-      "status": "done",
-      "priority": "P3",
-      "risk": "low",
-      "scope": "current",
-      "agent": [
-        "claude"
-      ],
-      "tags": [
-        "docs",
-        "cleanup"
-      ],
-      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs",
-      "issue": "Remove redundant  field from dev_notes.json — it duplicates  and is drift-prone.",
-      "resolved": "2026-02-23"
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-23",
+      "title": "2026-02-23 — DN-028: Split open_items into open_items / closed_items",
+      "problem": "open_items mixed active (open/in_progress/blocked) and done items in one array. At schema 1.4.0, 13 of 27 items were done — 50% noise for agents loading the work queue. Ratio worsens over time.",
+      "root_cause": "Original schema had no closed_items array. Done items accumulated in open_items with no mechanism to move them out.",
+      "change_made": "Script split open_items by status: open/in_progress/blocked stay in open_items; done moves to new closed_items array. Generator updated to validate and render both sections separately. AGENTS.md updated with lifecycle rules for all status values. Schema bumped to 1.5.0.",
+      "files_touched": "pt-rebuild/docs/dev_notes.json (split into open_items + closed_items, schema 1.4.0 -> 1.5.0), pt-rebuild/scripts/generate-dev-notes.mjs (validate + render closed_items), pt-rebuild/AGENTS.md (lifecycle rules updated)",
+      "validation": "dev-notes:build and dev-notes:check both pass. open_items contains only actionable statuses. closed_items contains all done items.",
+      "follow_ups": "None.",
+      "tags": [
+        "docs",
+        "cleanup"
+      ]
+    },
     {
       "date": "2026-02-23",
       "title": "2026-02-23 — DN-027: Remove redundant checkbox field from dev_notes schema",
@@ -1011,5 +818,231 @@
   ],
   "legacy_entries": {
     "markdown": "## Legacy Entries (Pre-Format)\n\n## 2026-01-19\n\n- **2026-01-19** — **Progress:** Implemented core tracker features in rebuilt index.html. **What was done:** (1) Added timer mode with countdown display, beeps at 5 seconds and completion, and voice announcements (\"5 seconds left\", \"4\", \"3\", \"2\", \"1\", \"Time\"). Timer counts up to show elapsed time and auto-pauses at target but allows continuing beyond. (2) Created big tappable circle for reps counting (320px diameter, iOS-optimized with scale feedback on tap). Removed +/- buttons in favor of single tap-to-increment interface with undo button. (3) Added voice countdown for reps mode - announces \"5 reps left\", \"4 reps left\", etc. when approaching target. (4) Implemented pattern modifier detection to show timer mode for `duration_seconds` and `hold_seconds` exercises, counter mode for standard reps. (5) Created `formatDosage()` function to display exercise prescriptions as \"3 × 10 reps\", \"3 × 30 sec\", \"20 feet\", or \"3 × 10 reps (5 sec hold)\" based on patient_programs data. (6) Used CSS variables (--counter-color, --counter-bg, --timer-color) for future dark mode support. (7) All interactions use data-action with pointerup events per iOS PWA requirements (no onclick handlers). **Files:** `pt-rebuild/public/index.html`. **Notes:** Timer uses Web Audio API for beeps and Web Speech API for voice - both require user interaction on iOS to initialize. Set data is saved with either reps or seconds based on mode.\n\n- **2026-01-19** — **CRITICAL FIX: Form parameters now use normalized SQL structure.** **Problem:** Initial implementation treated form_params like Firebase JSONB object. Supabase uses normalized table `patient_activity_set_form_data` with one row per parameter (activity_set_id + parameter_name + parameter_value + parameter_unit). **What I did:** (1) Updated API `/api/logs` GET to JOIN form_data table and return `form_data: [{parameter_name, parameter_value, parameter_unit}]` array per set. (2) Updated API POST to INSERT form parameters as separate rows in `patient_activity_set_form_data` table. (3) Fixed frontend `getHistoricalParamValues()` and `getLastUsedParamValue()` to read from `set.form_data` array instead of `set.form_params` object. (4) Fixed frontend `saveLoggedSet()` to send `form_data` as normalized array instead of object. Weight/distance split into value + unit fields. **Files:** `pt-rebuild/api/logs.js`, `pt-rebuild/public/index.html`. **Why critical:** This is the correct normalized SQL approach - \"one row one thing\" - not like Firebase where everything was nested objects. User was right to be concerned about Firebase-like structure being unsafe in SQL.\n\n- **2026-01-19** — **Remaining work:** (1) Exercise detail/history view - modal showing all activity logs for a specific exercise with set-by-set details. (2) Warning indicators - show \"⚠️ X days ago\" for exercises not done recently. (3) Terminology fixes - change \"Session\" to \"Activity Log\" throughout UI. (4) Test all features on deployed Vercel site - verify form parameters save correctly to normalized tables. **Priority:** Test on deployed site to confirm form parameters actually save/load correctly.\n\n- **2026-01-19** — **Architecture decisions:** (1) No Firebase or JSON fallbacks in rebuild - all data comes from Supabase API endpoints. (2) Server-authoritative - Supabase PostgreSQL is source of truth, client is advisory. (3) CSS prepared for dark mode with variables but implementation deferred. (4) Following iOS PWA patterns from original (data-action, pointerup, no onclick). (5) Pattern modifiers determine UI mode: duration_seconds/hold_seconds show timer, standard exercises show counter. **Constraints:** User has autism and requires \"same same same\" - app must work identically to original Firebase version. No changes to clinical workflows allowed.\n\n## 2026-01-28\n\n### Legacy Public Notes (Merged on 2026-02-17)\n\n#### Source: ## 2026-01-28\n\n- Established rebuild-specific documentation set in `/pt-rebuild/docs` covering architecture, practices, and vocabularies.\n\n### Notes & Messages Implementation\n\n- Added session notes modal to index.html (shows after exercise completion)\n  - \"Cancel\" button with confirmation to discard\n  - \"Save & Finish\" button allows saving with or without notes\n  - Toast shows \"Saved (with notes)\" or \"Saved (no notes)\"\n- Added clinical messages API endpoints to logs.js (merged to avoid Vercel function limit)\n  - GET /api/logs?type=messages - list messages\n  - POST /api/logs?type=messages - create message\n  - PATCH /api/logs?type=messages&id=X - mark read/archive\n  - DELETE /api/logs?type=messages&id=X - soft delete (1-hour undo window)\n- Added messages modal to index.html and pt_view.html\n  - Unread badge indicator\n  - Time-ago formatting\n  - Hide and Undo Send actions\n- Enhanced pt_view.html:\n  - Top Exercises section (top 10 by frequency)\n  - Exercise History modal with search\n  - Hamburger menu with navigation links\n  - User info display (signed in as email)\n  - Dark mode CSS support\n  - iOS touch-action compatibility\n\n\n- **2026-01-28** — **Maintenance:** Moved shared exercises/programs handlers into `pt-rebuild/lib/handlers` and updated API route wrappers to point at the shared modules to reduce serverless function duplication. **Docs:** Mirrored `/pt/docs` into `pt-rebuild/docs` for rebuild parity and added `pt-rebuild/agent.md` to summarize rebuild-specific guidance.\n\n## 2026-01-28\n\n- **2026-01-28** — **Docs:** Rewrote the public rebuild docs in `pt-rebuild/docs` to reflect Supabase/Vercel architecture instead of copying legacy Firebase documentation.\n\n## 2026-01-30\n\n### Legacy Public Notes (Merged on 2026-02-17)\n\n#### Source: ## 2026-01-30\n\n### Exercise Logging Enhancements (index.html)\n\n- **My Exercises List Improvements**\n  - Added adherence display: \"X days ago · Y sessions total\"\n  - Color-coded indicators: green (≤3 days), orange (4-7 days + ⚠️), red (8+ days + ❗)\n  - Category tags displayed as pills\n\n- **Sets Tracking Display**\n  - Shows sets progress for all exercises\n  - Non-sided (both): \"0/3 sets\"\n  - Sided exercises: \"Left: 0/1 · Right: 0/1\" with per-side tracking\n  - Target dose display\n\n- **Control Buttons (Always Visible)**\n  - Previous - undo last logged set\n  - Log Set - manual entry modal (for exercises done without counter/timer)\n  - Next Set - confirmation modal (user taps when done with counter/timer)\n\n- **Next Set Modal**\n  - Shows what will be logged: \"X reps (target Y)\"\n  - Displays form parameters that will be logged\n  - Buttons: Cancel / Edit / Log & Next\n  - Voice comparison: \"X more/less reps than last time\"\n\n- **Log Set Modal Improvements**\n  - Prefills with target dose (not counter value)\n  - Prefills form parameters from last-used values in exercise_logs\n  - Side selector for sided exercises with progress display\n\n- **History Editing**\n  - Click history items to open Edit Session modal\n  - Editable date/time picker\n  - Editable sets (reps, side, form parameters)\n  - Add/delete individual sets\n  - Delete Session button with confirmation\n  - Save Changes commits to API via PATCH /api/logs/:id\n\n- **Bug Fixes**\n  - Added touch-action: manipulation to counter display (prevents iOS double-tap zoom)\n  - Added setInterval for periodic message polling (30 seconds)\n  - Added UUID validation to messages API functions\n  - Fixed exercise list showing \"Never done\" for all exercises (loadHistory now runs before renderExerciseList)\n\n### Rehab Coverage Improvements (rehab_coverage.html)\n\n- **Dark Mode Support**\n  - Added CSS custom properties for theming\n  - Added `prefers-color-scheme: dark` media query\n  - Styled cards, headers, and text for dark backgrounds\n\n- **Visual Improvements**\n  - Modernized card layout with shadow and rounded corners\n  - Better typography hierarchy\n  - Responsive grid layout for exercise cards\n  - Meaningful coverage progress bar showing actual percentage (not always full)\n\n- **Data Display Fixes**\n  - Fixed null values showing as \"null\" - now defaults to descriptive text\n  - Shows exercise canonical names instead of IDs\n  - Grouped exercises by region → capacity → focus hierarchy\n\n\n\n- **2026-01-30** — **API:** Added exercise form parameter names to the programs payload by joining exercise form parameters and normalizing them into `form_parameters_required`, keeping the patient tracker data consistent with exercise metadata. **Files:** `pt-rebuild/lib/handlers/programs.js`.\n- **2026-01-30** — **Messages:** Fixed message labeling/undo visibility by aligning client-side comparisons with `users.id` instead of auth IDs, and clarified sender/recipient labels in both patient (`index.html`) and therapist (`pt_view.html`) messaging UIs. **Also:** Ensured hidden messages are actually filtered per-user by excluding `archived_by_sender`/`archived_by_recipient` in the messages API response. **Files:** `pt-rebuild/public/index.html`, `pt-rebuild/public/pt_view.html`, `pt-rebuild/api/logs.js`.\n\n## 2026-01-31\n\n### Legacy Public Notes (Merged on 2026-02-17)\n\n#### Source: ## 2026-01-31 (Audit Fixes)\n\n### Deep Dive Audit - Critical Bug Fixes\n\nRan comprehensive audit using 3 parallel agents. Fixed critical issues:\n\n1. **IndexedDB Transaction Bug** (`public/js/offline.js`)\n   - **Problem:** `await tx.complete` doesn't exist - IndexedDB transactions use `.done` not `.complete`\n   - **Fix:** Changed to `await tx.done` for proper transaction completion\n\n2. **CSS File Reference Wrong** (`index.html`, `pt_view.html`, `rehab_coverage.html`)\n   - **Problem:** Pages linked to `main.css` (16-line reset only) instead of `css/main.css` (526-line full stylesheet)\n   - **Fix:** Updated all references to `/css/main.css`\n\n3. **Missing PWA Meta Tags** (`pt_editor.html`, `pt_view.html`, `rehab_coverage.html`)\n   - **Problem:** Pages missing manifest, favicon, apple-touch-icon, iOS web app meta tags\n   - **Fix:** Added full PWA meta tag set to all pages\n\n4. **requireTherapist() Missing accessToken** (`lib/auth.js`)\n   - **Problem:** Unlike `requireAuth()` and `requirePatient()`, the `requireTherapist()` middleware didn't extract and attach `req.accessToken` for RLS context\n   - **Fix:** Added accessToken extraction matching other middleware patterns\n\n5. **Unhandled Async Errors** (`public/js/tracker.js`, `public/js/report.js`)\n   - **Problem:** Event handlers with async operations had no try/catch - errors silently failed\n   - **Fix:** Wrapped switch statements in try/catch with user-facing error messages\n\n### New PT² Icon\n\n- Created `public/icons/icon.svg` - Dark grey background (#333333) with white \"PT\" and powder blue superscript \"2\"\n- Updated `manifest.json` to use SVG icon\n- Added PWA meta tags to `index.html` with new icon\n\n---\n\n\n#### Source: ## 2026-01-31\n\n### Simplified Lifecycle UI and Fixed Data Consistency (pt_editor.html)\n\n- **Problem:** pt_editor had both a checkbox AND a dropdown for archived status, plus \"deprecated\" option nobody understood. Database had inconsistent data (some exercises had `lifecycle_status: null`, one had `archived: false` but `lifecycle_status: 'archived'`).\n- **What I did:**\n  - **Database fix:** Updated all exercises to have consistent `lifecycle_status` ('active' or 'archived') matching `archived` boolean\n  - **UI simplification:** Removed redundant checkbox, removed \"deprecated\" option, kept only Active/Archived dropdown\n  - **Code fix:** `lifecycle_status` now always defaults to 'active', never null\n  - Added helper text explaining archived exercises are hidden from trackers and coverage\n\n### Archived Exercises Showing in Rehab Coverage (rehab_coverage.html)\n\n- **Problem:** Archived exercises (like \"Wipers\") were still appearing in the rehab coverage page.\n- **What I did:** Updated `/api/roles` to filter out archived exercises.\n  - Added `!inner` join to exercises table to enable filtering\n  - Added `.eq('exercises.archived', false)` filter to the query\n  - Now only active (non-archived) exercises appear in coverage analysis\n\n### Sign Out Error \"Auth Session missing\" (pt_editor.html)\n\n- **Problem:** After signing out from pt_editor.html hamburger menu on iOS, page reload showed \"Token sign-in failed: Auth Session missing!\" error.\n- **What I did:** Fixed `signOut()` in `public/js/pt_editor.js` to clear stored auth tokens BEFORE calling `supabaseClient.auth.signOut()`.\n  - Root cause: `index.html` stores auth tokens in `pt_editor_auth` localStorage key when navigating to pt_editor\n  - On reload after sign out, `init()` found stale tokens and tried to use them with `setSession()`\n  - Supabase returned \"Auth Session missing\" because the session was already invalidated\n  - Fix: Call `clearStoredAuth()` before `signOut()` to remove stale tokens\n\n### Form Parameters Not Showing in Log Set Modal (index.html)\n\n- **Problem:** When logging sets, the fields for required form parameters (weight, band resistance, etc.) were not appearing.\n- **What I did:** Fixed the priority order in `normalizeProgramPatternModifiers()` in `lib/handlers/programs.js`.\n  - Root cause: RLS policies may block patients from reading `exercise_form_parameters` via nested Supabase joins\n  - The nested query silently returns `[]`, but code was preferring it over the admin-fetched fallback\n  - Changed logic to always prefer admin-fetched form params (RLS-safe) over nested query result\n  - Added logging to help diagnose if form params are missing from database\n\n### Rehab-Focused pt_view.html Overhaul\n\n- **Problem:** pt_view.html was using gym-style metrics (Total Sessions, Total Sets, Top Exercises) inappropriate for physical therapy rehab tracking. Session notes from patients were buried and hard to find.\n- **What I did:** Complete overhaul to make the page rehab-focused.\n  - **Patient Notes Section:** Added prominent alert-styled section at TOP of page\n    - Yellow/orange border-left styling to grab attention\n    - Shows sessions with notes from past 7 days\n    - Concerning words (pain, sharp, couldn't, etc.) are highlighted in red\n    - Each note shows date, exercise name, and note text in quotes\n  - **Rehab Metrics:** Replaced gym metrics with rehab-appropriate ones\n    - \"Days Active\" (X/7) - emphasizes consistency over volume\n    - \"Exercises Covered\" (X/Y) - breadth over depth\n    - \"Needs Attention\" count - shows overdue exercises\n  - **Needs Attention Section:** Replaced \"Top Exercises\" with exercises not done in 7+ days\n    - Color-coded urgency: orange (7-10 days), red (11+ days)\n    - Shows days since last done\n    - Prioritizes HIGH contribution exercises\n\n### PT Tracker Link in Hamburger Menu (pt_editor.html)\n\n- **Problem:** Admin/therapist users who also have exercises assigned couldn't see the PT Tracker link in the hamburger menu.\n- **What I did:** Updated HamburgerMenu module and pt_editor.js to check if user has programs assigned.\n  - Added `showTrackerLink` option to HamburgerMenu.init() for explicit control\n  - pt_editor.js now fetches user's programs and shows PT Tracker link if any exist\n  - This allows therapists/admins who are also patients to access their tracker\n\n### Coverage Legend & Metrics Display (rehab_coverage.html)\n\n- **Problem:** Users couldn't understand what the bar colors, widths, and opacities meant.\n- **What I did:** Added explanatory elements throughout the page.\n  - Collapsible legend card explaining the THREE SIGNALS (width=7d density, color=recency, opacity=21d trend)\n  - Exercise cards now show \"7d: X · 21d: Y\" session counts\n  - Capacity bars show subtitle: \"X% weekly • recency text • Y% trend\"\n  - Fixed 21-day trend summary to use average opacity (was incorrectly using binary \"done once\" count)\n\n### Hamburger Menu for pt_editor.html\n\n- **Problem:** pt_editor.html had no hamburger menu for navigation, unlike other pages.\n- **What I did:** Added consistent hamburger menu with navigation links.\n  - Created shared module `/js/hamburger-menu.js` for reusable menu functionality\n  - Created shared styles `/css/hamburger-menu.css` for consistent appearance\n  - Menu includes: PT Tracker (if patient), View History, Coverage Analysis, Reload, Sign Out\n  - Displays signed-in user email\n  - Uses `data-action` pattern for iOS Safari/PWA compatibility\n  - HamburgerMenu.init() accepts config for currentUser, signOutFn, and custom action handlers\n\n### Exercise Details Modal (index.html)\n\n- **Problem:** Patients had no way to view exercise guidance, target muscles, or equipment info from the tracker.\n- **What I did:** Added ℹ️ info button to each exercise card that opens a details modal.\n  - Button positioned top-right of card with `data-stop-propagation` to prevent triggering exercise selection\n  - Modal displays: description, pattern (sided/bilateral), primary/secondary muscles, equipment, and guidance sections (external cues, motor cues, compensation warnings, safety flags)\n  - Uses `data-require-self` pattern for backdrop click-to-close\n  - Follows pt_tracker.html detail display pattern for consistency\n  - Added CSS for `.details-btn`, `.pill`, `.detail-section` classes\n\n\n\n- **2026-01-31** — **Deep dive audit and critical fixes.** **Problems found:** (1) IndexedDB transaction bug - `await tx.complete` doesn't exist, transactions use `.done`. (2) Unsafe destructuring of API responses could crash on undefined. (3) All 13 inline onclick handlers in pt_editor.html unreliable on iOS Safari/PWA. (4) Missing PWA meta tags on pt_editor, pt_view, rehab_coverage. (5) `requireTherapist()` in auth.js missing accessToken attachment. (6) Supabase SDK loaded from CDN caused tracking prevention warnings. **What I did:** (1) Fixed IndexedDB bug in offline.js line 132. (2) Added fallback patterns (`|| []`) to all unsafe destructuring in offline.js, report.js, index.html. (3) Converted all onclick/oninput/onchange handlers to data-action + pointerup pattern with bindPointerHandlers() and bindInputHandlers(). (4) Added PWA meta tags including new `mobile-web-app-capable` standard. (5) Fixed requireTherapist() and added requireTherapistOrAdmin() as separate function. (6) Self-hosted Supabase SDK to `/js/vendor/supabase.min.js` and created GitHub Action `.github/workflows/update-supabase-sdk.yml` to auto-update monthly. **Files:** `offline.js`, `report.js`, `index.html`, `pt_editor.html`, `pt_view.html`, `rehab_coverage.html`, `sw.js`, `lib/auth.js`.\n\n- **2026-01-31** — **Voice announcements and UI improvements.** **What I did:** Added \"Working left side\" / \"Working right side\" voice announcement when selecting side for bilateral exercises. Added \"All sets complete\" announcement when finishing all sets (with flag to prevent repeat announcements). Fixed exercise list to show \"Done today\" immediately after logging by adding to allHistory array and re-rendering. **Files:** `pt-rebuild/public/index.html`.\n\n- **2026-01-31** — **Cleanup:** Deleted unused files `tracker.html` and `pt_tracker.html` (legacy Firebase version still exists in `/pt`). Updated `sw.js` cache to v6 with correct asset list including self-hosted Supabase SDK.\n\n- **2026-01-31** — **New icon:** Created PT² icon variant (dark grey background #333, white \"PT\", powder blue superscript \"2\") to distinguish rebuild from original `/pt` app on iOS home screen. **Files:** `icons/icon.svg`, `manifest.json`.\n\n## 2026-02-01\n\n- **2026-02-01** — **Problem:** Duration timer exercises logged 0 seconds instead of actual elapsed time when timer reached 0. **What I did:** When duration timer hits 0, the code was resetting `timerState.elapsedMs = 0`, so `confirmNextSet()` captured 0 instead of actual time. Fixed by setting `timerState.elapsedMs = timerState.targetSeconds * 1000` when duration completes, preserving the actual elapsed time for logging. **Files:** `pt-rebuild/public/index.html`.\n\n- **2026-02-01** — **Problem:** Form parameters (band_resistance, weight, etc.) and pattern modifiers (hold_seconds, duration_seconds, distance_feet) not displayed in history views. **What I did:** (1) Updated `renderHistory()` in index.html to show sets summary with reps/seconds/distance (e.g., \"3 sets: 10r, 10r × 30s\") and form params from first set. (2) Updated pt_view.html compact summary to show combined reps×seconds format and form params. (3) Updated pt_view.html expanded set details to include form_data with format \"parameter_name: value unit\". **Files:** `pt-rebuild/public/index.html`, `pt-rebuild/public/pt_view.html`.\n\n- **2026-02-01** — **Problem:** rehab_coverage.html calling non-existent `/api/users/me` endpoint causing 404 error. **What I did:** Instead of creating new API endpoint (Vercel function limit), added `user_role` field to existing `/api/roles` GET response since auth middleware already loads user role. Updated rehab_coverage.html to extract role from roles response in `loadData()` instead of separate API call. **Files:** `pt-rebuild/api/roles.js`, `pt-rebuild/public/rehab_coverage.html`.\n\n- **2026-02-01** — **Problem:** pt_view.html showing incorrect \"Exercises\" count (16/16 instead of X/30) and \"All exercises up to date\" when exercises were overdue. Root cause: (1) `/api/programs` requires `patient_id` but pt_view wasn't passing it. (2) For therapists, `/api/logs` without `patient_id` defaults to therapist's own ID (no logs). **What I did:** (1) Added `viewingPatientId` variable set in `loadCurrentUserProfile()` - for therapists, finds their patient from users list; for patients, uses own ID. (2) Modified `loadData()` to pass `patient_id` to both `/api/logs` and `/api/programs`. (3) Fixed `calculateNeedsAttention()` to get exercise names from `program.exercises?.canonical_name` (nested API structure). **Files:** `pt-rebuild/public/pt_view.html`.\n\n- **2026-02-01** — **Problem:** Therapists and admins could only see their own user record due to restrictive RLS policy `users_select_own`. `/api/users` was returning only 1 user, so therapists couldn't find their assigned patients. **What I did:** (1) Updated `/api/users.js` to use admin Supabase client (bypasses RLS) with application-level filtering: admins see all users, therapists see themselves + patients where `therapist_id` matches their ID, patients see only themselves. (2) Created RLS migration `005_users_rls_policy_update.sql` with new policy `users_select_by_role` that allows therapists to see patients assigned to them and admins to see all users. **Files:** `pt-rebuild/api/users.js`, `pt-rebuild/db/migrations/005_users_rls_policy_update.sql`.\n\n- **2026-02-01** — **Problem:** Archived exercises still appearing in exercise lists across all views. **What I did:** Added filter `.filter(p => !p.exercises?.archived)` when loading programs in pt_view.html. **Files:** `pt-rebuild/public/pt_view.html`.\n\n- **2026-02-01** — **Problem:** rehab_coverage.html showing checkmarks for exercises done >7 days ago instead of warning icons. **What I did:** Updated status icon logic to show ⚠ warning symbol (orange) for exercises either never done or done 7+ days ago, checkmark (green) only for exercises done within 7 days. **Files:** `pt-rebuild/public/rehab_coverage.html`.\n\n## 2026-02-04\n\n- **2026-02-04** — **Problem:** Editing or deleting logged exercises returned 404 errors. The frontend was calling `/api/logs/${id}` with PATCH/DELETE methods, but the API only supported these methods for messages (`type=messages`), not for activity logs. **What I did:** (1) Added `updateActivityLog()` and `deleteActivityLog()` handlers to `/api/logs.js` that handle PATCH and DELETE requests when `id` query parameter is provided. (2) Updated frontend `saveEditSession()` and `deleteSession()` functions to use `/api/logs?id=X` query parameter format instead of path-based `/api/logs/${id}`. The update handler replaces all sets (deletes existing sets and form_data, then inserts new ones). **Files:** `pt-rebuild/api/logs.js`, `pt-rebuild/public/index.html`.\n\n- **2026-02-04** — **Problem:** LOG SET for exercises with `hold_seconds` pattern modifier logged a single REP instead of a complete SET. The modal only asked for reps count, not hold time. **What I did:** (1) Added a second input field (`logSetTimeInput`) to the Log Set modal for entering seconds per rep. (2) Updated `showLogSetModal()` to show the time input and prefill it with target hold time when exercise has `hold_seconds`. (3) Updated `saveLoggedSet()` to detect manual hold entry (when time input is visible) and create a complete SET with both reps and seconds, bypassing the rep-by-rep timer flow. Manual entries are marked with `manual_log: true`. **Files:** `pt-rebuild/public/index.html`.\n\n- **2026-02-04** — **Problem:** Edit Session modal didn't show seconds/time or distance fields for exercises with those pattern modifiers (`hold_seconds`, `duration_seconds`, `distance_feet`). Only showed reps and side. **What I did:** (1) Updated `renderEditSessionSets()` to detect exercise type and show appropriate fields: seconds input for hold/duration exercises, distance input for distance exercises. Labels adapt to context (\"Seconds/rep\" for hold, \"Seconds\" for duration). (2) Updated `saveEditSession()` to collect values from `.edit-set-seconds` and `.edit-set-distance` inputs. (3) Updated `addEditSessionSet()` to pre-fill default seconds/distance values based on exercise prescription. (4) Fixed history display format to always show reps/seconds/distance when present using compact format: \"10r × 5s\", \"30s\", \"20ft\". **Files:** `pt-rebuild/public/index.html`.\n\n- **2026-02-04** — **Problem:** Exercise details modal only showed description and pattern, not equipment, muscles, or guidance/cues. Root cause: The `/api/programs` endpoint was trying to select `equipment`, `primary_muscles`, `secondary_muscles`, `guidance` as columns from the `exercises` table, but these don't exist as columns - they're stored in separate related tables (`exercise_equipment`, `exercise_muscles`, `exercise_guidance`). **What I did:** (1) Updated `/api/programs` query to use nested selects for the related tables: `exercise_equipment(equipment_name, is_required)`, `exercise_muscles(muscle_name, is_primary)`, `exercise_guidance(section, content, sort_order)`. (2) Updated `normalizeProgramPatternModifiers()` to transform these nested arrays into the format the frontend expects: `equipment: {required: [...], optional: [...]}`, `primary_muscles: [...]`, `secondary_muscles: [...]`, `guidance: {motor_cues: [...], compensation_warnings: [...], safety_flags: [...], external_cues: [...]}`. **Files:** `pt-rebuild/lib/handlers/programs.js`.\n\n- **2026-02-04** — **Problem:** History display didn't show side information for sided exercises, and side selector wasn't shown if exercise wasn't found in allExercises. **What I did:** (1) Updated history `setsSummary` to append \"(L)\" or \"(R)\" for sets with side data. (2) Updated `openEditSessionModal()` to detect `isSided` from either exercise pattern OR presence of side data in existing sets, ensuring side selector appears even if exercise lookup fails. **Files:** `pt-rebuild/public/index.html`.\n\n- **2026-02-04** — **PWA Offline Support Implementation.** **Problem:** App was intended to work offline as a PWA, but data didn't persist to IndexedDB. The `OfflineManager` class existed in `/js/offline.js` but wasn't wired up to `index.html`. **What I did:** (1) Fixed `offline.js` to use proper native IndexedDB patterns (added `_waitForTransaction()` helper, fixed transaction completion handling). (2) Wired up `OfflineManager` in `index.html`: imports module, initializes on app start, sets up online/offline event listeners. (3) Implemented offline-only cache: when offline, loads from IndexedDB; when online, fetches from API directly (no stale-then-refresh pattern which would cause jarring re-renders and scroll position loss). (4) Added auto-sync on reconnection: when coming back online, syncs pending queue items and refreshes cache. (5) Added `updateSyncStatusUI()` function showing sync badge states: red for pending items, gray for offline. (6) Updated `/api/sync.js` to write to `offline_mutations` table for server-side audit. (7) Cache hydration happens in background after successful API load. **Architecture:** Online: API fetch → render once → hydrate cache in background. Offline: IndexedDB cache → render once. Auto-sync: online event → sync pending queue → hydrate cache. **Files:** `pt-rebuild/public/js/offline.js`, `pt-rebuild/public/index.html`, `pt-rebuild/api/sync.js`.\n\n## 2026-02-16\n\n### Security Hardening (Low-Risk Only)\n\nAll changes are low-risk, non-breaking hardening. Medium/high-risk items deferred (see Remaining Work below).\n\n- **2026-02-16** — **Removed hardcoded Supabase fallback credentials from `pt_editor.js`.** The client-side editor had `FALLBACK_SUPABASE_URL` and `FALLBACK_SUPABASE_ANON_KEY` constants used when `/api/env` failed. Removed these and replaced with an explicit `throw new Error(...)` so a config failure is visible rather than silently using stale credentials. **Files:** `pt-rebuild/public/js/pt_editor.js`.\n\n- **2026-02-16** — **Restricted `/api/debug` endpoint to admin role only.** Previously any authenticated user could call `GET /api/debug` and see their full user context object. Now returns 403 for non-admins. **Files:** `pt-rebuild/api/debug.js`.\n\n- **2026-02-16** — **Cached admin Supabase client as singleton in `db.js`.** The anon client was already cached, but `getSupabaseAdmin()` created a new `createClient()` instance on every call. Now uses `supabaseAdminClient` singleton matching the anon client pattern. **Files:** `pt-rebuild/lib/db.js`.\n\n- **2026-02-16** — **Added error checks on delete operations in `logs.js` update path.** The `updateActivityLog()` PATCH handler deleted existing sets and form_data before inserting replacements, but never checked the delete results. If deletes failed silently, subsequent inserts would create duplicate sets. Now checks `formDeleteError` and `setsDeleteError` and throws on failure. **Files:** `pt-rebuild/api/logs.js` (lines 357-371).\n\n- **2026-02-16** — **Stripped `error.message` from all 500 responses in production.** 25 instances across 8 API files were leaking internal error details (stack traces, DB error messages) to clients. Changed all to `details: process.env.NODE_ENV === 'development' ? error.message : undefined` so details only appear in dev mode. **Files:** `api/logs.js`, `api/vocab.js`, `api/roles.js`, `api/reference-data.js`, `api/users.js`, `lib/handlers/exercises.js`, `lib/handlers/programs.js`.\n\n- **2026-02-16** — **Deleted dead code files `tracker.js` and `report.js`.** Verified zero HTML references and zero `import` statements across the entire `public/` directory. Removed from `sw.js` STATIC_ASSETS list and bumped service worker cache to v7 to force clients to drop the stale cached copies. **Files:** deleted `public/js/tracker.js`, deleted `public/js/report.js`, `public/sw.js`.\n\n### Read Receipts Feature\n\n- **2026-02-16** — **Added `read_at` timestamp column to `clinical_messages`.** Created migration `011_add_message_read_at.sql` (idempotent with `IF NOT EXISTS`). Column was also added directly to live Supabase DB by user, so migration is documentation/safety net only. Updated `schema.sql` to match live DB (also added `sent_at` column that existed in live DB but was missing from repo schema). **Files:** `db/migrations/011_add_message_read_at.sql`, `db/schema.sql`.\n\n- **2026-02-16** — **Added `supabase_schema.sql` to repo.** User exported live Supabase schema and committed to main. Merged into feature branch. This file is the authoritative reference for live DB state. **Files:** `db/supabase_schema.sql` (from main).\n\n- **2026-02-16** — **Wired up server-side read tracking in `logs.js` `updateMessage()`.** When `PATCH` is called with `{ read: true }`, the handler now also sets `read_at` to the current timestamp — but only on first read (never overwritten, never cleared). The existing `read_by_recipient` boolean still gets set/unset normally. **Files:** `api/logs.js` (lines 661-667).\n\n- **2026-02-16** — **Wired up read receipts in both frontend views.** (1) **Mark as read server-side:** When messages modal opens, `markReceivedMessagesAsRead()` fetches all messages, finds unread ones where current user is the recipient, and fires PATCH `{ read: true }` for each (fire-and-forget, non-blocking). (2) **Display read status on sent messages:** Each sent message now shows \"Read [local datetime]\" in green (using existing `formatMessageDateTime()` which uses local timezone) or \"Delivered\" in grey if unread. Read receipt appears bottom-right of the message card. **Files:** `public/index.html`, `public/pt_view.html`.\n\n---\n\n\n### Reference: Live DB vs Repo Schema\n\nThe file `db/supabase_schema.sql` is the authoritative live DB export. The file `db/schema.sql` is the repo's CREATE TABLE script (used for documentation and fresh deploys). These should be kept in sync. As of 2026-02-16 they match, including the `read_at` and `sent_at` columns on `clinical_messages`.\n\n- **2026-02-17** — **Documentation:** Added `docs/API_SLOT_STRATEGY_2026-02-17.md` to preserve a risk-weighted API slot allocation analysis (current endpoint usage, callsite mapping, and cost-vs-benefit recommendations for merges/splits under Vercel free-tier limits) so future local Codex runs can reuse findings without repeating discovery.\n- **2026-02-17** — **API slot consolidation + debug removal.** Consolidated route wrappers by removing `api/programs/[id].js` and `api/exercises/[id].js`, keeping `api/programs/index.js` and `api/exercises/index.js` as single entry points backed by shared handlers. Updated frontend update callsites to use query-param IDs (`/api/programs?id=...`, `/api/exercises?id=...`) so PUT/DELETE continue to resolve through handler ID fallback (`req.query.id` / body `id`). Removed `api/debug.js` to reclaim another function slot. **Validation:** confirmed no remaining `/api/programs/` or `/api/exercises/` path-param callsites in `public/`, and no `/api/debug` app callsites. **Files:** `pt-rebuild/public/js/pt_editor.js`, `pt-rebuild/api/programs/[id].js` (deleted), `pt-rebuild/api/exercises/[id].js` (deleted), `pt-rebuild/api/debug.js` (deleted), `pt-rebuild/docs/DEVELOPMENT.md`.\n\n\n\n- **2026-02-17** — **Offline queue write integrity fix.** `addToQueue()` now resolves on IndexedDB transaction completion and only reports success after commit. **Files:** `pt-rebuild/public/js/offline.js`."
-  }
+  },
+  "closed_items": [
+    {
+      "id": "DN-001",
+      "status": "done",
+      "priority": "P0",
+      "risk": "medium",
+      "tags": [
+        "security",
+        "supabase",
+        "api",
+        "auth"
+      ],
+      "file": "pt-rebuild/api/sync.js",
+      "issue": "Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client.",
+      "resolved": "2026-02-20"
+    },
+    {
+      "id": "DN-002",
+      "status": "done",
+      "priority": "P0",
+      "risk": "medium",
+      "tags": [
+        "security",
+        "api",
+        "auth"
+      ],
+      "file": "pt-rebuild/api/logs.js",
+      "issue": "Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller.",
+      "resolved": "2026-02-20"
+    },
+    {
+      "id": "DN-003",
+      "status": "done",
+      "priority": "P1",
+      "risk": "high",
+      "tags": [
+        "data-model",
+        "reliability",
+        "sync",
+        "api"
+      ],
+      "file": "pt-rebuild/api/sync.js,pt-rebuild/api/logs.js",
+      "issue": "Prevent orphaned logs when sets insert fails (cleanup or transactional behavior).",
+      "resolved": "2026-02-21"
+    },
+    {
+      "id": "DN-004",
+      "status": "done",
+      "priority": "P1",
+      "risk": "high",
+      "tags": [
+        "data-model",
+        "reliability",
+        "api"
+      ],
+      "file": "pt-rebuild/api/logs.js",
+      "issue": "Form data is matched to sets by array index instead of `set_number` in create/update flows.",
+      "resolved": "2026-02-21"
+    },
+    {
+      "id": "DN-013",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "ui"
+      ],
+      "file": "pt-rebuild/public/index.html",
+      "issue": "History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not.",
+      "resolved": "2026-02-23",
+      "context": "Notes are already fetched with the activity log data — just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.",
+      "constraints_caveats": "Check pt_view.html notes rendering and replicate the same pattern on index."
+    },
+    {
+      "id": "DN-018",
+      "status": "done",
+      "priority": "P2",
+      "risk": "medium",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "resolved": "2026-02-23",
+      "tags": [
+        "offline",
+        "api",
+        "reliability"
+      ],
+      "file": "pt-rebuild/api/sync.js,pt-rebuild/public/js/offline.js,pt-rebuild/public/index.html",
+      "issue": "Two competing offline sync systems exist — the active one (localStorage + `/api/logs` per item in index.html) and a dead one (`offline.js` IndexedDB queue + `/api/sync` batch endpoint). `manualSync()` in offline.js is never called; `/api/sync` is reachable but unused by any UI flow.",
+      "context": "`offline.js` is imported in index.html and used for IndexedDB read-caching only (exercises, programs, logs). Its queue/sync functionality was never wired up. The active offline pattern is entirely in `syncOfflineQueue()` in index.html using localStorage. `/api/sync` takes up one of Vercel's 12-function free-tier slots.",
+      "options": "(A) Remove `/api/sync` and dead offline.js sync code — cleans up confusion, frees function slot, but requires careful audit of what IndexedDB code is safe to remove. (B) Activate `/api/sync` as a proper batch endpoint replacing per-item `/api/logs` calls — significant redesign. (C) Leave as-is but document clearly.",
+      "constraints_caveats": "Do not touch index.html IndexedDB hydration code without fully understanding what it caches and whether anything reads from it. This is a full separate project, not a quick cleanup."
+    },
+    {
+      "id": "DN-020",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "tags": [
+        "api",
+        "reliability"
+      ],
+      "file": "pt-rebuild/api/logs.js",
+      "issue": "Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings.",
+      "resolved": "2026-02-23",
+      "context": "Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.",
+      "constraints_caveats": "Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts."
+    },
+    {
+      "id": "DN-021",
+      "status": "done",
+      "priority": "P2",
+      "risk": "medium",
+      "scope": "current",
+      "tags": [
+        "api",
+        "reliability",
+        "ui"
+      ],
+      "file": "pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json",
+      "issue": "Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`.",
+      "resolved": "2026-02-23",
+      "context": "`pt_editor.js` calls `/api/roles/${roleId}` and `api/roles.js` parses a path suffix from `req.url`, but there is no explicit rewrite for nested `/api/roles/:id` in `vercel.json`.",
+      "constraints_caveats": "Confirm behavior in deployed Vercel environment before changing API shape. If needed, support both `DELETE /api/roles?id=...` and path variant to avoid breaking existing clients."
+    },
+    {
+      "id": "DN-026",
+      "status": "done",
+      "priority": "P1",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "security",
+        "supabase",
+        "api"
+      ],
+      "file": "pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql",
+      "issue": "Function public.create_activity_log_atomic has a mutable search_path — Supabase security advisor flag.",
+      "resolved": "2026-02-23",
+      "context": "Supabase security advisor flagged the RPC function for missing SET search_path, which allows schema injection if an attacker can create objects in a schema earlier in the search path."
+    },
+    {
+      "id": "DN-025",
+      "status": "done",
+      "priority": "P1",
+      "risk": "low",
+      "tags": [
+        "auth",
+        "supabase",
+        "ui"
+      ],
+      "file": "pt-rebuild/public/reset-password.html",
+      "issue": "Password reset link always shows 'Invalid or Expired Link' — Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash.",
+      "resolved": "2026-02-23"
+    },
+    {
+      "id": "DN-023",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "tags": [
+        "docs",
+        "reliability"
+      ],
+      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md",
+      "issue": "Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion.",
+      "resolved": "2026-02-22"
+    },
+    {
+      "id": "DN-024",
+      "status": "done",
+      "priority": "P3",
+      "risk": "low",
+      "tags": [
+        "docs"
+      ],
+      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md",
+      "issue": "Confirm follow-up dev-tracking for JSON-canonical migration review and record validation commands run.",
+      "resolved": "2026-02-22",
+      "context": "Follow-up request asked whether a dev note was added and whether required generator commands were run.",
+      "constraints_caveats": "Keep tracking in canonical JSON and regenerate Markdown artifact only via script."
+    },
+    {
+      "id": "DN-027",
+      "status": "done",
+      "priority": "P3",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "docs",
+        "cleanup"
+      ],
+      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs",
+      "issue": "Remove redundant  field from dev_notes.json — it duplicates  and is drift-prone.",
+      "resolved": "2026-02-23"
+    },
+    {
+      "id": "DN-028",
+      "status": "done",
+      "priority": "P3",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "docs",
+        "cleanup"
+      ],
+      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs,pt-rebuild/AGENTS.md",
+      "issue": "Separate open_items into open_items (active work queue) and closed_items (done) to reduce agent token cost and eliminate noise.",
+      "resolved": "2026-02-23"
+    }
+  ]
 }

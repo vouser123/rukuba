@@ -12,14 +12,18 @@ This file is generated from `docs/dev_notes.json`. Do not hand-edit this Markdow
 - [Migration Approach](#migration-approach)
 - [Activity Log Testing Checklist](#activity-log-testing-checklist)
 - [Open Items](#open-items)
+- [Closed Items](#closed-items)
 - [Dated Entries](#dated-entries)
 - [Legacy Entries (Pre-Format)](#legacy-entries-pre-format)
 
 ## How to Use This File
 - Canonical source of truth: `docs/dev_notes.json`.
 - Run `npm run dev-notes:build` after JSON updates.
-- Keep active work only in `Open Items`.
-- Close-loop rule: when an item is resolved, remove/resolve it in `open_items` and add a dated entry linked to the issue ID.
+- `open_items`: active work queue — statuses `open`, `in_progress`, `blocked` only.
+- `closed_items`: completed items — status `done` only.
+- `in_progress`: item is actively being worked on this session.
+- `blocked`: cannot proceed; must include a `constraints_caveats` note explaining the blocker.
+- Close-loop rule: when an item is resolved, move it from `open_items` to `closed_items` (set status to `done`, add `resolved` date) and add a `dated_entries` record linked to the issue ID.
 
 ## Priority Levels
 - `P0`: Critical: production-breaking or patient-safety/security risk; address immediately.
@@ -70,7 +74,7 @@ Use this exact field order for all new dated entries:
 
 ## Migration Approach
 - Legacy content is frozen under `Legacy Entries (Pre-Format)`.
-- Active TODOs are tracked in `open_items`.
+- Active TODOs are tracked in `open_items`. Completed items live in `closed_items`.
 - Convert legacy entries to full schema only when touched.
 
 ## Activity Log Testing Checklist
@@ -128,10 +132,6 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 ```
 
 ## Open Items
-- [x] DN-001 | status:done | priority:P0 | risk:medium | tags:[security,supabase,api,auth] | file:pt-rebuild/api/sync.js | issue:Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client. | resolved:2026-02-20
-- [x] DN-002 | status:done | priority:P0 | risk:medium | tags:[security,api,auth] | file:pt-rebuild/api/logs.js | issue:Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller. | resolved:2026-02-20
-- [x] DN-003 | status:done | priority:P1 | risk:high | tags:[data-model,reliability,sync,api] | file:pt-rebuild/api/sync.js,pt-rebuild/api/logs.js | issue:Prevent orphaned logs when sets insert fails (cleanup or transactional behavior). | resolved:2026-02-21
-- [x] DN-004 | status:done | priority:P1 | risk:high | tags:[data-model,reliability,api] | file:pt-rebuild/api/logs.js | issue:Form data is matched to sets by array index instead of `set_number` in create/update flows. | resolved:2026-02-21
 - [ ] DN-005 | status:open | priority:P2 | risk:low | tags:[performance,api] | file:pt-rebuild/api/users.js | issue:Push role-based filtering to DB query (`.eq()` etc.) instead of fetching all users then filtering in memory.
   - Context: Therapists/patients currently fetch full user sets before reducing in app logic.
   - Constraints/Caveats: Behavior parity (who can see which users) must remain identical after query-level filtering.
@@ -153,9 +153,6 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-014 | status:open | priority:P2 | risk:low | tags:[ui] | file:pt-rebuild/public/index.html | issue:History tab on index shows all exercises; when navigating from a specific exercise it should pre-filter to that exercise's history only.
   - Context: User taps an exercise card, then taps the History tab — expects to see that exercise's history, not the full log across all exercises.
   - Constraints/Caveats: Needs a way to pass exercise context to the History tab (e.g. in-memory state or scroll-to). Should still allow clearing the filter to see full history.
-- [x] DN-013 | status:done | priority:P2 | risk:low | tags:[ui] | file:pt-rebuild/public/index.html | issue:History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not. | resolved:2026-02-23
-  - Context: Notes are already fetched with the activity log data — just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.
-  - Constraints/Caveats: Check pt_view.html notes rendering and replicate the same pattern on index.
 - [ ] DN-012 | status:open | priority:P2 | risk:low | tags:[ui] | file:pt-rebuild/public/index.html | issue:No way to reorder exercises on the patient index page — currently sorted by program assignment order from the API.
   - Context: User needs the ability to control the display order of exercises (e.g. by body region, by recency, by custom sort). Currently exercises render in whatever order the server returns them.
   - Constraints/Caveats: Sort preference should persist across sessions (localStorage or user profile). Must not affect the underlying program data, only display order.
@@ -165,19 +162,9 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-016 | status:open | priority:P2 | risk:medium | tags:[ui,auth,api] | file:pt-rebuild/api/users.js,pt-rebuild/public | issue:No user profile editor — users cannot change their own name, email, or password from within the app.
   - Context: Currently `PATCH /api/users` only accepts `email_notifications_enabled`. A profile editor would allow users to update `first_name`, `last_name`, email (requires Supabase Auth update), and password (requires Supabase Auth password change flow). Admin may also need ability to edit other users' profiles.
   - Constraints/Caveats: Email/password changes must go through Supabase Auth API (`supabase.auth.updateUser()`), not just the `users` table. Need to consider whether therapist can edit patient profiles or only admins can.
-- [x] DN-018 | status:done | priority:P2 | risk:medium | tags:[offline,api,reliability] | file:pt-rebuild/api/sync.js,pt-rebuild/public/js/offline.js,pt-rebuild/public/index.html | issue:Two competing offline sync systems exist — the active one (localStorage + `/api/logs` per item in index.html) and a dead one (`offline.js` IndexedDB queue + `/api/sync` batch endpoint). `manualSync()` in offline.js is never called; `/api/sync` is reachable but unused by any UI flow. | resolved:2026-02-23
-  - Context: `offline.js` is imported in index.html and used for IndexedDB read-caching only (exercises, programs, logs). Its queue/sync functionality was never wired up. The active offline pattern is entirely in `syncOfflineQueue()` in index.html using localStorage. `/api/sync` takes up one of Vercel's 12-function free-tier slots.
-  - Options: (A) Remove `/api/sync` and dead offline.js sync code — cleans up confusion, frees function slot, but requires careful audit of what IndexedDB code is safe to remove. (B) Activate `/api/sync` as a proper batch endpoint replacing per-item `/api/logs` calls — significant redesign. (C) Leave as-is but document clearly.
-  - Constraints/Caveats: Do not touch index.html IndexedDB hydration code without fully understanding what it caches and whether anything reads from it. This is a full separate project, not a quick cleanup.
 - [ ] DN-019 | status:open | priority:P1 | risk:medium | tags:[security,auth,api,reliability] | file:pt-rebuild/api/logs.js | issue:Clinical message creation (`POST /api/logs?type=messages`) validates recipient existence but does not enforce therapist↔patient relationship constraints.
   - Context: Current logic allows any authenticated caller to target any existing `users.id` as `recipient_id` if RLS permits the insert. The intended messaging model is patient-therapist communication, so relationship checks should mirror assignment rules used elsewhere.
   - Constraints/Caveats: Define and preserve intended matrix explicitly (patient→assigned therapist only; therapist→assigned patient only; admin behavior defined). Verify against current `clinical_messages` RLS policy bodies before tightening endpoint logic.
-- [x] DN-020 | status:done | priority:P2 | risk:low | tags:[api,reliability] | file:pt-rebuild/api/logs.js | issue:Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings. | resolved:2026-02-23
-  - Context: Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.
-  - Constraints/Caveats: Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts.
-- [x] DN-021 | status:done | priority:P2 | risk:medium | tags:[api,reliability,ui] | file:pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json | issue:Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`. | resolved:2026-02-23
-  - Context: `pt_editor.js` calls `/api/roles/${roleId}` and `api/roles.js` parses a path suffix from `req.url`, but there is no explicit rewrite for nested `/api/roles/:id` in `vercel.json`.
-  - Constraints/Caveats: Confirm behavior in deployed Vercel environment before changing API shape. If needed, support both `DELETE /api/roles?id=...` and path variant to avoid breaking existing clients.
 - [ ] DN-022 | status:open | priority:P1 | risk:medium | tags:[offline,auth,security,reliability] | file:pt-rebuild/public/index.html | issue:Offline queue is stored under a global localStorage key (`pt_offline_queue`) and is not cleared/scoped on sign-out, risking cross-user data carryover on shared devices.
   - Context: Queue load/save are key-based only and `signOut()` only ends Supabase auth session. A subsequent user on the same device/browser profile can inherit prior unsynced sessions.
   - Constraints/Caveats: Preserve offline durability for the same user while preventing cross-account leakage (e.g., scope key by user ID and/or clear queue on auth change with migration strategy).
@@ -188,6 +175,25 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
+
+## Closed Items
+- [x] DN-001 | status:done | priority:P0 | risk:medium | tags:[security,supabase,api,auth] | file:pt-rebuild/api/sync.js | issue:Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client. | resolved:2026-02-20
+- [x] DN-002 | status:done | priority:P0 | risk:medium | tags:[security,api,auth] | file:pt-rebuild/api/logs.js | issue:Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller. | resolved:2026-02-20
+- [x] DN-003 | status:done | priority:P1 | risk:high | tags:[data-model,reliability,sync,api] | file:pt-rebuild/api/sync.js,pt-rebuild/api/logs.js | issue:Prevent orphaned logs when sets insert fails (cleanup or transactional behavior). | resolved:2026-02-21
+- [x] DN-004 | status:done | priority:P1 | risk:high | tags:[data-model,reliability,api] | file:pt-rebuild/api/logs.js | issue:Form data is matched to sets by array index instead of `set_number` in create/update flows. | resolved:2026-02-21
+- [x] DN-013 | status:done | priority:P2 | risk:low | tags:[ui] | file:pt-rebuild/public/index.html | issue:History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not. | resolved:2026-02-23
+  - Context: Notes are already fetched with the activity log data — just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.
+  - Constraints/Caveats: Check pt_view.html notes rendering and replicate the same pattern on index.
+- [x] DN-018 | status:done | priority:P2 | risk:medium | tags:[offline,api,reliability] | file:pt-rebuild/api/sync.js,pt-rebuild/public/js/offline.js,pt-rebuild/public/index.html | issue:Two competing offline sync systems exist — the active one (localStorage + `/api/logs` per item in index.html) and a dead one (`offline.js` IndexedDB queue + `/api/sync` batch endpoint). `manualSync()` in offline.js is never called; `/api/sync` is reachable but unused by any UI flow. | resolved:2026-02-23
+  - Context: `offline.js` is imported in index.html and used for IndexedDB read-caching only (exercises, programs, logs). Its queue/sync functionality was never wired up. The active offline pattern is entirely in `syncOfflineQueue()` in index.html using localStorage. `/api/sync` takes up one of Vercel's 12-function free-tier slots.
+  - Options: (A) Remove `/api/sync` and dead offline.js sync code — cleans up confusion, frees function slot, but requires careful audit of what IndexedDB code is safe to remove. (B) Activate `/api/sync` as a proper batch endpoint replacing per-item `/api/logs` calls — significant redesign. (C) Leave as-is but document clearly.
+  - Constraints/Caveats: Do not touch index.html IndexedDB hydration code without fully understanding what it caches and whether anything reads from it. This is a full separate project, not a quick cleanup.
+- [x] DN-020 | status:done | priority:P2 | risk:low | tags:[api,reliability] | file:pt-rebuild/api/logs.js | issue:Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings. | resolved:2026-02-23
+  - Context: Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.
+  - Constraints/Caveats: Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts.
+- [x] DN-021 | status:done | priority:P2 | risk:medium | tags:[api,reliability,ui] | file:pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json | issue:Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`. | resolved:2026-02-23
+  - Context: `pt_editor.js` calls `/api/roles/${roleId}` and `api/roles.js` parses a path suffix from `req.url`, but there is no explicit rewrite for nested `/api/roles/:id` in `vercel.json`.
+  - Constraints/Caveats: Confirm behavior in deployed Vercel environment before changing API shape. If needed, support both `DELETE /api/roles?id=...` and path variant to avoid breaking existing clients.
 - [x] DN-026 | status:done | priority:P1 | risk:low | tags:[security,supabase,api] | file:pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql | issue:Function public.create_activity_log_atomic has a mutable search_path — Supabase security advisor flag. | resolved:2026-02-23
   - Context: Supabase security advisor flagged the RPC function for missing SET search_path, which allows schema injection if an attacker can create objects in a schema earlier in the search path.
 - [x] DN-025 | status:done | priority:P1 | risk:low | tags:[auth,supabase,ui] | file:pt-rebuild/public/reset-password.html | issue:Password reset link always shows 'Invalid or Expired Link' — Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash. | resolved:2026-02-23
@@ -196,11 +202,21 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
   - Context: Follow-up request asked whether a dev note was added and whether required generator commands were run.
   - Constraints/Caveats: Keep tracking in canonical JSON and regenerate Markdown artifact only via script.
 - [x] DN-027 | status:done | priority:P3 | risk:low | tags:[docs,cleanup] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs | issue:Remove redundant  field from dev_notes.json — it duplicates  and is drift-prone. | resolved:2026-02-23
+- [x] DN-028 | status:done | priority:P3 | risk:low | tags:[docs,cleanup] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs,pt-rebuild/AGENTS.md | issue:Separate open_items into open_items (active work queue) and closed_items (done) to reduce agent token cost and eliminate noise. | resolved:2026-02-23
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-23
+
+### 2026-02-23 — DN-028: Split open_items into open_items / closed_items
+- Problem: open_items mixed active (open/in_progress/blocked) and done items in one array. At schema 1.4.0, 13 of 27 items were done — 50% noise for agents loading the work queue. Ratio worsens over time.
+- Root cause: Original schema had no closed_items array. Done items accumulated in open_items with no mechanism to move them out.
+- Change made: Script split open_items by status: open/in_progress/blocked stay in open_items; done moves to new closed_items array. Generator updated to validate and render both sections separately. AGENTS.md updated with lifecycle rules for all status values. Schema bumped to 1.5.0.
+- Files touched: pt-rebuild/docs/dev_notes.json (split into open_items + closed_items, schema 1.4.0 -> 1.5.0), pt-rebuild/scripts/generate-dev-notes.mjs (validate + render closed_items), pt-rebuild/AGENTS.md (lifecycle rules updated)
+- Validation: dev-notes:build and dev-notes:check both pass. open_items contains only actionable statuses. closed_items contains all done items.
+- Follow-ups: None.
+- Tags: [docs,cleanup]
 
 ### 2026-02-23 — DN-027: Remove redundant checkbox field from dev_notes schema
 - Problem: All open_items in dev_notes.json carried a 'checkbox' field ('open'/'done') that duplicated the 'status' field. The generator already derived checkbox state from 'status' and 'resolved', making the field pure noise. It was also drift-prone — proven when DN-018 had mismatched checkbox/status values after a partial update.
