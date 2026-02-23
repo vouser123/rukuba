@@ -584,6 +584,20 @@
       "constraints_caveats": "Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows."
     },
     {
+      "id": "DN-026",
+      "status": "done",
+      "priority": "P1",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["security", "supabase", "api"],
+      "file": "pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql",
+      "issue": "Function public.create_activity_log_atomic has a mutable search_path — Supabase security advisor flag.",
+      "resolved": "2026-02-23",
+      "checkbox": "done",
+      "context": "Supabase security advisor flagged the RPC function for missing SET search_path, which allows schema injection if an attacker can create objects in a schema earlier in the search path."
+    },
+    {
       "id": "DN-025",
       "status": "done",
       "priority": "P1",
@@ -629,6 +643,17 @@
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-23",
+      "title": "2026-02-23 — DN-026: Fix mutable search_path on create_activity_log_atomic RPC",
+      "problem": "Supabase security advisor flagged `public.create_activity_log_atomic` for having a mutable search_path. Without an explicit SET search_path, a malicious actor who can create objects in a schema earlier in the default search path could potentially redirect function calls to shadow objects.",
+      "root_cause": "The function was created without `SET search_path = public, pg_temp` or explicit `SECURITY INVOKER` declaration, leaving search path resolution at runtime rather than function-definition time.",
+      "change_made": "Replaced the function with `CREATE OR REPLACE` adding `SECURITY INVOKER` and `SET search_path = public, pg_temp`. No logic changes — identical behavior, locked search path.",
+      "files_touched": "pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql (new). Applied directly to DB via Supabase MCP.",
+      "validation": "Migration applied successfully. Function signature and behavior unchanged — existing callers in logs.js and sync.js unaffected.",
+      "follow_ups": "None.",
+      "tags": ["security", "supabase", "api"]
+    },
     {
       "date": "2026-02-23",
       "title": "2026-02-23 — DN-013: Render session notes in index history view",

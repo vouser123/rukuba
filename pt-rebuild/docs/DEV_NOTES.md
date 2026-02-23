@@ -188,6 +188,8 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
+- [x] DN-026 | status:done | priority:P1 | risk:low | tags:[security,supabase,api] | file:pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql | issue:Function public.create_activity_log_atomic has a mutable search_path — Supabase security advisor flag. | resolved:2026-02-23
+  - Context: Supabase security advisor flagged the RPC function for missing SET search_path, which allows schema injection if an attacker can create objects in a schema earlier in the search path.
 - [x] DN-025 | status:done | priority:P1 | risk:low | tags:[auth,supabase,ui] | file:pt-rebuild/public/reset-password.html | issue:Password reset link always shows 'Invalid or Expired Link' — Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash. | resolved:2026-02-23
 - [x] DN-023 | status:done | priority:P2 | risk:low | tags:[docs,reliability] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md | issue:Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion. | resolved:2026-02-22
 - [x] DN-024 | status:done | priority:P3 | risk:low | tags:[docs] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md | issue:Confirm follow-up dev-tracking for JSON-canonical migration review and record validation commands run. | resolved:2026-02-22
@@ -198,6 +200,15 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-23
+
+### 2026-02-23 — DN-026: Fix mutable search_path on create_activity_log_atomic RPC
+- Problem: Supabase security advisor flagged `public.create_activity_log_atomic` for having a mutable search_path. Without an explicit SET search_path, a malicious actor who can create objects in a schema earlier in the default search path could potentially redirect function calls to shadow objects.
+- Root cause: The function was created without `SET search_path = public, pg_temp` or explicit `SECURITY INVOKER` declaration, leaving search path resolution at runtime rather than function-definition time.
+- Change made: Replaced the function with `CREATE OR REPLACE` adding `SECURITY INVOKER` and `SET search_path = public, pg_temp`. No logic changes — identical behavior, locked search path.
+- Files touched: pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql (new). Applied directly to DB via Supabase MCP.
+- Validation: Migration applied successfully. Function signature and behavior unchanged — existing callers in logs.js and sync.js unaffected.
+- Follow-ups: None.
+- Tags: [security,supabase,api]
 
 ### 2026-02-23 — DN-025: Password reset link always showed 'Invalid or Expired Link'
 - Problem: Clicking a valid, freshly-issued password reset link on pttracker.app immediately showed 'Invalid or Expired Link'. The Supabase verify endpoint redirected correctly to /reset-password.html, but the page rejected every token.
