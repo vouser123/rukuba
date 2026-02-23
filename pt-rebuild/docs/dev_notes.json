@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schema_version": "1.3.0",
+    "schema_version": "1.4.0",
     "last_updated": "2026-02-23"
   },
   "enums": {
@@ -188,8 +188,7 @@
       ],
       "file": "pt-rebuild/api/sync.js",
       "issue": "Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client.",
-      "resolved": "2026-02-20",
-      "checkbox": "done"
+      "resolved": "2026-02-20"
     },
     {
       "id": "DN-002",
@@ -203,8 +202,7 @@
       ],
       "file": "pt-rebuild/api/logs.js",
       "issue": "Add therapist-to-patient authorization check in `createActivityLog()` when `patient_id` differs from caller.",
-      "resolved": "2026-02-20",
-      "checkbox": "done"
+      "resolved": "2026-02-20"
     },
     {
       "id": "DN-003",
@@ -219,8 +217,7 @@
       ],
       "file": "pt-rebuild/api/sync.js,pt-rebuild/api/logs.js",
       "issue": "Prevent orphaned logs when sets insert fails (cleanup or transactional behavior).",
-      "resolved": "2026-02-21",
-      "checkbox": "done"
+      "resolved": "2026-02-21"
     },
     {
       "id": "DN-004",
@@ -234,8 +231,7 @@
       ],
       "file": "pt-rebuild/api/logs.js",
       "issue": "Form data is matched to sets by array index instead of `set_number` in create/update flows.",
-      "resolved": "2026-02-21",
-      "checkbox": "done"
+      "resolved": "2026-02-21"
     },
     {
       "id": "DN-005",
@@ -243,7 +239,9 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["codex"],
+      "agent": [
+        "codex"
+      ],
       "tags": [
         "performance",
         "api"
@@ -251,7 +249,6 @@
       "file": "pt-rebuild/api/users.js",
       "issue": "Push role-based filtering to DB query (`.eq()` etc.) instead of fetching all users then filtering in memory.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Therapists/patients currently fetch full user sets before reducing in app logic.",
       "constraints_caveats": "Behavior parity (who can see which users) must remain identical after query-level filtering."
     },
@@ -261,7 +258,9 @@
       "priority": "P3",
       "risk": "low",
       "scope": "current",
-      "agent": ["codex"],
+      "agent": [
+        "codex"
+      ],
       "tags": [
         "ui",
         "ios",
@@ -271,7 +270,6 @@
       "file": "pt-rebuild/public/js/hamburger-menu.js",
       "issue": "Audit and align hamburger menu consistency across index/pt_view/pt_editor/rehab_coverage.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Menu structure and handlers drift across pages despite shared assets.",
       "constraints_caveats": "Must preserve page-specific links/workflows while standardizing interaction model (`data-action` + `pointerup`)."
     },
@@ -281,7 +279,9 @@
       "priority": "P1",
       "risk": "medium",
       "scope": "current",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "tags": [
         "performance",
         "ui",
@@ -290,7 +290,6 @@
       "file": "pt-rebuild/public/index.html,pt-rebuild/public/rehab_coverage.html",
       "issue": "Reduce INP from 800ms mobile average; worst offenders identified from Vercel Speed Insights real-user data.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Field data (mobile, 2026-02-18) shows processing duration (not input delay) is the bottleneck — handlers are doing too much synchronous work on tap. Worst offenders by element: `#hamburgerMenu` 3,488ms (2 interactions), `#timerMode` 1,768ms, `#cap-back-tolerance` 1,480ms, `#messagesModal` 1,296ms, `#sessionNotes` 1,368ms, `#cap-ankle-tolerance` 1,192ms, `#logSetModal` 632ms, `body>div.header` 520ms. LCP on index.html is 8.4s (mobile, 12 data points) — LCP element is `#exerciseList>div.exercise-card>div.exercise-name`, caused by serial API waterfall (users → programs → history before first render). Backfill fetch removed 2026-02-18 as first LCP fix.",
       "constraints_caveats": "Handler code for hamburger menu and capacity elements has not yet been read — root cause of synchronous blocking work is unconfirmed. Must not change clinical logging workflows. iOS PWA `pointerup`/`data-action` pattern must be preserved. rehab_coverage.html capacity tap handlers are separate from index.html and need independent investigation."
     },
@@ -300,7 +299,9 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "tags": [
         "data-model",
         "migration"
@@ -308,7 +309,6 @@
       "file": "pt-rebuild/supabase/migrations",
       "issue": "Delete `20260220000755_remote_schema.sql.bak` once VS Code Supabase extension confirms no more storage trigger errors.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Created as a backup before stripping the storage-internal trigger lines from the migrations file. Safe to delete once tooling is confirmed clean.",
       "constraints_caveats": "Verify VS Code extension no longer flags the file before deleting."
     },
@@ -318,7 +318,9 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "tags": [
         "data-model",
         "migration"
@@ -326,7 +328,6 @@
       "file": "pt-rebuild/supabase",
       "issue": "Drop backup table `exercises_backup_20260221` after confirming exercise ID migration is working correctly in production.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Table was created as a safety net during the atomic migration that remapped 13 non-UUID exercise IDs (ex000X and slug IDs) to proper UUIDs. All 34 exercises and 11 FK constraint tables verified correct post-migration. See dated entry 2026-02-20.",
       "constraints_caveats": "Confirm pt_editor loads/saves exercises correctly and no FK errors appear in logs before dropping."
     },
@@ -336,7 +337,9 @@
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "tags": [
         "performance",
         "supabase",
@@ -345,7 +348,6 @@
       "file": "pt-rebuild/supabase",
       "issue": "Resolve duplicate permissive SELECT policies on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Supabase performance advisor flags 9 tables with two SELECT policies for `authenticated` on the same table. Both policies are evaluated per query. The older `_select_own` / `patient_activity_*_select` policies predate the broader `activity_logs_select` / `activity_sets_select` / `set_form_data_select` policies. The broader policies cover all cases the older ones do, plus therapist access. The older narrow ones can likely be dropped — but access behavior must be verified first.",
       "constraints_caveats": "Read both policy bodies carefully before dropping anything. Verify that the broader policy covers every case the narrow one does (patient own access + therapist access + admin access). Do not drop without testing patient and therapist SELECT access in staging."
     },
@@ -355,14 +357,15 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["codex"],
+      "agent": [
+        "codex"
+      ],
       "tags": [
         "ui"
       ],
       "file": "pt-rebuild/public/index.html",
       "issue": "History tab on index shows all exercises; when navigating from a specific exercise it should pre-filter to that exercise's history only.",
       "resolved": null,
-      "checkbox": "open",
       "context": "User taps an exercise card, then taps the History tab — expects to see that exercise's history, not the full log across all exercises.",
       "constraints_caveats": "Needs a way to pass exercise context to the History tab (e.g. in-memory state or scroll-to). Should still allow clearing the filter to see full history."
     },
@@ -372,14 +375,15 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["codex"],
+      "agent": [
+        "codex"
+      ],
       "tags": [
         "ui"
       ],
       "file": "pt-rebuild/public/index.html",
       "issue": "History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not.",
       "resolved": "2026-02-23",
-      "checkbox": "done",
       "context": "Notes are already fetched with the activity log data — just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.",
       "constraints_caveats": "Check pt_view.html notes rendering and replicate the same pattern on index."
     },
@@ -389,14 +393,15 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "tags": [
         "ui"
       ],
       "file": "pt-rebuild/public/index.html",
       "issue": "No way to reorder exercises on the patient index page — currently sorted by program assignment order from the API.",
       "resolved": null,
-      "checkbox": "open",
       "context": "User needs the ability to control the display order of exercises (e.g. by body region, by recency, by custom sort). Currently exercises render in whatever order the server returns them.",
       "constraints_caveats": "Sort preference should persist across sessions (localStorage or user profile). Must not affect the underlying program data, only display order."
     },
@@ -406,7 +411,9 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["codex"],
+      "agent": [
+        "codex"
+      ],
       "tags": [
         "ui",
         "auth",
@@ -415,7 +422,6 @@
       "file": "pt-rebuild/public/index.html,pt-rebuild/public/pt_view.html",
       "issue": "Hamburger menu sometimes shows \"Signed in as -\" (dash) instead of the user's name on page load.",
       "resolved": null,
-      "checkbox": "open",
       "context": "User name is populated after the users API call resolves. On slow loads or when the menu is opened before the API response arrives, the name placeholder \"-\" is visible instead of the real name.",
       "constraints_caveats": "Investigate whether the menu renders before `me` is resolved and whether a re-render or reactive update is needed once the name is available."
     },
@@ -425,7 +431,9 @@
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "tags": [
         "ui",
         "auth",
@@ -434,7 +442,6 @@
       "file": "pt-rebuild/api/users.js,pt-rebuild/public",
       "issue": "No user profile editor — users cannot change their own name, email, or password from within the app.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Currently `PATCH /api/users` only accepts `email_notifications_enabled`. A profile editor would allow users to update `first_name`, `last_name`, email (requires Supabase Auth update), and password (requires Supabase Auth password change flow). Admin may also need ability to edit other users' profiles.",
       "constraints_caveats": "Email/password changes must go through Supabase Auth API (`supabase.auth.updateUser()`), not just the `users` table. Need to consider whether therapist can edit patient profiles or only admins can."
     },
@@ -444,9 +451,10 @@
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "resolved": "2026-02-23",
-      "checkbox": "done",
       "tags": [
         "offline",
         "api",
@@ -464,7 +472,9 @@
       "priority": "P1",
       "risk": "medium",
       "scope": "deferred",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "reactivate_when": {
         "trigger": "deployment_scope_change",
         "note": "Current deployment has exactly two users (patient + therapist) who are the only valid sender/recipient pair. Relationship enforcement has no attack surface until additional users exist."
@@ -478,7 +488,6 @@
       "file": "pt-rebuild/api/logs.js",
       "issue": "Clinical message creation (`POST /api/logs?type=messages`) validates recipient existence but does not enforce therapist↔patient relationship constraints.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Current logic allows any authenticated caller to target any existing `users.id` as `recipient_id` if RLS permits the insert. The intended messaging model is patient-therapist communication, so relationship checks should mirror assignment rules used elsewhere.",
       "constraints_caveats": "Define and preserve intended matrix explicitly (patient→assigned therapist only; therapist→assigned patient only; admin behavior defined). Verify against current `clinical_messages` RLS policy bodies before tightening endpoint logic."
     },
@@ -495,7 +504,6 @@
       "file": "pt-rebuild/api/logs.js",
       "issue": "Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings.",
       "resolved": "2026-02-23",
-      "checkbox": "done",
       "context": "Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.",
       "constraints_caveats": "Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts."
     },
@@ -513,7 +521,6 @@
       "file": "pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json",
       "issue": "Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`.",
       "resolved": "2026-02-23",
-      "checkbox": "done",
       "context": "`pt_editor.js` calls `/api/roles/${roleId}` and `api/roles.js` parses a path suffix from `req.url`, but there is no explicit rewrite for nested `/api/roles/:id` in `vercel.json`.",
       "constraints_caveats": "Confirm behavior in deployed Vercel environment before changing API shape. If needed, support both `DELETE /api/roles?id=...` and path variant to avoid breaking existing clients."
     },
@@ -523,7 +530,9 @@
       "priority": "P1",
       "risk": "medium",
       "scope": "deferred",
-      "agent": ["codex"],
+      "agent": [
+        "codex"
+      ],
       "reactivate_when": {
         "trigger": "deployment_scope_change",
         "note": "Shared-device cross-user leakage only applies when multiple users share a device/browser profile. Current deployment is single-patient, single-therapist on separate devices."
@@ -537,7 +546,6 @@
       "file": "pt-rebuild/public/index.html",
       "issue": "Offline queue is stored under a global localStorage key (`pt_offline_queue`) and is not cleared/scoped on sign-out, risking cross-user data carryover on shared devices.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Queue load/save are key-based only and `signOut()` only ends Supabase auth session. A subsequent user on the same device/browser profile can inherit prior unsynced sessions.",
       "constraints_caveats": "Preserve offline durability for the same user while preventing cross-account leakage (e.g., scope key by user ID and/or clear queue on auth change with migration strategy)."
     },
@@ -547,7 +555,9 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
+      "agent": [
+        "claude"
+      ],
       "tags": [
         "docs",
         "data-model",
@@ -556,7 +566,6 @@
       "file": "pt-rebuild/db/schema.sql",
       "issue": "`schema.sql` drifts out of sync with the live database every time a migration is applied — no automated mechanism keeps it current.",
       "resolved": null,
-      "checkbox": "open",
       "context": "`schema.sql` is a manually maintained snapshot. Each migration in `pt-rebuild/db/migrations/` changes the live DB but does not update `schema.sql`. Over time the file becomes unreliable as a reference for the current DB structure.",
       "options": "(A) After each migration, regenerate `schema.sql` using `supabase db dump --schema public > pt-rebuild/db/schema.sql` as a manual step. (B) Treat `schema.sql` as deprecated documentation and rely solely on numbered migration files as source of truth. (C) Add a note in CLAUDE.md reminding agents to update `schema.sql` after applying migrations.",
       "constraints_caveats": "`supabase db dump` requires Supabase CLI and project credentials. Option B is safest but means agents must read all migration files to understand current schema. Option A keeps a single readable file but relies on discipline to run it."
@@ -567,7 +576,9 @@
       "priority": "P3",
       "risk": "low",
       "scope": "deferred",
-      "agent": ["codex"],
+      "agent": [
+        "codex"
+      ],
       "reactivate_when": {
         "trigger": "query_volume_sufficient",
         "note": "Index usage data is not meaningful at current low traffic volume. Re-evaluate after sustained real-user query activity."
@@ -579,7 +590,6 @@
       "file": "pt-rebuild/supabase",
       "issue": "Evaluate and drop unused indexes once the app has real query traffic.",
       "resolved": null,
-      "checkbox": "open",
       "context": "Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.",
       "constraints_caveats": "Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows."
     },
@@ -589,12 +599,17 @@
       "priority": "P1",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["security", "supabase", "api"],
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "security",
+        "supabase",
+        "api"
+      ],
       "file": "pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql",
       "issue": "Function public.create_activity_log_atomic has a mutable search_path — Supabase security advisor flag.",
       "resolved": "2026-02-23",
-      "checkbox": "done",
       "context": "Supabase security advisor flagged the RPC function for missing SET search_path, which allows schema injection if an attacker can create objects in a schema earlier in the search path."
     },
     {
@@ -609,8 +624,7 @@
       ],
       "file": "pt-rebuild/public/reset-password.html",
       "issue": "Password reset link always shows 'Invalid or Expired Link' — Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash.",
-      "resolved": "2026-02-23",
-      "checkbox": "done"
+      "resolved": "2026-02-23"
     },
     {
       "id": "DN-023",
@@ -623,8 +637,7 @@
       ],
       "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md",
       "issue": "Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion.",
-      "resolved": "2026-02-22",
-      "checkbox": "done"
+      "resolved": "2026-02-22"
     },
     {
       "id": "DN-024",
@@ -637,12 +650,42 @@
       "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md",
       "issue": "Confirm follow-up dev-tracking for JSON-canonical migration review and record validation commands run.",
       "resolved": "2026-02-22",
-      "checkbox": "done",
       "context": "Follow-up request asked whether a dev note was added and whether required generator commands were run.",
       "constraints_caveats": "Keep tracking in canonical JSON and regenerate Markdown artifact only via script."
+    },
+    {
+      "id": "DN-027",
+      "status": "done",
+      "priority": "P3",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "docs",
+        "cleanup"
+      ],
+      "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs",
+      "issue": "Remove redundant  field from dev_notes.json — it duplicates  and is drift-prone.",
+      "resolved": "2026-02-23"
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-23",
+      "title": "2026-02-23 — DN-027: Remove redundant checkbox field from dev_notes schema",
+      "problem": "All open_items in dev_notes.json carried a 'checkbox' field ('open'/'done') that duplicated the 'status' field. The generator already derived checkbox state from 'status' and 'resolved', making the field pure noise. It was also drift-prone — proven when DN-018 had mismatched checkbox/status values after a partial update.",
+      "root_cause": "The field was originally added as a user-facing display marker before the JSON schema matured. Once 'status' became the canonical source of truth, 'checkbox' became redundant but was never cleaned.",
+      "change_made": "Removed 'checkbox' from all 26 items in open_items. Updated generate-dev-notes.mjs to derive checked state from 'status === done || Boolean(resolved)' only. Bumped schema_version to 1.4.0.",
+      "files_touched": "pt-rebuild/docs/dev_notes.json (26 items updated, schema 1.3.0 → 1.4.0), pt-rebuild/scripts/generate-dev-notes.mjs (checkbox fallback removed from renderOpenItem)",
+      "validation": "Ran dev-notes:build — output identical structure, all checkboxes render correctly from status/resolved alone.",
+      "follow_ups": "None.",
+      "tags": [
+        "docs",
+        "cleanup"
+      ]
+    },
     {
       "date": "2026-02-23",
       "title": "2026-02-23 — DN-018: Remove dead offline sync system (Option A)",
@@ -652,7 +695,12 @@
       "files_touched": "pt-rebuild/api/sync.js (deleted), pt-rebuild/public/js/offline.js (dead queue/sync methods removed, DB_VERSION bumped to 2), pt-rebuild/public/index.html (removed stale getSyncMetadata call in initOfflineManager that caused console error on load)",
       "validation": "Verified all callers of removed methods — none exist in index.html or any other file. Active sync path (syncOfflineQueue in index.html) untouched. Caching methods (getCachedExercises etc.) still present and unchanged. Preview deployment tested: exercises load, Log Set modal works, history loads, Sync Now shows 'Nothing to sync', unsynced badge shows/clears correctly, zero /api/sync calls in network traffic. PR #315 merged to main.",
       "follow_ups": "None.",
-      "tags": ["offline", "api", "reliability", "cleanup"]
+      "tags": [
+        "offline",
+        "api",
+        "reliability",
+        "cleanup"
+      ]
     },
     {
       "date": "2026-02-23",
@@ -663,7 +711,11 @@
       "files_touched": "pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql (new). Applied directly to DB via Supabase MCP.",
       "validation": "Migration applied successfully. Function signature and behavior unchanged — existing callers in logs.js and sync.js unaffected.",
       "follow_ups": "None.",
-      "tags": ["security", "supabase", "api"]
+      "tags": [
+        "security",
+        "supabase",
+        "api"
+      ]
     },
     {
       "date": "2026-02-23",
@@ -701,7 +753,10 @@
       "files_touched": "None.",
       "validation": "Code path traced: `req.url.split('?')[0].split('/')` on `/api/roles/abc-123` yields `['', 'api', 'roles', 'abc-123']`; last element is the UUID. Guard `roleId !== 'roles'` correctly rejects bare `/api/roles` DELETE attempts.",
       "follow_ups": "None.",
-      "tags": ["api", "reliability"]
+      "tags": [
+        "api",
+        "reliability"
+      ]
     },
     {
       "date": "2026-02-23",

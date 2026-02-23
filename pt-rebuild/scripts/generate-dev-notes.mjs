@@ -156,7 +156,7 @@ function renderEnumSection(entries) {
 }
 
 function renderOpenItem(item) {
-  const checked = item.status === 'done' || item.checkbox === 'done' || Boolean(item.resolved) ? 'x' : ' ';
+  const checked = item.status === 'done' || Boolean(item.resolved) ? 'x' : ' ';
   const base = `- [${checked}] ${item.id} | status:${item.status} | priority:${item.priority} | risk:${item.risk} | tags:[${item.tags.join(',')}] | file:${item.file} | issue:${item.issue}${item.resolved ? ` | resolved:${item.resolved}` : ''}`;
   const details = [];
   if (item.context) details.push(`  - Context: ${item.context}`);

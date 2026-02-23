@@ -195,11 +195,21 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [x] DN-024 | status:done | priority:P3 | risk:low | tags:[docs] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md | issue:Confirm follow-up dev-tracking for JSON-canonical migration review and record validation commands run. | resolved:2026-02-22
   - Context: Follow-up request asked whether a dev note was added and whether required generator commands were run.
   - Constraints/Caveats: Keep tracking in canonical JSON and regenerate Markdown artifact only via script.
+- [x] DN-027 | status:done | priority:P3 | risk:low | tags:[docs,cleanup] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs | issue:Remove redundant  field from dev_notes.json — it duplicates  and is drift-prone. | resolved:2026-02-23
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-23
+
+### 2026-02-23 — DN-027: Remove redundant checkbox field from dev_notes schema
+- Problem: All open_items in dev_notes.json carried a 'checkbox' field ('open'/'done') that duplicated the 'status' field. The generator already derived checkbox state from 'status' and 'resolved', making the field pure noise. It was also drift-prone — proven when DN-018 had mismatched checkbox/status values after a partial update.
+- Root cause: The field was originally added as a user-facing display marker before the JSON schema matured. Once 'status' became the canonical source of truth, 'checkbox' became redundant but was never cleaned.
+- Change made: Removed 'checkbox' from all 26 items in open_items. Updated generate-dev-notes.mjs to derive checked state from 'status === done || Boolean(resolved)' only. Bumped schema_version to 1.4.0.
+- Files touched: pt-rebuild/docs/dev_notes.json (26 items updated, schema 1.3.0 → 1.4.0), pt-rebuild/scripts/generate-dev-notes.mjs (checkbox fallback removed from renderOpenItem)
+- Validation: Ran dev-notes:build — output identical structure, all checkboxes render correctly from status/resolved alone.
+- Follow-ups: None.
+- Tags: [docs,cleanup]
 
 ### 2026-02-23 — DN-026: Fix mutable search_path on create_activity_log_atomic RPC
 - Problem: Supabase security advisor flagged `public.create_activity_log_atomic` for having a mutable search_path. Without an explicit SET search_path, a malicious actor who can create objects in a schema earlier in the default search path could potentially redirect function calls to shadow objects.
