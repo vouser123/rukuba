@@ -172,7 +172,7 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-019 | status:open | priority:P1 | risk:medium | tags:[security,auth,api,reliability] | file:pt-rebuild/api/logs.js | issue:Clinical message creation (`POST /api/logs?type=messages`) validates recipient existence but does not enforce therapist↔patient relationship constraints.
   - Context: Current logic allows any authenticated caller to target any existing `users.id` as `recipient_id` if RLS permits the insert. The intended messaging model is patient-therapist communication, so relationship checks should mirror assignment rules used elsewhere.
   - Constraints/Caveats: Define and preserve intended matrix explicitly (patient→assigned therapist only; therapist→assigned patient only; admin behavior defined). Verify against current `clinical_messages` RLS policy bodies before tightening endpoint logic.
-- [ ] DN-020 | status:open | priority:P2 | risk:low | tags:[api,reliability] | file:pt-rebuild/api/logs.js | issue:Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings.
+- [x] DN-020 | status:done | priority:P2 | risk:low | tags:[api,reliability] | file:pt-rebuild/api/logs.js | issue:Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings. | resolved:2026-02-23
   - Context: Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.
   - Constraints/Caveats: Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts.
 - [x] DN-021 | status:done | priority:P2 | risk:medium | tags:[api,reliability,ui] | file:pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json | issue:Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`. | resolved:2026-02-23
@@ -215,6 +215,15 @@ Use this section for all new entries in reverse chronological order.
 - Files touched: None.
 - Validation: Code path traced: `req.url.split('?')[0].split('/')` on `/api/roles/abc-123` yields `['', 'api', 'roles', 'abc-123']`; last element is the UUID. Guard `roleId !== 'roles'` correctly rejects bare `/api/roles` DELETE attempts.
 - Follow-ups: None.
+- Tags: [api,reliability]
+
+### 2026-02-23 — DN-020: Type-safe message validation for recipient_id/body
+- Problem: `POST /api/logs?type=messages` validated required fields with `recipient_id?.trim()` and `body?.trim()` before entering `try/catch`. Non-string payloads (number/object/null) could throw `TypeError`, resulting in an unhandled 500 path instead of a controlled 400 validation response.
+- Root cause: Validation assumed string types and relied on optional chaining with `.trim()`, which does not protect against non-string truthy values (for example objects) that do not implement `trim`.
+- Change made: Updated `createMessage()` in `api/logs.js` to use strict type-safe required-field guards: `typeof recipient_id === 'string' && recipient_id.trim().length > 0` and `typeof body === 'string' && body.trim().length > 0`. Kept the existing 400 error shape/message (`Missing required fields: recipient_id, body`), preserved UUID validation and insert/auth logic, and made no frontend/UI changes to recipient selection flows.
+- Files touched: pt-rebuild/api/logs.js, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md
+- Validation: Confirmed new guards exist in `createMessage()` and preserve existing error text; verified syntax with `node --check api/logs.js`; ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully.
+- Follow-ups: DN-019 remains deferred by deployment scope decision (two-user deployment).
 - Tags: [api,reliability]
 
 ## 2026-02-22

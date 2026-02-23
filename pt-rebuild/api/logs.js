@@ -596,8 +596,11 @@ async function createMessage(req, res) {
   const supabase = getSupabaseWithAuth(req.accessToken);
   const { recipient_id, subject, body } = req.body;
 
-  // Validate required fields (including empty string check)
-  if (!recipient_id?.trim() || !body?.trim()) {
+  const hasValidRecipientId = typeof recipient_id === 'string' && recipient_id.trim().length > 0;
+  const hasValidBody = typeof body === 'string' && body.trim().length > 0;
+
+  // Validate required fields (type-safe + empty string check)
+  if (!hasValidRecipientId || !hasValidBody) {
     return res.status(400).json({
       error: 'Missing required fields: recipient_id, body'
     });

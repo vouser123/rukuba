@@ -453,7 +453,7 @@
     },
     {
       "id": "DN-020",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "risk": "low",
       "scope": "current",
@@ -463,8 +463,8 @@
       ],
       "file": "pt-rebuild/api/logs.js",
       "issue": "Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings.",
-      "resolved": null,
-      "checkbox": "open",
+      "resolved": "2026-02-23",
+      "checkbox": "done",
       "context": "Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.",
       "constraints_caveats": "Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts."
     },
@@ -595,6 +595,20 @@
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-23",
+      "title": "2026-02-23 — DN-020: Type-safe message validation for recipient_id/body",
+      "problem": "`POST /api/logs?type=messages` validated required fields with `recipient_id?.trim()` and `body?.trim()` before entering `try/catch`. Non-string payloads (number/object/null) could throw `TypeError`, resulting in an unhandled 500 path instead of a controlled 400 validation response.",
+      "root_cause": "Validation assumed string types and relied on optional chaining with `.trim()`, which does not protect against non-string truthy values (for example objects) that do not implement `trim`.",
+      "change_made": "Updated `createMessage()` in `api/logs.js` to use strict type-safe required-field guards: `typeof recipient_id === 'string' && recipient_id.trim().length > 0` and `typeof body === 'string' && body.trim().length > 0`. Kept the existing 400 error shape/message (`Missing required fields: recipient_id, body`), preserved UUID validation and insert/auth logic, and made no frontend/UI changes to recipient selection flows.",
+      "files_touched": "pt-rebuild/api/logs.js, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md",
+      "validation": "Confirmed new guards exist in `createMessage()` and preserve existing error text; verified syntax with `node --check api/logs.js`; ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully.",
+      "follow_ups": "DN-019 remains deferred by deployment scope decision (two-user deployment).",
+      "tags": [
+        "api",
+        "reliability"
+      ]
+    },
     {
       "date": "2026-02-23",
       "title": "2026-02-23 — DN-021: Role deletion route mismatch confirmed non-issue",
