@@ -1,24 +1,19 @@
 /**
- * Offline Manager - IndexedDB Cache + Auto-Sync
+ * Offline Manager - IndexedDB Read Cache
  *
- * CRITICAL SAFETY PRINCIPLES:
- * 1. Server is ONLY source of truth
- * 2. Auto-sync when coming online + manual sync option
- * 3. Append-only queue - never modify items
- * 4. Auto-export before sync
- * 5. Server wins on conflict
+ * Provides a local IndexedDB cache of server data for offline reading.
+ * The active offline write/sync system is in index.html (localStorage
+ * queue + syncOfflineQueue() → POST /api/logs per item). This file
+ * handles read-only caching only.
  *
  * IndexedDB Stores:
  * - exercises: Read-only cache of exercise library
  * - programs: Read-only cache of patient dosage assignments
  * - activity_logs: Read-only cache of recent logs (last 90 days)
- * - offline_queue: Append-only queue (never modified, only added/removed)
- * - auto_exports: Timestamped backups before each sync
- * - sync_metadata: Last sync timestamp
  */
 
 const DB_NAME = 'pt_tracker_offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 class OfflineManager {
   constructor() {
@@ -26,7 +21,9 @@ class OfflineManager {
   }
 
   /**
-   * Initialize IndexedDB connection
+   * Initialize IndexedDB connection.
+   * DB_VERSION bumped to 2 to drop unused queue/export/metadata stores
+   * from v1 (offline_queue, auto_exports, sync_metadata).
    */
   async init() {
     return new Promise((resolve, reject) => {
@@ -59,21 +56,11 @@ class OfflineManager {
           logStore.createIndex('performed_at', 'performed_at', { unique: false });
         }
 
-        // Offline queue (append-only)
-        if (!db.objectStoreNames.contains('offline_queue')) {
-          const queueStore = db.createObjectStore('offline_queue', { keyPath: 'id', autoIncrement: true });
-          queueStore.createIndex('created_at', 'created_at', { unique: false });
-        }
-
-        // Auto-exports (backups before sync)
-        if (!db.objectStoreNames.contains('auto_exports')) {
-          const exportStore = db.createObjectStore('auto_exports', { keyPath: 'id', autoIncrement: true });
-          exportStore.createIndex('timestamp', 'timestamp', { unique: false });
-        }
-
-        // Sync metadata
-        if (!db.objectStoreNames.contains('sync_metadata')) {
-          db.createObjectStore('sync_metadata', { keyPath: 'key' });
+        // Drop v1 stores that are no longer used
+        for (const storeName of ['offline_queue', 'auto_exports', 'sync_metadata']) {
+          if (db.objectStoreNames.contains(storeName)) {
+            db.deleteObjectStore(storeName);
+          }
         }
       };
     });
@@ -101,8 +88,11 @@ class OfflineManager {
   }
 
   /**
-   * Hydrate cache from server (replaces all cached data)
-   * Server is source of truth.
+   * Hydrate cache from server (replaces all cached data).
+   * Server is always source of truth.
+   *
+   * @param {string} authToken - Bearer token for API requests
+   * @param {string} patientId - Patient UUID to scope program/log fetch
    */
   async hydrateCache(authToken, patientId) {
     const headers = {
@@ -153,11 +143,7 @@ class OfflineManager {
         logStore.put(log);
       }
 
-      // Wait for transaction to complete
       await this._waitForTransaction(tx);
-
-      // Update sync metadata
-      await this.setSyncMetadata('last_sync', new Date().toISOString());
 
       return { success: true };
 
@@ -168,175 +154,8 @@ class OfflineManager {
   }
 
   /**
-   * Add item to offline queue (append-only)
-   */
-  async addToQueue(operation, payload) {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(['offline_queue'], 'readwrite');
-      const store = tx.objectStore('offline_queue');
-
-      const item = {
-        operation,
-        payload,
-        created_at: new Date().toISOString()
-      };
-
-      const request = store.add(item);
-      let settled = false;
-      const rejectOnce = (error) => {
-        if (!settled) {
-          settled = true;
-          reject(error);
-        }
-      };
-
-      tx.oncomplete = () => {
-        if (!settled) {
-          settled = true;
-          resolve({ success: true });
-        }
-      };
-      tx.onerror = () => rejectOnce(tx.error || request.error);
-      tx.onabort = () => rejectOnce(tx.error || request.error || new Error('Transaction aborted'));
-      request.onerror = () => rejectOnce(request.error);
-    });
-  }
-
-  /**
-   * Get all pending queue items
-   */
-  async getQueueItems() {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(['offline_queue'], 'readonly');
-      const store = tx.objectStore('offline_queue');
-      const request = store.getAll();
-
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * Create auto-export backup before sync
-   */
-  async createAutoExport() {
-    const queue = await this.getQueueItems();
-
-    const tx = this.db.transaction(['auto_exports'], 'readwrite');
-    const store = tx.objectStore('auto_exports');
-
-    // Deep clone queue to ensure it's serializable (avoid DataCloneError)
-    const backup = {
-      timestamp: new Date().toISOString(),
-      queue_snapshot: JSON.parse(JSON.stringify(queue))
-    };
-
-    store.add(backup);
-
-    // Trim old exports, keep only the last 10
-    const allExports = await this._promisify(store.getAll());
-    if (allExports.length > 10) {
-      const toDelete = allExports.slice(0, allExports.length - 10);
-      for (const old of toDelete) {
-        store.delete(old.id);
-      }
-    }
-
-    await this._waitForTransaction(tx);
-    return { success: true };
-  }
-
-  /**
-   * Manual sync - THE critical function
-   *
-   * 1. Create auto-export backup
-   * 2. Get all queue items
-   * 3. POST to /api/sync
-   * 4. Remove successfully processed items
-   * 5. Hydrate cache from server (server wins)
-   * 6. Return success/failure counts
-   */
-  async manualSync(authToken, patientId, onProgress) {
-    try {
-      // Step 1: Create auto-export
-      onProgress?.('Creating backup...');
-      await this.createAutoExport();
-
-      // Step 2: Get queue
-      onProgress?.('Reading queue...');
-      const queue = await this.getQueueItems();
-
-      if (queue.length === 0) {
-        onProgress?.('Queue empty, hydrating cache...');
-        await this.hydrateCache(authToken, patientId);
-        return {
-          success: true,
-          processed: 0,
-          failed: 0,
-          message: 'No items to sync'
-        };
-      }
-
-      // Step 3: POST to /api/sync
-      onProgress?.(`Syncing ${queue.length} items...`);
-      const response = await fetch('/api/sync', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ queue })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Sync failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      const processed = result.processed || [];
-      const failed = result.failed || [];
-
-      // Step 4: Remove successfully processed items
-      onProgress?.('Updating queue...');
-
-      // Build set of processed mutation IDs for O(1) lookup
-      const processedIds = new Set(processed.map(item => item?.client_mutation_id).filter(Boolean));
-
-      // Get all items, then delete processed ones
-      const allItems = await this.getQueueItems();
-      const tx = this.db.transaction(['offline_queue'], 'readwrite');
-      const store = tx.objectStore('offline_queue');
-
-      for (const queueItem of allItems) {
-        if (processedIds.has(queueItem.payload?.client_mutation_id)) {
-          store.delete(queueItem.id);
-        }
-      }
-
-      await this._waitForTransaction(tx);
-
-      // Step 5: Hydrate cache from server (server wins)
-      onProgress?.('Refreshing cache...');
-      await this.hydrateCache(authToken, patientId);
-
-      return {
-        success: true,
-        processed: processed.length,
-        failed: failed.length,
-        failedItems: failed
-      };
-
-    } catch (error) {
-      console.error('Manual sync failed:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-  }
-
-  /**
    * Get exercises from cache
+   * @returns {Promise<Array>}
    */
   async getCachedExercises() {
     return new Promise((resolve, reject) => {
@@ -351,7 +170,8 @@ class OfflineManager {
 
   /**
    * Get programs from cache
-   * Note: Since we're single-patient, just return all programs
+   * @param {string} patientId - Unused; single-patient deployment returns all programs
+   * @returns {Promise<Array>}
    */
   async getCachedPrograms(patientId) {
     return new Promise((resolve, reject) => {
@@ -359,17 +179,15 @@ class OfflineManager {
       const store = tx.objectStore('programs');
       const request = store.getAll();
 
-      request.onsuccess = () => {
-        resolve(request.result || []);
-      };
-
+      request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });
   }
 
   /**
    * Get activity logs from cache
-   * Note: Since we're single-patient, just return all logs
+   * @param {string} patientId - Unused; single-patient deployment returns all logs
+   * @returns {Promise<Array>}
    */
   async getCachedLogs(patientId) {
     return new Promise((resolve, reject) => {
@@ -380,42 +198,6 @@ class OfflineManager {
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });
-  }
-
-  /**
-   * Get sync metadata value by key
-   */
-  async getSyncMetadata(key) {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(['sync_metadata'], 'readonly');
-      const store = tx.objectStore('sync_metadata');
-      const request = store.get(key);
-
-      request.onsuccess = () => resolve(request.result?.value || null);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * Set sync metadata value
-   */
-  async setSyncMetadata(key, value) {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction(['sync_metadata'], 'readwrite');
-      const store = tx.objectStore('sync_metadata');
-      const request = store.put({ key, value });
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  /**
-   * Get queue count (for badge display)
-   */
-  async getQueueCount() {
-    const queue = await this.getQueueItems();
-    return queue.length;
   }
 }
 
