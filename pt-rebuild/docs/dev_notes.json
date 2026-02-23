@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.1.0",
-    "last_updated": "2026-02-22"
+    "last_updated": "2026-02-23"
   },
   "enums": {
     "priority_levels": [
@@ -496,6 +496,21 @@
       "constraints_caveats": "Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows."
     },
     {
+      "id": "DN-025",
+      "status": "done",
+      "priority": "P1",
+      "risk": "low",
+      "tags": [
+        "auth",
+        "supabase",
+        "ui"
+      ],
+      "file": "pt-rebuild/public/reset-password.html",
+      "issue": "Password reset link always shows 'Invalid or Expired Link' — Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash.",
+      "resolved": "2026-02-23",
+      "checkbox": "done"
+    },
+    {
       "id": "DN-023",
       "status": "done",
       "priority": "P2",
@@ -526,6 +541,21 @@
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-23",
+      "title": "2026-02-23 — DN-025: Password reset link always showed 'Invalid or Expired Link'",
+      "problem": "Clicking a valid, freshly-issued password reset link on pttracker.app immediately showed 'Invalid or Expired Link'. The Supabase verify endpoint redirected correctly to /reset-password.html, but the page rejected every token.",
+      "root_cause": "The Supabase JS client (implicit flow) calls history.replaceState to strip the hash tokens from the URL the moment createClient() is called. The old code read window.location.hash after createClient(), so it always found an empty hash (#) and the type !== 'recovery' guard triggered showInvalid() on every valid link. This was a latent bug present before the pttracker.app domain move — it never worked.",
+      "change_made": "Moved the window.location.hash capture to the very top of init(), before fetch('/api/env') and createClient(). The hash is intact at that point; after createClient() processes it, the captured value is still used for the type check.",
+      "files_touched": "pt-rebuild/public/reset-password.html",
+      "validation": "Code path reviewed: hash is read synchronously before any async calls or client initialization. getSession() after createClient() still returns the recovery session established from the hash tokens.",
+      "follow_ups": "None.",
+      "tags": [
+        "auth",
+        "supabase",
+        "ui"
+      ]
+    },
     {
       "date": "2026-02-22",
       "title": "2026-02-22 — DN-023: Documented intake→execute→close-loop completion for dev-notes migration follow-up",

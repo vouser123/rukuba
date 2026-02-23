@@ -188,6 +188,7 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-011 | status:open | priority:P3 | risk:low | tags:[performance,supabase] | file:pt-rebuild/supabase | issue:Evaluate and drop unused indexes once the app has real query traffic.
   - Context: Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
+- [x] DN-025 | status:done | priority:P1 | risk:low | tags:[auth,supabase,ui] | file:pt-rebuild/public/reset-password.html | issue:Password reset link always shows 'Invalid or Expired Link' — Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash. | resolved:2026-02-23
 - [x] DN-023 | status:done | priority:P2 | risk:low | tags:[docs,reliability] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md | issue:Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion. | resolved:2026-02-22
 - [x] DN-024 | status:done | priority:P3 | risk:low | tags:[docs] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md | issue:Confirm follow-up dev-tracking for JSON-canonical migration review and record validation commands run. | resolved:2026-02-22
   - Context: Follow-up request asked whether a dev note was added and whether required generator commands were run.
@@ -195,6 +196,17 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
+
+## 2026-02-23
+
+### 2026-02-23 — DN-025: Password reset link always showed 'Invalid or Expired Link'
+- Problem: Clicking a valid, freshly-issued password reset link on pttracker.app immediately showed 'Invalid or Expired Link'. The Supabase verify endpoint redirected correctly to /reset-password.html, but the page rejected every token.
+- Root cause: The Supabase JS client (implicit flow) calls history.replaceState to strip the hash tokens from the URL the moment createClient() is called. The old code read window.location.hash after createClient(), so it always found an empty hash (#) and the type !== 'recovery' guard triggered showInvalid() on every valid link. This was a latent bug present before the pttracker.app domain move — it never worked.
+- Change made: Moved the window.location.hash capture to the very top of init(), before fetch('/api/env') and createClient(). The hash is intact at that point; after createClient() processes it, the captured value is still used for the type check.
+- Files touched: pt-rebuild/public/reset-password.html
+- Validation: Code path reviewed: hash is read synchronously before any async calls or client initialization. getSession() after createClient() still returns the recovery session established from the hash tokens.
+- Follow-ups: None.
+- Tags: [auth,supabase,ui]
 
 ## 2026-02-22
 
