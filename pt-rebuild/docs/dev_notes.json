@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schema_version": "1.2.0",
+    "schema_version": "1.3.0",
     "last_updated": "2026-02-23"
   },
   "enums": {
@@ -138,6 +138,24 @@
         "definition": "Valid concern but not applicable at current deployment scale or configuration. See reactivate_when for trigger condition."
       }
     ],
+    "agent_values": {
+      "field_type": "array — one or more of the values below. Required on all open items.",
+      "values": [
+        {
+          "value": "codex",
+          "definition": "Task is suitable for Codex: spec is complete, implementation is mechanical or pattern-matching, no design decisions required before coding."
+        },
+        {
+          "value": "claude",
+          "definition": "Task requires Claude: spec is incomplete, involves investigation, architectural judgment, or design decisions before coding."
+        },
+        {
+          "value": "unassigned",
+          "definition": "Agent not yet determined. Surface for triage before execution."
+        }
+      ],
+      "note": "Use [\"codex\", \"claude\"] when either agent can handle the task. Never use an empty array — use [\"unassigned\"] if unsure."
+    },
     "reactivate_triggers": [
       {
         "value": "deployment_scope_change",
@@ -225,6 +243,7 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
+      "agent": ["codex"],
       "tags": [
         "performance",
         "api"
@@ -242,6 +261,7 @@
       "priority": "P3",
       "risk": "low",
       "scope": "current",
+      "agent": ["codex"],
       "tags": [
         "ui",
         "ios",
@@ -261,6 +281,7 @@
       "priority": "P1",
       "risk": "medium",
       "scope": "current",
+      "agent": ["claude"],
       "tags": [
         "performance",
         "ui",
@@ -279,6 +300,7 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
+      "agent": ["codex", "claude"],
       "tags": [
         "data-model",
         "migration"
@@ -296,6 +318,7 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
+      "agent": ["codex", "claude"],
       "tags": [
         "data-model",
         "migration"
@@ -313,6 +336,7 @@
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
+      "agent": ["claude"],
       "tags": [
         "performance",
         "supabase",
@@ -331,6 +355,7 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
+      "agent": ["codex"],
       "tags": [
         "ui"
       ],
@@ -347,6 +372,7 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
+      "agent": ["codex"],
       "tags": [
         "ui"
       ],
@@ -363,6 +389,7 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
+      "agent": ["claude"],
       "tags": [
         "ui"
       ],
@@ -379,6 +406,7 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
+      "agent": ["codex"],
       "tags": [
         "ui",
         "auth",
@@ -397,6 +425,7 @@
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
+      "agent": ["claude"],
       "tags": [
         "ui",
         "auth",
@@ -415,6 +444,7 @@
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
+      "agent": ["claude"],
       "tags": [
         "offline",
         "api",
@@ -434,6 +464,7 @@
       "priority": "P1",
       "risk": "medium",
       "scope": "deferred",
+      "agent": ["claude"],
       "reactivate_when": {
         "trigger": "deployment_scope_change",
         "note": "Current deployment has exactly two users (patient + therapist) who are the only valid sender/recipient pair. Relationship enforcement has no attack surface until additional users exist."
@@ -492,6 +523,7 @@
       "priority": "P1",
       "risk": "medium",
       "scope": "deferred",
+      "agent": ["codex"],
       "reactivate_when": {
         "trigger": "deployment_scope_change",
         "note": "Shared-device cross-user leakage only applies when multiple users share a device/browser profile. Current deployment is single-patient, single-therapist on separate devices."
@@ -515,6 +547,7 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
+      "agent": ["codex", "claude"],
       "tags": [
         "docs",
         "data-model",
@@ -534,6 +567,7 @@
       "priority": "P3",
       "risk": "low",
       "scope": "deferred",
+      "agent": ["codex"],
       "reactivate_when": {
         "trigger": "query_volume_sufficient",
         "note": "Index usage data is not meaningful at current low traffic volume. Re-evaluate after sustained real-user query activity."

@@ -47,6 +47,8 @@ If no trigger conditions are met, proceed without surfacing deferred items. Do n
 1. **Intake**
    - For every request, check whether work already exists in `open_items`.
    - If user asks for ad-hoc work not already tracked, create a new issue ID (`DN-###`, next available number) in `open_items` before execution or at the start of execution.
+   - Every new open item **must** include an `agent` field (array). Use `["codex"]`, `["claude"]`, or `["codex", "claude"]`. Use `["unassigned"]` only if genuinely unclear — but triage it before proceeding.
+   - Note: Codex cannot live-test deployments, access Vercel logs, or query Supabase directly. Any item requiring those steps must include `"claude"` in its `agent` array.
 2. **Execute**
    - Keep status/notes current in `open_items` while work is active.
 3. **Close-loop**
