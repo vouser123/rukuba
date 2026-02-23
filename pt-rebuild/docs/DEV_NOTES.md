@@ -192,11 +192,23 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [x] DN-024 | status:done | priority:P3 | risk:low | tags:[docs] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md | issue:Confirm follow-up dev-tracking for JSON-canonical migration review and record validation commands run. | resolved:2026-02-22
   - Context: Follow-up request asked whether a dev note was added and whether required generator commands were run.
   - Constraints/Caveats: Keep tracking in canonical JSON and regenerate Markdown artifact only via script.
+- [x] DN-025 | status:done | priority:P1 | risk:medium | tags:[ui,ios,pwa,reliability] | file:pt-rebuild/public/index.html,pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md | issue:Implement Pocket Audio Mode for eyes-free logging in the rebuilt tracker, including reliable start/tap sound confirmations, sided (left/right) workflow support, dark/light theme support, and long-press actions for next set and replan while preventing accidental decrement/exit. | resolved:2026-02-22
+  - Context: Approved follow-up from product feedback: users cannot reliably view the screen during exercises and need deterministic audio confirmations for start/pause/taps plus safer controls in pocket use.
+  - Constraints/Caveats: No reliance on iOS haptics; prioritize Web Audio cues. Keep existing hold/duration behavior compatible and avoid regressions in standard (non-pocket) logger mode.
 
 ## Dated Entries
 Use this section for all new entries in reverse chronological order.
 
 ## 2026-02-22
+
+### 2026-02-22 — DN-025: Implemented Pocket Audio Mode for eyes-free logger interactions
+- Problem: Users could not reliably operate the logger without looking at the screen, causing missed starts, accidental decrement taps, and uncertainty about state changes during exercises.
+- Root cause: The rebuilt logger relied on standard on-screen controls without a dedicated eyes-free interaction layer, and lacked explicit start/pause/tap confirmation sounds or guarded pocket-style gestures.
+- Change made: Implemented Pocket Audio Mode in `public/index.html` with a fullscreen pocket overlay, sound-first confirmations (start/pause/tap/warning), side-aware status updates for sided exercises, long-press actions (next set and side switch/replan), dark/light compatible styling, and undo disabling while pocket mode is active.
+- Files touched: pt-rebuild/public/index.html, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md
+- Validation: Manual code-path review plus `npm run dev-notes:build` and `npm run dev-notes:check` to keep tracking artifacts synchronized.
+- Follow-ups: Collect user feedback on long-press timing thresholds and whether long-press replan should open a dedicated pocket-safe replan sheet instead of the existing log-set modal.
+- Tags: [ui,ios,pwa,reliability]
 
 ### 2026-02-22 — DN-024 follow-up dev note and validation confirmation
 - Problem: Review follow-up asked for explicit confirmation that dev-tracking was updated and required commands were executed.
