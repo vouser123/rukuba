@@ -685,80 +685,6 @@
             opacity: 0.8;
         }
 
-        .pocket-toggle {
-            width: 100%;
-            margin-top: 0.5rem;
-            background: #111;
-            color: #fff;
-        }
-
-        .pocket-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.97);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            touch-action: manipulation;
-        }
-
-        .pocket-overlay.active {
-            display: flex;
-        }
-
-        .pocket-close {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 36px;
-            height: 36px;
-            border-radius: 999px;
-            border: 1px solid #bbb;
-            background: #f1f1f1;
-            color: #111;
-            font-size: 18px;
-            line-height: 1;
-            z-index: 2;
-        }
-
-        .pocket-pad {
-            width: min(540px, calc(100vw - 48px));
-            min-height: min(70vh, 520px);
-            border-radius: 24px;
-            background: #fff;
-            border: 2px solid #007AFF;
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 24px;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
-
-        .pocket-label {
-            font-size: clamp(44px, 13vw, 86px);
-            font-weight: 700;
-            color: #007AFF;
-        }
-
-        .pocket-meta {
-            margin-top: 12px;
-            font-size: 0.95rem;
-            color: #333;
-            line-height: 1.5;
-        }
-
-        .pocket-hint {
-            margin-top: 20px;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
         /* Timer Mode */
         .timer-container {
             background: white;
@@ -1182,34 +1108,6 @@
             .control-btn-secondary {
                 background: #4a4f5c;
             }
-
-            .pocket-overlay {
-                background: rgba(10, 10, 10, 0.96);
-            }
-
-            .pocket-close {
-                border-color: #555;
-                background: #1f1f1f;
-                color: #f1f1f1;
-            }
-
-            .pocket-pad {
-                background: #171717;
-                border-color: #5aa9ff;
-                box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
-            }
-
-            .pocket-label {
-                color: #7bb1ff;
-            }
-
-            .pocket-meta {
-                color: #ddd;
-            }
-
-            .pocket-hint {
-                color: #aaa;
-            }
         }
     </style>
 </head>
@@ -1431,19 +1329,8 @@
             <button class="control-btn control-btn-success" data-action="show-next-set-modal">Next Set</button>
         </div>
 
-        <button class="btn pocket-toggle" data-action="toggle-pocket-mode">🎧 Pocket Mode</button>
-
         <button class="finish-session-btn" data-action="finish-session" style="margin-top: 1rem;">Done</button>
         <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;" data-action="back-to-picker">← Back to Exercises</button>
-    </div>
-
-    <div class="pocket-overlay" id="pocketOverlay" data-action="handle-pocket-tap">
-        <button class="pocket-close" data-action="toggle-pocket-mode" data-force-off="true" data-stop-propagation="true" aria-label="Exit pocket mode">✕</button>
-        <div class="pocket-pad" role="button" aria-label="Pocket tap area">
-            <div class="pocket-label" id="pocketLabel">Tap to count</div>
-            <div class="pocket-meta" id="pocketMeta">Reps left · Sets left</div>
-            <div class="pocket-hint">Tap: count/start-pause · Hold: next set · Hold 1.4s: switch side/replan</div>
-        </div>
     </div>
 
     <!-- History View -->
@@ -1657,9 +1544,6 @@
         let currentSession = null;
         let offlineQueue = [];
         let currentSide = 'right'; // Default side: right
-        let pocketModeEnabled = false;
-        let pocketLongPressTriggered = false;
-        let pocketPressStartTime = 0;
         const CUSTOM_PARAM_VALUE = '__custom__'; // Special value for "Other" option
         let isOnline = navigator.onLine; // Track online status
         let lastSyncTime = null; // Last successful sync timestamp
@@ -2609,8 +2493,6 @@
                 document.getElementById('counterDisplay').textContent = '0';
             }
 
-            setPocketMode(false);
-            updatePocketOverlay();
             showView('logger');
         }
 
@@ -2702,8 +2584,6 @@
             const current = parseInt(display.textContent);
             const newValue = current + 1;
             display.textContent = newValue;
-            playTapConfirmSound();
-            updatePocketOverlay();
 
             // Voice announcements at milestones (matching old app)
             if (currentExercise && currentExercise.current_reps) {
@@ -2723,17 +2603,10 @@
         }
 
         function decreaseCounter() {
-            if (pocketModeEnabled) {
-                playWarningSound();
-                speakText('Undo disabled in pocket mode');
-                return;
-            }
-
             const display = document.getElementById('counterDisplay');
             const current = parseInt(display.textContent);
             if (current > 0) {
                 display.textContent = current - 1;
-                updatePocketOverlay();
             }
         }
 
@@ -2818,8 +2691,6 @@
             if (timerState.targetSeconds > 10) {
                 speakText('Start');
             }
-            playStartSound();
-            updatePocketOverlay();
 
             timerState.intervalId = setInterval(() => {
                 timerState.elapsedMs = Date.now() - timerState.startTime;
@@ -2830,7 +2701,6 @@
                 // Display countdown (remaining time)
                 const displayMs = clampedRemaining * 1000;
                 document.getElementById('timerDisplay').textContent = formatTime(displayMs);
-                updatePocketOverlay();
 
                 // Beep and voice warnings when approaching zero
                 // Countdown beeps at 3, 2, 1 (matching old app)
@@ -2888,10 +2758,6 @@
             if (announce && timerState.targetSeconds > 10) {
                 speakText('Pause');
             }
-            if (announce) {
-                playPauseSound();
-            }
-            updatePocketOverlay();
             updateTimerButton();
         }
 
@@ -2901,7 +2767,6 @@
             timerState.lastAnnouncedSecond = null;
             // Reset to target time (countdown starts from target)
             document.getElementById('timerDisplay').textContent = formatTime(timerState.targetSeconds * 1000);
-            updatePocketOverlay();
         }
 
         function updateTimerButton() {
@@ -2969,23 +2834,6 @@
             }
         }
 
-        function playStartSound() {
-            playBeep(420, 80);
-            setTimeout(() => playBeep(620, 100), 120);
-        }
-
-        function playPauseSound() {
-            playBeep(300, 120);
-        }
-
-        function playTapConfirmSound() {
-            playBeep(720, 50);
-        }
-
-        function playWarningSound() {
-            playBeep(260, 160);
-        }
-
         /**
          * Speak text using Web Speech API.
          * iOS Safari supports speechSynthesis but may require user interaction to initialize.
@@ -3002,139 +2850,6 @@
             } catch (error) {
                 console.warn('Speech not available:', error);
             }
-        }
-
-        function isSidedExercise() {
-            return currentExercise?.pattern === 'side';
-        }
-
-        function getPocketProgressMeta() {
-            if (!currentExercise || !currentSession) {
-                return 'No active exercise';
-            }
-
-            const targetSets = currentExercise.current_sets || 0;
-            const currentSetCount = currentSession.sets.length;
-            const baseMeta = [`Sets: ${currentSetCount}/${targetSets}`];
-
-            if (isSidedExercise()) {
-                const leftSets = currentSession.sets.filter(s => s.side === 'left').length;
-                const rightSets = currentSession.sets.filter(s => s.side === 'right').length;
-                baseMeta.push(`Working: ${currentSide || 'right'}`);
-                baseMeta.push(`L ${leftSets}/${targetSets} · R ${rightSets}/${targetSets}`);
-            }
-
-            const isTimerMode = !document.getElementById('timerMode').classList.contains('hidden');
-            if (isTimerMode) {
-                const timerText = timerState.isRunning ? 'Timer running' : 'Timer paused';
-                const remaining = Math.max(0, timerState.targetSeconds - Math.floor(timerState.elapsedMs / 1000));
-                const repText = timerState.totalReps > 1 ? `Rep ${timerState.currentRep}/${timerState.totalReps}` : 'Timed set';
-                baseMeta.push(`${repText} · ${remaining}s left · ${timerText}`);
-            } else {
-                const targetReps = currentExercise.current_reps || 0;
-                const currentReps = parseInt(document.getElementById('counterDisplay').textContent || '0', 10);
-                baseMeta.push(`Reps: ${currentReps}/${targetReps}`);
-            }
-
-            return baseMeta.join(' · ');
-        }
-
-        function updatePocketOverlay() {
-            const overlay = document.getElementById('pocketOverlay');
-            if (!overlay || !pocketModeEnabled) return;
-
-            const isTimerMode = !document.getElementById('timerMode').classList.contains('hidden');
-            const label = isTimerMode
-                ? formatTime(Math.max(0, (timerState.targetSeconds * 1000) - timerState.elapsedMs))
-                : document.getElementById('counterDisplay').textContent;
-
-            document.getElementById('pocketLabel').textContent = label;
-            document.getElementById('pocketMeta').textContent = getPocketProgressMeta();
-        }
-
-        function setPocketMode(enabled) {
-            const overlay = document.getElementById('pocketOverlay');
-            if (!overlay) return;
-
-            pocketModeEnabled = enabled;
-            overlay.classList.toggle('active', enabled);
-
-            const undoButton = document.querySelector('[data-action="counter-decrease"]');
-            if (undoButton) {
-                undoButton.disabled = enabled;
-                undoButton.style.opacity = enabled ? '0.45' : '1';
-            }
-
-            const pocketToggleBtn = document.querySelector('[data-action="toggle-pocket-mode"]:not(.pocket-close)');
-            if (pocketToggleBtn) {
-                pocketToggleBtn.textContent = enabled ? '🎧 Exit Pocket Mode' : '🎧 Pocket Mode';
-            }
-
-            if (enabled) {
-                speakText('Pocket mode on');
-                playStartSound();
-                updatePocketOverlay();
-            } else {
-                speakText('Pocket mode off');
-                playPauseSound();
-            }
-        }
-
-        function openNextSetFlow({ exitPocketMode = false } = {}) {
-            if (exitPocketMode) {
-                setPocketMode(false);
-            }
-            showNextSetModal();
-            playTapConfirmSound();
-            speakText('Next set');
-        }
-
-        function openReplanFlow({ exitPocketMode = false } = {}) {
-            if (exitPocketMode) {
-                setPocketMode(false);
-            }
-            showLogSetModal();
-            playPauseSound();
-            speakText('Replan options');
-        }
-
-        function switchWorkingSide(side) {
-            selectSide(side);
-            playStartSound();
-        }
-
-        function handlePocketTap() {
-            if (!pocketModeEnabled || !currentExercise) return;
-
-            if (pocketLongPressTriggered) {
-                pocketLongPressTriggered = false;
-                return;
-            }
-
-            const isTimerMode = !document.getElementById('timerMode').classList.contains('hidden');
-            if (isTimerMode) {
-                toggleTimer();
-            } else {
-                increaseCounter();
-            }
-
-            updatePocketOverlay();
-        }
-
-        function handlePocketLongPress(durationMs) {
-            if (!currentExercise) return;
-
-            if (durationMs >= 1400) {
-                if (isSidedExercise()) {
-                    const nextSide = currentSide === 'left' ? 'right' : 'left';
-                    switchWorkingSide(nextSide);
-                } else {
-                    openReplanFlow({ exitPocketMode: true });
-                }
-                return;
-            }
-
-            openNextSetFlow({ exitPocketMode: true });
         }
 
         /**
@@ -3175,7 +2890,6 @@
 
             // Voice announcement for side switch
             speakText(`Working ${side} side`);
-            updatePocketOverlay();
         }
 
         /**
@@ -4881,10 +4595,6 @@ ${queueData}
 
         // View management
         function showView(viewName) {
-            if (viewName !== 'logger' && pocketModeEnabled) {
-                setPocketMode(false);
-            }
-
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
 
@@ -4945,33 +4655,6 @@ ${queueData}
             document.body.addEventListener('pointerup', () => {
                 ensureAudioReady();
             }, { once: true });
-
-            const pocketOverlay = document.getElementById('pocketOverlay');
-            pocketOverlay.addEventListener('pointerdown', (e) => {
-                if (!pocketModeEnabled || e.target.closest('.pocket-close')) return;
-                pocketLongPressTriggered = false;
-                pocketPressStartTime = Date.now();
-            });
-
-            pocketOverlay.addEventListener('pointerup', () => {
-                if (!pocketModeEnabled || pocketPressStartTime === 0) return;
-
-                const durationMs = Date.now() - pocketPressStartTime;
-                pocketPressStartTime = 0;
-
-                if (durationMs >= 700) {
-                    pocketLongPressTriggered = true;
-                    handlePocketLongPress(durationMs);
-                    return;
-                }
-
-                pocketLongPressTriggered = false;
-            });
-
-            pocketOverlay.addEventListener('pointercancel', () => {
-                pocketPressStartTime = 0;
-                pocketLongPressTriggered = false;
-            });
 
             // Auth form
             document.getElementById('authForm').addEventListener('submit', async (e) => {
@@ -5126,19 +4809,6 @@ ${queueData}
                     case 'counter-decrease':
                         decreaseCounter();
                         break;
-                    case 'toggle-pocket-mode':
-                        if (target.dataset.forceOff === 'true') {
-                            if (currentSession?.sets?.length > 0 && !confirm('Exit pocket mode?')) {
-                                break;
-                            }
-                            setPocketMode(false);
-                        } else {
-                            setPocketMode(!pocketModeEnabled);
-                        }
-                        break;
-                    case 'handle-pocket-tap':
-                        handlePocketTap();
-                        break;
                     case 'timer-start-pause':
                         toggleTimer();
                         break;
@@ -5149,10 +4819,10 @@ ${queueData}
                         previousSet();
                         break;
                     case 'show-log-set-modal':
-                        openReplanFlow();
+                        showLogSetModal();
                         break;
                     case 'show-next-set-modal':
-                        openNextSetFlow();
+                        showNextSetModal();
                         break;
                     case 'close-next-set-modal':
                         closeNextSetModal();
@@ -5167,7 +4837,6 @@ ${queueData}
                         finishSession();
                         break;
                     case 'back-to-picker':
-                        setPocketMode(false);
                         currentSession = null;
                         currentExercise = null;
                         showView('picker');
@@ -5223,7 +4892,7 @@ ${queueData}
                         toggleHamburger();
                         break;
                     case 'select-side':
-                        switchWorkingSide(target.dataset.side);
+                        selectSide(target.dataset.side);
                         break;
                     case 'sign-out':
                         toggleHamburger(); // Close menu
