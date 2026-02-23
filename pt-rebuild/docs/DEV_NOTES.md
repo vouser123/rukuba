@@ -153,7 +153,7 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-014 | status:open | priority:P2 | risk:low | tags:[ui] | file:pt-rebuild/public/index.html | issue:History tab on index shows all exercises; when navigating from a specific exercise it should pre-filter to that exercise's history only.
   - Context: User taps an exercise card, then taps the History tab — expects to see that exercise's history, not the full log across all exercises.
   - Constraints/Caveats: Needs a way to pass exercise context to the History tab (e.g. in-memory state or scroll-to). Should still allow clearing the filter to see full history.
-- [ ] DN-013 | status:open | priority:P2 | risk:low | tags:[ui] | file:pt-rebuild/public/index.html | issue:History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not.
+- [x] DN-013 | status:done | priority:P2 | risk:low | tags:[ui] | file:pt-rebuild/public/index.html | issue:History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not. | resolved:2026-02-23
   - Context: Notes are already fetched with the activity log data — just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.
   - Constraints/Caveats: Check pt_view.html notes rendering and replicate the same pattern on index.
 - [ ] DN-012 | status:open | priority:P2 | risk:low | tags:[ui] | file:pt-rebuild/public/index.html | issue:No way to reorder exercises on the patient index page — currently sorted by program assignment order from the API.
@@ -225,6 +225,15 @@ Use this section for all new entries in reverse chronological order.
 - Validation: Confirmed new guards exist in `createMessage()` and preserve existing error text; verified syntax with `node --check api/logs.js`; ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully.
 - Follow-ups: DN-019 remains deferred by deployment scope decision (two-user deployment).
 - Tags: [api,reliability]
+
+### 2026-02-23 — DN-013: Render session notes in index history view
+- Problem: The patient index history list did not show session notes even though notes were fetched with activity log records. `pt_view.html` already displayed inline notes, but `index.html` omitted them.
+- Root cause: `renderHistory()` in `index.html` rendered date, exercise, set summary, and optional form parameters, but never appended `log.notes` to the history card template.
+- Change made: Updated `renderHistory()` in `index.html` to render notes inline when present, using the same quoted-note pattern as `pt_view.html` and `escapeHtml(log.notes)` for safe output. No API, auth, recipient, or interaction flow changes were made.
+- Files touched: pt-rebuild/public/index.html, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md
+- Validation: Verified updated history template now includes conditional notes markup (`notesInlineHtml`) and appends it to each session card. Confirmed existing set summary/form parameter rendering remains unchanged. Ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully.
+- Follow-ups: None.
+- Tags: [ui]
 
 ## 2026-02-22
 

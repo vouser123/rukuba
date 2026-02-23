@@ -2245,12 +2245,17 @@
                     formParamsHtml = `<div class="session-params" style="font-size: 0.85rem; color: #888; margin-top: 2px;">${params}</div>`;
                 }
 
+                const notesInlineHtml = log.notes ? `
+                    <div style="font-size: 0.85rem; color: #666; margin-top: 6px; font-style: italic;">"${escapeHtml(log.notes)}"</div>
+                ` : '';
+
                 return `
                     <div class="session-card" data-action="edit-session" data-log-id="${log.id}" style="cursor: pointer;">
                         <div class="session-date">${dateStr}</div>
                         <div class="session-exercise">${escapeHtml(log.exercise_name)}</div>
                         <div class="session-sets">${setsCount} sets: ${setsSummary}</div>
                         ${formParamsHtml}
+                        ${notesInlineHtml}
                     </div>
                 `;
             }).join('');

@@ -368,7 +368,7 @@
     },
     {
       "id": "DN-013",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "risk": "low",
       "scope": "current",
@@ -378,8 +378,8 @@
       ],
       "file": "pt-rebuild/public/index.html",
       "issue": "History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not.",
-      "resolved": null,
-      "checkbox": "open",
+      "resolved": "2026-02-23",
+      "checkbox": "done",
       "context": "Notes are already fetched with the activity log data — just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.",
       "constraints_caveats": "Check pt_view.html notes rendering and replicate the same pattern on index."
     },
@@ -629,6 +629,19 @@
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-23",
+      "title": "2026-02-23 — DN-013: Render session notes in index history view",
+      "problem": "The patient index history list did not show session notes even though notes were fetched with activity log records. `pt_view.html` already displayed inline notes, but `index.html` omitted them.",
+      "root_cause": "`renderHistory()` in `index.html` rendered date, exercise, set summary, and optional form parameters, but never appended `log.notes` to the history card template.",
+      "change_made": "Updated `renderHistory()` in `index.html` to render notes inline when present, using the same quoted-note pattern as `pt_view.html` and `escapeHtml(log.notes)` for safe output. No API, auth, recipient, or interaction flow changes were made.",
+      "files_touched": "pt-rebuild/public/index.html, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md",
+      "validation": "Verified updated history template now includes conditional notes markup (`notesInlineHtml`) and appends it to each session card. Confirmed existing set summary/form parameter rendering remains unchanged. Ran `npm run dev-notes:build` and `npm run dev-notes:check` successfully.",
+      "follow_ups": "None.",
+      "tags": [
+        "ui"
+      ]
+    },
     {
       "date": "2026-02-23",
       "title": "2026-02-23 — DN-020: Type-safe message validation for recipient_id/body",
