@@ -470,7 +470,7 @@
     },
     {
       "id": "DN-021",
-      "status": "open",
+      "status": "done",
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
@@ -481,8 +481,8 @@
       ],
       "file": "pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json",
       "issue": "Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`.",
-      "resolved": null,
-      "checkbox": "open",
+      "resolved": "2026-02-23",
+      "checkbox": "done",
       "context": "`pt_editor.js` calls `/api/roles/${roleId}` and `api/roles.js` parses a path suffix from `req.url`, but there is no explicit rewrite for nested `/api/roles/:id` in `vercel.json`.",
       "constraints_caveats": "Confirm behavior in deployed Vercel environment before changing API shape. If needed, support both `DELETE /api/roles?id=...` and path variant to avoid breaking existing clients."
     },
@@ -595,6 +595,17 @@
     }
   ],
   "dated_entries": [
+    {
+      "date": "2026-02-23",
+      "title": "2026-02-23 — DN-021: Role deletion route mismatch confirmed non-issue",
+      "problem": "Dev note flagged that `DELETE /api/roles/:id` might fail in Vercel because there is no explicit rewrite for the nested path in vercel.json — only file-based routing for `/api/roles`.",
+      "root_cause": "Investigation revealed this is not a bug. Vercel's file-based routing passes the full request URL to the handler, so `req.url` inside `roles.js` is `/api/roles/<uuid>`. The handler already splits on `/` and takes the last segment, with an explicit guard `roleId !== 'roles'` confirming the author accounted for this. No rewrite is needed.",
+      "change_made": "No code change. Closed DN-021 as confirmed-working after code review of `roles.js` handler, `pt_editor.js` call site, and `vercel.json`.",
+      "files_touched": "None.",
+      "validation": "Code path traced: `req.url.split('?')[0].split('/')` on `/api/roles/abc-123` yields `['', 'api', 'roles', 'abc-123']`; last element is the UUID. Guard `roleId !== 'roles'` correctly rejects bare `/api/roles` DELETE attempts.",
+      "follow_ups": "None.",
+      "tags": ["api", "reliability"]
+    },
     {
       "date": "2026-02-23",
       "title": "2026-02-23 — DN-025: Password reset link always showed 'Invalid or Expired Link'",

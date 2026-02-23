@@ -175,7 +175,7 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 - [ ] DN-020 | status:open | priority:P2 | risk:low | tags:[api,reliability] | file:pt-rebuild/api/logs.js | issue:Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings.
   - Context: Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.
   - Constraints/Caveats: Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts.
-- [ ] DN-021 | status:open | priority:P2 | risk:medium | tags:[api,reliability,ui] | file:pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json | issue:Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`.
+- [x] DN-021 | status:done | priority:P2 | risk:medium | tags:[api,reliability,ui] | file:pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json | issue:Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`. | resolved:2026-02-23
   - Context: `pt_editor.js` calls `/api/roles/${roleId}` and `api/roles.js` parses a path suffix from `req.url`, but there is no explicit rewrite for nested `/api/roles/:id` in `vercel.json`.
   - Constraints/Caveats: Confirm behavior in deployed Vercel environment before changing API shape. If needed, support both `DELETE /api/roles?id=...` and path variant to avoid breaking existing clients.
 - [ ] DN-022 | status:open | priority:P1 | risk:medium | tags:[offline,auth,security,reliability] | file:pt-rebuild/public/index.html | issue:Offline queue is stored under a global localStorage key (`pt_offline_queue`) and is not cleared/scoped on sign-out, risking cross-user data carryover on shared devices.
@@ -207,6 +207,15 @@ Use this section for all new entries in reverse chronological order.
 - Validation: Code path reviewed: hash is read synchronously before any async calls or client initialization. getSession() after createClient() still returns the recovery session established from the hash tokens.
 - Follow-ups: None.
 - Tags: [auth,supabase,ui]
+
+### 2026-02-23 — DN-021: Role deletion route mismatch confirmed non-issue
+- Problem: Dev note flagged that `DELETE /api/roles/:id` might fail in Vercel because there is no explicit rewrite for the nested path in vercel.json — only file-based routing for `/api/roles`.
+- Root cause: Investigation revealed this is not a bug. Vercel's file-based routing passes the full request URL to the handler, so `req.url` inside `roles.js` is `/api/roles/<uuid>`. The handler already splits on `/` and takes the last segment, with an explicit guard `roleId !== 'roles'` confirming the author accounted for this. No rewrite is needed.
+- Change made: No code change. Closed DN-021 as confirmed-working after code review of `roles.js` handler, `pt_editor.js` call site, and `vercel.json`.
+- Files touched: None.
+- Validation: Code path traced: `req.url.split('?')[0].split('/')` on `/api/roles/abc-123` yields `['', 'api', 'roles', 'abc-123']`; last element is the UUID. Guard `roleId !== 'roles'` correctly rejects bare `/api/roles` DELETE attempts.
+- Follow-ups: None.
+- Tags: [api,reliability]
 
 ## 2026-02-22
 
