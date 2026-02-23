@@ -1,6 +1,14 @@
 # Claude Code Development Guide
 
-This document outlines the required workflow when working on this codebase.
+This document covers repo-wide rules. For all work inside `pt-rebuild/`, read `pt-rebuild/CLAUDE.md` first — it is the authoritative entry point for the active app.
+
+## Active App
+
+All active development is in `/pt-rebuild/`. See `/pt-rebuild/CLAUDE.md` for instructions, workflows, and canonical references.
+
+## Legacy App
+
+`/pt/` contains the original Firebase/Firestore implementation. It is archived and not under active development. See `/pt/CLAUDE.md` for legacy reference notes. Do not make changes to `/pt/`.
 
 ## Required Workflow for All Code Changes
 
@@ -41,19 +49,12 @@ git rebase origin/main
 
 ### 1. Read the PT Docs First
 
-**ALWAYS** read `pt/docs/DEVELOPMENT.md` and `pt/docs/DEV_PRACTICES.md` before making changes to any PT-related files.
+**ALWAYS** read `pt-rebuild/CLAUDE.md` before making changes to any PT-related files.
 
 **Why:**
-- Documents known iOS Safari/PWA issues and proven solutions
-- Shows established patterns (e.g., `data-action` with `pointerup` events)
+- Points to canonical references for architecture, practices, and dev tracking
 - Prevents reintroducing bugs that were already fixed
 - Provides architectural context and design decisions
-
-**When to read:**
-- Before fixing any bug
-- Before adding new features
-- When implementing UI interactions
-- When working with Firebase/Firestore
 
 ### 2. Comment Your Code
 
@@ -63,90 +64,25 @@ git rebase origin/main
 - Function definitions (JSDoc-style preferred)
 - Complex logic or workarounds
 - iOS-specific fixes
-- Firebase query patterns
+- Supabase query patterns
 - Dynamic HTML generation with event binding
-
-**Example (Good):**
-```javascript
-/**
- * Bind iOS-safe pointer event handlers to elements with data-action attributes.
- *
- * iOS Safari/PWA does not reliably trigger onclick handlers on dynamically created elements.
- * This function binds pointerup events (which work consistently on iOS touch and desktop mouse)
- * and keyboard events for accessibility.
- *
- * @param {HTMLElement} root - Root element to search for data-action elements (default: document)
- */
-function bindPointerHandlers(root = document) {
-    // Implementation...
-}
-```
-
-**Example (Bad):**
-```javascript
-function bindPointerHandlers(root = document) {
-    // No explanation of why this exists or what iOS issue it solves
-}
-```
 
 ### 3. Log Development Notes
 
-**After completing a fix, add an entry to DEV_NOTES.md.**
-
-**Format:**
-```markdown
-- **YYYY-MM-DD** — **Problem:** [Description of the issue]. **What I did:** [Description of the fix and files changed].
-```
-
-**What to include:**
-- Date
-- Problem description (symptoms)
-- Solution description
-- Files modified
-- Any platform-specific considerations (iOS, desktop, etc.)
-
-**Example:**
-```markdown
-- **2026-01-06** — **Problem:** "Add Role" button in rehab_coverage.html did not respond to taps on iOS Safari/PWA. **What I did:** Converted the dynamically-generated "Add Role" button from inline `onclick` to `data-action` pattern with `bindPointerHandlers()` function. Added `pointerup` event listeners for iOS touch/desktop mouse compatibility and keyboard support (Enter/Space) for accessibility. Re-bind handlers after dynamic HTML updates to ensure reliability (`pt/rehab_coverage.html`).
-```
-
-## Firebase/Firestore Patterns
-
-### Always Use Offline Persistence
-```javascript
-// firebase.js uses persistentLocalCache()
-const db = initializeFirestore(app, {
-    cache: persistentLocalCache()
-});
-```
-
-### Session History Authority
-- Firestore `users/{uid}/sessions` is **authoritative** when authenticated
-- localStorage `pt_tracker_data` is a fallback/cache
-- Runtime snapshots (`users/{uid}/pt_runtime/state`) cache preferences and library
-
-## Quick Reference
-
-- **Main docs**: `pt/docs/DEVELOPMENT.md`
-- **Practices**: `pt/docs/DEV_PRACTICES.md`
-- **Dev notes**: `pt/docs/DEV_NOTES.md`
-- **V2 payload format**: `pt/docs/export-import-v2.md`
-- **Vocabulary docs**: `pt/docs/vocabularies.md`
-- **Service worker**: `pt/sw-pt.js`
-- **Firebase config**: `pt/firebase.js`
+All dev tracking is in `pt-rebuild/docs/dev_notes.json`. See `pt-rebuild/CLAUDE.md` for the required lifecycle and format.
 
 ## Summary Checklist
 
 Before starting any work:
 
 - [ ] Pull latest changes from main (`git pull origin main`)
-- [ ] Read `pt/docs/DEVELOPMENT.md` and `pt/docs/DEV_PRACTICES.md` (especially for iOS/Firebase work)
+- [ ] Read `pt-rebuild/CLAUDE.md` and follow its canonical references
 
 Before submitting any code change:
 
 - [ ] Add JSDoc comments to new functions
 - [ ] Comment non-obvious logic and platform-specific workarounds
-- [ ] Log development note in DEV_NOTES.md with date, problem, and solution
+- [ ] Log development note per the lifecycle in `pt-rebuild/AGENTS.md`
 - [ ] Test on iOS Safari/PWA if UI changes were made
 - [ ] Verify no `onclick` or `click` handlers were introduced
 - [ ] Check that dynamic HTML rebinds event handlers

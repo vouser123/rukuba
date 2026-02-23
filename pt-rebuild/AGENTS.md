@@ -25,6 +25,16 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - Include `-webkit-tap-highlight-color: transparent` on buttons.
 - Minimum touch target size: 44px (Apple HIG).
 
+## Session Startup: Deferred Item Check (Required)
+
+At the start of every session, scan `open_items` in `pt-rebuild/docs/dev_notes.json` for items where `scope === "deferred"`. For each deferred item, evaluate whether its `reactivate_when.trigger` condition is now met:
+
+- `deployment_scope_change` — check whether the number of active users in the `users` table exceeds 2, or whether there is any indication of a planned expansion. If yes, surface the item to the user before proceeding.
+- `query_volume_sufficient` — check Supabase performance advisor notes or recent traffic context. If real sustained traffic exists, surface the item.
+- `api_capacity_available` — check current Vercel function count against the free-tier limit (12). If capacity has changed, surface the item.
+
+If no trigger conditions are met, proceed without surfacing deferred items. Do not re-open or act on deferred items autonomously — surface them to the user for a decision.
+
 ## Dev Notes Workflow (Required)
 
 - Canonical tracking file: `pt-rebuild/docs/dev_notes.json` (the only hand-edited dev-tracking file).

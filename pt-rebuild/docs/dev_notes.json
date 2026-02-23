@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schema_version": "1.1.0",
+    "schema_version": "1.2.0",
     "last_updated": "2026-02-23"
   },
   "enums": {
@@ -127,6 +127,30 @@
         "value": "notifications",
         "definition": "In-app or push notification behavior."
       }
+    ],
+    "scope_values": [
+      {
+        "value": "current",
+        "definition": "Applies to the current deployment. Default when field is absent."
+      },
+      {
+        "value": "deferred",
+        "definition": "Valid concern but not applicable at current deployment scale or configuration. See reactivate_when for trigger condition."
+      }
+    ],
+    "reactivate_triggers": [
+      {
+        "value": "deployment_scope_change",
+        "definition": "Re-evaluate when the user base or deployment model changes (e.g. adding users beyond the current two-person setup). Requires explicit human decision — no automatic condition check."
+      },
+      {
+        "value": "query_volume_sufficient",
+        "definition": "Re-evaluate when the app has sustained real-user query traffic sufficient to make index usage data meaningful."
+      },
+      {
+        "value": "api_capacity_available",
+        "definition": "Re-evaluate when Vercel function slot count is no longer a constraint (e.g. plan upgrade or function consolidation)."
+      }
     ]
   },
   "activity_log_testing_checklist": {
@@ -200,6 +224,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "performance",
         "api"
@@ -216,6 +241,7 @@
       "status": "open",
       "priority": "P3",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "ui",
         "ios",
@@ -234,6 +260,7 @@
       "status": "open",
       "priority": "P1",
       "risk": "medium",
+      "scope": "current",
       "tags": [
         "performance",
         "ui",
@@ -251,6 +278,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "data-model",
         "migration"
@@ -267,6 +295,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "data-model",
         "migration"
@@ -283,6 +312,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "medium",
+      "scope": "current",
       "tags": [
         "performance",
         "supabase",
@@ -300,6 +330,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "ui"
       ],
@@ -315,6 +346,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "ui"
       ],
@@ -330,6 +362,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "ui"
       ],
@@ -345,6 +378,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "ui",
         "auth",
@@ -362,6 +396,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "medium",
+      "scope": "current",
       "tags": [
         "ui",
         "auth",
@@ -379,6 +414,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "medium",
+      "scope": "current",
       "tags": [
         "offline",
         "api",
@@ -397,6 +433,11 @@
       "status": "open",
       "priority": "P1",
       "risk": "medium",
+      "scope": "deferred",
+      "reactivate_when": {
+        "trigger": "deployment_scope_change",
+        "note": "Current deployment has exactly two users (patient + therapist) who are the only valid sender/recipient pair. Relationship enforcement has no attack surface until additional users exist."
+      },
       "tags": [
         "security",
         "auth",
@@ -415,6 +456,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "api",
         "reliability"
@@ -431,6 +473,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "medium",
+      "scope": "current",
       "tags": [
         "api",
         "reliability",
@@ -448,6 +491,11 @@
       "status": "open",
       "priority": "P1",
       "risk": "medium",
+      "scope": "deferred",
+      "reactivate_when": {
+        "trigger": "deployment_scope_change",
+        "note": "Shared-device cross-user leakage only applies when multiple users share a device/browser profile. Current deployment is single-patient, single-therapist on separate devices."
+      },
       "tags": [
         "offline",
         "auth",
@@ -466,6 +514,7 @@
       "status": "open",
       "priority": "P2",
       "risk": "low",
+      "scope": "current",
       "tags": [
         "docs",
         "data-model",
@@ -484,6 +533,11 @@
       "status": "open",
       "priority": "P3",
       "risk": "low",
+      "scope": "deferred",
+      "reactivate_when": {
+        "trigger": "query_volume_sufficient",
+        "note": "Index usage data is not meaningful at current low traffic volume. Re-evaluate after sustained real-user query activity."
+      },
       "tags": [
         "performance",
         "supabase"
