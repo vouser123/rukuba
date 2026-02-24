@@ -171,9 +171,6 @@
       }
     ]
   },
-  "activity_log_testing_checklist": {
-    "markdown": "## Activity Log Testing Checklist\n\nWhen modifying any part of the activity log flow (`createActivityLog`, `updateActivityLog`, `processActivityLog`, `create_activity_log_atomic`), test all of the following variable combinations. Skipping any of these has caused regressions.\n\n### Exercise type variables\n- Exercise **with** form parameters (e.g. Theraband Row — has resistance/color form param)\n- Exercise **without** form parameters (e.g. Ankle Inversion — Isometric — form_data is null in payload)\n- Exercise with pattern modifier only (duration_seconds or hold_seconds — not form_data)\n- Exercise with distance_feet set\n- Exercise with reps only (no seconds, no distance)\n\n### Set variables\n- Single set\n- Multiple sets (3+) — test that form data ends up on the correct set_number, not shifted\n- Sets with different form_data per set (e.g. set 1: band=blue, set 2: band=red) — verifies DN-004 fix\n- Sets where set_number is not contiguous (e.g. 1, 3, 5 — edit flow)\n\n### Side variables\n- `side = null` (exercises that do not track side)\n- `side = 'left'`\n- `side = 'right'`\n- `side = 'both'`\n\n### Log path variables\n- Online, direct POST to `/api/logs` (createActivityLog)\n- Offline, queued to localStorage then synced via `syncOfflineQueue` → POST to `/api/logs` (same endpoint, different entry point)\n- Edit/update via PATCH to `/api/logs/:id` (updateActivityLog)\n- Sync path via POST to `/api/sync` (processActivityLog) — reachable endpoint, tests separately\n\n### Idempotency\n- POST same `client_mutation_id` twice — must return 409, no duplicate rows\n- Confirm exactly one row in `patient_activity_logs` for the mutation ID after double-post\n\n### DB verification query (paste into Supabase SQL editor)\n```sql\nSELECT\n  l.id AS log_id,\n  l.exercise_name,\n  s.set_number,\n  s.reps,\n  s.seconds,\n  s.distance_feet,\n  s.side,\n  s.manual_log,\n  f.parameter_name,\n  f.parameter_value,\n  f.parameter_unit\nFROM patient_activity_logs l\nLEFT JOIN patient_activity_sets s ON s.activity_log_id = l.id\nLEFT JOIN patient_activity_set_form_data f ON f.activity_set_id = s.id\nWHERE l.patient_id = '35c3ec8d-...'  -- replace with real patient UUID\nORDER BY l.created_at DESC, s.set_number, f.parameter_name;\n```"
-  },
   "open_items": [
     {
       "id": "DN-005",
@@ -1036,6 +1033,25 @@
       "change_made": "Eliminated `dated_entries` array: DN-linked entries merged as narrative fields directly onto their closed items; non-DN entries converted to LE-### closed items with full narrative fields. Extracted `legacy_entries` to `pt-rebuild/docs/HISTORY.md` archive (read-only, not machine-processed). Updated generator to validate and render LE items; removed all `dated_entries` and `legacy_entries` logic. Updated `AGENTS.md` close-loop instructions to write narratives directly onto closed items. Bumped schema to 1.6.0.",
       "files_touched": "`pt-rebuild/docs/dev_notes.json`, `pt-rebuild/scripts/generate-dev-notes.mjs`, `pt-rebuild/AGENTS.md`, `pt-rebuild/docs/HISTORY.md` (new), `pt-rebuild/docs/dev_notes.schema.json`",
       "validation": "`npm run dev-notes:build` passes with no warnings. All 13 LE items present with full narrative fields. All DN closed items have non-empty narrative fields.",
+      "follow_ups": "None."
+    },
+    {
+      "id": "DN-030",
+      "status": "done",
+      "priority": "P3",
+      "risk": "low",
+      "tags": [
+        "docs",
+        "cleanup"
+      ],
+      "file": "pt-rebuild/AGENTS.md",
+      "issue": "Move activity_log_testing_checklist out of dev_notes.json into AGENTS.md where operational guidance belongs.",
+      "resolved": "2026-02-23",
+      "problem": "The activity log testing checklist was stored as a special key in dev_notes.json and rendered in DEV_NOTES.md. It is procedural/operational guidance, not tracking data — it does not belong in the JSON schema.",
+      "root_cause": "When the checklist was added after DN-003/DN-004 regressions, dev_notes.json was used as a convenient place to store it. AGENTS.md — the correct home for agent operational guidance — was not considered at the time.",
+      "change_made": "Moved checklist content to AGENTS.md under a new \"Activity Log Testing Checklist\" section. Removed activity_log_testing_checklist key from dev_notes.json. Removed checklist rendering from generate-dev-notes.mjs (variable, ToC entry, and inline render). Schema was already clean (key was not in required).",
+      "files_touched": "`pt-rebuild/AGENTS.md`, `pt-rebuild/docs/dev_notes.json`, `pt-rebuild/scripts/generate-dev-notes.mjs`",
+      "validation": "`npm run dev-notes:build` and `dev-notes:check` pass. Checklist content confirmed present in AGENTS.md.",
       "follow_ups": "None."
     }
   ]

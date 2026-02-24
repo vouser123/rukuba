@@ -10,7 +10,6 @@ This file is generated from `docs/dev_notes.json`. Do not hand-edit this Markdow
 - [Tag Vocabulary](#tag-vocabulary)
 - [Entry Schema](#entry-schema)
 - [Migration Approach](#migration-approach)
-- [Activity Log Testing Checklist](#activity-log-testing-checklist)
 - [Open Items](#open-items)
 - [Closed Items](#closed-items)
 
@@ -72,60 +71,6 @@ Closed items must include all six narrative fields:
 ## Migration Approach
 - Active TODOs are tracked in `open_items`. Completed items live in `closed_items`.
 - Legacy pre-structured notes are archived in `docs/HISTORY.md` and are not machine-processed.
-
-## Activity Log Testing Checklist
-
-When modifying any part of the activity log flow (`createActivityLog`, `updateActivityLog`, `processActivityLog`, `create_activity_log_atomic`), test all of the following variable combinations. Skipping any of these has caused regressions.
-
-### Exercise type variables
-- Exercise **with** form parameters (e.g. Theraband Row — has resistance/color form param)
-- Exercise **without** form parameters (e.g. Ankle Inversion — Isometric — form_data is null in payload)
-- Exercise with pattern modifier only (duration_seconds or hold_seconds — not form_data)
-- Exercise with distance_feet set
-- Exercise with reps only (no seconds, no distance)
-
-### Set variables
-- Single set
-- Multiple sets (3+) — test that form data ends up on the correct set_number, not shifted
-- Sets with different form_data per set (e.g. set 1: band=blue, set 2: band=red) — verifies DN-004 fix
-- Sets where set_number is not contiguous (e.g. 1, 3, 5 — edit flow)
-
-### Side variables
-- `side = null` (exercises that do not track side)
-- `side = 'left'`
-- `side = 'right'`
-- `side = 'both'`
-
-### Log path variables
-- Online, direct POST to `/api/logs` (createActivityLog)
-- Offline, queued to localStorage then synced via `syncOfflineQueue` → POST to `/api/logs` (same endpoint, different entry point)
-- Edit/update via PATCH to `/api/logs/:id` (updateActivityLog)
-- Sync path via POST to `/api/sync` (processActivityLog) — reachable endpoint, tests separately
-
-### Idempotency
-- POST same `client_mutation_id` twice — must return 409, no duplicate rows
-- Confirm exactly one row in `patient_activity_logs` for the mutation ID after double-post
-
-### DB verification query (paste into Supabase SQL editor)
-```sql
-SELECT
-  l.id AS log_id,
-  l.exercise_name,
-  s.set_number,
-  s.reps,
-  s.seconds,
-  s.distance_feet,
-  s.side,
-  s.manual_log,
-  f.parameter_name,
-  f.parameter_value,
-  f.parameter_unit
-FROM patient_activity_logs l
-LEFT JOIN patient_activity_sets s ON s.activity_log_id = l.id
-LEFT JOIN patient_activity_set_form_data f ON f.activity_set_id = s.id
-WHERE l.patient_id = '35c3ec8d-...'  -- replace with real patient UUID
-ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
-```
 
 ## Open Items
 - [ ] DN-005 | status:open | priority:P2 | risk:low | tags:[performance,api] | file:pt-rebuild/api/users.js | issue:Push role-based filtering to DB query (`.eq()` etc.) instead of fetching all users then filtering in memory.
@@ -235,6 +180,13 @@ ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
   - Change made: Eliminated `dated_entries` array: DN-linked entries merged as narrative fields directly onto their closed items; non-DN entries converted to LE-### closed items with full narrative fields. Extracted `legacy_entries` to `pt-rebuild/docs/HISTORY.md` archive (read-only, not machine-processed). Updated generator to validate and render LE items; removed all `dated_entries` and `legacy_entries` logic. Updated `AGENTS.md` close-loop instructions to write narratives directly onto closed items. Bumped schema to 1.6.0.
   - Files touched: `pt-rebuild/docs/dev_notes.json`, `pt-rebuild/scripts/generate-dev-notes.mjs`, `pt-rebuild/AGENTS.md`, `pt-rebuild/docs/HISTORY.md` (new), `pt-rebuild/docs/dev_notes.schema.json`
   - Validation: `npm run dev-notes:build` passes with no warnings. All 13 LE items present with full narrative fields. All DN closed items have non-empty narrative fields.
+  - Follow-ups: None.
+- [x] DN-030 | status:done | priority:P3 | risk:low | tags:[docs,cleanup] | file:pt-rebuild/AGENTS.md | issue:Move activity_log_testing_checklist out of dev_notes.json into AGENTS.md where operational guidance belongs. | resolved:2026-02-23
+  - Problem: The activity log testing checklist was stored as a special key in dev_notes.json and rendered in DEV_NOTES.md. It is procedural/operational guidance, not tracking data — it does not belong in the JSON schema.
+  - Root cause: When the checklist was added after DN-003/DN-004 regressions, dev_notes.json was used as a convenient place to store it. AGENTS.md — the correct home for agent operational guidance — was not considered at the time.
+  - Change made: Moved checklist content to AGENTS.md under a new "Activity Log Testing Checklist" section. Removed activity_log_testing_checklist key from dev_notes.json. Removed checklist rendering from generate-dev-notes.mjs (variable, ToC entry, and inline render). Schema was already clean (key was not in required).
+  - Files touched: `pt-rebuild/AGENTS.md`, `pt-rebuild/docs/dev_notes.json`, `pt-rebuild/scripts/generate-dev-notes.mjs`
+  - Validation: `npm run dev-notes:build` and `dev-notes:check` pass. Checklist content confirmed present in AGENTS.md.
   - Follow-ups: None.
 - [x] DN-023 | status:done | priority:P2 | risk:low | tags:[docs,reliability] | file:pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md | issue:Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion. | resolved:2026-02-22
   - Problem: Review follow-up asked whether the migration work actually followed the required lifecycle and requested explicit create/close tracking in dev notes.

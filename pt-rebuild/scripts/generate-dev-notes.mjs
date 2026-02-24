@@ -202,8 +202,6 @@ function sortClosedItemsByResolvedDesc(items) {
 }
 
 function buildMarkdown(data) {
-  const checklist = data.activity_log_testing_checklist?.markdown?.trim() ?? '';
-
   return `# PT Tracker Rebuild - Public Dev Notes
 
 This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markdown.
@@ -216,7 +214,6 @@ This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markd
 - [Tag Vocabulary](#tag-vocabulary)
 - [Entry Schema](#entry-schema)
 - [Migration Approach](#migration-approach)
-- [Activity Log Testing Checklist](#activity-log-testing-checklist)
 - [Open Items](#open-items)
 - [Closed Items](#closed-items)
 
@@ -253,8 +250,6 @@ Closed items must include all six narrative fields:
 ## Migration Approach
 - Active TODOs are tracked in \`open_items\`. Completed items live in \`closed_items\`.
 - Legacy pre-structured notes are archived in \`docs/HISTORY.md\` and are not machine-processed.
-
-${checklist}
 
 ## Open Items
 ${data.open_items.map(renderOpenItem).join('\n')}
