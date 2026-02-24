@@ -9,14 +9,13 @@ const markdownPath = path.join(rootDir, 'docs', 'DEV_NOTES.md');
 const checkMode = process.argv.includes('--check');
 
 const REQUIRED_ENUM_KEYS = ['priority_levels', 'risk_levels', 'status_values', 'tag_vocabulary'];
-const REQUIRED_ENTRY_FIELDS = [
+const REQUIRED_CLOSED_NARRATIVE_FIELDS = [
   'problem',
   'root_cause',
   'change_made',
   'files_touched',
   'validation',
-  'follow_ups',
-  'tags'
+  'follow_ups'
 ];
 
 function fail(message) {
@@ -97,13 +96,8 @@ function validate(data, schema) {
     fail('closed_items array is required.');
   }
 
-  if (!Array.isArray(data.dated_entries)) {
-    fail('dated_entries array is required.');
-  }
-
   const priorities = getEnumValues(data.enums.priority_levels, 'priority_levels');
   const risks = getEnumValues(data.enums.risk_levels, 'risk_levels');
-  const statuses = getEnumValues(data.enums.status_values, 'status_values');
   const tags = getEnumValues(data.enums.tag_vocabulary, 'tag_vocabulary');
 
   for (const key of REQUIRED_ENUM_KEYS) {
@@ -145,27 +139,28 @@ function validate(data, schema) {
         fail(`Closed item ${item.id} has invalid tag '${tag}'.`);
       }
     }
+
+    for (const field of REQUIRED_CLOSED_NARRATIVE_FIELDS) {
+      if (!(field in item) || typeof item[field] !== 'string' || item[field].trim() === '') {
+        fail(`closed_items item ${item.id} missing required narrative field '${field}'.`);
+      }
+    }
   }
 
-  for (const entry of data.dated_entries) {
-    if (!entry.date || !entry.title) {
-      fail(`Dated entry missing date/title: ${JSON.stringify(entry)}`);
-    }
+  const openDnIds = new Set(
+    data.open_items
+      .map(item => item.id)
+      .filter(id => /^DN-\d{3}$/.test(id))
+  );
+  const closedDnIds = new Set(
+    data.closed_items
+      .map(item => item.id)
+      .filter(id => /^DN-\d{3}$/.test(id))
+  );
 
-    for (const field of REQUIRED_ENTRY_FIELDS) {
-      if (!(field in entry)) {
-        fail(`Dated entry '${entry.title}' missing '${field}'.`);
-      }
-    }
-
-    if (!Array.isArray(entry.tags)) {
-      fail(`Dated entry '${entry.title}' tags must be an array.`);
-    }
-
-    for (const tag of entry.tags) {
-      if (!tags.includes(tag)) {
-        fail(`Dated entry '${entry.title}' has invalid tag '${tag}'.`);
-      }
+  for (const id of openDnIds) {
+    if (closedDnIds.has(id)) {
+      fail(`DN overlap violation: ${id} appears in both open_items and closed_items.`);
     }
   }
 }
@@ -184,38 +179,30 @@ function renderOpenItem(item) {
   return [base, ...details].join('\n');
 }
 
-function renderDatedEntries(datedEntries) {
-  const sorted = [...datedEntries].sort((a, b) => {
-    const aDate = `${a.date} ${a.title}`;
-    const bDate = `${b.date} ${b.title}`;
-    return bDate.localeCompare(aDate);
+function renderClosedItem(item) {
+  const base = `- [x] ${item.id} | status:${item.status} | priority:${item.priority} | risk:${item.risk} | tags:[${item.tags.join(',')}] | file:${item.file} | issue:${item.issue}${item.resolved ? ` | resolved:${item.resolved}` : ''}`;
+  return [
+    base,
+    `  - Problem: ${item.problem}`,
+    `  - Root cause: ${item.root_cause}`,
+    `  - Change made: ${item.change_made}`,
+    `  - Files touched: ${item.files_touched}`,
+    `  - Validation: ${item.validation}`,
+    `  - Follow-ups: ${item.follow_ups}`
+  ].join('\n');
+}
+
+function sortClosedItemsByResolvedDesc(items) {
+  return [...items].sort((a, b) => {
+    const aResolved = a.resolved || '';
+    const bResolved = b.resolved || '';
+    if (aResolved !== bResolved) return bResolved.localeCompare(aResolved);
+    return String(a.id || '').localeCompare(String(b.id || ''));
   });
-
-  const blocks = [];
-  let activeDate = null;
-
-  for (const entry of sorted) {
-    if (entry.date !== activeDate) {
-      activeDate = entry.date;
-      blocks.push(`## ${entry.date}\n`);
-    }
-
-    blocks.push(`### ${entry.title}`);
-    blocks.push(`- Problem: ${entry.problem}`);
-    blocks.push(`- Root cause: ${entry.root_cause}`);
-    blocks.push(`- Change made: ${entry.change_made}`);
-    blocks.push(`- Files touched: ${entry.files_touched}`);
-    blocks.push(`- Validation: ${entry.validation}`);
-    blocks.push(`- Follow-ups: ${entry.follow_ups}`);
-    blocks.push(`- Tags: [${entry.tags.join(',')}]\n`);
-  }
-
-  return blocks.join('\n');
 }
 
 function buildMarkdown(data) {
   const checklist = data.activity_log_testing_checklist?.markdown?.trim() ?? '';
-  const legacy = data.legacy_entries?.markdown?.trim() ?? '';
 
   return `# PT Tracker Rebuild - Public Dev Notes
 
@@ -232,8 +219,6 @@ This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markd
 - [Activity Log Testing Checklist](#activity-log-testing-checklist)
 - [Open Items](#open-items)
 - [Closed Items](#closed-items)
-- [Dated Entries](#dated-entries)
-- [Legacy Entries (Pre-Format)](#legacy-entries-pre-format)
 
 ## How to Use This File
 - Canonical source of truth: \`docs/dev_notes.json\`.
@@ -242,7 +227,7 @@ This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markd
 - \`closed_items\`: completed items — status \`done\` only.
 - \`in_progress\`: item is actively being worked on this session.
 - \`blocked\`: cannot proceed; must include a \`constraints_caveats\` note explaining the blocker.
-- Close-loop rule: when an item is resolved, move it from \`open_items\` to \`closed_items\` (set status to \`done\`, add \`resolved\` date) and add a \`dated_entries\` record linked to the issue ID.
+- Close-loop rule: when an item is resolved, move it from \`open_items\` to \`closed_items\` (set status to \`done\`, add \`resolved\` date) and fill all six narrative fields on the closed item: \`problem\`, \`root_cause\`, \`change_made\`, \`files_touched\`, \`validation\`, and \`follow_ups\`.
 
 ## Priority Levels
 ${renderEnumSection(data.enums.priority_levels)}
@@ -257,19 +242,17 @@ ${renderEnumSection(data.enums.status_values)}
 ${renderEnumSection(data.enums.tag_vocabulary)}
 
 ## Entry Schema
-Use this exact field order for all new dated entries:
-- \`Problem:\`
-- \`Root cause:\`
-- \`Change made:\`
-- \`Files touched:\`
-- \`Validation:\`
-- \`Follow-ups:\`
-- \`Tags: [...]\`
+Closed items must include all six narrative fields:
+- \`problem\`
+- \`root_cause\`
+- \`change_made\`
+- \`files_touched\`
+- \`validation\`
+- \`follow_ups\`
 
 ## Migration Approach
-- Legacy content is frozen under \`Legacy Entries (Pre-Format)\`.
 - Active TODOs are tracked in \`open_items\`. Completed items live in \`closed_items\`.
-- Convert legacy entries to full schema only when touched.
+- Legacy pre-structured notes are archived in \`docs/HISTORY.md\` and are not machine-processed.
 
 ${checklist}
 
@@ -277,14 +260,7 @@ ${checklist}
 ${data.open_items.map(renderOpenItem).join('\n')}
 
 ## Closed Items
-${data.closed_items.map(renderOpenItem).join('\n')}
-
-## Dated Entries
-Use this section for all new entries in reverse chronological order.
-
-${renderDatedEntries(data.dated_entries)}
-
-${legacy}
+${sortClosedItemsByResolvedDesc(data.closed_items).map(renderClosedItem).join('\n')}
 `.trimEnd() + '\n';
 }
 
