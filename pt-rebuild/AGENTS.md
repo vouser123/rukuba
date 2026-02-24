@@ -53,7 +53,7 @@ If no trigger conditions are met, proceed without surfacing deferred items. Do n
 | `open` | `open_items` | Tracked, not yet started |
 | `in_progress` | `open_items` | Actively being worked on this session |
 | `blocked` | `open_items` | Cannot proceed — blocker documented in `constraints_caveats` |
-| `done` | `closed_items` | Resolved — has `resolved` date and a `dated_entries` record |
+| `done` | `closed_items` | Resolved — has `resolved` date and all 6 closure narrative fields on the item |
 
 ### Lifecycle enforcement: intake → execute → close-loop
 
@@ -65,7 +65,9 @@ If no trigger conditions are met, proceed without surfacing deferred items. Do n
 2. **Execute**
    - Set status to `in_progress` in `open_items` while work is active.
 3. **Close-loop**
-   - When resolved: set `status` to `done`, add `resolved` date, move the item from `open_items` to `closed_items`, and add a `dated_entries` record using the required field order (`Problem`, `Root cause`, `Change made`, `Files touched`, `Validation`, `Follow-ups`, `Tags`).
+   - When resolved: set `status` to `done`, add `resolved` date, move the item from `open_items` to `closed_items`, and fill all 6 closure narrative fields directly on the closed item: `problem`, `root_cause`, `change_made`, `files_touched`, `validation`, `follow_ups`.
+   - Legacy pre-DN entries use `LE-###` IDs and live in `closed_items` alongside `DN-###` items.
+   - `pt-rebuild/docs/HISTORY.md` is a read-only archive for pre-structured notes; agents do not need to read or update it.
    - Regenerate Markdown after JSON edits.
 
 ## Change Hygiene
