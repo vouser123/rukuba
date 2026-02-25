@@ -8,20 +8,18 @@
 
 ## Branch Strategy
 
-**Current recommendation: merge `nextjs` → `main` after Phase 1 is verified.**
+**All migration work stays on the `nextjs` branch until the full migration is complete.**
 
-The original reason for a long-lived branch was to protect main from broken Next.js builds. Now that the scaffold works, that risk is gone. Keeping code on a branch means Codex (when used from the website) can't see it — Codex always clones `main`.
+Main stays as pure vanilla JS throughout — production-safe and hotfix-friendly. The `nextjs` branch is a long-lived feature branch that gets merged to main only when all pages are migrated and verified.
 
-**After verification of each page:**
-1. Merge `nextjs` → `main` (GitHub Desktop: switch to `nextjs`, click "Create Pull Request")
-2. Verify on production
-3. Retire the old HTML file
-4. Continue future migration work directly on `main`
+**Escape hatch:** If the migration is abandoned, delete the `nextjs` branch. Main is untouched. Zero cleanup needed.
 
-**Escape hatch:** If the build ever breaks on main, revert the Next.js changes. The vanilla JS pages in `public/` are completely unaffected — they don't depend on Next.js at all.
+**Note on Codex:** When using Codex from the claude.ai website, it clones `main` and cannot see the `nextjs` branch. For migration work with Codex, use it locally where you can specify the branch. Hotfixes to the vanilla JS app can be done on `main` at any time — the branches don't conflict.
 
 **Vercel preview URL for `nextjs` branch:**
 `https://pt-rehab-git-nextjs-pt-tracker.vercel.app`
+
+**Merge strategy:** One page = verified on preview → merge to main → verify on production → retire old HTML → next page.
 
 ---
 
