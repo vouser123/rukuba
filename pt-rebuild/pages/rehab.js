@@ -2,46 +2,60 @@
  * Rehab Coverage Analysis — Next.js page (DN-033).
  * Replaces public/rehab_coverage.html.
  * public/rehab_coverage.html stays live until this is verified in production.
+ *
+ * Architecture:
+ *   useAuth()     — session, loading, signIn from hooks/useAuth.js
+ *   <AuthForm />  — sign-in form from components/AuthForm.js
+ *   <NavMenu />   — navigation sidebar from components/NavMenu.js
+ *   supabase      — shared client from lib/supabase.js (used only for signOut here)
+ *   buildCoverageData() — pure calculation from lib/rehab-coverage.js
+ *
+ * No window.*, no Script tags, no useRef plumbing to bridge React and globals.
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
-import Script from 'next/script';
-import { createClient } from '@supabase/supabase-js';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
+import NavMenu from '../components/NavMenu';
+import AuthForm from '../components/AuthForm';
 import { buildCoverageData, colorScoreToRGB, COVERAGE_CONSTANTS } from '../lib/rehab-coverage';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
 export default function RehabCoverage() {
-    const [session, setSession] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { session, loading: authLoading, signIn } = useAuth();
+
+    // User's role — determines which nav items are visible
+    const [userRole, setUserRole] = useState('patient');
+
+    // Data loading state
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Auth form
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [authError, setAuthError] = useState('');
-
-    // Coverage data returned by buildCoverageData
+    // Coverage data returned by buildCoverageData()
     const [coverageResult, setCoverageResult] = useState(null); // { coverageData, summary }
 
-    // UI interaction state
+    // UI interaction state — accordion open/close
     const [collapsedRegions, setCollapsedRegions] = useState(new Set());
     const [expandedCapacities, setExpandedCapacities] = useState(new Set());
     const [legendExpanded, setLegendExpanded] = useState(false);
 
-    // Track whether HamburgerMenu script is loaded — init is deferred until both script + data are ready
-    const hamburgerReady = useRef(false);
-    const sessionRef = useRef(null);
-    const userRoleRef = useRef(null);
+    // =========================================================================
+    // Service worker registration (done here instead of a Script tag)
+    // =========================================================================
+    useEffect(() => {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) { refreshing = true; window.location.reload(); }
+            });
+        }
+    }, []);
 
     // =========================================================================
     // Data loading
     // =========================================================================
 
-    /** Fetch logs + roles in parallel, compute coverage data, init hamburger menu */
+    /** Fetch logs + roles in parallel, compute coverage data. */
     const loadData = useCallback(async (accessToken) => {
         setLoading(true);
         setError(null);
@@ -59,87 +73,26 @@ export default function RehabCoverage() {
                 rolesRes.json(),
             ]);
 
-            const logs = logsData.logs || [];
-            const roles = rolesData.roles || [];
-            userRoleRef.current = rolesData.user_role || 'patient';
-
-            const result = buildCoverageData(logs, roles);
+            setUserRole(rolesData.user_role || 'patient');
+            const result = buildCoverageData(logsData.logs || [], rolesData.roles || []);
             setCoverageResult(result);
-            setLoading(false);
-
-            // Init hamburger menu now that role and data are resolved
-            if (hamburgerReady.current && sessionRef.current) {
-                initHamburger(sessionRef.current, userRoleRef.current, accessToken);
-            }
         } catch (err) {
             console.error('loadData failed:', err);
             setError(err.message || 'Failed to load coverage data.');
+        } finally {
             setLoading(false);
         }
     }, []);
 
-    /** Initialize shared HamburgerMenu. Called after both data load and script load. */
-    function initHamburger(sess, role, accessToken) {
-        if (!window.HamburgerMenu) return;
-        window.HamburgerMenu.init({
-            currentUser: sess.user,
-            signOutFn: () => supabase.auth.signOut(),
-            page: 'rehab_coverage',
-            isAdmin: role !== 'patient',
-            menuItems: [
-                { action: 'refresh-data', icon: '🔄', label: 'Refresh Data' },
-            ],
-            onAction: (action) => {
-                if (action === 'refresh-data') {
-                    window.HamburgerMenu.close();
-                    loadData(accessToken);
-                    return true;
-                }
-                return false;
-            },
-        });
-    }
-
-    // =========================================================================
-    // Auth
-    // =========================================================================
-
+    // Load data when session becomes available; clear data on sign-out
     useEffect(() => {
-        // Check existing session on mount
-        supabase.auth.getSession().then(({ data: { session: sess } }) => {
-            setSession(sess);
-            sessionRef.current = sess;
-            if (sess) {
-                loadData(sess.access_token);
-            } else {
-                setLoading(false);
-            }
-        });
-
-        // Listen for auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
-            setSession(sess);
-            sessionRef.current = sess;
-            if (event === 'SIGNED_IN' && sess) {
-                loadData(sess.access_token);
-            }
-            if (event === 'SIGNED_OUT') {
-                setCoverageResult(null);
-                userRoleRef.current = null;
-                setLoading(false);
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [loadData]);
-
-    /** Handle sign-in form submission */
-    async function handleSignIn(e) {
-        e.preventDefault();
-        setAuthError('');
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) setAuthError(signInError.message);
-    }
+        if (session) {
+            loadData(session.access_token);
+        } else if (!authLoading) {
+            setCoverageResult(null);
+            setUserRole('patient');
+        }
+    }, [session, authLoading, loadData]);
 
     // =========================================================================
     // UI event handlers
@@ -164,14 +117,13 @@ export default function RehabCoverage() {
     }
 
     // =========================================================================
-    // Summary helpers
+    // Summary card render
     // =========================================================================
 
     function renderSummary(summary) {
         if (!summary) return null;
         const { lastDoneAgo, coverage7, exercisesDone7, totalExercises, avgOpacity } = summary;
 
-        // Last activity
         let lastActivityText = 'No activity';
         let lastActivityColor = 'var(--danger-color)';
         if (lastDoneAgo !== null) {
@@ -180,12 +132,10 @@ export default function RehabCoverage() {
                                 lastDoneAgo <= 3 ? 'var(--warning-color)' : 'var(--danger-color)';
         }
 
-        // 7-day coverage
         const weekText = `${coverage7}% (${exercisesDone7}/${totalExercises})`;
         const weekColor = coverage7 >= 70 ? 'var(--success-color)' :
                           coverage7 >= 40 ? 'var(--warning-color)' : 'var(--danger-color)';
 
-        // 21-day trend
         let trendText = `📉 Low (${avgOpacity}%) - needs more sessions`;
         let trendColor = 'var(--danger-color)';
         if (avgOpacity >= 70) { trendText = `📈 Strong (${avgOpacity}%) - exercising consistently`; trendColor = 'var(--success-color)'; }
@@ -220,7 +170,7 @@ export default function RehabCoverage() {
             return <div className="empty-state">No coverage data available.</div>;
         }
 
-        // Sort regions: worst color score first
+        // Sort regions: worst color score first (most neglected at the top)
         const regions = Object.keys(coverageData).sort((a, b) => {
             const aScore = (coverageData[a]._regionBar || {}).color_score || 0;
             const bScore = (coverageData[b]._regionBar || {}).color_score || 0;
@@ -274,17 +224,16 @@ export default function RehabCoverage() {
         const capKey = `${region}-${capacity}`;
         const isExpanded = expandedCapacities.has(capKey);
 
-        // Build recency + trend text for subtitle
         const C = COVERAGE_CONSTANTS;
         let recencyText = '!! very overdue';
-        if (colorScore >= C.RECENCY_RECENT_MIN) recencyText = '✓ done recently';
+        if (colorScore >= C.RECENCY_RECENT_MIN)    recencyText = '✓ done recently';
         else if (colorScore >= C.RECENCY_FEW_DAYS_MIN) recencyText = '~ a few days ago';
-        else if (colorScore >= C.RECENCY_STALE_MIN) recencyText = '⚠ getting stale';
-        else if (colorScore >= C.RECENCY_OVERDUE_MIN) recencyText = '! overdue';
+        else if (colorScore >= C.RECENCY_STALE_MIN)    recencyText = '⚠ getting stale';
+        else if (colorScore >= C.RECENCY_OVERDUE_MIN)  recencyText = '! overdue';
 
         let trendText = `↓↓ low (${opacity}%)`;
-        if (opacity >= C.TREND_STEADY_MIN) trendText = `↑ steady (${opacity}%)`;
-        else if (opacity >= C.TREND_OK_MIN) trendText = `→ ok (${opacity}%)`;
+        if (opacity >= C.TREND_STEADY_MIN)   trendText = `↑ steady (${opacity}%)`;
+        else if (opacity >= C.TREND_OK_MIN)  trendText = `→ ok (${opacity}%)`;
         else if (opacity >= C.TREND_SLIPPING_MIN) trendText = `↓ slipping (${opacity}%)`;
 
         // Group exercises by focus for rendering
@@ -398,61 +347,51 @@ export default function RehabCoverage() {
                 <meta name="mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-title" content="PT Tracker" />
+                {/* main.css for shared styles; rehab-coverage.css for page + hamburger styles.
+                    TODO: Move hamburger CSS to main.css when more pages are migrated. */}
                 <link rel="stylesheet" href="/css/main.css" />
                 <link rel="stylesheet" href="/css/rehab-coverage.css" />
             </Head>
 
-            {/* Auth modal — shown when not signed in */}
-            {!session && (
-                <div className="auth-modal">
-                    <div className="auth-content">
-                        <h2>Coverage Analysis Sign In</h2>
-                        <form onSubmit={handleSignIn} className="auth-form">
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                placeholder="Email"
-                                required
-                                autoComplete="email"
-                            />
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                placeholder="Password"
-                                required
-                                autoComplete="current-password"
-                            />
-                            <button type="submit">Sign In</button>
-                            {authError && <div className="auth-error">{authError}</div>}
-                        </form>
-                    </div>
-                </div>
+            {/* Auth form — shown when not signed in (and auth check has resolved) */}
+            {!session && !authLoading && (
+                <AuthForm
+                    title="Coverage Analysis Sign In"
+                    onSignIn={signIn}
+                />
             )}
 
             {/* Main app — shown when signed in */}
             {session && (
                 <>
-                    {/* Header — data-action="toggle-hamburger" is handled by HamburgerMenu */}
                     <div className="header">
                         <h1>Rehab Coverage</h1>
                         <div className="header-actions">
                             <button
                                 className="btn btn-secondary"
-                                data-action="refresh-data"
                                 onPointerUp={() => loadData(session.access_token)}
+                                aria-label="Refresh data"
                             >
                                 ↻
                             </button>
-                            <button className="hamburger-btn" data-action="toggle-hamburger">☰</button>
+                            {/* NavMenu renders the ☰ button + overlay + panel */}
+                            <NavMenu
+                                user={session.user}
+                                isAdmin={userRole !== 'patient'}
+                                onSignOut={() => supabase.auth.signOut()}
+                                currentPage="rehab_coverage"
+                                actions={[{ action: 'refresh-data', icon: '🔄', label: 'Refresh Data' }]}
+                                onAction={(action) => {
+                                    if (action === 'refresh-data') loadData(session.access_token);
+                                }}
+                            />
                         </div>
                     </div>
 
                     {/* Summary card */}
                     {coverageResult && renderSummary(coverageResult.summary)}
 
-                    {/* Legend */}
+                    {/* Legend — collapsed by default */}
                     <div className={`legend-card ${legendExpanded ? 'expanded' : ''}`}>
                         <div
                             className="legend-header"
@@ -482,7 +421,7 @@ export default function RehabCoverage() {
                             </div>
                             <div className="legend-section">
                                 <div className="legend-section-title">Bar Opacity = 3-Week Momentum</div>
-                                <p className="legend-description">Shows if you're keeping up over time. <strong>Solid = exercising regularly.</strong> <strong>Faded = falling behind.</strong></p>
+                                <p className="legend-description">Shows if you&apos;re keeping up over time. <strong>Solid = exercising regularly.</strong> <strong>Faded = falling behind.</strong></p>
                                 <div className="legend-row">
                                     <div className="legend-opacity-samples">
                                         <div className="legend-opacity-sample" style={{ background: '#007AFF', opacity: 1 }} />
@@ -510,32 +449,6 @@ export default function RehabCoverage() {
                     </div>
                 </>
             )}
-
-            {/* HamburgerMenu — existing shared module, loaded after page is interactive */}
-            <Script
-                src="/js/vendor/supabase.min.js"
-                strategy="beforeInteractive"
-            />
-            <Script
-                src="/js/hamburger-menu.js"
-                strategy="afterInteractive"
-                onLoad={() => {
-                    hamburgerReady.current = true;
-                    // If data and session already loaded before script was ready, init now
-                    if (sessionRef.current && userRoleRef.current) {
-                        initHamburger(sessionRef.current, userRoleRef.current, sessionRef.current.access_token);
-                    }
-                }}
-            />
-            <Script id="sw-register" strategy="afterInteractive">{`
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('/sw.js');
-                    let refreshing = false;
-                    navigator.serviceWorker.addEventListener('controllerchange', () => {
-                        if (!refreshing) { refreshing = true; window.location.reload(); }
-                    });
-                }
-            `}</Script>
         </>
     );
 }
