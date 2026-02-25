@@ -4,9 +4,8 @@
 # Copies pt-rebuild/docs/NEXTJS_MIGRATION.md from the current branch (nextjs)
 # to main so both branches always have the same version of the doc.
 #
-# Usage:
-#   npm run sync-docs        (from pt-rebuild/)
-#   bash scripts/sync-migration-doc.sh
+# This is a CLAUDE task — Claude runs this automatically after every
+# NEXTJS_MIGRATION.md update on the nextjs branch. Do not run manually.
 #
 # Prerequisites: clean working tree (no uncommitted changes).
 
