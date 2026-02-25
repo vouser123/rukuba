@@ -1,0 +1,34 @@
+name: Daily database backup
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # 5am UTC daily
+  workflow_dispatch:       # allow manual trigger for testing
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install pg_dump
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          pg_dump \
+            --host=db.zvgoaxdpkgfxklotqwpz.supabase.co \
+            --port=5432 \
+            --username=postgres \
+            --dbname=postgres \
+            --no-password \
+            --format=custom \
+            --file=backup-$(date +%Y-%m-%d).dump
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_number }}
+          path: backup-*.dump
+          retention-days: 90
