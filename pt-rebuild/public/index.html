@@ -1256,55 +1256,7 @@
         Viewing exercises for: <strong id="patientName">-</strong>
     </div>
 
-    <!-- Hamburger Menu -->
-    <div class="hamburger-overlay" id="hamburgerOverlay" data-action="toggle-hamburger"></div>
-    <div class="hamburger-menu" id="hamburgerMenu">
-        <div class="hamburger-header">
-            <h3>Menu</h3>
-            <button class="hamburger-close" data-action="toggle-hamburger">Close</button>
-        </div>
-        <div class="user-info">
-            <div class="user-label">Signed in as</div>
-            <div class="user-email" id="userEmail">-</div>
-        </div>
-        <div>
-            <div class="hamburger-item" data-action="show-messages">
-                <span class="hamburger-icon" style="position: relative;">
-                    💬
-                    <span id="messagesBadge" class="messages-badge hidden"></span>
-                </span>
-                <span>Messages</span>
-            </div>
-            <a href="pt_editor.html" class="hamburger-item" id="ptEditorLink">
-                <span class="hamburger-icon">✏️</span>
-                <span>Exercise Editor</span>
-            </a>
-            <a href="pt_view.html" class="hamburger-item">
-                <span class="hamburger-icon">📊</span>
-                <span>View History</span>
-            </a>
-            <a href="rehab_coverage.html" class="hamburger-item">
-                <span class="hamburger-icon">📈</span>
-                <span>Coverage Analysis</span>
-            </a>
-            <div class="hamburger-item" data-action="manual-sync">
-                <span class="hamburger-icon">🔄</span>
-                <span>Sync Now</span>
-            </div>
-            <div class="hamburger-item" data-action="show-debug">
-                <span class="hamburger-icon">🐛</span>
-                <span>Show Debug Info</span>
-            </div>
-            <div class="hamburger-item" data-action="reload">
-                <span class="hamburger-icon">🔄</span>
-                <span>Reload</span>
-            </div>
-            <div class="hamburger-item" data-action="sign-out">
-                <span class="hamburger-icon">🚪</span>
-                <span>Sign Out</span>
-            </div>
-        </div>
-    </div>
+    <!-- Hamburger panel HTML is injected by HamburgerMenu.init() in hamburger-menu.js -->
 
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
@@ -1596,6 +1548,8 @@
 
     <!-- Supabase Client -->
     <script src="/js/vendor/supabase.min.js"></script>
+    <!-- Shared hamburger menu component (injects panel HTML, handles toggle/nav) -->
+    <script src="/js/hamburger-menu.js"></script>
 
     <!-- Offline Manager - IndexedDB Cache -->
     <script type="module">
@@ -1975,6 +1929,27 @@
                     }
 
                     console.log('User role:', me.role, '| Viewing patient:', viewingPatientId);
+
+                    // DN-006: Initialize shared hamburger menu with role-based nav links.
+                    // Called here (inside loadData) so me.role is resolved.
+                    // init() is idempotent — safe to call on SIGNED_IN re-auth.
+                    HamburgerMenu.init({
+                        currentUser: currentUser,
+                        signOutFn: signOut,
+                        page: 'index',
+                        isAdmin: me.role !== 'patient',
+                        menuItems: [
+                            { action: 'show-messages', icon: '💬', label: 'Messages', badge: 'messagesBadge' },
+                            { action: 'manual-sync',   icon: '🔄', label: 'Sync Now' },
+                            { action: 'show-debug',    icon: '🐛', label: 'Show Debug Info' },
+                        ],
+                        onAction: (action) => {
+                            if (action === 'show-messages') { showMessagesModal(); return true; }
+                            if (action === 'manual-sync')   { HamburgerMenu.close(); syncOfflineQueue(); return true; }
+                            if (action === 'show-debug')    { HamburgerMenu.close(); showDebugInfo(); return true; }
+                            return false;
+                        }
+                    });
                 } catch (e) {
                     console.warn('Could not resolve user profile:', e);
                     throw e;
@@ -3125,16 +3100,7 @@
 
         // ─────────────────────────────────────────────────────────────────────
 
-        /**
-         * Toggle hamburger menu visibility
-         * iOS-safe: Uses class-based visibility instead of display manipulation
-         */
-        function toggleHamburger() {
-            const overlay = document.getElementById('hamburgerOverlay');
-            const menu = document.getElementById('hamburgerMenu');
-            overlay.classList.toggle('active');
-            menu.classList.toggle('active');
-        }
+        // toggleHamburger() removed — handled by HamburgerMenu (hamburger-menu.js)
 
         /**
          * Select side for tracking (left, right, both)
@@ -3976,11 +3942,11 @@ ${queueData}
                 return;
             }
 
-            toggleHamburger(); // Close menu — frame 1: browser paints menu-close
+            HamburgerMenu.close(); // Close menu — frame 1: browser paints menu-close
 
             // Yield to browser so the menu-close paints before the modal opens.
             // Prevents menu-close + modal-open layout recalculations compressing into
-            // one blocking frame (root cause of #hamburgerMenu 3,488ms INP).
+            // one blocking frame (root cause of #hamburgerMenu 3,488ms INP). See DN-007.
             await new Promise(r => requestAnimationFrame(r));
 
             document.getElementById('messagesModal').classList.remove('hidden');
@@ -5144,9 +5110,9 @@ ${queueData}
                             showView('picker');
                         }
                         break;
-                    case 'show-messages':
-                        showMessagesModal();
-                        break;
+                    // show-messages, manual-sync, show-debug, toggle-hamburger, sign-out, reload
+                    // are handled by HamburgerMenu (hamburger-menu.js) via element-level pointerup
+                    // with stopPropagation — they never reach this document-level dispatcher.
                     case 'close-messages-modal':
                         closeMessagesModal();
                         break;
@@ -5159,26 +5125,8 @@ ${queueData}
                     case 'undo-send-message':
                         undoSendMessage(target.dataset.id);
                         break;
-                    case 'manual-sync':
-                        toggleHamburger(); // Close menu
-                        syncOfflineQueue();
-                        break;
-                    case 'show-debug':
-                        toggleHamburger(); // Close menu
-                        showDebugInfo();
-                        break;
-                    case 'toggle-hamburger':
-                        toggleHamburger();
-                        break;
                     case 'select-side':
                         selectSide(target.dataset.side);
-                        break;
-                    case 'sign-out':
-                        toggleHamburger(); // Close menu
-                        signOut();
-                        break;
-                    case 'reload':
-                        reloadPage();
                         break;
                     case 'edit-session':
                         openEditSessionModal(target.dataset.logId);

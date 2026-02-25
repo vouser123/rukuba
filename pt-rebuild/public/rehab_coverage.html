@@ -731,40 +731,7 @@
         </div>
     </div>
 
-    <!-- Hamburger Menu -->
-    <div class="hamburger-overlay" id="hamburgerOverlay" data-action="toggle-hamburger"></div>
-    <div class="hamburger-menu" id="hamburgerMenu">
-        <div class="hamburger-header">
-            <h3>Menu</h3>
-            <button class="hamburger-close" data-action="toggle-hamburger">Close</button>
-        </div>
-        <div class="hamburger-user-info" id="userInfo">
-            <strong>Signed in as</strong>
-            <span id="userEmail">Loading...</span>
-        </div>
-        <div>
-            <a href="index.html" class="hamburger-item" id="ptTrackerLink">
-                <span class="hamburger-icon">🏠</span>
-                <span>PT Tracker</span>
-            </a>
-            <a href="pt_view.html" class="hamburger-item">
-                <span class="hamburger-icon">📊</span>
-                <span>View History</span>
-            </a>
-            <a href="pt_editor.html" class="hamburger-item">
-                <span class="hamburger-icon">✏️</span>
-                <span>Exercise Editor</span>
-            </a>
-            <div class="hamburger-item" data-action="refresh-data">
-                <span class="hamburger-icon">🔄</span>
-                <span>Refresh Data</span>
-            </div>
-            <div class="hamburger-item" data-action="sign-out">
-                <span class="hamburger-icon">🚪</span>
-                <span>Sign Out</span>
-            </div>
-        </div>
-    </div>
+    <!-- Hamburger panel HTML is injected by HamburgerMenu.init() in hamburger-menu.js -->
 
     <!-- Summary Card -->
     <div class="summary-card">
@@ -872,6 +839,8 @@
 
     <!-- Supabase Client -->
     <script src="/js/vendor/supabase.min.js"></script>
+    <!-- Shared hamburger menu component (injects panel HTML, handles toggle/nav) -->
+    <script src="/js/hamburger-menu.js"></script>
 
     <script>
         /**
@@ -1553,6 +1522,22 @@
                 if (rolesResult.user_role) {
                     userRole = rolesResult.user_role;
                     updateMenuVisibility();
+
+                    // DN-006: Initialize shared hamburger menu with role-based nav links.
+                    // Called here so userRole is resolved from /api/roles.
+                    HamburgerMenu.init({
+                        currentUser: currentUser,
+                        signOutFn: signOut,
+                        page: 'rehab_coverage',
+                        isAdmin: userRole !== 'patient',
+                        menuItems: [
+                            { action: 'refresh-data', icon: '🔄', label: 'Refresh Data' },
+                        ],
+                        onAction: (action) => {
+                            if (action === 'refresh-data') { HamburgerMenu.close(); loadData(); return true; }
+                            return false;
+                        }
+                    });
                 }
 
                 // Calculate and render coverage
@@ -1989,15 +1974,7 @@
             }
         }
 
-        /**
-         * Toggle hamburger menu
-         */
-        function toggleHamburger() {
-            const overlay = document.getElementById('hamburgerOverlay');
-            const menu = document.getElementById('hamburgerMenu');
-            overlay.classList.toggle('active');
-            menu.classList.toggle('active');
-        }
+        // toggleHamburger() removed — handled by HamburgerMenu (hamburger-menu.js)
 
         /**
          * Toggle legend card expansion
@@ -2036,25 +2013,16 @@
                 const action = target.dataset.action;
 
                 switch (action) {
-                    case 'toggle-hamburger':
-                        toggleHamburger();
-                        break;
+                    // toggle-hamburger, refresh-data, sign-out are handled by
+                    // HamburgerMenu (hamburger-menu.js) via element-level pointerup + stopPropagation.
                     case 'toggle-legend':
                         toggleLegend();
-                        break;
-                    case 'refresh-data':
-                        toggleHamburger();
-                        await loadData();
                         break;
                     case 'toggle-region':
                         toggleRegion(target.dataset.region);
                         break;
                     case 'toggle-capacity':
                         toggleCapacity(target.dataset.region, target.dataset.capacity);
-                        break;
-                    case 'sign-out':
-                        toggleHamburger();
-                        await signOut();
                         break;
                 }
             });
