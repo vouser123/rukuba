@@ -73,6 +73,9 @@ Closed items must include all six narrative fields:
 - Legacy pre-structured notes are archived in `docs/HISTORY.md` and are not machine-processed.
 
 ## Open Items
+- [ ] DN-032 | status:open | priority:P3 | risk:low | tags:[cleanup] | file:pt-rebuild/public/pt_view.html, pt-rebuild/public/rehab_coverage.html | issue:Remove dead code left over from DN-006 hamburger refactor: updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html both reference elements (#userEmail, #ptTrackerLink) that were removed when hamburger panel HTML was extracted to HamburgerMenu.inject(). Both functions silently no-op due to null-checks — no functional impact — but they are dead code.
+  - Context: DN-006 removed hamburger panel HTML from all pages. updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html were not cleaned up. HamburgerMenu.init() → updateUserDisplay() now handles the user email display. The #ptTrackerLink element no longer exists in any page.
+  - Constraints/Caveats: Verify nothing else calls these functions before removing. updateMenuVisibility() in rehab_coverage.html also sets userRole — confirm that logic is fully handled by the HamburgerMenu.init() isAdmin param before deleting.
 - [ ] DN-005 | status:open | priority:P2 | risk:low | tags:[performance,api] | file:pt-rebuild/api/users.js | issue:Push role-based filtering to DB query (`.eq()` etc.) instead of fetching all users then filtering in memory.
   - Context: Therapists/patients currently fetch full user sets before reducing in app logic.
   - Constraints/Caveats: Behavior parity (who can see which users) must remain identical after query-level filtering.

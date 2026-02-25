@@ -173,6 +173,24 @@
   },
   "open_items": [
     {
+      "id": "DN-032",
+      "status": "open",
+      "priority": "P3",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "cleanup"
+      ],
+      "file": "pt-rebuild/public/pt_view.html, pt-rebuild/public/rehab_coverage.html",
+      "issue": "Remove dead code left over from DN-006 hamburger refactor: updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html both reference elements (#userEmail, #ptTrackerLink) that were removed when hamburger panel HTML was extracted to HamburgerMenu.inject(). Both functions silently no-op due to null-checks — no functional impact — but they are dead code.",
+      "resolved": null,
+      "context": "DN-006 removed hamburger panel HTML from all pages. updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html were not cleaned up. HamburgerMenu.init() → updateUserDisplay() now handles the user email display. The #ptTrackerLink element no longer exists in any page.",
+      "constraints_caveats": "Verify nothing else calls these functions before removing. updateMenuVisibility() in rehab_coverage.html also sets userRole — confirm that logic is fully handled by the HamburgerMenu.init() isAdmin param before deleting."
+    },
+    {
       "id": "DN-005",
       "status": "open",
       "priority": "P2",
