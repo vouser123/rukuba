@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-02-24"
+    "last_updated": "2026-02-25"
   },
   "enums": {
     "priority_levels": [
@@ -211,26 +211,6 @@
       "resolved": null,
       "context": "Menu structure and handlers drift across pages despite shared assets.",
       "constraints_caveats": "Must preserve page-specific links/workflows while standardizing interaction model (`data-action` + `pointerup`)."
-    },
-    {
-      "id": "DN-007",
-      "status": "open",
-      "priority": "P1",
-      "risk": "medium",
-      "scope": "current",
-      "agent": [
-        "claude"
-      ],
-      "tags": [
-        "performance",
-        "ui",
-        "ios"
-      ],
-      "file": "pt-rebuild/public/index.html,pt-rebuild/public/rehab_coverage.html",
-      "issue": "Reduce INP from 800ms mobile average; worst offenders identified from Vercel Speed Insights real-user data.",
-      "resolved": null,
-      "context": "Field data (mobile, 2026-02-18) shows processing duration (not input delay) is the bottleneck — handlers are doing too much synchronous work on tap. Worst offenders by element: `#hamburgerMenu` 3,488ms (2 interactions), `#timerMode` 1,768ms, `#cap-back-tolerance` 1,480ms, `#messagesModal` 1,296ms, `#sessionNotes` 1,368ms, `#cap-ankle-tolerance` 1,192ms, `#logSetModal` 632ms, `body>div.header` 520ms. LCP on index.html is 8.4s (mobile, 12 data points) — LCP element is `#exerciseList>div.exercise-card>div.exercise-name`, caused by serial API waterfall (users → programs → history before first render). Backfill fetch removed 2026-02-18 as first LCP fix.",
-      "constraints_caveats": "Handler code for hamburger menu and capacity elements has not yet been read — root cause of synchronous blocking work is unconfirmed. Must not change clinical logging workflows. iOS PWA `pointerup`/`data-action` pattern must be preserved. rehab_coverage.html capacity tap handlers are separate from index.html and need independent investigation."
     },
     {
       "id": "DN-008",
@@ -462,6 +442,30 @@
     }
   ],
   "closed_items": [
+    {
+      "id": "DN-007",
+      "status": "done",
+      "priority": "P1",
+      "risk": "medium",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "performance",
+        "ui",
+        "ios"
+      ],
+      "file": "pt-rebuild/public/index.html",
+      "issue": "Reduce INP from 800ms mobile average; worst offenders identified from Vercel Speed Insights real-user data.",
+      "resolved": "2026-02-24",
+      "problem": "Tapping Messages in the hamburger menu produced 3,488ms INP (worst offender in field data). Root cause: showMessagesModal() ran a synchronous chain — toggleHamburger (classList toggles), messagesModal.classList.remove('hidden'), notifyToggle.checked, and loadMessages() innerHTML write — all in one frame before the first await fetch(). Browser could not paint the menu-closed state until all four DOM mutations had been processed together, compressing two layout recalculations (menu close + modal open) into a single blocking frame.",
+      "root_cause": "showMessagesModal() had no yield between closing the hamburger menu and opening the messages modal. The combined layout recalculation (display change on menu + unhiding modal tree) happened synchronously in the same frame.",
+      "change_made": "Inserted `await new Promise(r => requestAnimationFrame(r))` between toggleHamburger() and messagesModal.classList.remove('hidden') in showMessagesModal(). This yields the browser after the menu-close so it can paint before opening the modal. No other changes to showMessagesModal or loadMessages.",
+      "files_touched": "pt-rebuild/public/index.html (showMessagesModal)",
+      "validation": "Deploy to Vercel and open hamburger → tap Messages. Menu should close visibly first, then modal opens (two distinct steps). DevTools Performance panel: INP for #hamburgerMenu interaction measurably reduced. Remaining INP offenders (timerMode, logSetModal, sessionNotes) are separate items.",
+      "follow_ups": "Other INP offenders remain unaddressed (#timerMode 1,768ms, #messagesModal 1,296ms, #sessionNotes 1,368ms, #logSetModal 632ms). Same rAF yield pattern can be applied to those handlers in a follow-up pass."
+    },
     {
       "id": "DN-031",
       "status": "done",

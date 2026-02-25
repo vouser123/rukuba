@@ -3976,7 +3976,13 @@ ${queueData}
                 return;
             }
 
-            toggleHamburger(); // Close menu
+            toggleHamburger(); // Close menu — frame 1: browser paints menu-close
+
+            // Yield to browser so the menu-close paints before the modal opens.
+            // Prevents menu-close + modal-open layout recalculations compressing into
+            // one blocking frame (root cause of #hamburgerMenu 3,488ms INP).
+            await new Promise(r => requestAnimationFrame(r));
+
             document.getElementById('messagesModal').classList.remove('hidden');
 
             // Sync notification toggle to current preference each time modal opens
