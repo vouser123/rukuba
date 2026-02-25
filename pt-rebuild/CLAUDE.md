@@ -22,7 +22,7 @@ Operational rules and required final steps are in `pt-rebuild/AGENTS.md` — fol
 - Markdown is generated: run `npm run dev-notes:build` after JSON changes.
 - Drift check is required before handoff: `npm run dev-notes:check`.
 - Lifecycle is mandatory: **intake → execute → close-loop**.
-- **Migration doc sync (Claude task only):** After every update to `docs/NEXTJS_MIGRATION.md` on the `nextjs` branch, run `npm run sync-docs` to copy it to `main`. The user never runs this — it is always Claude's responsibility.
+- **Docs sync (Claude task only):** After every commit on the `nextjs` branch that touches `docs/NEXTJS_MIGRATION.md`, `docs/dev_notes.json`, or `docs/DEV_NOTES.md`, run `npm run sync-docs` to copy all three to `main`. The user never runs this — it is always Claude's responsibility.
   - Intake rule for ad-hoc requests: if work is not already tracked, create a new `DN-###` item in `open_items` before or at start of execution.
   - Close-loop rule: when resolved, remove/resolve from `open_items` and add a `dated_entries` record using required field order.
 
