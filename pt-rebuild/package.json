@@ -4,13 +4,20 @@
   "type": "module",
   "description": "PT Tracker Rebuild - Supabase + Vercel",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "migrate": "node db/migrate.js",
     "deploy": "vercel --prod",
     "dev-notes:build": "node scripts/generate-dev-notes.mjs",
-    "dev-notes:check": "node scripts/generate-dev-notes.mjs --check"
+    "dev-notes:check": "node scripts/generate-dev-notes.mjs --check",
+    "sync-docs": "bash scripts/sync-migration-doc.sh"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.90.1"
+    "@supabase/supabase-js": "^2.90.1",
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "vercel": "^33.0.0"
