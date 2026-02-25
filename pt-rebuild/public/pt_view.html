@@ -970,48 +970,7 @@
         Showing information for: <strong id="patientName">-</strong>
     </div>
 
-    <!-- Hamburger Menu -->
-    <div class="hamburger-overlay" id="hamburgerOverlay" data-action="toggle-hamburger"></div>
-    <div class="hamburger-menu" id="hamburgerMenu">
-        <div class="hamburger-header">
-            <h3>Menu</h3>
-            <button class="hamburger-close" data-action="toggle-hamburger">Close</button>
-        </div>
-        <div class="user-info">
-            <div class="user-label">Signed in as</div>
-            <div class="user-email" id="userEmail">-</div>
-        </div>
-        <div>
-            <div class="hamburger-item" data-action="show-messages">
-                <span class="hamburger-icon" style="position: relative;">
-                    💬
-                    <span id="messagesBadge" class="messages-badge hidden"></span>
-                    <span id="sentBadge" class="sent-badge hidden"></span>
-                </span>
-                <span>Messages</span>
-            </div>
-            <a href="index.html" class="hamburger-item" id="ptTrackerLink">
-                <span class="hamburger-icon">🏠</span>
-                <span>PT Tracker</span>
-            </a>
-            <a href="pt_editor.html" class="hamburger-item" id="ptEditorLink">
-                <span class="hamburger-icon">✏️</span>
-                <span>Exercise Editor</span>
-            </a>
-            <a href="rehab_coverage.html" class="hamburger-item">
-                <span class="hamburger-icon">📈</span>
-                <span>Coverage Analysis</span>
-            </a>
-            <div class="hamburger-item" data-action="reload">
-                <span class="hamburger-icon">🔄</span>
-                <span>Reload</span>
-            </div>
-            <div class="hamburger-item" data-action="sign-out">
-                <span class="hamburger-icon">🚪</span>
-                <span>Sign Out</span>
-            </div>
-        </div>
-    </div>
+    <!-- Hamburger panel HTML is injected by HamburgerMenu.init() in hamburger-menu.js -->
 
     <!-- Exercise Notes - Compact and collapsible -->
     <div class="notes-alert-section" id="notesAlertSection">
@@ -1132,6 +1091,8 @@
 
     <!-- Supabase Client -->
     <script src="/js/vendor/supabase.min.js"></script>
+    <!-- Shared hamburger menu component (injects panel HTML, handles toggle/nav) -->
+    <script src="/js/hamburger-menu.js"></script>
 
     <script>
         // Supabase initialization
@@ -1253,13 +1214,7 @@
             }
         }
 
-        // Hamburger menu
-        function toggleHamburger() {
-            const menu = document.getElementById('hamburgerMenu');
-            const overlay = document.getElementById('hamburgerOverlay');
-            menu.classList.toggle('active');
-            overlay.classList.toggle('active');
-        }
+        // toggleHamburger() removed — handled by HamburgerMenu (hamburger-menu.js)
 
         async function signOut() {
             await supabaseClient.auth.signOut();
@@ -1267,7 +1222,7 @@
             authToken = null;
             currentUserProfileId = null;
             showAuthModal();
-            toggleHamburger();
+            HamburgerMenu.close();
         }
 
         async function signIn(email, password) {
@@ -1448,6 +1403,24 @@
                 }
 
                 console.log('User role:', me.role, '| Viewing patient:', viewingPatientId, viewingPatientName);
+
+                // DN-006: Initialize shared hamburger menu with role-based nav links.
+                // Called here (inside loadCurrentUserProfile) so me.role is resolved.
+                HamburgerMenu.init({
+                    currentUser: currentUser,
+                    signOutFn: signOut,
+                    page: 'pt_view',
+                    isAdmin: me.role !== 'patient',
+                    menuItems: [
+                        { action: 'show-messages', icon: '💬', label: 'Messages',
+                          badge: 'messagesBadge', badge2: 'sentBadge' },
+                    ],
+                    onAction: (action) => {
+                        if (action === 'show-messages') { HamburgerMenu.close(); showMessagesModal(); return true; }
+                        return false;
+                    }
+                });
+
                 updatePatientBanner();
             } catch (error) {
                 console.warn('Could not resolve current user profile:', error);
@@ -2012,20 +1985,8 @@
                     case 'refresh-data':
                         loadData();
                         break;
-                    case 'toggle-hamburger':
-                        toggleHamburger();
-                        break;
-                    case 'sign-out':
-                        signOut();
-                        break;
-                    case 'reload':
-                        toggleHamburger();
-                        window.location.reload();
-                        break;
-                    case 'show-messages':
-                        toggleHamburger();
-                        showMessagesModal();
-                        break;
+                    // toggle-hamburger, sign-out, reload, show-messages are handled by
+                    // HamburgerMenu (hamburger-menu.js) via element-level pointerup + stopPropagation.
                     case 'close-messages-modal':
                         closeMessagesModal();
                         break;
