@@ -2,7 +2,7 @@
 
 **Branch:** `nextjs` (merge to `main` after each page is verified — see Branch Strategy below)
 **Dev note:** DN-033
-**Status:** Phase 1 complete — `pages/rehab.js` built and verified; ready to merge to main
+**Status:** Phase 1 in progress — `pages/rehab.js` live on preview (`/rehab` shows auth form); full verification checklist pending
 
 ---
 
