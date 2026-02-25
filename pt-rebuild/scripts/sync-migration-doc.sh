@@ -1,11 +1,16 @@
 #!/bin/bash
 # sync-migration-doc.sh
 #
-# Copies pt-rebuild/docs/NEXTJS_MIGRATION.md from the current branch (nextjs)
-# to main so both branches always have the same version of the doc.
+# Syncs these files from the current branch (nextjs) to main so both
+# branches always have identical docs/dev tracking:
+#
+#   pt-rebuild/docs/NEXTJS_MIGRATION.md
+#   pt-rebuild/docs/dev_notes.json
+#   pt-rebuild/docs/DEV_NOTES.md
 #
 # This is a CLAUDE task — Claude runs this automatically after every
-# NEXTJS_MIGRATION.md update on the nextjs branch. Do not run manually.
+# commit that touches any of the above files on the nextjs branch.
+# Do not run manually.
 #
 # Prerequisites: clean working tree (no uncommitted changes).
 
@@ -17,7 +22,12 @@ cd "$SCRIPT_DIR/../.."   # pt-rebuild/scripts/ -> pt-rebuild/ -> repo root
 
 REPO_ROOT="$(pwd)"
 CURRENT="$(git rev-parse --abbrev-ref HEAD)"
-FILE="pt-rebuild/docs/NEXTJS_MIGRATION.md"
+
+FILES=(
+    "pt-rebuild/docs/NEXTJS_MIGRATION.md"
+    "pt-rebuild/docs/dev_notes.json"
+    "pt-rebuild/docs/DEV_NOTES.md"
+)
 
 # Guard: must be on a non-main branch.
 if [ "$CURRENT" = "main" ]; then
@@ -31,28 +41,40 @@ if ! git diff --quiet HEAD; then
     exit 1
 fi
 
-if [ ! -f "$FILE" ]; then
-    echo "ERROR: $FILE not found in $REPO_ROOT"
-    exit 1
-fi
-
-echo "Syncing $FILE from $CURRENT → main..."
-
-# Capture file content before switching branches.
-TMPFILE="$(mktemp)"
-cp "$FILE" "$TMPFILE"
+# Capture all files before switching branches.
+echo "Capturing files from $CURRENT..."
+declare -A TMPFILES
+for FILE in "${FILES[@]}"; do
+    if [ -f "$FILE" ]; then
+        TMP="$(mktemp)"
+        cp "$FILE" "$TMP"
+        TMPFILES["$FILE"]="$TMP"
+    else
+        echo "WARNING: $FILE not found — skipping."
+    fi
+done
 
 git checkout main
 
-cp "$TMPFILE" "$FILE"
-rm "$TMPFILE"
+# Apply captured files and collect changed ones.
+CHANGED=()
+for FILE in "${FILES[@]}"; do
+    TMP="${TMPFILES[$FILE]:-}"
+    if [ -n "$TMP" ]; then
+        cp "$TMP" "$FILE"
+        rm "$TMP"
+        if ! git diff --quiet "$FILE"; then
+            CHANGED+=("$FILE")
+        fi
+    fi
+done
 
-if git diff --quiet "$FILE"; then
-    echo "No changes — $FILE is already up to date on main."
+if [ ${#CHANGED[@]} -eq 0 ]; then
+    echo "No changes — all files already up to date on main."
 else
-    git add "$FILE"
-    git commit -m "docs: sync NEXTJS_MIGRATION.md from $CURRENT branch"
-    echo "Committed updated $FILE to main."
+    git add "${CHANGED[@]}"
+    git commit -m "docs: sync docs from $CURRENT branch"
+    echo "Synced to main: ${CHANGED[*]}"
 fi
 
 git checkout "$CURRENT"
