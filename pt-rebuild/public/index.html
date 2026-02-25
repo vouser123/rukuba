@@ -1109,6 +1109,82 @@
                 background: #4a4f5c;
             }
         }
+
+        /* ─── Pocket Mode ─── */
+        /* Full-screen eyes-free overlay for counter/timer exercises. */
+        .pocket-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .pocket-overlay.active {
+            display: flex;
+        }
+        .pocket-close {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            font-size: 1.3rem;
+            line-height: 44px;
+            text-align: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+        .pocket-pad {
+            width: min(88vw, 380px);
+            background: #fff;
+            border-radius: 24px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .pocket-label {
+            font-size: clamp(56px, 18vw, 80px);
+            font-weight: 700;
+            color: #1a1a2e;
+            line-height: 1.1;
+            margin: 0.25rem 0;
+        }
+        .pocket-meta {
+            font-size: 1rem;
+            color: #555;
+            margin-top: 0.5rem;
+        }
+        .pocket-hint {
+            font-size: 0.82rem;
+            color: #999;
+            margin-top: 0.75rem;
+        }
+        .pocket-mode-btn {
+            width: 100%;
+            margin-top: 0.5rem;
+            padding: 0.7rem 1rem;
+            background: #3a3f4c;
+            color: #ccc;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -1330,6 +1406,7 @@
         </div>
 
         <button class="finish-session-btn" data-action="finish-session" style="margin-top: 1rem;">Done</button>
+        <button class="pocket-mode-btn" data-action="toggle-pocket-mode">Pocket Mode</button>
         <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;" data-action="back-to-picker">← Back to Exercises</button>
     </div>
 
@@ -2587,6 +2664,10 @@
             const newValue = current + 1;
             display.textContent = newValue;
 
+            // Soft tick on every tap — provides eyes-free rep feedback on iOS where
+            // navigator.vibrate (haptic) is not supported.
+            playBeep(440, 80, 0.25);
+
             // Voice announcements at milestones (matching old app)
             if (currentExercise && currentExercise.current_reps) {
                 const repsLeft = currentExercise.current_reps - newValue;
@@ -2715,17 +2796,25 @@
                         playCompletionSound();
                         pauseTimer(false); // Auto-pause at target, but allow user to continue
 
-                        // Announce reps remaining for hold exercises
-                        const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds');
+                        // Announce reps remaining for hold exercises.
+                        // Must mirror initTimerMode() detection — check both modifier and dosage_type
+                        // so exercises identified via dosage_type='hold' get correct rep tracking.
+                        const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds')
+                            || currentExercise.dosage_type === 'hold';
                         if (hasHold) {
                             const repsLeft = timerState.totalReps - timerState.currentRep;
+                            // Mirror counter milestones (5/3/1/0) — announce only at key
+                            // thresholds so hold and counter mode speech behavior is consistent.
                             if (repsLeft <= 0) {
                                 speakText('Set complete');
                             } else if (repsLeft === 1) {
                                 speakText('Last rep');
-                            } else {
-                                speakText(`${repsLeft} reps left`);
+                            } else if (repsLeft === 3) {
+                                speakText('3 reps left');
+                            } else if (repsLeft === 5) {
+                                speakText('5 reps left');
                             }
+                            // repsLeft at 2, 4, 6, 7, 8+ → silent (same as counter mode)
 
                             timerState.currentRep = Math.min(timerState.currentRep + 1, timerState.totalReps);
                             timerState.elapsedMs = 0;
@@ -2796,7 +2885,7 @@
          * Play a simple beep sound using Web Audio API.
          * iOS Safari requires user interaction before playing audio.
          */
-        function playBeep(frequency = 800, duration = 200) {
+        function playBeep(frequency = 800, duration = 200, gain = 0.5) {
             try {
                 ensureAudioReady();
                 if (!audioContext) {
@@ -2812,7 +2901,7 @@
                 oscillator.type = 'square'; // More noticeable than sine
 
                 const durationInSeconds = duration / 1000;
-                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Louder
+                gainNode.gain.setValueAtTime(gain, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + durationInSeconds);
 
                 oscillator.start(audioContext.currentTime);
@@ -2843,6 +2932,9 @@
         function speakText(text) {
             try {
                 if ('speechSynthesis' in window) {
+                    // Cancel any queued utterances before speaking — prevents iOS speech
+                    // synthesis from freezing when multiple announcements stack rapidly.
+                    window.speechSynthesis.cancel();
                     const utterance = new SpeechSynthesisUtterance(text);
                     utterance.rate = 1.0;
                     utterance.pitch = 1.0;
@@ -2853,6 +2945,185 @@
                 console.warn('Speech not available:', error);
             }
         }
+
+        // ─── Pocket Mode ────────────────────────────────────────────────────────
+
+        /** Interval ID for pocket overlay periodic refresh while active. */
+        let pocketRefreshInterval = null;
+        /** Timer ID for long-press detection on the pocket pad. */
+        let pocketLongPressTimer = null;
+        /** True while a long-press action is in flight (suppresses the tap-end as a regular tap). */
+        let pocketLongPressActive = false;
+
+        /**
+         * Open or close the pocket mode overlay.
+         * Pocket mode is only meaningful while an exercise session is active.
+         * @param {boolean} [forceState] - true to open, false to close; if omitted, toggles current state.
+         */
+        function togglePocketMode(forceState) {
+            const overlay = document.getElementById('pocketOverlay');
+            const isActive = overlay.classList.contains('active');
+            const shouldActivate = forceState !== undefined ? forceState : !isActive;
+
+            if (shouldActivate) {
+                if (!currentExercise) return; // no exercise in progress
+                overlay.classList.add('active');
+                updatePocketOverlay();
+                setupPocketLongPress();
+                // Refresh overlay every 200ms so the countdown stays in sync during timer mode
+                pocketRefreshInterval = setInterval(updatePocketOverlay, 200);
+            } else {
+                overlay.classList.remove('active');
+                cleanupPocketLongPress();
+                clearInterval(pocketRefreshInterval);
+                pocketRefreshInterval = null;
+            }
+        }
+
+        /**
+         * Return true when the exercise is currently in timer mode (hold or duration).
+         * Detects mode by checking whether #timerMode is visible.
+         * @returns {boolean}
+         */
+        function isPocketTimerMode() {
+            const timerMode = document.getElementById('timerMode');
+            return timerMode && !timerMode.classList.contains('hidden');
+        }
+
+        /**
+         * Refresh the pocket overlay label and meta text to reflect the current exercise state.
+         * - Counter mode: shows rep count + sets/reps remaining.
+         * - Timer mode: mirrors the #timerDisplay countdown + rep/run-state info.
+         */
+        function updatePocketOverlay() {
+            const labelEl = document.getElementById('pocketLabel');
+            const metaEl = document.getElementById('pocketMeta');
+            const hintEl = document.getElementById('pocketHint');
+            if (!labelEl || !metaEl || !hintEl || !currentExercise || !currentSession) return;
+
+            const setsCompleted = currentSession.sets.length;
+            const targetSets = currentExercise.current_sets || 0;
+            const setsLeft = Math.max(0, targetSets - setsCompleted);
+
+            if (isPocketTimerMode()) {
+                // Timer mode: mirror the existing #timerDisplay (updated by setInterval in startTimer)
+                const timerDisplayEl = document.getElementById('timerDisplay');
+                labelEl.textContent = timerDisplayEl ? timerDisplayEl.textContent : '00:00';
+                const repInfo = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+                const runState = timerState.isRunning ? 'Running' : 'Paused';
+                metaEl.textContent = `${repInfo} · Sets left: ${setsLeft} · ${runState}`;
+                hintEl.textContent = timerState.isRunning
+                    ? 'Tap to pause · Hold for partial'
+                    : 'Tap to start';
+            } else {
+                // Counter mode: show current tap count and reps remaining
+                const counterDisplayEl = document.getElementById('counterDisplay');
+                const currentReps = counterDisplayEl ? (parseInt(counterDisplayEl.textContent) || 0) : 0;
+                const targetReps = currentExercise.current_reps || 0;
+                const repsLeft = Math.max(0, targetReps - currentReps);
+                labelEl.textContent = String(currentReps);
+                metaEl.textContent = `Sets left: ${setsLeft} · Reps left: ${repsLeft}`;
+                hintEl.textContent = 'Tap to count';
+            }
+        }
+
+        /**
+         * Handle a tap on the pocket pad.
+         * Counter mode: calls increaseCounter().
+         * Timer mode: toggles the timer (start/pause).
+         * Ignored when a long-press action just fired (pocketLongPressActive).
+         */
+        function handlePocketTap() {
+            if (pocketLongPressActive) {
+                // Long-press already handled this touch; discard as regular tap
+                pocketLongPressActive = false;
+                return;
+            }
+            ensureAudioReady();
+            if (isPocketTimerMode()) {
+                toggleTimer();
+            } else {
+                increaseCounter();
+            }
+            updatePocketOverlay();
+        }
+
+        /**
+         * Attach touchstart/touchend/touchcancel listeners to the pocket pad for long-press detection.
+         * Long-press (700ms) only applies to timer exercises — it logs a partial rep and advances.
+         */
+        function setupPocketLongPress() {
+            const pad = document.querySelector('.pocket-pad');
+            if (!pad) return;
+            pad.addEventListener('touchstart', handlePocketPressStart, { passive: true });
+            pad.addEventListener('touchend', handlePocketPressEnd, { passive: true });
+            pad.addEventListener('touchcancel', handlePocketPressCancel, { passive: true });
+        }
+
+        /** Remove long-press listeners and clear any pending timer. */
+        function cleanupPocketLongPress() {
+            const pad = document.querySelector('.pocket-pad');
+            if (pad) {
+                pad.removeEventListener('touchstart', handlePocketPressStart);
+                pad.removeEventListener('touchend', handlePocketPressEnd);
+                pad.removeEventListener('touchcancel', handlePocketPressCancel);
+            }
+            clearTimeout(pocketLongPressTimer);
+            pocketLongPressTimer = null;
+            pocketLongPressActive = false;
+        }
+
+        /** Start the 700ms long-press countdown. Only arms for timer-mode exercises. */
+        function handlePocketPressStart() {
+            if (!isPocketTimerMode()) return;
+            pocketLongPressActive = false;
+            pocketLongPressTimer = setTimeout(() => {
+                pocketLongPressActive = true;
+                pocketLogPartialRep();
+                updatePocketOverlay();
+                // Distinct beep to confirm partial-rep log
+                playBeep(500, 150, 0.4);
+            }, 700);
+        }
+
+        /** Finger lifted before 700ms — cancel the long-press, regular tap will fire via pointerup. */
+        function handlePocketPressEnd() {
+            clearTimeout(pocketLongPressTimer);
+            pocketLongPressTimer = null;
+        }
+
+        /** Touch cancelled (e.g. scroll) — cancel the long-press without firing tap. */
+        function handlePocketPressCancel() {
+            clearTimeout(pocketLongPressTimer);
+            pocketLongPressTimer = null;
+            pocketLongPressActive = false;
+        }
+
+        /**
+         * Log a partial hold rep: pause the timer and advance to the next rep,
+         * accepting whatever elapsed time was completed.
+         * Only applies to hold exercises (dosage_type='hold' or hold_seconds modifier).
+         */
+        function pocketLogPartialRep() {
+            if (!isPocketTimerMode()) return;
+            // Pause if running so the interval doesn't keep ticking
+            if (timerState.isRunning) {
+                pauseTimer(false);
+            }
+            const hasHold = currentExercise.pattern_modifiers?.includes('hold_seconds')
+                || currentExercise.dosage_type === 'hold';
+            if (hasHold && timerState.currentRep < timerState.totalReps) {
+                timerState.currentRep++;
+                timerState.elapsedMs = 0;
+                timerState.lastAnnouncedSecond = null;
+                document.getElementById('timerRepInfo').textContent
+                    = `Rep ${timerState.currentRep} of ${timerState.totalReps}`;
+                document.getElementById('timerDisplay').textContent
+                    = formatTime(timerState.targetSeconds * 1000);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
 
         /**
          * Toggle hamburger menu visibility
@@ -4921,6 +5192,12 @@ ${queueData}
                     case 'delete-edit-session-set':
                         deleteEditSessionSet(parseInt(target.dataset.setIndex));
                         break;
+                    case 'toggle-pocket-mode':
+                        togglePocketMode();
+                        break;
+                    case 'pocket-tap':
+                        handlePocketTap();
+                        break;
                 }
             });
 
@@ -4947,6 +5224,18 @@ ${queueData}
         // Start the app
         init();
     </script>
+
+    <!-- Pocket Mode overlay: fullscreen eyes-free exercise tracking -->
+    <div id="pocketOverlay" class="pocket-overlay">
+        <!-- Close button: top-left, outside tap zone, 44px minimum touch target -->
+        <button class="pocket-close" data-action="toggle-pocket-mode" aria-label="Exit pocket mode">✕</button>
+        <!-- Main tap zone: counter taps or timer start/pause -->
+        <div class="pocket-pad" data-action="pocket-tap">
+            <div class="pocket-label" id="pocketLabel">0</div>
+            <div class="pocket-meta" id="pocketMeta"></div>
+            <div class="pocket-hint" id="pocketHint">Tap to count</div>
+        </div>
+    </div>
 
     <!-- Service Worker Registration -->
     <script>

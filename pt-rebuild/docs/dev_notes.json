@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-02-25"
+    "last_updated": "2026-02-24"
   },
   "enums": {
     "priority_levels": [
@@ -438,27 +438,6 @@
       "constraints_caveats": "`supabase db dump` requires Supabase CLI and project credentials. Option B is safest but means agents must read all migration files to understand current schema. Option A keeps a single readable file but relies on discipline to run it."
     },
     {
-      "id": "DN-031",
-      "status": "open",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": [
-        "codex"
-      ],
-      "tags": [
-        "ui",
-        "docs",
-        "notifications"
-      ],
-      "file": "pt-rebuild/public/index.html",
-      "issue": "Phase 2 audio consistency pass: normalize spoken/beep behavior across counter, hold, and duration flows using SOUND_TRIGGER_AUDIT as baseline.",
-      "resolved": null,
-      "context": "Phase 1 inventory is complete in `pt-rebuild/docs/SOUND_TRIGGER_AUDIT.md` (direct callsites + UI trigger chains). Next phase should convert inconsistencies into explicit product rules and implementation tasks.",
-      "options": "(A) Produce a machine-readable trigger spec (JSON) and implement to that contract. (B) Keep runtime behavior but add feature flags/threshold constants and centralize trigger policy in one module. (C) Start with UX policy doc only, then apply code changes in a follow-up.",
-      "constraints_caveats": "Must preserve existing safety/therapy workflows while reducing surprise; avoid regressions in short timers, side-switch announcements, and historical comparison cues."
-    },
-    {
       "id": "DN-011",
       "status": "open",
       "priority": "P3",
@@ -483,6 +462,30 @@
     }
   ],
   "closed_items": [
+    {
+      "id": "DN-031",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "ui",
+        "ios",
+        "pwa"
+      ],
+      "file": "pt-rebuild/public/index.html",
+      "issue": "Phase 2 audio consistency pass: normalize spoken/beep behavior across counter, hold, and duration flows; add pocket mode for eyes-free exercise tracking.",
+      "resolved": "2026-02-24",
+      "problem": "Multiple audio/speech inconsistencies: (1) iOS speech synthesis froze silently when utterances stacked; (2) no per-tap audio feedback when counting reps, making eyes-free tracking impossible on iOS (no haptic); (3) hold exercises with dosage_type='hold' without hold_seconds modifier fell to duration branch at timer-zero, giving no rep tracking; (4) hold timer announced every rep completion, inconsistent with counter's 5/3/1/0 milestones; (5) pocket mode for eyes-free exercise tracking was entirely absent from the new app.",
+      "root_cause": "speakText() never cancelled prior utterances before calling speak(). increaseCounter() had no audio feedback. Timer-zero hold detection checked only pattern_modifiers, not dosage_type, diverging from initTimerMode() detection. Hold speech loop had no milestone filtering. Pocket mode was not ported from the legacy /pt app when pt-rebuild was created.",
+      "change_made": "Fix 1: added window.speechSynthesis.cancel() in speakText() before each speak() call. Fix 2: added optional gain param to playBeep() (default 0.5), added soft per-tap beep (440Hz, 80ms, gain=0.25) in increaseCounter(). Fix 3: timer-zero hold detection now checks pattern_modifiers?.includes('hold_seconds') || dosage_type === 'hold', matching initTimerMode(). Fix 4: hold speech normalized to 5/3/1/0 milestones matching counter mode. Fix 5: ported pocket mode — fullscreen overlay with large tap zone, counter and timer support, long-press partial rep log for hold exercises, 200ms refresh interval for live timer display, toggle-pocket-mode and pocket-tap dispatcher cases.",
+      "files_touched": "pt-rebuild/public/index.html (speakText, playBeep, increaseCounter, timer-zero hold branch, hold speech milestones, pocket mode CSS/HTML/JS/dispatcher)",
+      "validation": "Deploy to Vercel and verify: counter tap tick, milestone speech at 5/3/1/0, hold exercise rep tracking, hold speech milestones, pocket mode open/close/counter-tap/timer-start-pause/long-press. Confirm no speech freeze on rapid taps.",
+      "follow_ups": "Update SOUND_TRIGGER_AUDIT.md to reflect the changes made in this pass if a re-audit is needed."
+    },
     {
       "id": "DN-001",
       "status": "done",
