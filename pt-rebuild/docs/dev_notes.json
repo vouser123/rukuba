@@ -173,6 +173,20 @@
   },
   "open_items": [
     {
+      "id": "DN-033",
+      "status": "in_progress",
+      "priority": "P2",
+      "risk": "medium",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/package.json, pt-rebuild/next.config.mjs, pt-rebuild/pages/rehab.js, pt-rebuild/pages/_app.js, pt-rebuild/lib/rehab-coverage.js",
+      "issue": "Strangler Fig migration to Next.js (Pages Router). Existing static HTML pages remain untouched; new pages built in Next.js one at a time. First deliverable: scaffolding + rehab_coverage migrated to pages/rehab.js as a proper React page.",
+      "resolved": null,
+      "context": "pt-rebuild/ is the Vercel root. Adding next@14 triggers Vercel auto-detection. next.config.mjs used to avoid type:module/CommonJS conflict. api/ functions coexist with Next.js on Vercel. SUPABASE_URL and SUPABASE_ANON_KEY already exist in Vercel for All Environments; next.config.mjs forwards them as NEXT_PUBLIC_* at build time.",
+      "constraints_caveats": "Never create pages/index.js until public/index.html is retired — pages/ takes precedence over public/ for matching routes. Do not migrate api/ routes in this phase. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — merge to main one page at a time."
+    },
+    {
       "id": "DN-032",
       "status": "open",
       "priority": "P3",
