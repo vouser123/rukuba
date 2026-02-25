@@ -1,0 +1,56 @@
+name: Sync docs to main
+
+# Automatically copies the three shared docs files from the nextjs branch
+# to main whenever they change. Runs on every push to nextjs that touches
+# any of the target files.
+
+on:
+  push:
+    branches:
+      - nextjs
+    paths:
+      - 'pt-rebuild/docs/NEXTJS_MIGRATION.md'
+      - 'pt-rebuild/docs/dev_notes.json'
+      - 'pt-rebuild/docs/DEV_NOTES.md'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync docs from nextjs to main
+        run: |
+          # Capture files from the nextjs checkout
+          cp pt-rebuild/docs/NEXTJS_MIGRATION.md /tmp/NEXTJS_MIGRATION.md
+          cp pt-rebuild/docs/dev_notes.json /tmp/dev_notes.json
+          cp pt-rebuild/docs/DEV_NOTES.md /tmp/DEV_NOTES.md
+
+          git checkout main
+
+          cp /tmp/NEXTJS_MIGRATION.md pt-rebuild/docs/NEXTJS_MIGRATION.md
+          cp /tmp/dev_notes.json pt-rebuild/docs/dev_notes.json
+          cp /tmp/DEV_NOTES.md pt-rebuild/docs/DEV_NOTES.md
+
+          if git diff --quiet; then
+            echo "No changes — docs already up to date on main."
+          else
+            git add \
+              pt-rebuild/docs/NEXTJS_MIGRATION.md \
+              pt-rebuild/docs/dev_notes.json \
+              pt-rebuild/docs/DEV_NOTES.md
+            git commit -m "docs: auto-sync docs from nextjs branch [skip ci]"
+            git push origin main
+            echo "Synced docs to main."
+          fi
