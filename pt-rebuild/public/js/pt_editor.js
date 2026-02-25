@@ -324,6 +324,9 @@ function handleAction(el) {
         case 'editVocab':
             openVocabEditModal(el.dataset.code, el.dataset.definition);
             break;
+        case 'toggle-hamburger':
+            // Handled by HamburgerMenu.bindHandlers() — no-op here
+            break;
         default:
             console.warn('Unknown action:', action);
     }
