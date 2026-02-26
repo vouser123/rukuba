@@ -11,6 +11,7 @@
  *   buildCoverageData() — pure calculation from lib/rehab-coverage.js
  *
  * No window.*, no Script tags, no useRef plumbing to bridge React and globals.
+ * CSS: page styles in rehab.module.css; component styles are self-contained.
  */
 import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
@@ -19,6 +20,7 @@ import { supabase } from '../lib/supabase';
 import NavMenu from '../components/NavMenu';
 import AuthForm from '../components/AuthForm';
 import { buildCoverageData, colorScoreToRGB, COVERAGE_CONSTANTS } from '../lib/rehab-coverage';
+import styles from './rehab.module.css';
 
 export default function RehabCoverage() {
     const { session, loading: authLoading, signIn } = useAuth();
@@ -143,19 +145,19 @@ export default function RehabCoverage() {
         else if (avgOpacity >= 30) { trendText = `↘️ Fading (${avgOpacity}%) - activity dropping`; trendColor = 'var(--warning-color)'; }
 
         return (
-            <div className="summary-card">
+            <div className={styles['summary-card']}>
                 <h3>Coverage Overview</h3>
-                <div className="summary-row">
-                    <span className="summary-label">Last Activity:</span>
-                    <span className="summary-value" style={{ color: lastActivityColor }}>{lastActivityText}</span>
+                <div className={styles['summary-row']}>
+                    <span className={styles['summary-label']}>Last Activity:</span>
+                    <span className={styles['summary-value']} style={{ color: lastActivityColor }}>{lastActivityText}</span>
                 </div>
-                <div className="summary-row">
-                    <span className="summary-label">7-Day Coverage:</span>
-                    <span className="summary-value" style={{ color: weekColor }}>{weekText}</span>
+                <div className={styles['summary-row']}>
+                    <span className={styles['summary-label']}>7-Day Coverage:</span>
+                    <span className={styles['summary-value']} style={{ color: weekColor }}>{weekText}</span>
                 </div>
-                <div className="summary-row">
-                    <span className="summary-label">21-Day Trend:</span>
-                    <span className="summary-value" style={{ color: trendColor }}>{trendText}</span>
+                <div className={styles['summary-row']}>
+                    <span className={styles['summary-label']}>21-Day Trend:</span>
+                    <span className={styles['summary-value']} style={{ color: trendColor }}>{trendText}</span>
                 </div>
             </div>
         );
@@ -167,7 +169,7 @@ export default function RehabCoverage() {
 
     function renderMatrix(coverageData) {
         if (!coverageData || Object.keys(coverageData).length === 0) {
-            return <div className="empty-state">No coverage data available.</div>;
+            return <div className={styles['empty-state']}>No coverage data available.</div>;
         }
 
         // Sort regions: worst color score first (most neglected at the top)
@@ -185,29 +187,29 @@ export default function RehabCoverage() {
             const regionOpacity = Math.max(20, regionBar.opacity);
 
             return (
-                <div key={region} className="region-group">
+                <div key={region} className={styles['region-group']}>
                     <div
-                        className="region-header"
+                        className={styles['region-header']}
                         onPointerUp={() => toggleRegion(region)}
                         role="button"
                         aria-expanded={!isCollapsed}
                         tabIndex={0}
                         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRegion(region); } }}
                     >
-                        <span className="region-title">{region}</span>
-                        <div className="region-bar-container">
-                            <div className="coverage-bar">
-                                <div className="coverage-bar-fill" style={{
+                        <span className={styles['region-title']}>{region}</span>
+                        <div className={styles['region-bar-container']}>
+                            <div className={styles['coverage-bar']}>
+                                <div className={styles['coverage-bar-fill']} style={{
                                     width: `${regionBar.percent}%`,
                                     background: regionColor,
                                     opacity: regionOpacity / 100,
                                 }} />
                             </div>
-                            <span className="region-stats">{regionBar.percent}%</span>
+                            <span className={styles['region-stats']}>{regionBar.percent}%</span>
                         </div>
-                        <span className={`expand-icon ${isCollapsed ? 'collapsed' : ''}`}>▼</span>
+                        <span className={`${styles['expand-icon']} ${isCollapsed ? styles.collapsed : ''}`}>▼</span>
                     </div>
-                    <div className={`region-content ${isCollapsed ? 'collapsed' : ''}`}>
+                    <div className={`${styles['region-content']} ${isCollapsed ? styles.collapsed : ''}`}>
                         {capacities.map(capacity => renderCapacity(region, capacity, coverageData[region][capacity]))}
                     </div>
                 </div>
@@ -246,32 +248,32 @@ export default function RehabCoverage() {
         }
 
         return (
-            <div key={capKey} className={`capacity-group ${isExpanded ? 'expanded' : ''}`}>
+            <div key={capKey} className={`${styles['capacity-group']} ${isExpanded ? styles.expanded : ''}`}>
                 <div
-                    className="capacity-header"
+                    className={styles['capacity-header']}
                     onPointerUp={() => toggleCapacity(capKey)}
                     role="button"
                     aria-expanded={isExpanded}
                     tabIndex={0}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCapacity(capKey); } }}
                 >
-                    <span className="capacity-title">{capacity}</span>
-                    <div className="capacity-bar-container">
-                        <div className="coverage-bar">
-                            <div className="coverage-bar-fill" style={{
+                    <span className={styles['capacity-title']}>{capacity}</span>
+                    <div className={styles['capacity-bar-container']}>
+                        <div className={styles['coverage-bar']}>
+                            <div className={styles['coverage-bar-fill']} style={{
                                 width: `${percent}%`,
                                 background: color,
                                 opacity: opacity / 100,
                             }} />
                         </div>
-                        <span className="capacity-stats">{percent}%</span>
+                        <span className={styles['capacity-stats']}>{percent}%</span>
                     </div>
-                    <span className="capacity-chevron">›</span>
+                    <span className={styles['capacity-chevron']}>›</span>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', padding: '2px 0 4px 0', marginLeft: '2px' }}>
                     This week: {percent}% • Last done: {recencyText} • 3-week: {trendText}
                 </div>
-                <div className="focus-list">
+                <div className={styles['focus-list']}>
                     {Array.from(focusGroups.entries()).map(([focus, focusExercises]) => {
                         if (focusExercises.length === 0) return null;
                         return renderFocusGroup(focus, focusExercises);
@@ -289,14 +291,14 @@ export default function RehabCoverage() {
         else if (doneCount < totalCount) statusClass = 'needs-attention';
 
         return (
-            <div key={focus} className={`focus-item ${statusClass}`}>
-                <div className="focus-header">
-                    <span className="focus-name">
+            <div key={focus} className={[styles['focus-item'], statusClass ? styles[statusClass] : ''].filter(Boolean).join(' ')}>
+                <div className={styles['focus-header']}>
+                    <span className={styles['focus-name']}>
                         {focus === 'general' ? 'General' : focus.replace(/_/g, ' ')}
                     </span>
-                    <span className="focus-stats">{doneCount}/{totalCount}</span>
+                    <span className={styles['focus-stats']}>{doneCount}/{totalCount}</span>
                 </div>
-                <div className="exercise-list">
+                <div className={styles['exercise-list']}>
                     {exercises.map(ex => renderExerciseCard(ex))}
                 </div>
             </div>
@@ -315,11 +317,11 @@ export default function RehabCoverage() {
                              contribution === 'medium' ? 'var(--warning-color)' : 'var(--accent-color)';
 
         return (
-            <div key={ex.id} className={`exercise-card contrib-${contribution}`}>
-                <span className="exercise-card-icon" style={{ color: statusColor }}>{statusIcon}</span>
-                <div className="exercise-card-content">
-                    <div className="exercise-card-title">{ex.name}</div>
-                    <div className="exercise-card-meta">
+            <div key={ex.id} className={`${styles['exercise-card']} ${styles[`contrib-${contribution}`]}`}>
+                <span className={styles['exercise-card-icon']} style={{ color: statusColor }}>{statusIcon}</span>
+                <div className={styles['exercise-card-content']}>
+                    <div className={styles['exercise-card-title']}>{ex.name}</div>
+                    <div className={styles['exercise-card-meta']}>
                         <span style={{ color: contribColor, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                             {contribution}
                         </span>
@@ -347,10 +349,6 @@ export default function RehabCoverage() {
                 <meta name="mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-title" content="PT Tracker" />
-                {/* main.css for shared styles; rehab-coverage.css for page + hamburger styles.
-                    TODO: Move hamburger CSS to main.css when more pages are migrated. */}
-                <link rel="stylesheet" href="/css/main.css" />
-                <link rel="stylesheet" href="/css/rehab-coverage.css" />
             </Head>
 
             {/* Auth form — shown when not signed in (and auth check has resolved) */}
@@ -364,11 +362,11 @@ export default function RehabCoverage() {
             {/* Main app — shown when signed in */}
             {session && (
                 <>
-                    <div className="header">
+                    <div className={styles.header}>
                         <h1>Rehab Coverage</h1>
-                        <div className="header-actions">
+                        <div className={styles['header-actions']}>
                             <button
-                                className="btn btn-secondary"
+                                className={`${styles.btn} ${styles['btn-secondary']}`}
                                 onPointerUp={() => loadData(session.access_token)}
                                 aria-label="Refresh data"
                             >
@@ -392,59 +390,59 @@ export default function RehabCoverage() {
                     {coverageResult && renderSummary(coverageResult.summary)}
 
                     {/* Legend — collapsed by default */}
-                    <div className={`legend-card ${legendExpanded ? 'expanded' : ''}`}>
+                    <div className={`${styles['legend-card']} ${legendExpanded ? styles.expanded : ''}`}>
                         <div
-                            className="legend-header"
+                            className={styles['legend-header']}
                             onPointerUp={() => setLegendExpanded(p => !p)}
                             role="button"
                             tabIndex={0}
                             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLegendExpanded(p => !p); } }}
                         >
                             <h4>📊 How to Read Coverage Bars</h4>
-                            <span className="legend-toggle">›</span>
+                            <span className={styles['legend-toggle']}>›</span>
                         </div>
-                        <div className="legend-content">
-                            <div className="legend-section">
-                                <div className="legend-section-title">Bar Width = 7-Day Density</div>
-                                <p className="legend-description">How consistently exercises are being done in the past week.</p>
-                                <div className="legend-row"><div className="legend-sample" style={{ width: '40px', background: '#888' }} /><span>100% = All exercises done daily</span></div>
-                                <div className="legend-row"><div className="legend-sample" style={{ width: '20px', background: '#888' }} /><span>50% = About half the expected volume</span></div>
-                                <div className="legend-row"><div className="legend-sample" style={{ width: '4px', background: '#888' }} /><span>0% = No exercises done this week</span></div>
+                        <div className={styles['legend-content']}>
+                            <div className={styles['legend-section']}>
+                                <div className={styles['legend-section-title']}>Bar Width = 7-Day Density</div>
+                                <p className={styles['legend-description']}>How consistently exercises are being done in the past week.</p>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ width: '40px', background: '#888' }} /><span>100% = All exercises done daily</span></div>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ width: '20px', background: '#888' }} /><span>50% = About half the expected volume</span></div>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ width: '4px', background: '#888' }} /><span>0% = No exercises done this week</span></div>
                             </div>
-                            <div className="legend-section">
-                                <div className="legend-section-title">Bar Color = Recency</div>
-                                <p className="legend-description">How recently the most neglected exercise was done.</p>
-                                <div className="legend-row"><div className="legend-sample" style={{ background: 'rgb(52, 199, 89)' }} /><span>Green = Done within 3 days</span></div>
-                                <div className="legend-row"><div className="legend-sample" style={{ background: 'rgb(255, 204, 0)' }} /><span>Yellow = 4-6 days ago</span></div>
-                                <div className="legend-row"><div className="legend-sample" style={{ background: 'rgb(255, 149, 0)' }} /><span>Orange = 7-10 days ago</span></div>
-                                <div className="legend-row"><div className="legend-sample" style={{ background: 'rgb(255, 59, 48)' }} /><span>Red = 11+ days or never done</span></div>
+                            <div className={styles['legend-section']}>
+                                <div className={styles['legend-section-title']}>Bar Color = Recency</div>
+                                <p className={styles['legend-description']}>How recently the most neglected exercise was done.</p>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ background: 'rgb(52, 199, 89)' }} /><span>Green = Done within 3 days</span></div>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ background: 'rgb(255, 204, 0)' }} /><span>Yellow = 4-6 days ago</span></div>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ background: 'rgb(255, 149, 0)' }} /><span>Orange = 7-10 days ago</span></div>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ background: 'rgb(255, 59, 48)' }} /><span>Red = 11+ days or never done</span></div>
                             </div>
-                            <div className="legend-section">
-                                <div className="legend-section-title">Bar Opacity = 3-Week Momentum</div>
-                                <p className="legend-description">Shows if you&apos;re keeping up over time. <strong>Solid = exercising regularly.</strong> <strong>Faded = falling behind.</strong></p>
-                                <div className="legend-row">
-                                    <div className="legend-opacity-samples">
-                                        <div className="legend-opacity-sample" style={{ background: '#007AFF', opacity: 1 }} />
-                                        <div className="legend-opacity-sample" style={{ background: '#007AFF', opacity: 0.7 }} />
-                                        <div className="legend-opacity-sample" style={{ background: '#007AFF', opacity: 0.4 }} />
-                                        <div className="legend-opacity-sample" style={{ background: '#007AFF', opacity: 0.15 }} />
+                            <div className={styles['legend-section']}>
+                                <div className={styles['legend-section-title']}>Bar Opacity = 3-Week Momentum</div>
+                                <p className={styles['legend-description']}>Shows if you&apos;re keeping up over time. <strong>Solid = exercising regularly.</strong> <strong>Faded = falling behind.</strong></p>
+                                <div className={styles['legend-row']}>
+                                    <div className={styles['legend-opacity-samples']}>
+                                        <div className={styles['legend-opacity-sample']} style={{ background: '#007AFF', opacity: 1 }} />
+                                        <div className={styles['legend-opacity-sample']} style={{ background: '#007AFF', opacity: 0.7 }} />
+                                        <div className={styles['legend-opacity-sample']} style={{ background: '#007AFF', opacity: 0.4 }} />
+                                        <div className={styles['legend-opacity-sample']} style={{ background: '#007AFF', opacity: 0.15 }} />
                                     </div>
                                     <span>Solid → Faded</span>
                                 </div>
                             </div>
-                            <div className="legend-section">
-                                <div className="legend-section-title">Exercise Borders</div>
-                                <div className="legend-row"><div className="legend-sample" style={{ borderLeft: '3px solid var(--danger-color)', background: 'var(--bg-tertiary)' }} /><span>Red = HIGH contribution (priority)</span></div>
-                                <div className="legend-row"><div className="legend-sample" style={{ borderLeft: '3px solid var(--warning-color)', background: 'var(--bg-tertiary)' }} /><span>Orange = MEDIUM contribution</span></div>
-                                <div className="legend-row"><div className="legend-sample" style={{ borderLeft: '3px solid var(--accent-color)', background: 'var(--bg-tertiary)' }} /><span>Blue = LOW contribution</span></div>
+                            <div className={styles['legend-section']}>
+                                <div className={styles['legend-section-title']}>Exercise Borders</div>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ borderLeft: '3px solid var(--danger-color)', background: 'var(--bg-tertiary)' }} /><span>Red = HIGH contribution (priority)</span></div>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ borderLeft: '3px solid var(--warning-color)', background: 'var(--bg-tertiary)' }} /><span>Orange = MEDIUM contribution</span></div>
+                                <div className={styles['legend-row']}><div className={styles['legend-sample']} style={{ borderLeft: '3px solid var(--accent-color)', background: 'var(--bg-tertiary)' }} /><span>Blue = LOW contribution</span></div>
                             </div>
                         </div>
                     </div>
 
                     {/* Coverage matrix */}
-                    <div className="coverage-section">
-                        {loading && <div className="loading">Loading coverage data...</div>}
-                        {error && <div className="empty-state">Error: {error}</div>}
+                    <div className={styles['coverage-section']}>
+                        {loading && <div className={styles.loading}>Loading coverage data...</div>}
+                        {error && <div className={styles['empty-state']}>Error: {error}</div>}
                         {!loading && coverageResult && renderMatrix(coverageResult.coverageData)}
                     </div>
                 </>

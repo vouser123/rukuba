@@ -9,8 +9,8 @@
  *   2. A background overlay (fixed, dims the page)
  *   3. The slide-in panel (fixed, right side)
  *
- * CSS comes from /css/rehab-coverage.css (hamburger-* classes).
- * TODO: Move hamburger CSS to main.css when more pages are migrated.
+ * Styles are scoped via NavMenu.module.css (CSS Modules).
+ * CSS variables (colors, spacing) come from styles/globals.css via _app.js.
  *
  * Usage:
  *   <NavMenu
@@ -32,6 +32,7 @@
  * }} props
  */
 import { useState } from 'react';
+import styles from './NavMenu.module.css';
 
 /**
  * All pages in the app.
@@ -73,7 +74,7 @@ export default function NavMenu({ user, isAdmin, onSignOut, currentPage, actions
         <>
             {/* Trigger button — rendered inline, place inside header-actions */}
             <button
-                className="hamburger-btn"
+                className={styles['hamburger-btn']}
                 onPointerUp={toggle}
                 aria-label="Open menu"
                 aria-expanded={isOpen}
@@ -84,7 +85,7 @@ export default function NavMenu({ user, isAdmin, onSignOut, currentPage, actions
 
             {/* Background overlay — tap to close */}
             <div
-                className={`hamburger-overlay ${isOpen ? 'active' : ''}`}
+                className={`${styles['hamburger-overlay']} ${isOpen ? styles.active : ''}`}
                 onPointerUp={close}
                 aria-hidden="true"
             />
@@ -92,13 +93,13 @@ export default function NavMenu({ user, isAdmin, onSignOut, currentPage, actions
             {/* Slide-in panel */}
             <nav
                 id="hamburgerMenu"
-                className={`hamburger-menu ${isOpen ? 'active' : ''}`}
+                className={`${styles['hamburger-menu']} ${isOpen ? styles.active : ''}`}
                 aria-label="Site navigation"
             >
-                <div className="hamburger-header">
+                <div className={styles['hamburger-header']}>
                     <h3>Menu</h3>
                     <button
-                        className="hamburger-close"
+                        className={styles['hamburger-close']}
                         onPointerUp={close}
                         aria-label="Close menu"
                     >
@@ -108,7 +109,7 @@ export default function NavMenu({ user, isAdmin, onSignOut, currentPage, actions
 
                 {/* User info */}
                 {user && (
-                    <div className="hamburger-user-info">
+                    <div className={styles['hamburger-user-info']}>
                         <strong>{isAdmin ? 'Therapist' : 'Patient'}</strong>
                         {user.email}
                     </div>
@@ -118,24 +119,24 @@ export default function NavMenu({ user, isAdmin, onSignOut, currentPage, actions
                 {actions.map(item => (
                     <button
                         key={item.action}
-                        className="hamburger-item"
+                        className={styles['hamburger-item']}
                         onPointerUp={() => handleAction(item.action)}
                     >
-                        <span className="hamburger-icon">{item.icon}</span>
+                        <span className={styles['hamburger-icon']}>{item.icon}</span>
                         {item.label}
                     </button>
                 ))}
 
                 {/* Nav links to other pages */}
                 {navLinks.map(page => (
-                    <a key={page.id} className="hamburger-item" href={page.href}>
+                    <a key={page.id} className={styles['hamburger-item']} href={page.href}>
                         {page.label}
                     </a>
                 ))}
 
                 {/* Sign out */}
-                <button className="hamburger-item" onPointerUp={handleSignOut}>
-                    <span className="hamburger-icon">🚪</span>
+                <button className={styles['hamburger-item']} onPointerUp={handleSignOut}>
+                    <span className={styles['hamburger-icon']}>🚪</span>
                     Sign Out
                 </button>
             </nav>

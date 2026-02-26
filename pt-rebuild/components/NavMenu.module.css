@@ -1,0 +1,138 @@
+/* NavMenu component styles (DN-033).
+ * Scoped to NavMenu.js via CSS Modules.
+ * CSS variables come from styles/globals.css (loaded in _app.js).
+ */
+
+/* Trigger button */
+.hamburger-btn {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 8px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Overlay — darkens background when menu is open */
+.hamburger-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+}
+
+.hamburger-overlay.active {
+    display: block;
+}
+
+/* Slide-out menu panel */
+.hamburger-menu {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 280px;
+    height: 100%;
+    background: var(--bg-secondary);
+    z-index: 9999;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+}
+
+.hamburger-menu.active {
+    display: block;
+}
+
+/* Panel header with title and close button */
+.hamburger-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hamburger-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.hamburger-close {
+    background: transparent;
+    border: none;
+    color: var(--accent-color);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 8px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* User info section */
+.hamburger-user-info {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.hamburger-user-info strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+/* Menu items — nav links and action buttons */
+.hamburger-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-primary);
+    text-decoration: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    /* Reset button defaults */
+    background: transparent;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    width: 100%;
+    font-size: 16px;
+    text-align: left;
+}
+
+.hamburger-item:active {
+    background: var(--bg-tertiary);
+}
+
+/* Icon container for consistent sizing */
+.hamburger-icon {
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+    .hamburger-menu {
+        background: var(--bg-secondary);
+    }
+
+    .hamburger-header,
+    .hamburger-item {
+        border-color: var(--border-color);
+    }
+
+    .hamburger-item:active {
+        background: var(--bg-tertiary);
+    }
+}

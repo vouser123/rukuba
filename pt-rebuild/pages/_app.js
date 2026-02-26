@@ -3,6 +3,8 @@
  * Minimal pass-through — wraps all pages.
  * Add global providers here as the migration progresses.
  */
+import '../styles/globals.css';
+
 export default function App({ Component, pageProps }) {
     return <Component {...pageProps} />;
 }

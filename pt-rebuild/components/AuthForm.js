@@ -17,6 +17,7 @@
  * }} props
  */
 import { useState } from 'react';
+import styles from './AuthForm.module.css';
 
 export default function AuthForm({ title = 'Sign In', onSignIn }) {
     const [email, setEmail] = useState('');
@@ -34,10 +35,10 @@ export default function AuthForm({ title = 'Sign In', onSignIn }) {
     }
 
     return (
-        <div className="auth-modal">
-            <div className="auth-content">
+        <div className={styles['auth-modal']}>
+            <div className={styles['auth-content']}>
                 <h2>{title}</h2>
-                <form onSubmit={handleSubmit} className="auth-form">
+                <form onSubmit={handleSubmit} className={styles['auth-form']}>
                     <input
                         type="email"
                         value={email}
@@ -57,7 +58,7 @@ export default function AuthForm({ title = 'Sign In', onSignIn }) {
                     <button type="submit" disabled={submitting}>
                         {submitting ? 'Signing in…' : 'Sign In'}
                     </button>
-                    {error && <div className="auth-error">{error}</div>}
+                    {error && <div className={styles['auth-error']}>{error}</div>}
                 </form>
             </div>
         </div>

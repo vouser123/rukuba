@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-02-24"
+    "last_updated": "2026-02-25"
   },
   "enums": {
     "priority_levels": [
@@ -178,12 +178,17 @@
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["migration", "ui"],
-      "file": "pt-rebuild/package.json, pt-rebuild/next.config.mjs, pt-rebuild/pages/rehab.js, pt-rebuild/pages/_app.js, pt-rebuild/lib/rehab-coverage.js, pt-rebuild/lib/supabase.js, pt-rebuild/hooks/useAuth.js, pt-rebuild/components/NavMenu.js, pt-rebuild/components/AuthForm.js, pt-rebuild/public/css/rehab-coverage.css",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/package.json, pt-rebuild/next.config.mjs, pt-rebuild/pages/rehab.js, pt-rebuild/pages/rehab.module.css, pt-rebuild/pages/_app.js, pt-rebuild/lib/rehab-coverage.js, pt-rebuild/lib/supabase.js, pt-rebuild/hooks/useAuth.js, pt-rebuild/components/NavMenu.js, pt-rebuild/components/NavMenu.module.css, pt-rebuild/components/AuthForm.js, pt-rebuild/components/AuthForm.module.css, pt-rebuild/styles/globals.css",
       "issue": "Strangler Fig migration to Next.js (Pages Router). Existing static HTML pages remain untouched; new pages built in Next.js one at a time. Phase 1: scaffolding + shared architecture (lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js) + rehab_coverage migrated to pages/rehab.js.",
       "resolved": null,
-      "context": "Phase 1 deliverables complete on nextjs branch. Shared architecture built: lib/supabase.js (single Supabase client), hooks/useAuth.js (session/signIn/signOut), components/NavMenu.js (replaces window.HamburgerMenu), components/AuthForm.js (shared sign-in form), lib/rehab-coverage.js (pure coverage calc functions extracted from rehab_coverage.html), pages/rehab.js (full React page using shared pieces), public/css/rehab-coverage.css (CSS extracted from rehab_coverage.html). pages/rehab.js builds and deploys via next build — confirmed by _next/ folder in Vercel Output. /rehab live on preview URL and shows auth form. Full verification pending (sign-in, coverage matrix, NavMenu, navigation between pages, console errors). Vercel fix required: framework preset was 'Other' → manually changed to 'Next.js' in dashboard (Settings → Build and Deployment). next.config.mjs uses .mjs extension to avoid type:module/CommonJS conflict. SUPABASE_URL and SUPABASE_ANON_KEY forwarded as NEXT_PUBLIC_* — no new Vercel vars needed. NEXTJS_MIGRATION.md synced to main branch as migration reference doc.",
+      "context": "Phase 1 complete on nextjs branch. Shared architecture: lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js, lib/rehab-coverage.js, pages/rehab.js. Phase 1 verified on preview URL (auth, coverage matrix, NavMenu, navigation, no console errors). CSS modularized: styles/globals.css (CSS vars + resets, imported in _app.js), components/NavMenu.module.css (hamburger styles scoped to NavMenu), components/AuthForm.module.css (auth form styles scoped to AuthForm), pages/rehab.module.css (coverage/legend/summary styles scoped to rehab page). rehab.js no longer has any <link rel=\"stylesheet\"> tags — all styles bundled via CSS Modules or _app.js global import. public/css/main.css, rehab-coverage.css, hamburger-menu.css unchanged — vanilla JS pages still use them. Next steps: Phase 2 (pt_view → /pt-view). Phase 3 and 4 broken into sub-phases in NEXTJS_MIGRATION.md.",
       "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges."
     },
     {
