@@ -150,11 +150,15 @@ When `pt_view.html` is migrated to `/pt-view`, update that href. When `pt_editor
 | `pt-rebuild/lib/supabase.js` | Shared Supabase client instance |
 | `pt-rebuild/hooks/useAuth.js` | Shared auth hook |
 | `pt-rebuild/components/NavMenu.js` | React nav sidebar (no globals) |
+| `pt-rebuild/components/NavMenu.module.css` | Scoped hamburger/nav panel styles |
 | `pt-rebuild/components/AuthForm.js` | Shared sign-in form |
-| `pt-rebuild/public/css/rehab-coverage.css` | CSS extracted from `rehab_coverage.html` |
+| `pt-rebuild/components/AuthForm.module.css` | Scoped auth form styles |
+| `pt-rebuild/styles/globals.css` | CSS variables + body reset (imported in `_app.js`) |
+| `pt-rebuild/public/css/rehab-coverage.css` | CSS kept for `rehab_coverage.html` (old page) |
 | `pt-rebuild/lib/rehab-coverage.js` | Pure coverage calculation functions |
 | `pt-rebuild/pages/rehab.js` | React page replacing `rehab_coverage.html` |
-| `pt-rebuild/pages/_app.js` | Pages Router pass-through |
+| `pt-rebuild/pages/rehab.module.css` | Scoped coverage/summary/legend styles |
+| `pt-rebuild/pages/_app.js` | Pages Router pass-through + global CSS import |
 | `pt-rebuild/next.config.mjs` | ESM Next.js config |
 
 **Files updated:**
@@ -164,13 +168,22 @@ When `pt_view.html` is migrated to `/pt-view`, update that href. When `pt_editor
 | `pt-rebuild/package.json` | Added next/react/react-dom + scripts |
 | `pt-rebuild/public/js/hamburger-menu.js` | Updated NAV_PAGES rehab_coverage href to `/rehab` |
 
+**CSS architecture (CSS Modules):**
+- Component styles are self-contained — importing a component gets its CSS automatically
+- `styles/globals.css` → CSS variables + resets, loaded once in `_app.js`
+- `NavMenu.module.css` → hamburger/panel styles scoped to NavMenu
+- `AuthForm.module.css` → auth form styles scoped to AuthForm
+- `rehab.module.css` → coverage/legend/summary styles scoped to the rehab page
+- `public/css/main.css` and `public/css/rehab-coverage.css` untouched — vanilla JS pages still use them
+- `public/css/hamburger-menu.css` kept — used by `pt_editor.html`
+
 **Verification checklist:**
-- [ ] `rehab_coverage.html` still loads and works (old page untouched)
-- [ ] `/rehab` loads, auth works, coverage matrix renders
-- [ ] Hamburger menu (NavMenu) opens, shows correct nav links, Refresh Data works
-- [ ] Navigate from `/rehab` to other pages — no re-login required
-- [ ] No console errors on `/rehab`
-- [ ] All existing pages (`/`, `/pt`, `/pt_view.html`, `/pt_editor.html`) unaffected
+- [x] `rehab_coverage.html` still loads and works (old page untouched)
+- [x] `/rehab` loads, auth works, coverage matrix renders
+- [x] Hamburger menu (NavMenu) opens, shows correct nav links, Refresh Data works
+- [x] Navigate from `/rehab` to other pages — no re-login required
+- [x] No console errors on `/rehab`
+- [x] All existing pages (`/`, `/pt`, `/pt_view.html`, `/pt_editor.html`) unaffected
 
 **After production verify:**
 - Retire `public/rehab_coverage.html`
@@ -201,29 +214,56 @@ Update NAV_PAGES in `components/NavMenu.js`: `pt_view` href from `/pt_view.html`
 
 ---
 
-### Phase 3: pt_editor (future)
+### Phase 3: pt_editor (future — broken into sub-phases)
 
-**Target URL:** `/pt` (retire `pt_editor.html` after verification — note: currently served at `/pt` via `vercel.json` rewrite)
+**Target URL:** `/pt` (retire `pt_editor.html` after verification — currently served at `/pt` via `vercel.json` rewrite)
 
-**What it does:**
-- Auth, Nav (already built)
-- Exercise management (add/edit/delete)
-- Log entry creation with timer
-- Audio cues (pocket mode)
-- Offline queue
+Split into sub-phases because pt_editor has 4 distinct feature areas, each independently testable.
 
-**React mapping:**
+#### Phase 3a: Exercise management
+- Page skeleton + auth + nav
+- Exercise list (fetch + render)
+- Add / edit / delete exercises
+- New file: `pages/pt-editor.module.css`
+- New file: `lib/pt-editor.js` (data logic, same pattern as `lib/rehab-coverage.js`)
+
+#### Phase 3b: Log entry + timer
+- Log entry form (exercise select, reps, sets)
+- Rest timer between sets
+- `useTimer` hook → replaces timer global
+
+#### Phase 3c: Audio + pocket mode
 - `useAudio` hook → replaces audio system
 - `usePocketMode` hook → replaces pocket mode toggle + timer
-- `useOfflineQueue` hook → replaces offline queue
+- Offline queue (reuse `useOfflineQueue` from Phase 2)
+
+**When starting Phase 3:**
+Update NAV_PAGES in `components/NavMenu.js`: `pt_editor` href from `/pt_editor.html` → `/pt`
 
 ---
 
-### Phase 4: index (future — last)
+### Phase 4: index (future — last, broken into sub-phases)
 
 The main app entry. Must be migrated last because `pages/index.js` takes precedence over `public/index.html`.
 
 **Target URL:** `/` (only possible after `public/index.html` is retired)
+
+Split into sub-phases because index.html is the most-used page and must stay fully working throughout.
+
+#### Phase 4a: Core exercise flow
+- Page skeleton + auth + nav
+- Exercise picker (fetch + search + select)
+- Session logger + rep counter
+- New file: `pages/index.module.css`
+
+#### Phase 4b: History + navigation
+- History view (recent logs)
+- Bottom navigation bar
+
+#### Phase 4c: Offline + PWA
+- Offline queue (reuse `useOfflineQueue`)
+- Service worker registration
+- PWA install prompt
 
 ---
 
