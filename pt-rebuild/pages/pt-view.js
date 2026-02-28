@@ -243,13 +243,14 @@ export default function PtViewPage() {
     const [filters, setFilters] = useState({ exercise: '', dateFrom: '', dateTo: '', query: '' });
     const [expandedSessions, setExpandedSessions] = useState(new Set());
     const [notesCollapsed, setNotesCollapsed] = useState(
-        () => localStorage.getItem('notesCollapsed') === 'true'
+        // typeof window guard: localStorage is not available during Next.js SSR
+        () => typeof window !== 'undefined' && localStorage.getItem('notesCollapsed') === 'true'
     );
     const [filtersExpanded, setFiltersExpanded] = useState(
-        () => localStorage.getItem('filtersExpanded') === 'true'
+        () => typeof window !== 'undefined' && localStorage.getItem('filtersExpanded') === 'true'
     );
     const [dismissedNotes, setDismissedNotes] = useState(
-        () => JSON.parse(localStorage.getItem('dismissedNotes') ?? '[]')
+        () => typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('dismissedNotes') ?? '[]') : []
     );
 
     // Modal state
