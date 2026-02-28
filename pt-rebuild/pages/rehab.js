@@ -122,6 +122,7 @@ export default function RehabCoverage() {
     // Summary card render
     // =========================================================================
 
+    // TODO (DN-036): extract to components/CoverageSummary.js — 45L exceeds 40L inline limit
     function renderSummary(summary) {
         if (!summary) return null;
         const { lastDoneAgo, coverage7, exercisesDone7, totalExercises, avgOpacity } = summary;
@@ -167,6 +168,7 @@ export default function RehabCoverage() {
     // Coverage matrix rendering
     // =========================================================================
 
+    // TODO (DN-036): extract to components/CoverageMatrix.js — 50L exceeds 40L inline limit
     function renderMatrix(coverageData) {
         if (!coverageData || Object.keys(coverageData).length === 0) {
             return <div className={styles['empty-state']}>No coverage data available.</div>;
@@ -217,6 +219,7 @@ export default function RehabCoverage() {
         });
     }
 
+    // TODO (DN-036): extract to components/CoverageCapacity.js — 66L exceeds 40L inline limit
     function renderCapacity(region, capacity, capData) {
         const exercises = capData.exercises || [];
         const percent = Math.round(capData.percent || 0);
@@ -305,6 +308,7 @@ export default function RehabCoverage() {
         );
     }
 
+    // TODO (DN-036): extract to components/CoverageExerciseCard.js — 144L exceeds 40L inline limit
     function renderExerciseCard(ex) {
         const isDone = !!ex.lastDone;
         const daysSince = ex.daysSince || 0;
