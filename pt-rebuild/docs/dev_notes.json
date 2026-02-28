@@ -173,6 +173,25 @@
   },
   "open_items": [
     {
+      "id": "DN-034",
+      "status": "in_progress",
+      "priority": "P2",
+      "risk": "medium",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/lib/pt-view.js, pt-rebuild/pages/pt-view.js, pt-rebuild/pages/pt-view.module.css, pt-rebuild/hooks/useMessages.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/components/MessagesModal.module.css, pt-rebuild/components/ExerciseHistoryModal.js, pt-rebuild/components/ExerciseHistoryModal.module.css, pt-rebuild/components/NavMenu.js",
+      "issue": "Phase 2 of Next.js Strangler Fig migration: pt_view.html → pages/pt-view.js at /pt-view. Read-only history dashboard with messages, patient notes, needs-attention alerts, summary stats, filters, and exercise history modal.",
+      "resolved": null,
+      "context": "All Phase 2 files created on nextjs branch. lib/pt-view.js contains all pure data functions. hooks/useMessages.js handles 30-second polling, send, archive, markRead with localStorage timestamps for badge counts. MessagesModal and ExerciseHistoryModal extracted to components/ (own state, own CSS modules). Local sub-components (PatientNotes, NeedsAttention, SummaryStats, FiltersPanel, HistoryList) stay in pt-view.js — page-specific only. NavMenu NAV_PAGES updated: pt_view href /pt_view.html → /pt-view. Next step: push to nextjs branch, verify on preview URL per standard verification checklist.",
+      "constraints_caveats": "pt_view.html stays untouched until /pt-view is verified on preview. useOfflineQueue is NOT needed — pt_view is read-only (no log submission). All event handlers use onPointerUp (iOS Safari). localStorage keys: dismissedNotes, notesCollapsed, filtersExpanded, lastReadMessageTime, lastSentMessageTime."
+    },
+    {
       "id": "DN-033",
       "status": "in_progress",
       "priority": "P2",
