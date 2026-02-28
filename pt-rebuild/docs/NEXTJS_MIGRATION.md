@@ -143,6 +143,8 @@ When `pt_view.html` is migrated to `/pt-view`, update that href. When `pt_editor
 
 These are committed rules for all Next.js pages in this migration. They are not suggestions to be re-evaluated per conversation — follow them. A new Claude session (local or cloud) must not make these decisions from scratch.
 
+**Full reference: `pt-rebuild/docs/STRUCTURE_GUIDELINES.md`** — file size limits (with hard caps), cohesion checks, split decision rules, folder structure, naming conventions, and worked examples. `STRUCTURE_GUIDELINES.md` is the authoritative source; the rules below are a summary. When in doubt, load the full doc.
+
 ### Component Extraction Rules
 
 **When to extract into a standalone file in `components/`:**
