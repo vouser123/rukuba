@@ -188,7 +188,7 @@
       "file": "pt-rebuild/package.json, pt-rebuild/next.config.mjs, pt-rebuild/pages/rehab.js, pt-rebuild/pages/rehab.module.css, pt-rebuild/pages/_app.js, pt-rebuild/lib/rehab-coverage.js, pt-rebuild/lib/supabase.js, pt-rebuild/hooks/useAuth.js, pt-rebuild/components/NavMenu.js, pt-rebuild/components/NavMenu.module.css, pt-rebuild/components/AuthForm.js, pt-rebuild/components/AuthForm.module.css, pt-rebuild/styles/globals.css",
       "issue": "Strangler Fig migration to Next.js (Pages Router). Existing static HTML pages remain untouched; new pages built in Next.js one at a time. Phase 1: scaffolding + shared architecture (lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js) + rehab_coverage migrated to pages/rehab.js.",
       "resolved": null,
-      "context": "Phase 1 and Phase 2 complete on nextjs branch. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard (patient notes, needs attention, summary stats, filters, messages, exercise history modal). All files: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. vanilla JS pages untouched. Next step: Phase 3 (pt_editor → /pt).",
+      "context": "Phase 1 and Phase 2 complete on nextjs branch. Pre-migration cleanup (DN-035) done: PatientNotes + HistoryList extracted to components/, pt-view.module.css 670L→369L. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard. Components: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, components/PatientNotes.js, components/HistoryList.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. Vanilla JS pages untouched. Next step: Phase 3 (pt_editor → /pt).",
       "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges."
     },
     {
@@ -458,6 +458,24 @@
     }
   ],
   "closed_items": [
+    {
+      "id": "DN-035",
+      "status": "done",
+      "priority": "P3",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["cleanup", "migration"],
+      "file": "pt-rebuild/lib/rehab-coverage.js, pt-rebuild/pages/pt-view.js, pt-rebuild/pages/pt-view.module.css, pt-rebuild/components/PatientNotes.js, pt-rebuild/components/PatientNotes.module.css, pt-rebuild/components/HistoryList.js, pt-rebuild/components/HistoryList.module.css, pt-rebuild/docs/STRUCTURE_GUIDELINES.md",
+      "issue": "Pre-migration cleanup: bring STRUCTURE_GUIDELINES.md cap violations into compliance before Phase 3.",
+      "resolved": "2026-02-28",
+      "problem": "Three files violated STRUCTURE_GUIDELINES.md hard caps: lib/rehab-coverage.js (588L > 450L cap), pages/pt-view.module.css (670L > 500L cap). Two inline components (PatientNotes 46L, HistoryList 64L) also exceeded the 40L inline sub-component limit.",
+      "root_cause": "Files were written before STRUCTURE_GUIDELINES.md existed. Caps and inline limits were not enforced during Phase 2 implementation.",
+      "change_made": "(1) lib/rehab-coverage.js: added // NOTE: cohesive domain comment documenting that no valid split exists — import layer rules prohibit lib-imports-lib and all functions are tightly interdependent. (2) Extracted PatientNotes inline component to components/PatientNotes.js + components/PatientNotes.module.css. Moved keyword detection computation to page derived data (components cannot import from lib/). (3) Extracted HistoryList inline component to components/HistoryList.js + components/HistoryList.module.css. Dark mode selectors for each component moved with the component. (4) Updated STRUCTURE_GUIDELINES.md: added Guideline Conflicts escalation section, updated Required Fixes table to show completed status.",
+      "files_touched": "pt-rebuild/lib/rehab-coverage.js (comment added), pt-rebuild/pages/pt-view.js (removed inline components, added imports, added processedNotes derivation), pt-rebuild/pages/pt-view.module.css (removed PatientNotes + HistoryList CSS sections + dark mode selectors), pt-rebuild/components/PatientNotes.js (new), pt-rebuild/components/PatientNotes.module.css (new), pt-rebuild/components/HistoryList.js (new), pt-rebuild/components/HistoryList.module.css (new), pt-rebuild/docs/STRUCTURE_GUIDELINES.md (conflict escalation section + Required Fixes table updated)",
+      "validation": "Line counts after: pt-view.module.css 369L (was 670L, cap 500L ✓), pt-view.js 353L (was 446L, at aim ✓), PatientNotes.js 45L ✓, PatientNotes.module.css 158L ✓, HistoryList.js 77L ✓, HistoryList.module.css 155L ✓. Verified on preview URL: /pt-view loads, PatientNotes renders/collapses/dismisses, HistoryList renders with date groups, dark mode correct, no console errors.",
+      "follow_ups": "pages/rehab.module.css (478L) and pages/rehab.js (452L) are within cap but will shrink naturally when rehab inline components are extracted during Phase 3 cleanup."
+    },
     {
       "id": "DN-034",
       "status": "done",

@@ -1,0 +1,155 @@
+/* components/HistoryList.module.css — styles for the date-grouped session history list */
+
+/* ── History list ───────────────────────────────────────────────── */
+
+.history-section {
+    padding: 0 1rem 1rem 1rem;
+}
+
+.grouped-by-date {
+    margin-bottom: 0.75rem;
+}
+
+.date-group-header {
+    background: #007bff;
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 3px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.session-card {
+    background: white;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 2px;
+    border-left: 3px solid #007bff;
+    cursor: pointer;
+    transition: background 0.1s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.session-card:hover {
+    background: #f8f9fa;
+}
+
+.session-card.has-notes {
+    border-left-color: #ffc107;
+}
+
+.session-card-compact {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.session-card.expanded .session-card-compact {
+    margin-bottom: 0.75rem;
+}
+
+.session-time-col {
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.session-main-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.session-exercise {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.session-sets-summary {
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.session-notes-inline {
+    background: #fff8e1;
+    padding: 0.4rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    color: #856404;
+    font-style: italic;
+    border-left: 2px solid #ffc107;
+}
+
+.session-expanded-content {
+    display: none;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+}
+
+.session-card.expanded .session-expanded-content {
+    display: block;
+}
+
+.session-sets {
+    background: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.set-item {
+    padding: 0.2rem 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.set-item:last-child {
+    border-bottom: none;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #666;
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+    .session-time-col,
+    .session-sets-summary,
+    .empty-state {
+        color: var(--text-secondary);
+    }
+
+    .session-card {
+        background: var(--bg-secondary);
+        border-left-color: #4c8dff;
+    }
+
+    .session-card:hover {
+        background: var(--bg-tertiary);
+    }
+
+    .session-card.has-notes {
+        border-left-color: #ffc107;
+    }
+
+    .session-exercise {
+        color: var(--text-primary);
+    }
+
+    .session-sets {
+        background: var(--bg-tertiary);
+    }
+
+    .date-group-header {
+        background: #4c8dff;
+    }
+}

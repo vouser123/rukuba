@@ -7,6 +7,13 @@
  *
  * SPECIFICATION: rehab_coverage formulas.md (LOCKED)
  * To adjust thresholds or weights, edit COVERAGE_CONSTANTS only.
+ *
+ * NOTE: cohesive domain — 11 exports all serve one rehab coverage pipeline
+ * (constants → helpers → three formulas → color → region → data builder).
+ * File exceeds 450L cap. No valid split exists: import layer rules prohibit
+ * lib-imports-lib, and functions are tightly interdependent (buildCoverageData
+ * produces the input shape consumed by all three formula functions).
+ * Decision: keep as one file. Do not split without revisiting import layer rules.
  */
 
 // ============================================================================

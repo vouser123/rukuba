@@ -16,6 +16,8 @@ import NavMenu from '../components/NavMenu';
 import AuthForm from '../components/AuthForm';
 import MessagesModal from '../components/MessagesModal';
 import ExerciseHistoryModal from '../components/ExerciseHistoryModal';
+import PatientNotes from '../components/PatientNotes';
+import HistoryList from '../components/HistoryList';
 import {
     fetchLogs, fetchPrograms, fetchUsers, patchEmailNotifications,
     groupLogsByDate, findNeedsAttention, needsAttentionUrgency,
@@ -24,54 +26,6 @@ import {
 import styles from './pt-view.module.css';
 
 // ── Local sub-components ────────────────────────────────────────────────────
-
-/** Collapsible patient notes alert showing logs with notes text. */
-function PatientNotes({ logs, dismissed, collapsed, onDismiss, onToggle }) {
-    const notes = logs.filter(l => l.notes && !dismissed.includes(l.id));
-    if (notes.length === 0) return null;
-
-    return (
-        <div className={`${styles['notes-alert-section']} ${collapsed ? styles.collapsed : ''}`}>
-            <div className={styles['notes-header']} onPointerUp={onToggle}>
-                <div className={styles['notes-header-left']}>
-                    <span className={styles['notes-collapse-icon']}>▼</span>
-                    <span>Patient Notes</span>
-                    <span className={styles['notes-header-count']}>{notes.length}</span>
-                </div>
-                <span className={styles['notes-header-hint']}>tap to {collapsed ? 'expand' : 'collapse'}</span>
-            </div>
-            <div className={styles['notes-list']}>
-                {notes.slice(0, 10).map(log => {
-                    const keywords = detectKeywords(log.notes);
-                    const isConcerning = keywords.length > 0;
-                    // Highlight concerning words in the note text
-                    let displayText = log.notes;
-                    if (isConcerning) {
-                        keywords.forEach(word => {
-                            displayText = displayText.replace(
-                                new RegExp(`(${word})`, 'gi'),
-                                `<span class="concerning-word">$1</span>`
-                            );
-                        });
-                    }
-                    return (
-                        <div key={log.id} className={`${styles['note-card']} ${isConcerning ? styles.concerning : ''}`}>
-                            <div className={styles['note-meta']}>
-                                <span className={styles['note-date']}>
-                                    {new Date(log.performed_at).toLocaleDateString()}
-                                </span>
-                                <span className={styles['note-exercise']}>{log.exercise_name}</span>
-                            </div>
-                            {/* eslint-disable-next-line react/no-danger */}
-                            <div className={styles['note-text']} dangerouslySetInnerHTML={{ __html: displayText }} />
-                            <button className={styles['note-dismiss-btn']} onPointerUp={() => onDismiss(log.id)} aria-label="Dismiss note">×</button>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
 
 /** Overdue exercise cards — tap to open exercise history modal. */
 function NeedsAttention({ items, onCardClick }) {
@@ -152,72 +106,6 @@ function FiltersPanel({ filters, programs, expanded, onToggle, onChange }) {
                     </div>
                 </div>
             )}
-        </div>
-    );
-}
-
-/** History list grouped by date with expandable session cards. */
-function HistoryList({ groups, expandedSessions, onToggleSession, onExerciseClick }) {
-    if (groups.length === 0) return <div className={styles['empty-state']}>No history to show.</div>;
-
-    function summarizeSets(sets) {
-        if (!sets?.length) return '';
-        return sets.map(s => [
-            s.reps && `${s.reps} reps`,
-            s.seconds && `${s.seconds}s`,
-            s.distance_feet && `${s.distance_feet} ft`,
-            s.side,
-        ].filter(Boolean).join(' · ')).join(' | ');
-    }
-
-    return (
-        <div className={styles['history-section']}>
-            {groups.map(({ dateKey, displayDate, logs }) => (
-                <div key={dateKey} className={styles['grouped-by-date']}>
-                    <div className={styles['date-group-header']}>
-                        {displayDate} — {logs.length} session{logs.length !== 1 ? 's' : ''}
-                    </div>
-                    {logs.map(log => {
-                        const isExpanded = expandedSessions.has(log.id);
-                        return (
-                            <div
-                                key={log.id}
-                                className={`${styles['session-card']} ${log.notes ? styles['has-notes'] : ''} ${isExpanded ? styles.expanded : ''}`}
-                                onPointerUp={() => onToggleSession(log.id)}
-                            >
-                                <div className={styles['session-card-compact']}>
-                                    <div className={styles['session-time-col']}>
-                                        {new Date(log.performed_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                    </div>
-                                    <div className={styles['session-main-col']}>
-                                        <div className={styles['session-exercise']}
-                                            onPointerUp={e => { e.stopPropagation(); onExerciseClick(log.exercise_id, log.exercise_name); }}>
-                                            {log.exercise_name}
-                                        </div>
-                                        <div className={styles['session-sets-summary']}>{summarizeSets(log.sets)}</div>
-                                        {log.notes && <div className={styles['session-notes-inline']}>{log.notes}</div>}
-                                    </div>
-                                </div>
-                                {isExpanded && (
-                                    <div className={styles['session-expanded-content']}>
-                                        <div className={styles['session-sets']}>
-                                            {log.sets?.map(s => (
-                                                <div key={s.set_number} className={styles['set-item']}>
-                                                    Set {s.set_number}
-                                                    {s.reps && ` · ${s.reps} reps`}
-                                                    {s.seconds && ` · ${s.seconds}s`}
-                                                    {s.distance_feet && ` · ${s.distance_feet} ft`}
-                                                    {s.side && ` · ${s.side}`}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            ))}
         </div>
     );
 }
@@ -306,6 +194,26 @@ export default function PtViewPage() {
     const needsAttention  = findNeedsAttention(logs, programs);
     const stats           = computeSummaryStats(logs);
 
+    // Pre-process notes for PatientNotes component (components cannot import from lib/)
+    const processedNotes  = logs
+        .filter(l => l.notes && !dismissedNotes.includes(l.id))
+        .slice(0, 10)
+        .map(log => {
+            const keywords = detectKeywords(log.notes);
+            const isConcerning = keywords.length > 0;
+            // Highlight concerning words in the note text for dangerouslySetInnerHTML
+            let displayText = log.notes;
+            if (isConcerning) {
+                keywords.forEach(word => {
+                    displayText = displayText.replace(
+                        new RegExp(`(${word})`, 'gi'),
+                        `<span class="concerning-word">$1</span>`
+                    );
+                });
+            }
+            return { ...log, isConcerning, displayText };
+        });
+
     function dismissNote(logId) {
         const next = [...dismissedNotes, logId];
         setDismissedNotes(next);
@@ -393,11 +301,10 @@ export default function PtViewPage() {
             )}
 
             <PatientNotes
-                logs={logs}
-                dismissed={dismissedNotes}
+                notes={processedNotes}
                 collapsed={notesCollapsed}
-                onDismiss={dismissNote}
                 onToggle={toggleNotesCollapsed}
+                onDismiss={dismissNote}
             />
 
             <NeedsAttention items={needsAttention} onCardClick={openExerciseHistory} />

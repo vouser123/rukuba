@@ -296,14 +296,33 @@ Correct for non-touch targets:
 
 ---
 
+## Guideline Conflicts — When to Surface to the User
+
+If you encounter a situation where following a guideline as written would produce clearly wrong code — or where the guideline itself appears to be the problem rather than the file — **stop and surface it to the user**. Do not silently bend the guideline or silently bend the file.
+
+**When to surface:**
+- A rule requires a split but all valid split points violate another rule (e.g., import layer rules prevent lib-imports-lib)
+- A cap is hit but every possible split would create two files that are always loaded together (artificial fragmentation)
+- A rule as written doesn't fit the situation and you believe the rule needs updating, not the code
+
+**How to surface:**
+1. State the specific rule and the specific file
+2. State why following the rule produces the wrong outcome
+3. Propose what the rule should say instead, OR ask the user for a decision
+4. Wait for confirmation before proceeding
+
+This is not a workaround — it is the intended escalation path. The guidelines exist to serve the codebase; when they don't, fix the guidelines.
+
+---
+
 ## Required Fixes — Pre-Existing Files Needing Attention
 
 These files were written before this document existed. Files over cap must be brought within cap before they are extended. Files within cap are listed for awareness — they will shrink naturally as components are extracted. This is a separate task from creating this document.
 
-| File | Lines | Cap | Fix |
-|------|-------|-----|-----|
-| `lib/rehab-coverage.js` | 588 | 450L | Apply cohesion check: if all functions serve one domain, add `// NOTE: cohesive domain` comment; if two independent sub-domains exist, split into `rehab-coverage-data.js` + `rehab-coverage-calc.js` |
-| `pages/pt-view.module.css` | 670 | 500L | Extract inline sections (PatientNotes, NeedsAttention, SummaryStats, FiltersPanel, HistoryList) as components — each takes its CSS block; page CSS module shrinks naturally |
-| `pages/rehab.module.css` | 478 | 500L | Within cap — no action until component extractions above are done (file will shrink) |
-| `pages/pt-view.js` | 440 | 500L | Within cap — no action until component extractions above are done (file will shrink) |
-| `pages/rehab.js` | 452 | 500L | Within cap — no action until component extractions above are done |
+| File | Lines | Cap | Status |
+|------|-------|-----|--------|
+| `lib/rehab-coverage.js` | 588→588 | 450L | ✓ Fixed (DN-035): cohesive domain confirmed; `// NOTE: cohesive domain` added; import layer rules prohibit split |
+| `pages/pt-view.module.css` | 670→369 | 500L | ✓ Fixed (DN-035): PatientNotes + HistoryList extracted to components/ |
+| `pages/pt-view.js` | 446→353 | 500L | ✓ Fixed (DN-035): shrunk naturally after component extractions |
+| `pages/rehab.module.css` | 478 | 500L | Within cap — no action until rehab component extractions are done |
+| `pages/rehab.js` | 452 | 500L | Within cap — no action until rehab component extractions are done |
