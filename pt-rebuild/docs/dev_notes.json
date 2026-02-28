@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-02-25"
+    "last_updated": "2026-02-28"
   },
   "enums": {
     "priority_levels": [
@@ -173,25 +173,6 @@
   },
   "open_items": [
     {
-      "id": "DN-034",
-      "status": "in_progress",
-      "priority": "P2",
-      "risk": "medium",
-      "scope": "current",
-      "agent": [
-        "claude"
-      ],
-      "tags": [
-        "migration",
-        "ui"
-      ],
-      "file": "pt-rebuild/lib/pt-view.js, pt-rebuild/pages/pt-view.js, pt-rebuild/pages/pt-view.module.css, pt-rebuild/hooks/useMessages.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/components/MessagesModal.module.css, pt-rebuild/components/ExerciseHistoryModal.js, pt-rebuild/components/ExerciseHistoryModal.module.css, pt-rebuild/components/NavMenu.js",
-      "issue": "Phase 2 of Next.js Strangler Fig migration: pt_view.html → pages/pt-view.js at /pt-view. Read-only history dashboard with messages, patient notes, needs-attention alerts, summary stats, filters, and exercise history modal.",
-      "resolved": null,
-      "context": "All Phase 2 files created on nextjs branch. lib/pt-view.js contains all pure data functions. hooks/useMessages.js handles 30-second polling, send, archive, markRead with localStorage timestamps for badge counts. MessagesModal and ExerciseHistoryModal extracted to components/ (own state, own CSS modules). Local sub-components (PatientNotes, NeedsAttention, SummaryStats, FiltersPanel, HistoryList) stay in pt-view.js — page-specific only. NavMenu NAV_PAGES updated: pt_view href /pt_view.html → /pt-view. Next step: push to nextjs branch, verify on preview URL per standard verification checklist.",
-      "constraints_caveats": "pt_view.html stays untouched until /pt-view is verified on preview. useOfflineQueue is NOT needed — pt_view is read-only (no log submission). All event handlers use onPointerUp (iOS Safari). localStorage keys: dismissedNotes, notesCollapsed, filtersExpanded, lastReadMessageTime, lastSentMessageTime."
-    },
-    {
       "id": "DN-033",
       "status": "in_progress",
       "priority": "P2",
@@ -207,7 +188,7 @@
       "file": "pt-rebuild/package.json, pt-rebuild/next.config.mjs, pt-rebuild/pages/rehab.js, pt-rebuild/pages/rehab.module.css, pt-rebuild/pages/_app.js, pt-rebuild/lib/rehab-coverage.js, pt-rebuild/lib/supabase.js, pt-rebuild/hooks/useAuth.js, pt-rebuild/components/NavMenu.js, pt-rebuild/components/NavMenu.module.css, pt-rebuild/components/AuthForm.js, pt-rebuild/components/AuthForm.module.css, pt-rebuild/styles/globals.css",
       "issue": "Strangler Fig migration to Next.js (Pages Router). Existing static HTML pages remain untouched; new pages built in Next.js one at a time. Phase 1: scaffolding + shared architecture (lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js) + rehab_coverage migrated to pages/rehab.js.",
       "resolved": null,
-      "context": "Phase 1 complete on nextjs branch. Shared architecture: lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js, lib/rehab-coverage.js, pages/rehab.js. Phase 1 verified on preview URL (auth, coverage matrix, NavMenu, navigation, no console errors). CSS modularized: styles/globals.css (CSS vars + resets, imported in _app.js), components/NavMenu.module.css (hamburger styles scoped to NavMenu), components/AuthForm.module.css (auth form styles scoped to AuthForm), pages/rehab.module.css (coverage/legend/summary styles scoped to rehab page). rehab.js no longer has any <link rel=\"stylesheet\"> tags — all styles bundled via CSS Modules or _app.js global import. public/css/main.css, rehab-coverage.css, hamburger-menu.css unchanged — vanilla JS pages still use them. Next steps: Phase 2 (pt_view → /pt-view). Phase 3 and 4 broken into sub-phases in NEXTJS_MIGRATION.md.",
+      "context": "Phase 1 and Phase 2 complete on nextjs branch. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard (patient notes, needs attention, summary stats, filters, messages, exercise history modal). All files: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. vanilla JS pages untouched. Next step: Phase 3 (pt_editor → /pt).",
       "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges."
     },
     {
@@ -477,6 +458,24 @@
     }
   ],
   "closed_items": [
+    {
+      "id": "DN-034",
+      "status": "done",
+      "priority": "P2",
+      "risk": "medium",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/lib/pt-view.js, pt-rebuild/pages/pt-view.js, pt-rebuild/pages/pt-view.module.css, pt-rebuild/hooks/useMessages.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/components/MessagesModal.module.css, pt-rebuild/components/ExerciseHistoryModal.js, pt-rebuild/components/ExerciseHistoryModal.module.css, pt-rebuild/components/NavMenu.js",
+      "issue": "Phase 2 of Next.js Strangler Fig migration: pt_view.html → pages/pt-view.js at /pt-view.",
+      "resolved": "2026-02-28",
+      "problem": "pt_view.html was a ~2,575-line vanilla JS page that needed migrating to Next.js as part of the Strangler Fig migration.",
+      "root_cause": "N/A — planned migration phase.",
+      "change_made": "Created lib/pt-view.js (pure data functions: fetchLogs, fetchPrograms, fetchUsers, groupLogsByDate, findNeedsAttention, computeSummaryStats, detectKeywords, applyFilters, message CRUD). Created hooks/useMessages.js (30-second polling, send, archive, markRead, localStorage badge timestamps). Created components/MessagesModal.js + .module.css and ExerciseHistoryModal.js + .module.css. Created pages/pt-view.js and pt-view.module.css. Fixed 3 bugs post-build: (1) localStorage SSR guard — typeof window guard in useState initializers; (2) patient detection — DB has no 'patient' role, patient = user with therapist_id !== null; (3) DB user id vs Supabase auth_id mismatch — messages use DB PK (users.id), not auth UUID. Updated NavMenu NAV_PAGES: pt_view href /pt_view.html → /pt-view.",
+      "files_touched": "pt-rebuild/lib/pt-view.js (new), pt-rebuild/pages/pt-view.js (new), pt-rebuild/pages/pt-view.module.css (new), pt-rebuild/hooks/useMessages.js (new), pt-rebuild/components/MessagesModal.js (new), pt-rebuild/components/MessagesModal.module.css (new), pt-rebuild/components/ExerciseHistoryModal.js (new), pt-rebuild/components/ExerciseHistoryModal.module.css (new), pt-rebuild/components/NavMenu.js (NAV_PAGES pt_view href), pt-rebuild/docs/NEXTJS_MIGRATION.md (Phase 2 complete + architecture guidelines)",
+      "validation": "Verified on preview URL https://pt-rehab-git-nextjs-pt-tracker.vercel.app/pt-view. Checklist: pt_view.html still loads ✓; /pt-view loads with real data (10 days, 16 exercises, 79 sessions) ✓; NavMenu 'Signed in as' + email ✓; Coverage Analysis nav link works without re-login ✓; no console errors ✓; dark mode ✓; patient notes (7, keyword highlighting) ✓; needs attention (10 exercises) ✓; filters expand/collapse + dropdown (34 options) + localStorage persistence ✓; messages modal (7 sent, '✓ Read' status) ✓; exercise history modal from Needs Attention card ✓.",
+      "follow_ups": "pt_view.html stays live in public/ until all phases merged to main and verified in production."
+    },
     {
       "id": "DN-006",
       "status": "done",
