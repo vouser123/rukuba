@@ -324,5 +324,5 @@ These files were written before this document existed. Files over cap must be br
 | `lib/rehab-coverage.js` | 588→588 | 450L | ✓ Fixed (DN-035): cohesive domain confirmed; `// NOTE: cohesive domain` added; import layer rules prohibit split |
 | `pages/pt-view.module.css` | 670→369 | 500L | ✓ Fixed (DN-035): PatientNotes + HistoryList extracted to components/ |
 | `pages/pt-view.js` | 446→353 | 500L | ✓ Fixed (DN-035): shrunk naturally after component extractions |
-| `pages/rehab.module.css` | 478 | 500L | Within cap — no action until rehab component extractions are done |
-| `pages/rehab.js` | 452 | 500L | Within cap — no action until rehab component extractions are done |
+| `pages/rehab.module.css` | 478 | 500L | Within cap — shrinks naturally when components below are extracted |
+| `pages/rehab.js` | 452 | 500L | Within cap but 4 inline render helpers exceed 40L limit (DN-036): `renderSummary` 45L → `CoverageSummary`, `renderMatrix` 50L → `CoverageMatrix`, `renderCapacity` 66L → `CoverageCapacity`, `renderExerciseCard` 144L → `CoverageExerciseCard`. TODOs added inline. Extract before rehab.js grows further. |
