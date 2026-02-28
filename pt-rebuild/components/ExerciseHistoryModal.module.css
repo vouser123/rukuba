@@ -1,0 +1,154 @@
+/* ExerciseHistoryModal.module.css */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modal {
+    background: white;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #ddd;
+    flex-shrink: 0;
+}
+
+.title {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.subtitle {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+}
+
+.search {
+    padding: 0.75rem;
+    border-bottom: 1px solid #ddd;
+    flex-shrink: 0;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.item:last-child {
+    border-bottom: none;
+}
+
+.item-date {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #007bff;
+    margin-bottom: 0.25rem;
+}
+
+.item-sets {
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.item-notes {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: #666;
+    font-style: italic;
+    background: #f9f9f9;
+    padding: 0.3rem 0.5rem;
+    border-radius: 3px;
+    border-left: 2px solid #ffc107;
+}
+
+.empty {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    .modal {
+        background: var(--bg-secondary);
+    }
+
+    .header,
+    .search,
+    .item {
+        border-color: var(--border-color);
+    }
+
+    .title {
+        color: var(--text-primary);
+    }
+
+    .subtitle,
+    .close-btn {
+        color: var(--text-secondary);
+    }
+
+    .item-date {
+        color: #4c8dff;
+    }
+
+    .item-sets {
+        color: var(--text-primary);
+    }
+
+    .item-notes {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+    }
+
+    .search-input {
+        background: var(--bg-primary);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+    }
+}

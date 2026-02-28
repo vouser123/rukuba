@@ -139,6 +139,118 @@ When `pt_view.html` is migrated to `/pt-view`, update that href. When `pt_editor
 
 ---
 
+## Architecture Guidelines
+
+These are committed rules for all Next.js pages in this migration. They are not suggestions to be re-evaluated per conversation — follow them. A new Claude session (local or cloud) must not make these decisions from scratch.
+
+### Component Extraction Rules
+
+**When to extract into a standalone file in `components/`:**
+
+| Rule | Example |
+|------|---------|
+| Used in **≥2 places** (2 or more distinct pages or components) | `NavMenu`, `AuthForm` |
+| Has its own significant state or lifecycle | `MessagesModal` (draft, sending, undoTarget, scroll ref) |
+| Modal or overlay — **always extract** | `MessagesModal`, `ExerciseHistoryModal` |
+| Would push the parent file past its signal size | `ExerciseHistoryModal` extracted from `pt-view.js` |
+
+**≥2 places means used in 2 or more distinct pages/components (i.e., ≥2, not >2).** A component used exactly once but with its own state machine (modal) still gets extracted.
+
+**When a local function inside the page file is acceptable:**
+- Simple display components with no state, used only on that one page
+- Sub-components that directly share the parent's state without prop-drilling or lifting
+- Example: `PatientNotes`, `NeedsAttention`, `SummaryStats`, `FiltersPanel`, `HistoryList` in `pt-view.js` — all page-specific, no reuse elsewhere, all share the page's state directly
+
+### File Size Guidelines
+
+Targets and signals-to-split. "Signal" means: pause and review whether to split. Not a hard stop — do not split just to hit a number.
+
+| File type | Target | Signal to split |
+|-----------|--------|-----------------|
+| Component JS | 200 lines | 350 lines |
+| Page JS | 350 lines | 500 lines |
+| Custom hook | 100 lines | 200 lines |
+| Lib (pure functions) | 250 lines | 400 lines |
+| CSS Module | 350 lines | 500 lines |
+
+When a file hits its signal size: look for a natural split (separate concern, extractable component). If no clean split exists, continue — the signal is a trigger to think, not a mandate to split artificially. Three pages of cohesive logic in one file is better than three thin files with a weak abstraction between them.
+
+### Hooks (`hooks/`)
+
+- One concern per hook file. `useAuth` = auth only. `useMessages` = messages only. Do not merge unrelated concerns into one hook.
+- Hooks that are small and page-specific may be defined inline in the page file. Once they would be reused across ≥2 pages, move to `hooks/` immediately.
+- **Cleanup on unmount is required** for any `setInterval`, event listener, or subscription — return a cleanup function from `useEffect`.
+- Read localStorage in `useState` initializer functions (not `useEffect`) to avoid hydration flicker:
+  ```js
+  const [notesCollapsed, setNotesCollapsed] = useState(
+      () => localStorage.getItem('notesCollapsed') === 'true'
+  );
+  ```
+
+### Lib (`lib/`)
+
+- **Pure functions only** — no React imports, no hooks, no side effects outside the returned value.
+- Group by feature domain: `lib/pt-view.js` contains all data functions for the pt-view page. Do not scatter related functions across multiple lib files without a clear domain reason.
+- API call functions always take `(token, ...args)` as their first argument — never read the session from a global or closure.
+- Utility functions shared across multiple feature domains → `lib/utils.js`.
+
+### State Management
+
+Escalation ladder — start at the lowest level that works, escalate only when necessary:
+
+1. **Local `useState`** in the component that owns it
+2. **Lift to page** when a child needs to read or set the parent's state
+3. **Custom hook** when state logic is complex enough to warrant isolation (≥2 state variables + effects that belong together)
+4. **No global store** — no Redux, no Zustand, no React Context. The app is small; session is managed by Supabase.
+
+### Styling
+
+- CSS Module per component (`NavMenu.module.css`) and per page (`pt-view.module.css`). One module per file — no shared modules between unrelated components.
+- `styles/globals.css` = CSS variables + body/html reset only. No component styles in globals.
+- Dark mode: handled in each CSS Module with `@media (prefers-color-scheme: dark)`. No JS-based theme toggle.
+- Class names: use `styles['class-name']` for hyphenated names, `styles.className` for camelCase. Conditional classes: `` `${styles.base} ${condition ? styles.active : ''}` ``. No runtime class name libraries.
+- Inline styles only for dynamically computed values (e.g. `style={{ borderLeft: '4px solid ' + color }}`). Never for static styles that belong in the CSS Module.
+
+### Event Handlers
+
+**Always `onPointerUp`, never `onClick` for interactive elements.** This is a non-negotiable iOS Safari requirement — `onClick` fires with a 300ms delay or fails entirely on some touch targets. Applies to: buttons, divs acting as buttons, card taps, overlay close handlers.
+
+Correct use of `onClick`/`onChange`/`onKeyDown`:
+- `onChange` on form inputs (`<input>`, `<select>`, `<textarea>`) — these are not touch targets
+- `onKeyDown` for keyboard shortcuts like Enter-to-send
+
+### What NOT To Do
+
+- Do not add `window.*` globals. Everything through props, hooks, or module-level constants.
+- Do not call `createClient()` anywhere except `lib/supabase.js`. All pages import `supabase` from there.
+- Do not use `useRef` for DOM manipulation that can be done declaratively with CSS or state.
+- Do not introduce Redux, Zustand, or React Context — the app does not need a global store.
+- Do not add TypeScript — the project is JavaScript throughout.
+- Do not add `console.log` debugging calls to committed code.
+
+---
+
+## Standard Verification Checklist
+
+Run after every phase or sub-phase on `https://pt-rehab-git-nextjs-pt-tracker.vercel.app`.
+
+**Every phase:**
+- [ ] Old HTML page still loads (`/{page}.html` — same content as before)
+- [ ] New Next.js page loads — auth form renders, sign in works
+- [ ] Data loads correctly — all sections visible with real data
+- [ ] NavMenu: ☰ opens panel, shows "Signed in as" + email, Close button and overlay both close it
+- [ ] Nav links — from this page, each link navigates without requiring re-login:
+  - [ ] → PT Tracker (`/index.html`)
+  - [ ] → View History (`/pt_view.html` or `/pt-view` once migrated)
+  - [ ] → Exercise Editor (`/pt_editor.html` or `/pt` once migrated) — admin only
+  - [ ] → Coverage Analysis (`/rehab`)
+- [ ] No unexpected console errors
+- [ ] Dark mode (`prefers-color-scheme: dark`) — colors and layout correct
+
+**Page-specific checklist:** listed under each phase below.
+
+---
+
 ## Migration Phases
 
 ### Phase 1: Scaffold + rehab_coverage (DN-033) — COMPLETE
@@ -177,12 +289,17 @@ When `pt_view.html` is migrated to `/pt-view`, update that href. When `pt_editor
 - `public/css/main.css` and `public/css/rehab-coverage.css` untouched — vanilla JS pages still use them
 - `public/css/hamburger-menu.css` kept — used by `pt_editor.html`
 
-**Verification checklist:**
+**Verification checklist (standard):**
 - [x] `rehab_coverage.html` still loads and works (old page untouched)
-- [x] `/rehab` loads, auth works, coverage matrix renders
-- [x] Hamburger menu (NavMenu) opens, shows correct nav links, Refresh Data works
-- [x] Navigate from `/rehab` to other pages — no re-login required
-- [x] No console errors on `/rehab`
+- [x] `/rehab` loads — auth form renders, sign in works
+- [x] Coverage matrix renders with real data
+- [x] NavMenu: ☰ opens panel, shows "Signed in as" + email, Close and overlay both close it
+- [x] Nav links navigate without requiring re-login
+- [x] No unexpected console errors
+- [ ] Dark mode — pending verification
+
+**Page-specific:**
+- [x] Refresh Data action in NavMenu works
 - [x] All existing pages (`/`, `/pt`, `/pt_view.html`, `/pt_editor.html`) unaffected
 
 **After production verify:**
@@ -193,24 +310,57 @@ When `pt_view.html` is migrated to `/pt-view`, update that href. When `pt_editor
 
 ---
 
-### Phase 2: pt_view (future)
+### Phase 2: pt_view (in progress — DN-034)
 
 **Target URL:** `/pt-view` (retire `pt_view.html` after verification)
 
 **What it does:**
 - Auth → `useAuth()` (already built)
 - Nav → `<NavMenu />` (already built)
-- Fetches logs, exercises
-- Renders log history as a list
-- Offline queue for log submission
+- Fetches logs, programs, users, messages
+- Read-only history dashboard — **no offline queue** (pt_view.html does not submit logs)
+- Messages with polling, send, archive, read receipts
+- Patient notes, needs attention, summary stats, filters, exercise history modal
 
-**React mapping:**
-- `useOfflineQueue` hook → replaces `offlineQueue` global + sync logic
-- `LogList` component → replaces DOM manipulation in `renderLogs()`
-- New `lib/pt-view.js` for view-specific data logic (same pattern as `lib/rehab-coverage.js`)
+**Note:** `useOfflineQueue` is NOT needed here — that belongs to Phase 4 (index.html), which has the offline log submission queue.
 
-**When starting Phase 2:**
-Update NAV_PAGES in `components/NavMenu.js`: `pt_view` href from `/pt_view.html` → `/pt-view`
+**Files created:**
+
+| File | Purpose |
+|------|---------|
+| `pt-rebuild/lib/pt-view.js` | Pure data logic (fetchLogs, fetchPrograms, fetchUsers, fetchMessages, sendMessage, patchMessage, deleteMessage, patchEmailNotifications, groupLogsByDate, findNeedsAttention, needsAttentionUrgency, computeSummaryStats, detectKeywords, applyFilters, countUnreadMessages, countRecentSent) |
+| `pt-rebuild/pages/pt-view.module.css` | Scoped styles from pt_view.html embedded style block |
+| `pt-rebuild/pages/pt-view.js` | React page replacing `pt_view.html` (local sub-components: PatientNotes, NeedsAttention, SummaryStats, FiltersPanel, HistoryList) |
+| `pt-rebuild/hooks/useMessages.js` | Fetch, poll (30s interval), send, archive, markRead — shared across all pages that need messaging |
+| `pt-rebuild/components/MessagesModal.js` | Messages panel: bubble list (sent/received), archive with undo, email notification toggle, compose with Enter-to-send |
+| `pt-rebuild/components/MessagesModal.module.css` | Scoped styles for MessagesModal |
+| `pt-rebuild/components/ExerciseHistoryModal.js` | Per-exercise history detail: search by date/notes, sorted newest first, set breakdown |
+| `pt-rebuild/components/ExerciseHistoryModal.module.css` | Scoped styles for ExerciseHistoryModal |
+
+**Files updated:**
+
+| File | Change |
+|------|--------|
+| `pt-rebuild/components/NavMenu.js` | NAV_PAGES: `pt_view` href updated from `/pt_view.html` → `/pt-view` |
+
+**Verification checklist (standard):**
+- [ ] `pt_view.html` still loads and works (old page untouched)
+- [ ] `/pt-view` loads — auth form renders, sign in works
+- [ ] History list renders with real data, grouped by date
+- [ ] NavMenu: ☰ opens panel, shows "Signed in as" + email, Close and overlay both close it
+- [ ] Nav links navigate without requiring re-login
+- [ ] No unexpected console errors
+- [ ] Dark mode — colors and layout correct
+
+**Page-specific:**
+- [ ] Patient notes: shows, dismisses, collapses/expands (localStorage persistence)
+- [ ] Needs Attention section: shows overdue exercises
+- [ ] Summary stats: correct counts
+- [ ] Filters: exercise dropdown populated, date range and search work
+- [ ] Sessions expand to show set detail
+- [ ] Messages modal: opens, send works, archive works, polling active
+- [ ] Exercise history modal: opens from Needs Attention or history card
+- [ ] Email notification toggle: updates visually
 
 ---
 

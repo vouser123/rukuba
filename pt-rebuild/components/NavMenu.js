@@ -43,7 +43,7 @@ import styles from './NavMenu.module.css';
  */
 const NAV_PAGES = [
     { id: 'index',          href: '/index.html',          label: '📱 PT Tracker',       adminOnly: false },
-    { id: 'pt_view',        href: '/pt_view.html',        label: '📊 View History',      adminOnly: false },
+    { id: 'pt_view',        href: '/pt-view',              label: '📊 View History',      adminOnly: false },
     { id: 'pt_editor',      href: '/pt_editor.html',      label: '✏️ Exercise Editor',   adminOnly: true  },
     { id: 'rehab_coverage', href: '/rehab',               label: '📈 Coverage Analysis', adminOnly: false },
 ];
@@ -110,7 +110,8 @@ export default function NavMenu({ user, isAdmin, onSignOut, currentPage, actions
                 {/* User info */}
                 {user && (
                     <div className={styles['hamburger-user-info']}>
-                        <strong>{isAdmin ? 'Therapist' : 'Patient'}</strong>
+                        {/* Always "Signed in as" — matches vanilla JS hamburger-menu.js. Do NOT change to role name. */}
+                        <strong>Signed in as</strong>
                         {user.email}
                     </div>
                 )}
