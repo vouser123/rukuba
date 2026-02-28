@@ -235,9 +235,11 @@ export default function PtViewPage() {
     const [emailEnabled, setEmailEnabled] = useState(true);
     const [userRole, setUserRole] = useState('patient');
     const [dataError, setDataError] = useState(null);
+    // DB user id (users table `id`) — needed because messages use DB ids, not Supabase auth ids
+    const [currentDbId, setCurrentDbId] = useState(null);
 
-    // Messages via hook
-    const msgs = useMessages(session?.access_token ?? null, session?.user?.id ?? null);
+    // Messages via hook — viewerId is DB user id (set after data loads, null until then)
+    const msgs = useMessages(session?.access_token ?? null, currentDbId);
 
     // UI state
     const [filters, setFilters] = useState({ exercise: '', dateFrom: '', dateTo: '', query: '' });
@@ -269,17 +271,20 @@ export default function PtViewPage() {
                     // We need patientId first — fetch users then logs
                 ]);
                 const currentUser = usersData.find(u => u.auth_id === session.user.id);
-                const patientUser = usersData.find(u => u.role === 'patient');
+                // Patient = the user who has a therapist assigned (therapist_id non-null).
+                // Roles in DB are 'admin' and 'therapist' — there is no 'patient' role.
+                const patientUser = usersData.find(u => u.therapist_id !== null);
                 if (!patientUser) throw new Error('No patient found');
 
                 const pid = patientUser.id;
                 setPatientId(pid);
+                setCurrentDbId(currentUser?.id ?? null); // DB user id for message sender comparisons
                 setUserRole(currentUser?.role ?? 'patient');
                 setEmailEnabled(currentUser?.email_notifications_enabled ?? true);
 
-                // Recipient = the other party
+                // Recipient = the other party — use DB user `id` (messages use DB ids, not auth_id)
                 const otherUser = usersData.find(u => u.auth_id !== session.user.id);
-                setRecipientId(otherUser?.auth_id ?? null);
+                setRecipientId(otherUser?.id ?? null);
 
                 const [logsArr, programsArr] = await Promise.all([
                     fetchLogs(token, pid),
@@ -418,7 +423,7 @@ export default function PtViewPage() {
                 isOpen={messagesOpen}
                 onClose={() => setMessagesOpen(false)}
                 messages={msgs.messages}
-                viewerId={session.user.id}
+                viewerId={currentDbId}
                 recipientId={recipientId}
                 emailEnabled={emailEnabled}
                 onSend={msgs.send}
