@@ -1,8 +1,8 @@
 name: Sync docs to main
 
-# Automatically copies the three shared docs files from the nextjs branch
-# to main whenever they change. Runs on every push to nextjs that touches
-# any of the target files.
+# Automatically copies shared docs files from the nextjs branch to main
+# whenever they change. Runs on every push to nextjs that touches any of
+# the target files.
 
 on:
   push:
@@ -12,6 +12,8 @@ on:
       - 'pt-rebuild/docs/NEXTJS_MIGRATION.md'
       - 'pt-rebuild/docs/dev_notes.json'
       - 'pt-rebuild/docs/DEV_NOTES.md'
+      - 'pt-rebuild/docs/STRUCTURE_GUIDELINES.md'
+      - 'pt-rebuild/AGENTS.md'
 
 jobs:
   sync:
@@ -36,12 +38,16 @@ jobs:
           cp pt-rebuild/docs/NEXTJS_MIGRATION.md /tmp/NEXTJS_MIGRATION.md
           cp pt-rebuild/docs/dev_notes.json /tmp/dev_notes.json
           cp pt-rebuild/docs/DEV_NOTES.md /tmp/DEV_NOTES.md
+          cp pt-rebuild/docs/STRUCTURE_GUIDELINES.md /tmp/STRUCTURE_GUIDELINES.md
+          cp pt-rebuild/AGENTS.md /tmp/AGENTS.md
 
           git checkout main
 
           cp /tmp/NEXTJS_MIGRATION.md pt-rebuild/docs/NEXTJS_MIGRATION.md
           cp /tmp/dev_notes.json pt-rebuild/docs/dev_notes.json
           cp /tmp/DEV_NOTES.md pt-rebuild/docs/DEV_NOTES.md
+          cp /tmp/STRUCTURE_GUIDELINES.md pt-rebuild/docs/STRUCTURE_GUIDELINES.md
+          cp /tmp/AGENTS.md pt-rebuild/AGENTS.md
 
           if git diff --quiet; then
             echo "No changes — docs already up to date on main."
@@ -49,7 +55,9 @@ jobs:
             git add \
               pt-rebuild/docs/NEXTJS_MIGRATION.md \
               pt-rebuild/docs/dev_notes.json \
-              pt-rebuild/docs/DEV_NOTES.md
+              pt-rebuild/docs/DEV_NOTES.md \
+              pt-rebuild/docs/STRUCTURE_GUIDELINES.md \
+              pt-rebuild/AGENTS.md
             git commit -m "docs: auto-sync docs from nextjs branch [skip ci]"
             git push origin main
             echo "Synced docs to main."
