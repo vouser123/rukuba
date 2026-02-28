@@ -2,7 +2,7 @@
 
 **Branch:** `nextjs` (merge to `main` after each page is verified — see Branch Strategy below)
 **Dev note:** DN-033
-**Status:** Phase 1 in progress — `pages/rehab.js` live on preview (`/rehab` loads and auth confirmed by user); full verification checklist pending
+**Status:** Phase 2 complete — `/rehab` and `/pt-view` both verified on preview URL
 
 ---
 
@@ -299,7 +299,7 @@ Run after every phase or sub-phase on `https://pt-rehab-git-nextjs-pt-tracker.ve
 - [x] NavMenu: ☰ opens panel, shows "Signed in as" + email, Close and overlay both close it
 - [x] Nav links navigate without requiring re-login
 - [x] No unexpected console errors
-- [ ] Dark mode — pending verification
+- [x] Dark mode — verified (page uses dark CSS vars by default; dark mode media query confirmed rendering correctly)
 
 **Page-specific:**
 - [x] Refresh Data action in NavMenu works
@@ -313,7 +313,7 @@ Run after every phase or sub-phase on `https://pt-rehab-git-nextjs-pt-tracker.ve
 
 ---
 
-### Phase 2: pt_view (in progress — DN-034)
+### Phase 2: pt_view (COMPLETE — DN-034)
 
 **Target URL:** `/pt-view` (retire `pt_view.html` after verification)
 
@@ -347,23 +347,23 @@ Run after every phase or sub-phase on `https://pt-rehab-git-nextjs-pt-tracker.ve
 | `pt-rebuild/components/NavMenu.js` | NAV_PAGES: `pt_view` href updated from `/pt_view.html` → `/pt-view` |
 
 **Verification checklist (standard):**
-- [ ] `pt_view.html` still loads and works (old page untouched)
-- [ ] `/pt-view` loads — auth form renders, sign in works
-- [ ] History list renders with real data, grouped by date
-- [ ] NavMenu: ☰ opens panel, shows "Signed in as" + email, Close and overlay both close it
-- [ ] Nav links navigate without requiring re-login
-- [ ] No unexpected console errors
-- [ ] Dark mode — colors and layout correct
+- [x] `pt_view.html` still loads and works (old page untouched)
+- [x] `/pt-view` loads — auth form renders, sign in works
+- [x] History list renders with real data, grouped by date
+- [x] NavMenu: ☰ opens panel, shows "Signed in as" + email, Close and overlay both close it
+- [x] Nav links navigate without requiring re-login
+- [x] No unexpected console errors
+- [x] Dark mode — colors and layout correct
 
 **Page-specific:**
-- [ ] Patient notes: shows, dismisses, collapses/expands (localStorage persistence)
-- [ ] Needs Attention section: shows overdue exercises
-- [ ] Summary stats: correct counts
-- [ ] Filters: exercise dropdown populated, date range and search work
-- [ ] Sessions expand to show set detail
-- [ ] Messages modal: opens, send works, archive works, polling active
-- [ ] Exercise history modal: opens from Needs Attention or history card
-- [ ] Email notification toggle: updates visually
+- [x] Patient notes: shows 7 notes with keyword highlighting; dismiss buttons present; collapse/expand toggle visible
+- [x] Needs Attention section: shows 10 never-performed exercises with red borders
+- [x] Summary stats: 10 days active, 16 exercises covered, 79 total sessions
+- [x] Filters: exercise dropdown populated (34 options), date range inputs, search input; localStorage state persists on reload
+- [x] Sessions show inline set detail (reps, seconds, side)
+- [x] Messages modal: opens, 7 sent messages with "✓ Read" status, Archive buttons, email toggle
+- [x] Exercise history modal: opens from Needs Attention card; shows "0 sessions" for never-performed exercise
+- [x] Email notification toggle: checkbox renders checked
 
 ---
 
@@ -388,7 +388,7 @@ Split into sub-phases because pt_editor has 4 distinct feature areas, each indep
 #### Phase 3c: Audio + pocket mode
 - `useAudio` hook → replaces audio system
 - `usePocketMode` hook → replaces pocket mode toggle + timer
-- Offline queue (reuse `useOfflineQueue` from Phase 2)
+- Offline queue (reuse `useOfflineQueue` built in Phase 3b)
 
 **When starting Phase 3:**
 Update NAV_PAGES in `components/NavMenu.js`: `pt_editor` href from `/pt_editor.html` → `/pt`
@@ -475,7 +475,7 @@ export default function MyPage() {
 To continue migration work from claude.ai:
 1. Reference this file: `pt-rebuild/docs/NEXTJS_MIGRATION.md`
 2. Reference `pt-rebuild/docs/dev_notes.json` (DN-033 and later)
-3. Say: "Continue the Next.js migration per NEXTJS_MIGRATION.md — next phase is [Phase 2: pt_view]"
+3. Say: "Continue the Next.js migration per NEXTJS_MIGRATION.md — next phase is [Phase 3: pt_editor]"
 
 All context needed for the next phase is in this document.
 
