@@ -67,9 +67,9 @@ Do not split to reach the aim number. A 350L lib covering one domain is correct.
 | Layer | May import from |
 |-------|----------------|
 | `pages/` | `components/`, `hooks/`, `lib/`, own CSS module |
-| `components/` | own CSS module only — all data arrives via props |
-| `hooks/` | `lib/` only |
-| `lib/` | `lib/supabase.js`, `lib/utils.js` only — no React, no hooks, no other lib files |
+| `components/` | other `components/`, own CSS module — no `lib/`, no `hooks/`; all data arrives via props |
+| `hooks/` | React, `lib/` only |
+| `lib/` | `lib/supabase.js`, `lib/utils.js` (create when first needed) only — no React, no hooks, no other lib files |
 | `styles/globals.css` | nothing |
 
 An import outside these rules signals misplaced responsibility. Fix the placement, not the import.
@@ -296,14 +296,14 @@ Correct for non-touch targets:
 
 ---
 
-## Required Fixes — Files Currently Over Cap
+## Required Fixes — Pre-Existing Files Needing Attention
 
-These files were written before this document existed and are out of compliance. They must be brought within cap before they are extended with new features. This is a separate task from creating this document.
+These files were written before this document existed. Files over cap must be brought within cap before they are extended. Files within cap are listed for awareness — they will shrink naturally as components are extracted. This is a separate task from creating this document.
 
 | File | Lines | Cap | Fix |
 |------|-------|-----|-----|
 | `lib/rehab-coverage.js` | 588 | 450L | Apply cohesion check: if all functions serve one domain, add `// NOTE: cohesive domain` comment; if two independent sub-domains exist, split into `rehab-coverage-data.js` + `rehab-coverage-calc.js` |
 | `pages/pt-view.module.css` | 670 | 500L | Extract inline sections (PatientNotes, NeedsAttention, SummaryStats, FiltersPanel, HistoryList) as components — each takes its CSS block; page CSS module shrinks naturally |
-| `pages/rehab.module.css` | 478 | 500L | Extract inline section components; CSS follows the component |
+| `pages/rehab.module.css` | 478 | 500L | Within cap — no action until component extractions above are done (file will shrink) |
 | `pages/pt-view.js` | 440 | 500L | Within cap — no action until component extractions above are done (file will shrink) |
 | `pages/rehab.js` | 452 | 500L | Within cap — no action until component extractions above are done |
