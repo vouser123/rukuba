@@ -180,10 +180,13 @@ When a file hits its signal size: look for a natural split (separate concern, ex
 - One concern per hook file. `useAuth` = auth only. `useMessages` = messages only. Do not merge unrelated concerns into one hook.
 - Hooks that are small and page-specific may be defined inline in the page file. Once they would be reused across ≥2 pages, move to `hooks/` immediately.
 - **Cleanup on unmount is required** for any `setInterval`, event listener, or subscription — return a cleanup function from `useEffect`.
-- Read localStorage in `useState` initializer functions (not `useEffect`) to avoid hydration flicker:
+- Read localStorage in `useState` initializer functions (not `useEffect`) to avoid hydration flicker. **Always guard with `typeof window !== 'undefined'`** — Next.js runs `useState` initializers during SSR where `localStorage` doesn't exist:
   ```js
   const [notesCollapsed, setNotesCollapsed] = useState(
-      () => localStorage.getItem('notesCollapsed') === 'true'
+      () => typeof window !== 'undefined' && localStorage.getItem('notesCollapsed') === 'true'
+  );
+  const [dismissed, setDismissed] = useState(
+      () => typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('dismissed') ?? '[]') : []
   );
   ```
 
