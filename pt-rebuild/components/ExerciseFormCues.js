@@ -108,6 +108,11 @@ export default function ExerciseFormCues({
               <option value="">None</option>
               {LIFECYCLE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
+            <span className={styles.hint}>
+              <strong>active</strong> — in use.&nbsp;
+              <strong>archived</strong> — temporarily set aside; appears when "Show archived" is on.&nbsp;
+              <strong>deprecated</strong> — permanently removed from use; never appears in the exercise list.
+            </span>
           </div>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>

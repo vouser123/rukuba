@@ -10,9 +10,13 @@ import ExerciseForm from '../components/ExerciseForm';
 import { fetchExercises, fetchVocabularies, fetchReferenceData } from '../lib/pt-editor';
 import styles from './program.module.css';
 
-/** Filter exercises by name search and archived visibility. */
+/**
+ * Filter exercises by name search and archived visibility.
+ * Deprecated exercises are always hidden (they are soft-removed, not archived).
+ */
 function applyFilters(exercises, search, showArchived) {
   return exercises.filter(ex => {
+    if (ex.lifecycle?.status === 'deprecated') return false;
     if (!showArchived && ex.archived) return false;
     if (search && !ex.canonical_name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
