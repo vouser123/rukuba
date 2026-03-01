@@ -158,18 +158,6 @@ export default function ExerciseFormCore({
               ))}
             </div>
           </div>
-          {!isNew && (
-            <div className={styles.formGroup}>
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={basics.archived ?? false}
-                  onChange={e => onBasicsChange({ ...basics, archived: e.target.checked })}
-                />
-                Archived
-              </label>
-            </div>
-          )}
         </div>
       </details>
 
