@@ -532,6 +532,30 @@
   ],
   "closed_items": [
     {
+      "id": "DN-040",
+      "status": "done",
+      "priority": "P3",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "ui",
+        "docs",
+        "reliability"
+      ],
+      "file": "pt-rebuild/vercel.json, pt-rebuild/pages/rehab.js, pt-rebuild/pages/pt-view.js",
+      "issue": "Eliminate recurring favicon console noise by routing /favicon.ico to the existing SVG app icon and aligning Next.js page head tags.",
+      "resolved": "2026-03-01",
+      "problem": "Preview smoke checks repeatedly logged a console error: GET /favicon.ico 404 on migrated and legacy routes.",
+      "root_cause": "The app uses an SVG PWA icon (/icons/icon.svg), but browsers still request /favicon.ico by default when no ICO asset is present at root.",
+      "change_made": "Added Vercel rewrite /favicon.ico -> /icons/icon.svg so default browser favicon requests resolve. Also added explicit SVG favicon tags to Next.js pages /rehab and /pt-view for consistency with legacy HTML pages.",
+      "files_touched": "pt-rebuild/vercel.json, pt-rebuild/pages/rehab.js, pt-rebuild/pages/pt-view.js, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md",
+      "validation": "Confirmed rewrite present in vercel.json and favicon tags in both Next.js heads. Requires a fresh deployment before browser console on preview can confirm 404 elimination.",
+      "follow_ups": "After deploying this branch, re-run Playwright console check on /index.html, /pt_view.html, /pt_editor.html, and /rehab to confirm favicon 404 is fully removed."
+    },
+    {
       "id": "DN-035",
       "status": "done",
       "priority": "P3",

@@ -130,6 +130,13 @@ Closed items must include all six narrative fields:
   - Constraints/Caveats: Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.
 
 ## Closed Items
+- [x] DN-040 | status:done | priority:P3 | risk:low | tags:[ui,docs,reliability] | file:pt-rebuild/vercel.json, pt-rebuild/pages/rehab.js, pt-rebuild/pages/pt-view.js | issue:Eliminate recurring favicon console noise by routing /favicon.ico to the existing SVG app icon and aligning Next.js page head tags. | resolved:2026-03-01
+  - Problem: Preview smoke checks repeatedly logged a console error: GET /favicon.ico 404 on migrated and legacy routes.
+  - Root cause: The app uses an SVG PWA icon (/icons/icon.svg), but browsers still request /favicon.ico by default when no ICO asset is present at root.
+  - Change made: Added Vercel rewrite /favicon.ico -> /icons/icon.svg so default browser favicon requests resolve. Also added explicit SVG favicon tags to Next.js pages /rehab and /pt-view for consistency with legacy HTML pages.
+  - Files touched: pt-rebuild/vercel.json, pt-rebuild/pages/rehab.js, pt-rebuild/pages/pt-view.js, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md
+  - Validation: Confirmed rewrite present in vercel.json and favicon tags in both Next.js heads. Requires a fresh deployment before browser console on preview can confirm 404 elimination.
+  - Follow-ups: After deploying this branch, re-run Playwright console check on /index.html, /pt_view.html, /pt_editor.html, and /rehab to confirm favicon 404 is fully removed.
 - [x] DN-034 | status:done | priority:P2 | risk:medium | tags:[migration,ui] | file:pt-rebuild/lib/pt-view.js, pt-rebuild/pages/pt-view.js, pt-rebuild/pages/pt-view.module.css, pt-rebuild/hooks/useMessages.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/components/MessagesModal.module.css, pt-rebuild/components/ExerciseHistoryModal.js, pt-rebuild/components/ExerciseHistoryModal.module.css, pt-rebuild/components/NavMenu.js | issue:Phase 2 of Next.js Strangler Fig migration: pt_view.html → pages/pt-view.js at /pt-view. | resolved:2026-02-28
   - Problem: pt_view.html was a ~2,575-line vanilla JS page that needed migrating to Next.js as part of the Strangler Fig migration.
   - Root cause: N/A — planned migration phase.

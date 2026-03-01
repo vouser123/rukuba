@@ -268,6 +268,8 @@ export default function PtViewPage() {
             <Head>
                 <title>Rehab History</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+                <link rel="apple-touch-icon" href="/icons/icon.svg" />
             </Head>
 
             <div className={styles.header}>
