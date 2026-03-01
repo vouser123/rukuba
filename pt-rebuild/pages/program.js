@@ -156,7 +156,6 @@ export default function EditPage() {
             className={styles.exerciseSelect}
             value={activeExercise?.id ?? ''}
             onChange={handleSelectExercise}
-            size={6}
           >
             <option value="" disabled>Select an exercise to edit…</option>
             {filtered.map(ex => (
