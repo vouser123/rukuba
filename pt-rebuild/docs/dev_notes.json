@@ -212,40 +212,6 @@
       "constraints_caveats": "Keep setup lightweight and avoid hardcoding credentials. Use environment variables for any optional authenticated flow."
     },
     {
-      "id": "DN-037",
-      "status": "in_progress",
-      "priority": "P1",
-      "risk": "high",
-      "scope": "current",
-      "agent": [
-        "codex"
-      ],
-      "tags": [
-        "security",
-        "supabase",
-        "cleanup"
-      ],
-      "file": "pt-rebuild/lib/db.js, pt-rebuild/db/deploy_vocab.js, pt-rebuild/db/check_users.js, pt-rebuild/db/migrate.js",
-      "issue": "Replace service-role-first key resolution with secret-key-first server-side resolution and remove hardcoded admin key material from tracked files.",
-      "resolved": null,
-      "context": "Security sweep found hardcoded `sb_secret_...` value in db/deploy_vocab.js and multiple code paths that prefer service-role env names. Migrate to SUPABASE_SECRET_KEY precedence while retaining temporary fallback for existing deployment wiring.",
-      "constraints_caveats": "Do not expose admin keys in any client code or NEXT_PUBLIC env vars. Keep backward compatibility with SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SERVICE_KEY until Vercel env cleanup is complete."
-    },
-    {
-      "id": "DN-036",
-      "status": "in_progress",
-      "priority": "P3",
-      "risk": "low",
-      "scope": "current",
-      "agent": ["claude"],
-      "tags": ["cleanup", "ui"],
-      "file": "pt-rebuild/pages/rehab.js, pt-rebuild/pages/rehab.module.css, pt-rebuild/components/CoverageSummary.js, pt-rebuild/components/CoverageMatrix.js, pt-rebuild/components/CoverageCapacity.js, pt-rebuild/components/CoverageExerciseCard.js",
-      "issue": "4 inline render helpers in pages/rehab.js exceed the 40L inline sub-component limit: renderSummary (45L), renderMatrix (50L), renderCapacity (66L), renderExerciseCard (144L). All close over page-level callbacks (toggleCapacity, handleCapacityClick) so prop interface needs design. rehab.js is currently 452L within the 500L cap — extract before the file grows further. TODOs added inline referencing this note.",
-      "resolved": null,
-      "context": "Flagged during DN-035 post-cleanup audit. rehab.js was Phase 1 code written before STRUCTURE_GUIDELINES.md defined the 40L inline rule. These helpers are nested (renderMatrix calls renderCapacity calls renderFocusGroup calls renderExerciseCard), so extraction order matters. renderExerciseCard is the largest (144L) and most self-contained — start there. renderFocusGroup (22L) passes the inline rule and can stay inline.",
-      "constraints_caveats": "Render helpers close over toggleCapacity and handleCapacityClick from outer scope — callbacks must become props on extraction. Do not extract renderFocusGroup (22L — passes inline rule). Do not touch this file during Phase 3 unless Phase 3 introduces a shared component that rehab also needs."
-    },
-    {
       "id": "DN-033",
       "status": "in_progress",
       "priority": "P2",
@@ -554,6 +520,53 @@
       "files_touched": "pt-rebuild/vercel.json, pt-rebuild/pages/rehab.js, pt-rebuild/pages/pt-view.js, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md",
       "validation": "Confirmed rewrite present in vercel.json and favicon tags in both Next.js heads. Requires a fresh deployment before browser console on preview can confirm 404 elimination.",
       "follow_ups": "After deploying this branch, re-run Playwright console check on /index.html, /pt_view.html, /pt_editor.html, and /rehab to confirm favicon 404 is fully removed."
+    },
+    {
+      "id": "DN-037",
+      "status": "done",
+      "priority": "P1",
+      "risk": "high",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "security",
+        "supabase",
+        "cleanup"
+      ],
+      "file": "pt-rebuild/lib/db.js, pt-rebuild/db/deploy_vocab.js, pt-rebuild/db/check_users.js, pt-rebuild/db/migrate.js",
+      "issue": "Replace service-role-first key resolution with secret-key-first server-side resolution and remove hardcoded admin key material from tracked files.",
+      "resolved": "2026-03-01",
+      "problem": "Server-side admin clients were configured via legacy service-role env names and a tracked script previously contained hardcoded admin key material.",
+      "root_cause": "Older scripts and helper logic predated Supabase secret-key guidance and continued to prefer legacy service-role naming patterns.",
+      "change_made": "Updated server-side admin key resolution to prefer `SUPABASE_SECRET_KEY` first, with temporary fallback to `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SERVICE_KEY` for backward compatibility. Removed hardcoded key material from tracked files and updated error messaging to require secret key (or legacy fallback) in `lib/db.js`, `db/deploy_vocab.js`, `db/check_users.js`, and `db/migrate.js`.",
+      "files_touched": "pt-rebuild/lib/db.js, pt-rebuild/db/deploy_vocab.js, pt-rebuild/db/check_users.js, pt-rebuild/db/migrate.js, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md",
+      "validation": "Repo scan confirms no `sb_secret_` literals remain in tracked code files and all admin-key call sites now resolve `SUPABASE_SECRET_KEY` before legacy service-role env vars.",
+      "follow_ups": "After Vercel env cleanup is confirmed everywhere, remove legacy fallbacks (`SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SERVICE_KEY`) to enforce a single secret-key path."
+    },
+    {
+      "id": "DN-036",
+      "status": "done",
+      "priority": "P3",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "cleanup",
+        "ui"
+      ],
+      "file": "pt-rebuild/pages/rehab.js, pt-rebuild/pages/rehab.module.css, pt-rebuild/components/CoverageSummary.js, pt-rebuild/components/CoverageMatrix.js, pt-rebuild/components/CoverageCapacity.js, pt-rebuild/components/CoverageExerciseCard.js",
+      "issue": "4 inline render helpers in pages/rehab.js exceeded the 40L inline sub-component limit.",
+      "resolved": "2026-03-01",
+      "problem": "Rehab coverage UI logic was concentrated in oversized inline render helpers (`renderSummary`, `renderMatrix`, `renderCapacity`, `renderExerciseCard`) that violated structure guidelines and made the page hard to maintain.",
+      "root_cause": "Phase 1 implementation was written before structure limits were enforced, so view helpers accumulated in `pages/rehab.js` instead of being extracted into cohesive components.",
+      "change_made": "Extracted large inline render helpers into dedicated components (`CoverageSummary`, `CoverageMatrix`, `CoverageCapacity`, `CoverageExerciseCard`) with their own CSS modules and prop interfaces for shared callbacks.",
+      "files_touched": "pt-rebuild/components/CoverageSummary.js, pt-rebuild/components/CoverageSummary.module.css, pt-rebuild/components/CoverageMatrix.js, pt-rebuild/components/CoverageMatrix.module.css, pt-rebuild/components/CoverageCapacity.js, pt-rebuild/components/CoverageCapacity.module.css, pt-rebuild/components/CoverageExerciseCard.js, pt-rebuild/components/CoverageExerciseCard.module.css, pt-rebuild/pages/rehab.js, pt-rebuild/docs/dev_notes.json, pt-rebuild/docs/DEV_NOTES.md",
+      "validation": "Rehab page now imports extracted components and no longer contains the original oversized inline helper blocks. Preview smoke checks on `/rehab` continued to load coverage data and menu interactions without regression.",
+      "follow_ups": "Keep `renderFocusGroup` inline unless it exceeds limits or requires reuse; continue Phase 3 migration work without re-introducing large inline render helpers."
     },
     {
       "id": "DN-035",
