@@ -1,7 +1,7 @@
 // ExerciseForm.js — exercise form orchestrator: state management, save/cancel, composes Core + Cues
 
 import { useState, useEffect } from 'react';
-import { generateExerciseId, createExercise, updateExercise } from '../lib/pt-editor';
+import { createExercise, updateExercise } from '../lib/pt-editor';
 import ExerciseFormCore from './ExerciseFormCore';
 import ExerciseFormCues from './ExerciseFormCues';
 import styles from './ExerciseForm.module.css';
@@ -67,7 +67,7 @@ export default function ExerciseForm({ exercise, referenceData, vocabularies, ac
         updated_date: exercise.updated_date ?? null,
       });
     } else {
-      setBasics(EMPTY_BASICS);
+      setBasics({ ...EMPTY_BASICS, id: crypto.randomUUID() });
       setPatternModifiers([]);
       setEquipment({ required: [], optional: [] });
       setMuscles({ primary: [], secondary: [] });
@@ -77,13 +77,6 @@ export default function ExerciseForm({ exercise, referenceData, vocabularies, ac
     }
     setError(null);
   }, [exercise]);
-
-  // Auto-generate exercise ID from canonical name when creating new exercises
-  useEffect(() => {
-    if (isNew && basics.canonical_name) {
-      setBasics(prev => ({ ...prev, id: generateExerciseId(prev.canonical_name) }));
-    }
-  }, [isNew, basics.canonical_name]);
 
   async function handleSave(e) {
     e.preventDefault();

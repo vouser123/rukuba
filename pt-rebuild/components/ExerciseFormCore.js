@@ -115,10 +115,9 @@ export default function ExerciseFormCore({
             <input
               className={styles.input}
               {...field('id')}
-              readOnly={!isNew}
-              placeholder="auto-generated from name"
+              readOnly
             />
-            <span className={styles.hint}>Auto-generated from canonical name. Edit only if needed.</span>
+            <span className={styles.hint}>Auto-assigned UUID. Read-only.</span>
           </div>
           <div className={styles.formGroup}>
             <label className={styles.fieldLabel}>Canonical Name *</label>
@@ -159,16 +158,18 @@ export default function ExerciseFormCore({
               ))}
             </div>
           </div>
-          <div className={styles.formGroup}>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={basics.archived ?? false}
-                onChange={e => onBasicsChange({ ...basics, archived: e.target.checked })}
-              />
-              Archived
-            </label>
-          </div>
+          {!isNew && (
+            <div className={styles.formGroup}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={basics.archived ?? false}
+                  onChange={e => onBasicsChange({ ...basics, archived: e.target.checked })}
+                />
+                Archived
+              </label>
+            </div>
+          )}
         </div>
       </details>
 
