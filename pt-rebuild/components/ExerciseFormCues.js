@@ -84,7 +84,7 @@ export default function ExerciseFormCues({
   return (
     <>
       {/* Section 5: Guidance & Cues */}
-      <details>
+      <details className={styles.section}>
         <summary className={styles.sectionHeader}>Guidance &amp; Cues</summary>
         <div className={styles.sectionContent}>
           <GuidanceSection label="Motor Cues" {...guidanceSetter('motor_cues')} />
@@ -95,7 +95,7 @@ export default function ExerciseFormCues({
       </details>
 
       {/* Section 6: Lifecycle & Status */}
-      <details>
+      <details className={styles.section}>
         <summary className={styles.sectionHeader}>Lifecycle &amp; Status</summary>
         <div className={styles.sectionContent}>
           <div className={styles.formGroup}>
@@ -138,7 +138,7 @@ export default function ExerciseFormCues({
       </details>
 
       {/* Section 7: Roles (read-only — editing is Phase 3b) */}
-      <details>
+      <details className={styles.section}>
         <summary className={styles.sectionHeader}>Roles (read-only — editing coming in Phase 3b)</summary>
         <div className={styles.sectionContent}>
           {roles && roles.length > 0 ? (
@@ -164,7 +164,7 @@ export default function ExerciseFormCues({
       </details>
 
       {/* Section 8: Vocabulary Reference (read-only) */}
-      <details>
+      <details className={styles.section}>
         <summary className={styles.sectionHeader}>Vocabulary Reference</summary>
         <div className={styles.sectionContent}>
           {vocabularies && Object.entries(vocabularies).map(([cat, terms]) => (

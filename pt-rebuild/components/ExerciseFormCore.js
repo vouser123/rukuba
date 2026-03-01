@@ -107,7 +107,7 @@ export default function ExerciseFormCore({
   return (
     <>
       {/* Section 1: Basic Information */}
-      <details open>
+      <details open className={styles.section}>
         <summary className={styles.sectionHeader}>Basic Information</summary>
         <div className={styles.sectionContent}>
           <div className={styles.formGroup}>
@@ -173,7 +173,7 @@ export default function ExerciseFormCore({
       </details>
 
       {/* Section 2: Equipment */}
-      <details>
+      <details className={styles.section}>
         <summary className={styles.sectionHeader}>Equipment</summary>
         <div className={styles.sectionContent}>
           <TagSection
@@ -194,7 +194,7 @@ export default function ExerciseFormCore({
       </details>
 
       {/* Section 3: Muscles */}
-      <details>
+      <details className={styles.section}>
         <summary className={styles.sectionHeader}>Muscles</summary>
         <div className={styles.sectionContent}>
           <TagSection
@@ -215,7 +215,7 @@ export default function ExerciseFormCore({
       </details>
 
       {/* Section 4: Form Parameters */}
-      <details>
+      <details className={styles.section}>
         <summary className={styles.sectionHeader}>Form Parameters</summary>
         <div className={styles.sectionContent}>
           <TagSection
