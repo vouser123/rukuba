@@ -18,17 +18,20 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 
-// Supabase connection (service role key required)
+// Supabase connection (server-only admin key required)
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_ADMIN_KEY =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY;
 
-if (!SUPABASE_SERVICE_KEY) {
-  console.error('ERROR: SUPABASE_SERVICE_KEY environment variable required');
-  console.error('Usage: SUPABASE_SERVICE_KEY=your-key node migrate.js');
+if (!SUPABASE_ADMIN_KEY) {
+  console.error('ERROR: SUPABASE_SECRET_KEY (or legacy service-role env var) environment variable required');
+  console.error('Usage: SUPABASE_SECRET_KEY=your-key node migrate.js');
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY);
 
 // Patient ID (from users table)
 const PATIENT_ID = '35c3ec8d-7e60-44b3-8ac8-969d559aae83';

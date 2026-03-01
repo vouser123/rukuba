@@ -55,7 +55,7 @@ export function getSupabaseWithAuth(accessToken) {
 }
 
 /**
- * Get Supabase admin client (service key - bypasses RLS)
+ * Get Supabase admin client (server-only key - bypasses RLS)
  * Use ONLY for admin operations like offline queue processing
  * @returns {import('@supabase/supabase-js').SupabaseClient}
  */
@@ -63,14 +63,16 @@ let supabaseAdminClient = null;
 
 export function getSupabaseAdmin() {
   if (!supabaseAdminClient) {
-    // Supabase Vercel integration uses SUPABASE_SERVICE_ROLE_KEY
-    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+    const SUPABASE_ADMIN_KEY =
+      process.env.SUPABASE_SECRET_KEY ||
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.SUPABASE_SERVICE_KEY;
 
-    if (!SUPABASE_SERVICE_KEY) {
-      throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+    if (!SUPABASE_ADMIN_KEY) {
+      throw new Error('Missing SUPABASE_SECRET_KEY (or legacy service-role env var) environment variable');
     }
 
-    supabaseAdminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    supabaseAdminClient = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY);
   }
   return supabaseAdminClient;
 }

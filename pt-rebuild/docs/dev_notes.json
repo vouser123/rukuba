@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-02-28"
+    "last_updated": "2026-03-01"
   },
   "enums": {
     "priority_levels": [
@@ -173,8 +173,67 @@
   },
   "open_items": [
     {
+      "id": "DN-039",
+      "status": "in_progress",
+      "priority": "P3",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "docs",
+        "reliability"
+      ],
+      "file": "pt-rebuild/docs/NEXTJS_MIGRATION.md",
+      "issue": "Document current Vercel CLI command syntax used for migration verification to avoid repeated failures from outdated flags.",
+      "resolved": null,
+      "context": "Recent verification work hit CLI syntax changes (e.g., list/inspect/logs flags). Migration file is the most-read current workflow doc and should carry a concise, dated reference.",
+      "constraints_caveats": "Keep this as short operational guidance; do not duplicate full CLI manuals."
+    },
+    {
+      "id": "DN-038",
+      "status": "in_progress",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "cleanup",
+        "docs",
+        "reliability"
+      ],
+      "file": "pt-rebuild/package.json, pt-rebuild/playwright.config.js, pt-rebuild/tests/smoke.spec.js",
+      "issue": "Set up Playwright test runner and add a minimal smoke test workflow that can be run from VS Code or terminal.",
+      "resolved": null,
+      "context": "User installed Playwright VS Code extension and requested Codex to set up dependencies plus a first smoke test.",
+      "constraints_caveats": "Keep setup lightweight and avoid hardcoding credentials. Use environment variables for any optional authenticated flow."
+    },
+    {
+      "id": "DN-037",
+      "status": "in_progress",
+      "priority": "P1",
+      "risk": "high",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "security",
+        "supabase",
+        "cleanup"
+      ],
+      "file": "pt-rebuild/lib/db.js, pt-rebuild/db/deploy_vocab.js, pt-rebuild/db/check_users.js, pt-rebuild/db/migrate.js",
+      "issue": "Replace service-role-first key resolution with secret-key-first server-side resolution and remove hardcoded admin key material from tracked files.",
+      "resolved": null,
+      "context": "Security sweep found hardcoded `sb_secret_...` value in db/deploy_vocab.js and multiple code paths that prefer service-role env names. Migrate to SUPABASE_SECRET_KEY precedence while retaining temporary fallback for existing deployment wiring.",
+      "constraints_caveats": "Do not expose admin keys in any client code or NEXT_PUBLIC env vars. Keep backward compatibility with SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SERVICE_KEY until Vercel env cleanup is complete."
+    },
+    {
       "id": "DN-036",
-      "status": "open",
+      "status": "in_progress",
       "priority": "P3",
       "risk": "low",
       "scope": "current",

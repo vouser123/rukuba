@@ -12,10 +12,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load environment variables
-const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-const SUPABASE_SERVICE_KEY = 'sb_secret_aov2KY6I4NYBozfw-_y00w_XniBBem1';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
+const SUPABASE_ADMIN_KEY =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+if (!SUPABASE_ADMIN_KEY) {
+  console.error('ERROR: SUPABASE_SECRET_KEY (or legacy service-role env var) environment variable required');
+  process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY);
 
 async function deployVocabSchema() {
   console.log('Deploying vocabulary tables to Supabase...\n');

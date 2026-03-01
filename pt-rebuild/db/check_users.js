@@ -1,9 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://zvgoaxdpkgfxklotqwpz.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_ADMIN_KEY =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+if (!SUPABASE_ADMIN_KEY) {
+  console.error('ERROR: SUPABASE_SECRET_KEY (or legacy service-role env var) environment variable required');
+  process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY);
 
 async function checkUsers() {
   console.log('Checking users table...\n');

@@ -1,8 +1,9 @@
 # Next.js Strangler Fig Migration
 
-**Branch:** `nextjs` (merge to `main` after each page is verified — see Branch Strategy below)
+**Branch:** `nextjs` (incremental page-by-page merges to `main` after verification — see Branch Strategy below)
 **Dev note:** DN-033
 **Status:** Phase 2 complete — `/rehab` and `/pt-view` both verified on preview URL
+**Policy note (2026-03-01):** This document was updated to explicitly confirm incremental merges to `main` as the active strategy (not full-freeze until final cutover).
 
 ---
 
@@ -12,6 +13,8 @@
 
 Main stays as pure vanilla JS throughout — production-safe and hotfix-friendly. The `nextjs` branch is a long-lived feature branch that gets merged to main only when all pages are migrated and verified.
 
+**Decision record — 2026-03-01:** Use incremental releases. As each migrated page is verified on preview, merge that page slice to `main`, verify production, then retire the corresponding legacy HTML route.
+
 **Escape hatch:** If the migration is abandoned, delete the `nextjs` branch. Main is untouched. Zero cleanup needed.
 
 **Note on Codex:** When using Codex from the claude.ai website, it clones `main` and cannot see the `nextjs` branch. For migration work with Codex, use it locally where you can specify the branch. Hotfixes to the vanilla JS app can be done on `main` at any time — the branches don't conflict.
@@ -19,7 +22,25 @@ Main stays as pure vanilla JS throughout — production-safe and hotfix-friendly
 **Vercel preview URL for `nextjs` branch:**
 `https://pt-rehab-git-nextjs-pt-tracker.vercel.app`
 
-**Merge strategy:** One page = verified on preview → merge to main → verify on production → retire old HTML → next page.
+**Merge strategy (active):** One page = verified on preview → merge to main → verify on production → retire old HTML → next page.
+
+---
+
+## Vercel CLI Notes (2026-03-01)
+
+Use these commands for migration verification in this repo:
+
+- Preview deployments list (JSON): `npx vercel@latest ls --environment preview --format json`
+- Inspect deployment summary: `npx vercel@latest inspect <deployment-url-or-id>`
+- Inspect build logs: `npx vercel@latest inspect <deployment-url-or-id> --logs`
+- Runtime logs (historical window): `npx vercel@latest logs --environment preview --level error --since 2h --no-branch --limit 200`
+- Runtime logs for deployment URL (historical): `npx vercel@latest logs <deployment-url> --no-follow`
+
+Known syntax pitfalls seen during DN-039:
+
+- `vercel ls` does **not** support `--branch`
+- `vercel inspect` does **not** support `--no-clipboard`
+- `vercel logs` with deployment URL implies follow mode; use `--no-follow` when filtering by time
 
 ---
 
