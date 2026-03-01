@@ -390,31 +390,33 @@ Run after every phase or sub-phase on `https://pt-rehab-git-nextjs-pt-tracker.ve
 
 ---
 
-### Phase 3: pt_editor (future — broken into sub-phases)
+### Phase 3: pt_editor — broken into sub-phases
 
-**Target URL:** `/pt` (retire `pt_editor.html` after verification — currently served at `/pt` via `vercel.json` rewrite)
+**Target URL:** `/program` (chosen over `/pt` which conflicts with `vercel.json` rewrite; over `/exercises` which is too narrow; page covers exercises + roles + dosages + vocab)
+**NavMenu label:** `📋 Program Editor`
+**Retire:** `pt_editor.html` after Phase 3 verified in production
 
 Split into sub-phases because pt_editor has 4 distinct feature areas, each independently testable.
 
-#### Phase 3a: Exercise management
-- Page skeleton + auth + nav
-- Exercise list (fetch + render)
-- Add / edit / delete exercises
-- New file: `pages/pt-editor.module.css`
-- New file: `lib/pt-editor.js` (data logic, same pattern as `lib/rehab-coverage.js`)
+#### Phase 3a: Exercise management ✅ in progress (DN-041)
+- Page skeleton + auth + NavMenu: `pages/program.js`, `pages/program.module.css`
+- Exercise list (search, archive toggle, select)
+- Add / edit exercises — full 8-section form
+- Files: `lib/pt-editor.js`, `components/ExerciseForm.js`, `components/ExerciseFormCore.js`, `components/ExerciseFormCues.js`, `components/ExerciseForm.module.css`
+- Roles section within form is **read-only display** in 3a — editing is 3b
+- No new API routes (uses existing `/api/exercises`, `/api/vocab`, `/api/reference-data`)
 
-#### Phase 3b: Log entry + timer
-- Log entry form (exercise select, reps, sets)
-- Rest timer between sets
-- `useTimer` hook → replaces timer global
+#### Phase 3b: Assign Roles + Manage Dosages
+- Section 2: role assignment per exercise (`/api/roles`)
+- Section 3: dosage management per exercise/patient (`/api/programs`)
+- Both sections added to `pages/program.js`
 
-#### Phase 3c: Audio + pocket mode
-- `useAudio` hook → replaces audio system
-- `usePocketMode` hook → replaces pocket mode toggle + timer
-- Offline queue (reuse `useOfflineQueue` built in Phase 3b)
+#### Phase 3c: Vocabulary Editor
+- Section 4: controlled vocab CRUD (`/api/vocab` POST/PUT/DELETE)
+- Admin/therapist only
+- Added to `pages/program.js`
 
-**When starting Phase 3:**
-Update NAV_PAGES in `components/NavMenu.js`: `pt_editor` href from `/pt_editor.html` → `/pt`
+**When starting Phase 3:** ✅ Done — NavMenu updated: `pt_editor` href `/pt_editor.html` → `/program`, label → `📋 Program Editor`
 
 ---
 

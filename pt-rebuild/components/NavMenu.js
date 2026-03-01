@@ -44,7 +44,7 @@ import styles from './NavMenu.module.css';
 const NAV_PAGES = [
     { id: 'index',          href: '/index.html',          label: '📱 PT Tracker',       adminOnly: false },
     { id: 'pt_view',        href: '/pt-view',              label: '📊 View History',      adminOnly: false },
-    { id: 'pt_editor',      href: '/pt_editor.html',      label: '✏️ Exercise Editor',   adminOnly: true  },
+    { id: 'pt_editor',      href: '/program',             label: '📋 Program Editor',    adminOnly: true  },
     { id: 'rehab_coverage', href: '/rehab',               label: '📈 Coverage Analysis', adminOnly: false },
 ];
 
