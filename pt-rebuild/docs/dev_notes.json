@@ -173,6 +173,20 @@
   },
   "open_items": [
     {
+      "id": "DN-041",
+      "status": "in_progress",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/pages/program.js, pt-rebuild/pages/program.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseFormCore.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/NavMenu.js",
+      "issue": "Phase 3a: migrate pt_editor exercise management to Next.js at /program. Covers exercise list, add/edit exercises (all 8 form sections), auth guard, NavMenu. Roles editing (Phase 3b) and vocab editor (Phase 3c) are follow-on phases.",
+      "resolved": null,
+      "context": "Page file: pages/program.js. Route: /program. URL chosen over /pt (conflicts with vercel.json rewrite), /edit (too generic), /exercises (too narrow). Components split per STRUCTURE_GUIDELINES caps: ExerciseFormCore (sections 1-4), ExerciseFormCues (sections 5-8), ExerciseForm (orchestrator). Roles section within form is read-only display in Phase 3a — editing is Phase 3b. API: uses existing /api/exercises, /api/vocab, /api/reference-data — no new API routes. NavMenu label updated to 'Program Editor'. No vercel.json changes needed.",
+      "constraints_caveats": "POST/PUT /api/exercises returns raw DB row, not full normalized object — page re-fetches all exercises after save. Do not create new API routes (currently 9/12 Vercel slots used)."
+    },
+    {
       "id": "DN-039",
       "status": "in_progress",
       "priority": "P3",
@@ -227,7 +241,7 @@
       "file": "pt-rebuild/package.json, pt-rebuild/next.config.mjs, pt-rebuild/pages/rehab.js, pt-rebuild/pages/rehab.module.css, pt-rebuild/pages/_app.js, pt-rebuild/lib/rehab-coverage.js, pt-rebuild/lib/supabase.js, pt-rebuild/hooks/useAuth.js, pt-rebuild/components/NavMenu.js, pt-rebuild/components/NavMenu.module.css, pt-rebuild/components/AuthForm.js, pt-rebuild/components/AuthForm.module.css, pt-rebuild/styles/globals.css",
       "issue": "Strangler Fig migration to Next.js (Pages Router). Existing static HTML pages remain untouched; new pages built in Next.js one at a time. Phase 1: scaffolding + shared architecture (lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js) + rehab_coverage migrated to pages/rehab.js.",
       "resolved": null,
-      "context": "Phase 1 and Phase 2 complete on nextjs branch. Pre-migration cleanup (DN-035) done: PatientNotes + HistoryList extracted to components/, pt-view.module.css 670L→369L. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard. Components: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, components/PatientNotes.js, components/HistoryList.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. Vanilla JS pages untouched. Next step: Phase 3 (pt_editor → /pt).",
+      "context": "Phase 1 and Phase 2 complete on nextjs branch. Pre-migration cleanup (DN-035) done: PatientNotes + HistoryList extracted to components/, pt-view.module.css 670L→369L. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard. Components: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, components/PatientNotes.js, components/HistoryList.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. Vanilla JS pages untouched. Phase 3a in progress (DN-041): pt_editor → /program. Exercise management built; roles/dosages/vocab editing in follow-on phases.",
       "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges."
     },
     {
