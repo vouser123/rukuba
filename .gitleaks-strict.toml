@@ -1,0 +1,22 @@
+title = "Rukuba strict secret scanning config"
+
+[extend]
+useDefault = false
+
+[[rules]]
+id = "supabase-secret-key"
+description = "Supabase secret key"
+regex = '''sb_secret_[A-Za-z0-9_-]{20,}'''
+keywords = ["sb_secret_"]
+
+[[rules]]
+id = "private-key-block"
+description = "Private key material"
+regex = '''-----BEGIN[ A-Z0-9_-]*PRIVATE KEY-----'''
+keywords = ["PRIVATE KEY"]
+
+[[rules]]
+id = "generic-jwt-assignment"
+description = "Hardcoded JWT-like token assignment in code/config"
+regex = '''(?i)(token|api[_-]?key|secret|service[_-]?key)\s*[:=]\s*['\"]eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}['\"]'''
+keywords = ["eyJ"]
