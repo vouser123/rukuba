@@ -108,13 +108,21 @@ export default function ExerciseFormLifecycle({
           )}
         </div>
 
-        {/* Read-only audit dates */}
-        {lifecycle.added_date && (
-          <p className={styles.readonlyDate}>
-            Added: {lifecycle.added_date}
-            {lifecycle.updated_date ? ` · Updated: ${lifecycle.updated_date}` : ''}
-          </p>
-        )}
+        {/* Read-only audit dates — always shown; format strips time component from ISO timestamps */}
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
+            <label className={styles.fieldLabel}>Added Date</label>
+            <p className={styles.readonlyDate}>
+              {lifecycle.added_date ? lifecycle.added_date.split('T')[0] : '—'}
+            </p>
+          </div>
+          <div className={styles.formGroup}>
+            <label className={styles.fieldLabel}>Last Updated</label>
+            <p className={styles.readonlyDate}>
+              {lifecycle.updated_date ? lifecycle.updated_date.split('T')[0] : '—'}
+            </p>
+          </div>
+        </div>
 
       </div>
     </details>
