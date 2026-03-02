@@ -230,7 +230,7 @@
     },
     {
       "id": "DN-047",
-      "status": "open",
+      "status": "in_progress",
       "priority": "P2",
       "risk": "low",
       "scope": "current",
@@ -241,20 +241,6 @@
       "resolved": null,
       "context": "Part of Phase 4 index.html migration (DN-045). Props: exercises, programs, selectedId, onSelect, sortMode, onSortChange. Dosage summary format: reuse formatDosageSummary from pages/program.js or extract to lib. Adherence badge reads from programs entry for the exercise. Role visibility: exercises with no active roles still shown; role display is informational only.",
       "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Do not implement drag-and-drop here — that is DN-050. Sort mode selector UI stub only (calls onSortChange, does not implement sorting logic)."
-    },
-    {
-      "id": "DN-046",
-      "status": "open",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": ["codex"],
-      "tags": ["migration", "ui"],
-      "file": "pt-rebuild/pages/index.js, pt-rebuild/pages/index.module.css, pt-rebuild/hooks/useIndexData.js, pt-rebuild/lib/index-data.js",
-      "issue": "Phase 4a: Scaffold pages/index.js shell (auth guard + layout composition, no section content yet), hooks/useIndexData.js (fetch exercises/programs/logs with loading/error state), and lib/index-data.js (fetch adapters for GET /api/exercises, /api/programs, /api/logs).",
-      "resolved": null,
-      "context": "Part of Phase 4 index.html migration (DN-045). pages/index.js: useAuth guard → AuthForm if not signed in, NavMenu, BottomNav placeholder, component slots (ExercisePicker, SessionLoggerModal, HistoryPanel). useIndexData: Promise.all for all three fetches, returns { exercises, programs, logs, loading, error }. lib/index-data.js: pure fetch functions matching existing lib/*.js patterns. Claude wires up after scaffolding.",
-      "constraints_caveats": "CRITICAL: Do not create pages/index.js until confirmed — currently public/index.html serves /. Creating pages/index.js will immediately shadow it on the nextjs branch preview. This is intentional for Phase 4 but must not be accidentally deployed to main. All work is on the nextjs branch."
     },
     {
       "id": "DN-045",
@@ -615,6 +601,26 @@
     }
   ],
   "closed_items": [
+    {
+      "id": "DN-046",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/pages/index.js, pt-rebuild/pages/index.module.css, pt-rebuild/hooks/useIndexData.js, pt-rebuild/lib/index-data.js",
+      "issue": "Phase 4a: Scaffold pages/index.js shell (auth guard + layout composition, no section content yet), hooks/useIndexData.js (fetch exercises/programs/logs with loading/error state), and lib/index-data.js (fetch adapters for GET /api/exercises, /api/programs, /api/logs).",
+      "resolved": "2026-03-02",
+      "context": "Part of Phase 4 index.html migration (DN-045). pages/index.js now provides auth-guarded shell layout, NavMenu, refresh control, and placeholder slots for ExercisePicker, SessionLoggerModal, HistoryPanel, and BottomNav. useIndexData loads exercises/programs/logs concurrently via Promise.all and surfaces loading/error/reload state for future phase wiring.",
+      "constraints_caveats": "Creating pages/index.js shadows public/index.html on nextjs preview by design for Phase 4. Do not merge this route to main until 4i cutover retires public/index.html.",
+      "problem": "Phase 4 index migration needed a dedicated page shell and bootstrap data layer before feature domains (exercise picker, logging, history, timer, offline, PWA) can be ported safely.",
+      "root_cause": "The legacy tracker route mixed all concerns in public/index.html, so migration lacked the React shell, fetch adapters, and hook boundary required for staged sub-phase delivery.",
+      "change_made": "Created pages/index.js and pages/index.module.css for the auth-guarded tracker shell, created hooks/useIndexData.js for loading/error/reload state, and created lib/index-data.js with pure fetch adapters for /api/exercises, /api/programs, and /api/logs.",
+      "files_touched": "pt-rebuild/pages/index.js (new), pt-rebuild/pages/index.module.css (new), pt-rebuild/hooks/useIndexData.js (new), pt-rebuild/lib/index-data.js (new), pt-rebuild/docs/dev_notes.json",
+      "validation": "Ran `npm run build` successfully on 2026-03-02. Next.js compiled and prerendered route `/` without errors; new files passed build integration checks.",
+      "follow_ups": "DN-047 in progress: implement ExercisePicker component and wire into pages/index.js. Keep Claude-owned files untouched: BottomNav/HistoryPanel and index-history/index-offline libs."
+    },
     {
       "id": "DN-043",
       "status": "done",
