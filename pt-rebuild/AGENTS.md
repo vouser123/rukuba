@@ -4,7 +4,7 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 
 ## Canonical References
 
-- `pt-rebuild/docs/STRUCTURE_GUIDELINES.md` - file size limits, split rules, cohesion checks, folder structure, naming conventions
+- `pt-rebuild/docs/NEXTJS_STRUCTURE.md` - file size limits, split rules, cohesion checks, folder structure, naming conventions
 - `pt-rebuild/docs/DEVELOPMENT.md` - architecture and implementation reference
 - `pt-rebuild/docs/DEV_PRACTICES.md` - day-to-day workflow and troubleshooting
 - `pt-rebuild/docs/vocabularies.md` - canonical field names and data contracts
