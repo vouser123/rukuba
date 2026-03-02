@@ -1,0 +1,45 @@
+/* BottomNav.module.css — fixed bottom tab bar */
+
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  z-index: 100;
+  /* iOS safe area padding */
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 56px;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab.active {
+  color: var(--ios-blue, #007AFF);
+}
+
+/* Offline sync count badge */
+.syncBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ios-red, #FF3B30);
+  line-height: 1;
+}

@@ -1,0 +1,108 @@
+.page {
+    min-height: 100vh;
+    background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
+    color: var(--text-primary);
+    padding: 16px;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.title {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.subtitle {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.refreshButton {
+    min-height: 44px;
+    min-width: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 0 12px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.refreshButton:disabled {
+    opacity: 0.7;
+}
+
+.errorBanner {
+    border: 1px solid var(--danger-color);
+    background: color-mix(in srgb, var(--danger-color) 12%, transparent);
+    color: var(--text-primary);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.main {
+    display: grid;
+    gap: 12px;
+    /* Clear fixed BottomNav (56px) + iOS safe area + page padding */
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+.summaryCard {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    padding: 14px;
+}
+
+.summaryTitle {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+
+.summaryLine {
+    margin: 4px 0;
+    font-size: 0.95rem;
+}
+
+.panel {
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    padding: 14px;
+}
+
+.panelTitle {
+    margin: 0 0 6px;
+    font-size: 1rem;
+}
+
+.panelDescription {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 720px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .headerActions {
+        justify-content: space-between;
+    }
+}
