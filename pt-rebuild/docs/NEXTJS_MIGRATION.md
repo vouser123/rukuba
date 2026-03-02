@@ -398,18 +398,31 @@ Run after every phase or sub-phase on `https://pt-rehab-git-nextjs-pt-tracker.ve
 
 Split into sub-phases because pt_editor has 4 distinct feature areas, each independently testable.
 
-#### Phase 3a: Exercise management ✅ in progress (DN-041)
+#### Phase 3a: Exercise management ✅ COMPLETE (DN-041, verified 2026-03-01)
 - Page skeleton + auth + NavMenu: `pages/program.js`, `pages/program.module.css`
-- Exercise list (search, archive toggle, select)
-- Add / edit exercises — full 8-section form
-- Files: `lib/pt-editor.js`, `components/ExerciseForm.js`, `components/ExerciseFormCore.js`, `components/ExerciseFormCues.js`, `components/ExerciseForm.module.css`
-- Roles section within form is **read-only display** in 3a — editing is 3b
+- Exercise list (search, archive toggle, select), add / edit exercises — full 8-section form
+- Lifecycle & Status extracted to `components/ExerciseFormLifecycle.js` (supersedes relationship, bi-directional update)
+- Files: `lib/pt-editor.js`, `components/ExerciseForm.js`, `components/ExerciseFormCore.js`, `components/ExerciseFormCues.js`, `components/ExerciseFormLifecycle.js`, `components/ExerciseForm.module.css`
 - No new API routes (uses existing `/api/exercises`, `/api/vocab`, `/api/reference-data`)
 
-#### Phase 3b: Assign Roles + Manage Dosages
-- Section 2: role assignment per exercise (`/api/roles`)
-- Section 3: dosage management per exercise/patient (`/api/programs`)
-- Both sections added to `pages/program.js`
+#### Phase 3b: Roles editing + DosageModal (DN-042)
+**Roles:**
+- Makes Roles section (section 7) editable in `ExerciseFormCues.js` — was read-only in 3a
+- Add role: region × capacity × focus (optional) × contribution; POST `/api/roles`
+- Remove role: soft-delete (sets `active=false`); DELETE `/api/roles/:id`
+- No PUT on roles — create or delete only
+- Callbacks flow: `ExerciseForm.js` → `ExerciseFormCues.js` (no API calls in components)
+- Guard: Add/Remove disabled on unsaved new exercises (no ID yet)
+
+**DosageModal:**
+- New shared component `components/DosageModal.js` + `DosageModal.module.css`
+- Fields: sets (always), reps (hidden for duration/distance exercises), seconds (for hold/duration), distance (for distance modifier)
+- Props: `exercise`, `program`, `onSave(formData)`, `onClose()` — parent handles API call
+- Triggered from `/program` selector panel (Dosage button appears when exercise is selected)
+- Programs loaded at page load via GET `/api/programs?patient_id=X`, keyed by `exercise_id`
+- Reusable: same component used from future tracker page migration (Phase 4)
+- API calls in `lib/pt-editor.js`: `addRole`, `deleteRole`, `fetchPrograms`, `createProgram`, `updateProgram`
+- No new API routes
 
 #### Phase 3c: Vocabulary Editor
 - Section 4: controlled vocab CRUD (`/api/vocab` POST/PUT/DELETE)
@@ -420,28 +433,78 @@ Split into sub-phases because pt_editor has 4 distinct feature areas, each indep
 
 ---
 
-### Phase 4: index (future — last, broken into sub-phases)
+### Phase 4: index (future — last, structure-first split)
 
 The main app entry. Must be migrated last because `pages/index.js` takes precedence over `public/index.html`.
 
 **Target URL:** `/` (only possible after `public/index.html` is retired)
 
-Split into sub-phases because index.html is the most-used page and must stay fully working throughout.
+This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shell vs component UI vs hooks state/effects vs pure lib transforms) to reduce regression risk on the highest-traffic page.
 
-#### Phase 4a: Core exercise flow
-- Page skeleton + auth + nav
-- Exercise picker (fetch + search + select)
-- Session logger + rep counter
-- New file: `pages/index.module.css`
+#### Planned structure for index migration
 
-#### Phase 4b: History + navigation
-- History view (recent logs)
-- Bottom navigation bar
+**Page shell**
+- `pages/index.js` — route shell only (auth guard, top-level state orchestration, section composition)
+- `pages/index.module.css` — page layout styles only
 
-#### Phase 4c: Offline + PWA
-- Offline queue (reuse `useOfflineQueue`)
-- Service worker registration
-- PWA install prompt
+**Components**
+- `components/ExercisePicker.js` + `ExercisePicker.module.css`
+- `components/SessionLoggerModal.js` + `SessionLoggerModal.module.css`
+- `components/TimerPanel.js` + `TimerPanel.module.css`
+- `components/HistoryPanel.js` + `HistoryPanel.module.css`
+- `components/BottomNav.js` + `BottomNav.module.css`
+- `components/PwaInstallPrompt.js` + `PwaInstallPrompt.module.css`
+
+**Hooks**
+- `hooks/useIndexData.js` — exercises/programs/logs loading state
+- `hooks/useSessionLogging.js` — create/update log submission state machine
+- `hooks/useIndexOfflineQueue.js` — queue/sync lifecycle with user-scoped keys
+- `hooks/useTimerSpeech.js` — timer/counter/voice behavior
+
+**Lib (pure functions only)**
+- `lib/index-data.js` — fetch adapters + payload shaping helpers
+- `lib/index-history.js` — grouping/filter/prefilter transforms
+- `lib/index-offline.js` — queue/idempotency helpers
+
+#### Phase 4a: Shell + auth + data bootstrap
+- Wire `useAuth`, `AuthForm`, and `NavMenu`
+- Bring over initial page bootstrap and route guards
+- Keep API surface unchanged (no new routes)
+
+#### Phase 4b: Exercise selection domain
+- Port exercise list/search/select behavior into `ExercisePicker`
+- Preserve current program-based loading behavior and role visibility
+
+#### Phase 4c: Logging domain
+- Port log modal + submit flow into `SessionLoggerModal` and `useSessionLogging`
+- Preserve existing set/form-data permutations and idempotency behavior
+
+#### Phase 4d: Timer/counter/speech domain
+- Port rep counter, timer variants, and voice cues into `TimerPanel` + `useTimerSpeech`
+- Preserve iOS-safe interaction rules (`onPointerUp`, touch-safe targets/styles)
+
+#### Phase 4e: History + nav domain
+- Port history rendering and filtering into `HistoryPanel`
+- Port bottom navigation into `BottomNav`
+- Include exercise-context prefilter behavior (DN-014)
+
+#### Phase 4f: UX parity fixes during migration
+- Add exercise ordering persistence behavior (DN-012)
+- Resolve intermittent `Signed in as -` timing on initial load (DN-015)
+
+#### Phase 4g: Offline/sync domain
+- Port localStorage queue/sync flow into `useIndexOfflineQueue`
+- Scope queue by user to prevent cross-account carryover on shared devices (DN-022 concern)
+- Do not re-introduce deprecated `/api/sync` flow
+
+#### Phase 4h: PWA/install domain
+- Port service worker registration and install prompt behavior into `PwaInstallPrompt`
+- Verify offline shell and install flow parity
+
+#### Phase 4i: Cutover + retirement
+- Verify preview then production parity
+- Retire `public/index.html` and update routing/nav references
+- Keep rollback path documented before final cutover
 
 ---
 
