@@ -193,46 +193,6 @@
       "constraints_caveats": "Keep guidance concise; do not include raw findings or secret values in notes."
     },
     {
-      "id": "DN-042",
-      "status": "resolved",
-      "resolved": "2026-03-01",
-      "priority": "P1",
-      "risk": "medium",
-      "scope": "current",
-      "agent": [
-        "codex"
-      ],
-      "tags": [
-        "security",
-        "reliability",
-        "docs"
-      ],
-      "file": "rukuba/.github/workflows/secret-scan-fast.yml, rukuba/.github/workflows/secret-scan-deep.yml, rukuba/.gitleaks-strict.toml, rukuba/.trufflehog-exclude-paths.txt, pt-rebuild/docs/dev_notes.json",
-      "issue": "Set up low-false-positive secret scanning policy for AI-agent workflow (fast blocking checks + deep scheduled scans).",
-      "context": "User requested stronger prevention with explicit false-positive control after prior real secret exposure in history. Configure blocking checks around high-confidence findings only, with scoped suppressions for known documentation placeholders.",
-      "constraints_caveats": "Do not log raw secret values in CI output. Keep suppressions path-scoped and avoid global regex allowlists that could mask real leaks."
-    },
-    {
-      "id": "DN-043",
-      "status": "resolved",
-      "resolved": "2026-03-01",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": [
-        "claude"
-      ],
-      "tags": [
-        "migration",
-        "ui"
-      ],
-      "file": "pt-rebuild/pages/program.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/DosageModal.js, pt-rebuild/components/DosageModal.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/docs/NEXTJS_MIGRATION.md",
-      "issue": "Phase 3b: roles editing (ExerciseFormCues section 7 made editable) + DosageModal shared component for patient program dosage management.",
-      "context": "Roles: POST /api/roles (create) + DELETE /api/roles/:id (soft-delete, active=false). No PUT. Callbacks flow from ExerciseForm.js → ExerciseFormCues (no API calls in components). Guard: Add/Remove disabled for unsaved exercises. DosageModal: shared component, props onSave/onClose, fields adapt to exercise.pattern_modifiers. Triggered from /program selector panel. Programs loaded at page load via GET /api/programs?patient_id=X, keyed by exercise_id. Reusable from future tracker migration.",
-      "constraints_caveats": "No new API routes. DosageModal must not import from lib/ — receives onSave callback from parent. Roles require exercise.id — disable add/remove for new unsaved exercises.",
-      "last_updated": "2026-03-01"
-    },
-    {
       "id": "DN-039",
       "status": "in_progress",
       "priority": "P3",
@@ -557,6 +517,46 @@
     }
   ],
   "closed_items": [
+    {
+      "id": "DN-043",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/pages/program.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/DosageModal.js, pt-rebuild/components/DosageModal.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/docs/NEXTJS_MIGRATION.md",
+      "issue": "Phase 3b: roles editing (ExerciseFormCues section 7 made editable) + DosageModal shared component for patient program dosage management.",
+      "resolved": "2026-03-01",
+      "context": "Roles: POST /api/roles (create) + DELETE /api/roles/:id (soft-delete, active=false). No PUT. Callbacks flow from ExerciseForm.js → ExerciseFormCues (no API calls in components). Guard: Add/Remove disabled for unsaved exercises. DosageModal: shared component, props onSave/onClose, fields adapt to exercise.pattern_modifiers. Triggered from /program selector panel. Programs loaded at page load via GET /api/programs?patient_id=X, keyed by exercise_id. Reusable from future tracker migration.",
+      "constraints_caveats": "No new API routes. DosageModal must not import from lib/ — receives onSave callback from parent. Roles require exercise.id — disable add/remove for new unsaved exercises.",
+      "problem": "Roles section in ExerciseFormCues was read-only. No UI existed to set patient dosage for exercises.",
+      "root_cause": "Phase 3a intentionally deferred roles editing and dosage management to keep scope contained.",
+      "change_made": "Made Roles section editable (add/remove via /api/roles POST+DELETE). Added DosageModal shared component with pattern_modifiers-aware field visibility. Wired programs state and dosage button into program.js. Added fetchRoles, addRole, deleteRole, fetchPrograms, createProgram, updateProgram to lib/pt-editor.js.",
+      "files_touched": "pt-rebuild/pages/program.js, pt-rebuild/pages/program.module.css, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/DosageModal.js (new), pt-rebuild/components/DosageModal.module.css (new), pt-rebuild/lib/pt-editor.js, pt-rebuild/docs/NEXTJS_MIGRATION.md",
+      "validation": "Verified on Vercel preview 2026-03-01: roles table shows with Remove buttons; Add Role form populates from vocab; dosage button shows existing summary (1 × 20); DosageModal opens pre-filled, saves correctly, button updates to new values; re-open shows persisted values. No console errors.",
+      "follow_ups": "Phase 3c (vocabulary editor) remains. DosageModal reused from Phase 4 tracker page migration."
+    },
+    {
+      "id": "DN-042",
+      "status": "done",
+      "priority": "P1",
+      "risk": "medium",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["security", "reliability", "docs"],
+      "file": "rukuba/.github/workflows/secret-scan-fast.yml, rukuba/.github/workflows/secret-scan-deep.yml, rukuba/.gitleaks-strict.toml, rukuba/.trufflehog-exclude-paths.txt, pt-rebuild/docs/dev_notes.json",
+      "issue": "Set up low-false-positive secret scanning policy for AI-agent workflow (fast blocking checks + deep scheduled scans).",
+      "resolved": "2026-03-01",
+      "context": "User requested stronger prevention with explicit false-positive control after prior real secret exposure in history. Configure blocking checks around high-confidence findings only, with scoped suppressions for known documentation placeholders.",
+      "constraints_caveats": "Do not log raw secret values in CI output. Keep suppressions path-scoped and avoid global regex allowlists that could mask real leaks.",
+      "problem": "No automated secret scanning in CI — secrets could be committed without detection.",
+      "root_cause": "Project lacked CI enforcement; prior real secret exposure (email) occurred and was caught manually.",
+      "change_made": "Created secret-scan-fast.yml (blocking, PR/push), secret-scan-deep.yml (scheduled deep scan). Added .gitleaks-strict.toml config and .trufflehog-exclude-paths.txt for false-positive suppression. Scoped suppressions to known documentation placeholders only.",
+      "files_touched": "rukuba/.github/workflows/secret-scan-fast.yml, rukuba/.github/workflows/secret-scan-deep.yml, rukuba/.gitleaks-strict.toml, rukuba/.trufflehog-exclude-paths.txt",
+      "validation": "Workflows created and config files in place. CI rollout verification tracked separately in DN-044.",
+      "follow_ups": "DN-044: verify CI triggers, pass/fail visibility, and branch-protection readiness in GitHub Actions."
+    },
     {
       "id": "DN-041",
       "status": "done",
