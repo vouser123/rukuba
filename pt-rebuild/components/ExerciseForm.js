@@ -1,30 +1,35 @@
-// ExerciseForm.js — exercise form orchestrator: state management, save/cancel, composes Core + Cues
+// ExerciseForm.js — exercise form orchestrator: state management, save/cancel, composes Core + Cues + Lifecycle
 
 import { useState, useEffect } from 'react';
 import { createExercise, updateExercise } from '../lib/pt-editor';
 import ExerciseFormCore from './ExerciseFormCore';
 import ExerciseFormCues from './ExerciseFormCues';
+import ExerciseFormLifecycle from './ExerciseFormLifecycle';
 import styles from './ExerciseForm.module.css';
 
 const EMPTY_BASICS = {
   id: '', canonical_name: '', description: '', pt_category: '', pattern: '', archived: false,
 };
 const EMPTY_LIFECYCLE = {
-  status: null, effective_start_date: null, effective_end_date: null, added_date: null, updated_date: null,
+  status: null, effective_start_date: null, effective_end_date: null,
+  added_date: null, updated_date: null,
+  superseded_by: null, superseded_date: null,
 };
 
 /**
  * Exercise form orchestrator. Holds all form state and delegates rendering to
- * ExerciseFormCore (sections 1–4) and ExerciseFormCues (sections 5–8).
+ * ExerciseFormCore (sections 1–4), ExerciseFormCues (sections 5, 7, 8),
+ * and ExerciseFormLifecycle (section 6).
  *
  * @param {Object|null} exercise      - null = new exercise; full exercise object = edit
+ * @param {Array} exercises           - full exercise list for the supersedes dropdown
  * @param {Object} referenceData      - { equipment: [], muscles: [], formParameters: [] }
  * @param {Object} vocabularies       - keyed by category
  * @param {string} accessToken
  * @param {Function} onSaved          - (isNew: boolean) => void — called after successful save
  * @param {Function} onCancel
  */
-export default function ExerciseForm({ exercise, referenceData, vocabularies, accessToken, onSaved, onCancel }) {
+export default function ExerciseForm({ exercise, exercises, referenceData, vocabularies, accessToken, onSaved, onCancel }) {
   const isNew = !exercise;
 
   const [basics, setBasics] = useState(EMPTY_BASICS);
@@ -34,6 +39,8 @@ export default function ExerciseForm({ exercise, referenceData, vocabularies, ac
   const [formParameters, setFormParameters] = useState([]);
   const [guidance, setGuidance] = useState({});
   const [lifecycle, setLifecycle] = useState(EMPTY_LIFECYCLE);
+  // ID of the exercise this one supersedes (null = none); saved as supersedes_exercise_id
+  const [supersedes, setSupersedes] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -65,7 +72,11 @@ export default function ExerciseForm({ exercise, referenceData, vocabularies, ac
         effective_end_date: exercise.lifecycle?.effective_end_date ?? null,
         added_date: exercise.added_date ?? null,
         updated_date: exercise.updated_date ?? null,
+        superseded_by: exercise.superseded_by ?? null,
+        superseded_date: exercise.superseded_date ?? null,
       });
+      // supersedes is stored as an array from the GET; take first element
+      setSupersedes(exercise.supersedes?.[0] ?? null);
     } else {
       setBasics({ ...EMPTY_BASICS, id: crypto.randomUUID() });
       setPatternModifiers([]);
@@ -74,6 +85,7 @@ export default function ExerciseForm({ exercise, referenceData, vocabularies, ac
       setFormParameters([]);
       setGuidance({});
       setLifecycle(EMPTY_LIFECYCLE);
+      setSupersedes(null);
     }
     setError(null);
   }, [exercise]);
@@ -94,6 +106,7 @@ export default function ExerciseForm({ exercise, referenceData, vocabularies, ac
       lifecycle_status: lifecycle.status,
       lifecycle_effective_start_date: lifecycle.effective_start_date,
       lifecycle_effective_end_date: lifecycle.effective_end_date,
+      supersedes_exercise_id: supersedes || null,
     };
 
     try {
@@ -132,10 +145,17 @@ export default function ExerciseForm({ exercise, referenceData, vocabularies, ac
       <ExerciseFormCues
         guidance={guidance}
         onGuidanceChange={setGuidance}
-        lifecycle={lifecycle}
-        onLifecycleChange={setLifecycle}
         roles={exercise?.roles}
         vocabularies={vocabularies}
+      />
+
+      <ExerciseFormLifecycle
+        lifecycle={lifecycle}
+        onLifecycleChange={setLifecycle}
+        supersedes={supersedes}
+        onSupersedingChange={setSupersedes}
+        exercises={exercises ?? []}
+        currentExerciseId={basics.id}
       />
 
       <div className={styles.actionButtons}>

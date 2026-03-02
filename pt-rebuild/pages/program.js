@@ -173,6 +173,7 @@ export default function EditPage() {
         {activeExercise !== null && (
           <ExerciseForm
             exercise={formExercise}
+            exercises={exercises}
             referenceData={referenceData}
             vocabularies={vocabularies}
             accessToken={session?.access_token}

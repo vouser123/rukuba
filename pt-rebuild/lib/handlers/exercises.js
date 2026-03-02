@@ -323,7 +323,8 @@ async function createExercise(req, res) {
     guidance = {},
     lifecycle_status = null,
     lifecycle_effective_start_date = null,
-    lifecycle_effective_end_date = null
+    lifecycle_effective_end_date = null,
+    supersedes_exercise_id = null
   } = payload;
 
   // Validate input
@@ -362,6 +363,7 @@ async function createExercise(req, res) {
         lifecycle_status,
         lifecycle_effective_start_date,
         lifecycle_effective_end_date,
+        supersedes_exercise_id: supersedes_exercise_id || null,
         added_date: new Date().toISOString()
       })
       .select()
@@ -442,6 +444,18 @@ async function createExercise(req, res) {
       if (guidanceError) throw guidanceError;
     }
 
+    // Bi-directional supersedes: set superseded_by on the exercise being superseded
+    if (supersedes_exercise_id) {
+      await supabase
+        .from('exercises')
+        .update({
+          superseded_by_exercise_id: id,
+          superseded_date: new Date().toISOString(),
+          updated_date: new Date().toISOString()
+        })
+        .eq('id', supersedes_exercise_id);
+    }
+
     return res.status(201).json({ exercise });
 
   } catch (error) {
@@ -483,8 +497,14 @@ async function updateExercise(req, res, exerciseId) {
     guidance,
     lifecycle_status,
     lifecycle_effective_start_date,
-    lifecycle_effective_end_date
+    lifecycle_effective_end_date,
+    supersedes_exercise_id
   } = payload;
+
+  // Validate: exercise cannot supersede itself
+  if (supersedes_exercise_id && supersedes_exercise_id === exerciseId) {
+    return res.status(400).json({ error: 'An exercise cannot supersede itself.' });
+  }
 
   // Validate input
   const validationErrors = validateExerciseData(payload, true);
@@ -519,6 +539,7 @@ async function updateExercise(req, res, exerciseId) {
     if (lifecycle_status !== undefined) updates.lifecycle_status = lifecycle_status;
     if (lifecycle_effective_start_date !== undefined) updates.lifecycle_effective_start_date = lifecycle_effective_start_date;
     if (lifecycle_effective_end_date !== undefined) updates.lifecycle_effective_end_date = lifecycle_effective_end_date;
+    if (supersedes_exercise_id !== undefined) updates.supersedes_exercise_id = supersedes_exercise_id || null;
 
     // Update main exercise record
     const { data: exercise, error: updateError } = await supabase
@@ -529,6 +550,34 @@ async function updateExercise(req, res, exerciseId) {
       .single();
 
     if (updateError) throw updateError;
+
+    // Bi-directional supersedes: when A supersedes B, set superseded_by on B
+    if (supersedes_exercise_id !== undefined) {
+      const oldSupersedes = existing.supersedes_exercise_id ?? null;
+      const newSupersedes = supersedes_exercise_id || null;
+
+      if (oldSupersedes !== newSupersedes) {
+        // Clear superseded_by on old target — only if this exercise was the one that set it
+        if (oldSupersedes) {
+          await supabase
+            .from('exercises')
+            .update({ superseded_by_exercise_id: null, superseded_date: null, updated_date: new Date().toISOString() })
+            .eq('id', oldSupersedes)
+            .eq('superseded_by_exercise_id', exerciseId);
+        }
+        // Set superseded_by on new target
+        if (newSupersedes) {
+          await supabase
+            .from('exercises')
+            .update({
+              superseded_by_exercise_id: exerciseId,
+              superseded_date: new Date().toISOString(),
+              updated_date: new Date().toISOString()
+            })
+            .eq('id', newSupersedes);
+        }
+      }
+    }
 
     // Update pattern modifiers (delete old, insert new)
     if (pattern_modifiers !== undefined) {
