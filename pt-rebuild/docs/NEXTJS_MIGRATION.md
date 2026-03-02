@@ -433,9 +433,17 @@ Split into sub-phases because pt_editor has 4 distinct feature areas, each indep
 
 ---
 
-### Phase 4: index (future — last, structure-first split)
+### Phase 4: index — in progress (DN-045, started 2026-03-01)
 
 The main app entry. Must be migrated last because `pages/index.js` takes precedence over `public/index.html`.
+
+**Sub-phase ownership:**
+- Claude: 4e (history filter — cross-component state), 4g (offline scoping — security fix), 4i (cutover + retirement), wiring + preview verification for all sub-phases
+- Codex: coding for 4a (DN-046), 4b (DN-047), 4c (DN-048), 4d (DN-049), 4f sorting+drag-and-drop (DN-050), 4h (DN-051)
+
+**Production merge strategy:**
+- `/rehab`, `/pt-view`, `/program` are verified on preview but not yet in production. Per DN-045 plan, these can be merged to `main` before Phase 4 completes (they don't conflict with `public/index.html`). Decision: ask user before merging.
+- `pages/index.js` cannot go to `main` until `public/index.html` is retired (4i cutover).
 
 **Target URL:** `/` (only possible after `public/index.html` is retired)
 
