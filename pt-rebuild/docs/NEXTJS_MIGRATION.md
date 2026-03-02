@@ -441,6 +441,17 @@ The main app entry. Must be migrated last because `pages/index.js` takes precede
 - Claude: 4e (history filter — cross-component state), 4g (offline scoping — security fix), 4i (cutover + retirement), wiring + preview verification for all sub-phases
 - Codex: coding for 4a (DN-046), 4b (DN-047), 4c (DN-048), 4d (DN-049), 4f sorting+drag-and-drop (DN-050), 4h (DN-051)
 
+**Sub-phase status (2026-03-01):**
+- ✅ 4a shell + data bootstrap — DN-046 done (`pages/index.js`, `useIndexData`, `lib/index-data.js`)
+- ✅ 4e history + nav — done (`HistoryPanel`, `BottomNav`, `lib/index-history.js`, `lib/index-offline.js`)
+- ✅ 4g offline/sync — done (`useIndexOfflineQueue`, user-scoped queue key, DN-022 fix)
+- 🔄 4b ExercisePicker — DN-047 in progress (Codex)
+- ⏳ 4c SessionLoggerModal — DN-048 pending (Codex)
+- ⏳ 4d TimerPanel — DN-049 pending (Codex)
+- ⏳ 4f sort + drag-and-drop — DN-050 pending (Codex)
+- ⏳ 4h PWA — DN-051 pending (Codex)
+- ⏳ 4i cutover + retirement — pending (Claude, after all above complete)
+
 **Production merge strategy:**
 - `/rehab`, `/pt-view`, `/program` are verified on preview but not yet in production. Per DN-045 plan, these can be merged to `main` before Phase 4 completes (they don't conflict with `public/index.html`). Decision: ask user before merging.
 - `pages/index.js` cannot go to `main` until `public/index.html` is retired (4i cutover).
