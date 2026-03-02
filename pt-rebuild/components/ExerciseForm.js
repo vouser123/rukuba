@@ -1,7 +1,7 @@
 // ExerciseForm.js — exercise form orchestrator: state management, save/cancel, composes Core + Cues + Lifecycle
 
 import { useState, useEffect } from 'react';
-import { createExercise, updateExercise } from '../lib/pt-editor';
+import { createExercise, updateExercise, addRole, deleteRole } from '../lib/pt-editor';
 import ExerciseFormCore from './ExerciseFormCore';
 import ExerciseFormCues from './ExerciseFormCues';
 import ExerciseFormLifecycle from './ExerciseFormLifecycle';
@@ -41,6 +41,8 @@ export default function ExerciseForm({ exercise, exercises, referenceData, vocab
   const [lifecycle, setLifecycle] = useState(EMPTY_LIFECYCLE);
   // ID of the exercise this one supersedes (null = none); saved as supersedes_exercise_id
   const [supersedes, setSupersedes] = useState(null);
+  const [localRoles, setLocalRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -77,6 +79,7 @@ export default function ExerciseForm({ exercise, exercises, referenceData, vocab
       });
       // supersedes is stored as an array from the GET; take first element
       setSupersedes(exercise.supersedes?.[0] ?? null);
+      setLocalRoles(exercise.roles ?? []);
     } else {
       setBasics({ ...EMPTY_BASICS, id: crypto.randomUUID() });
       setPatternModifiers([]);
@@ -86,9 +89,32 @@ export default function ExerciseForm({ exercise, exercises, referenceData, vocab
       setGuidance({});
       setLifecycle(EMPTY_LIFECYCLE);
       setSupersedes(null);
+      setLocalRoles([]);
     }
     setError(null);
   }, [exercise]);
+
+  /** Add a role assignment. Calls the API and optimistically updates local state. */
+  async function handleAddRole(roleData) {
+    setRolesLoading(true);
+    try {
+      const result = await addRole(accessToken, { ...roleData, exercise_id: basics.id });
+      setLocalRoles(prev => [...prev, result.role]);
+    } finally {
+      setRolesLoading(false);
+    }
+  }
+
+  /** Remove a role assignment (soft-delete). Calls the API and updates local state. */
+  async function handleDeleteRole(roleId) {
+    setRolesLoading(true);
+    try {
+      await deleteRole(accessToken, roleId);
+      setLocalRoles(prev => prev.filter(r => r.id !== roleId));
+    } finally {
+      setRolesLoading(false);
+    }
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -145,7 +171,11 @@ export default function ExerciseForm({ exercise, exercises, referenceData, vocab
       <ExerciseFormCues
         guidance={guidance}
         onGuidanceChange={setGuidance}
-        roles={exercise?.roles}
+        roles={localRoles}
+        onAddRole={handleAddRole}
+        onDeleteRole={handleDeleteRole}
+        rolesLoading={rolesLoading}
+        rolesDisabled={isNew}
         vocabularies={vocabularies}
       />
 

@@ -173,18 +173,64 @@
   },
   "open_items": [
     {
-      "id": "DN-041",
-      "status": "resolved",
+      "id": "DN-044",
+      "status": "open",
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["migration", "ui"],
-      "file": "pt-rebuild/pages/program.js, pt-rebuild/pages/program.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseFormCore.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseFormLifecycle.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/NavMenu.js, pt-rebuild/lib/handlers/exercises.js",
-      "issue": "Phase 3a: migrate pt_editor exercise management to Next.js at /program. Covers exercise list, add/edit exercises (all 8 form sections), auth guard, NavMenu. Roles editing (Phase 3b) and vocab editor (Phase 3c) are follow-on phases.",
-      "resolved": "2026-03-01",
-      "context": "Page file: pages/program.js. Route: /program. URL chosen over /pt (conflicts with vercel.json rewrite), /edit (too generic), /exercises (too narrow). Components split per STRUCTURE_GUIDELINES caps: ExerciseFormCore (sections 1-4), ExerciseFormCues (sections 5, 7, 8), ExerciseFormLifecycle (section 6 — extracted for supersedes support), ExerciseForm (orchestrator). Roles section within form is read-only display in Phase 3a — editing is Phase 3b. API: uses existing /api/exercises, /api/vocab, /api/reference-data — no new API routes. NavMenu label updated to 'Program Editor'. Lifecycle decisions: deprecated = permanently hidden (never shows in list); archived = temporarily set aside (shows with Show archived toggle); lifecycle section extracted to ExerciseFormLifecycle.js to support supersedes dropdown without polluting ExerciseFormCues. Supersedes: DB migration added supersedes_exercise_id column; PUT handler writes bi-directional (supersedes_exercise_id on A, superseded_by_exercise_id + superseded_date on B). Verified on Vercel preview 2026-03-01: 34 exercises load, form populates correctly, Lifecycle & Status section renders with status dropdown (active/archived/deprecated), hint text, effective dates, supersedes dropdown (all other exercises populated, current excluded), superseded-by display. No console errors.",
-      "constraints_caveats": "POST/PUT /api/exercises returns raw DB row, not full normalized object — page re-fetches all exercises after save. Do not create new API routes (currently 9/12 Vercel slots used). Supersedes validation: exercise cannot supersede itself (handler returns 400)."
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "security",
+        "reliability",
+        "docs"
+      ],
+      "file": "rukuba/.github/workflows/secret-scan-fast.yml, rukuba/.github/workflows/secret-scan-deep.yml, pt-rebuild/docs/dev_notes.json",
+      "issue": "Enable and verify secret-scan CI checks in GitHub Actions and document expected behavior for PR/push workflows.",
+      "resolved": null,
+      "context": "User requested CI as an explicit to-do after secret scanning setup. This task tracks rollout verification (workflow triggers, pass/fail visibility, and branch-protection readiness).",
+      "constraints_caveats": "Keep guidance concise; do not include raw findings or secret values in notes."
+    },
+    {
+      "id": "DN-042",
+      "status": "in_progress",
+      "priority": "P1",
+      "risk": "medium",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "security",
+        "reliability",
+        "docs"
+      ],
+      "file": "rukuba/.github/workflows/secret-scan-fast.yml, rukuba/.github/workflows/secret-scan-deep.yml, rukuba/.gitleaks-strict.toml, rukuba/.trufflehog-exclude-paths.txt, pt-rebuild/docs/dev_notes.json",
+      "issue": "Set up low-false-positive secret scanning policy for AI-agent workflow (fast blocking checks + deep scheduled scans).",
+      "resolved": null,
+      "context": "User requested stronger prevention with explicit false-positive control after prior real secret exposure in history. Configure blocking checks around high-confidence findings only, with scoped suppressions for known documentation placeholders.",
+      "constraints_caveats": "Do not log raw secret values in CI output. Keep suppressions path-scoped and avoid global regex allowlists that could mask real leaks."
+    },
+    {
+      "id": "DN-043",
+      "status": "in_progress",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/pages/program.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/DosageModal.js, pt-rebuild/components/DosageModal.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/docs/NEXTJS_MIGRATION.md",
+      "issue": "Phase 3b: roles editing (ExerciseFormCues section 7 made editable) + DosageModal shared component for patient program dosage management.",
+      "resolved": null,
+      "context": "Roles: POST /api/roles (create) + DELETE /api/roles/:id (soft-delete, active=false). No PUT. Callbacks flow from ExerciseForm.js → ExerciseFormCues (no API calls in components). Guard: Add/Remove disabled for unsaved exercises. DosageModal: shared component, props onSave/onClose, fields adapt to exercise.pattern_modifiers. Triggered from /program selector panel. Programs loaded at page load via GET /api/programs?patient_id=X, keyed by exercise_id. Reusable from future tracker migration.",
+      "constraints_caveats": "No new API routes. DosageModal must not import from lib/ — receives onSave callback from parent. Roles require exercise.id — disable add/remove for new unsaved exercises.",
+      "last_updated": "2026-03-01"
     },
     {
       "id": "DN-039",
@@ -512,6 +558,31 @@
   ],
   "closed_items": [
     {
+      "id": "DN-041",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/pages/program.js, pt-rebuild/pages/program.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseFormCore.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseFormLifecycle.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/NavMenu.js, pt-rebuild/lib/handlers/exercises.js",
+      "issue": "Phase 3a: migrate pt_editor exercise management to Next.js at /program. Covers exercise list, add/edit exercises (all 8 form sections), auth guard, NavMenu. Roles editing (Phase 3b) and vocab editor (Phase 3c) are follow-on phases.",
+      "resolved": "2026-03-01",
+      "context": "Page file: pages/program.js. Route: /program. URL chosen over /pt (conflicts with vercel.json rewrite), /edit (too generic), /exercises (too narrow). Components split per STRUCTURE_GUIDELINES caps: ExerciseFormCore (sections 1-4), ExerciseFormCues (sections 5, 7, 8), ExerciseFormLifecycle (section 6 — extracted for supersedes support), ExerciseForm (orchestrator). Roles section within form is read-only display in Phase 3a — editing is Phase 3b. API: uses existing /api/exercises, /api/vocab, /api/reference-data — no new API routes. NavMenu label updated to 'Program Editor'. Lifecycle decisions: deprecated = permanently hidden (never shows in list); archived = temporarily set aside (shows with Show archived toggle); lifecycle section extracted to ExerciseFormLifecycle.js to support supersedes dropdown without polluting ExerciseFormCues. Supersedes: DB migration added supersedes_exercise_id column; PUT handler writes bi-directional (supersedes_exercise_id on A, superseded_by_exercise_id + superseded_date on B). Verified on Vercel preview 2026-03-01: 34 exercises load, form populates correctly, Lifecycle & Status section renders with status dropdown (active/archived/deprecated), hint text, effective dates, supersedes dropdown (all other exercises populated, current excluded), superseded-by display. No console errors.",
+      "constraints_caveats": "POST/PUT /api/exercises returns raw DB row, not full normalized object — page re-fetches all exercises after save. Do not create new API routes (currently 9/12 Vercel slots used). Supersedes validation: exercise cannot supersede itself (handler returns 400).",
+      "problem": "Phase 3a program editor migration remained tracked as open with an invalid status, causing dev-notes validation drift.",
+      "root_cause": "The item used status resolved in open_items instead of being closed in closed_items as done with closure narrative fields.",
+      "change_made": "Moved DN-041 from open_items to closed_items, set status to done, and added required closure narrative fields.",
+      "files_touched": "pt-rebuild/docs/dev_notes.json",
+      "validation": "DN-041 is now in closed_items with done status and resolved date, matching array/status rules.",
+      "follow_ups": "Phase 3b roles editing and Phase 3c vocab editor remain follow-on migration work under DN-033 scope."
+    },
+    {
       "id": "DN-040",
       "status": "done",
       "priority": "P3",
@@ -588,8 +659,13 @@
       "priority": "P3",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["cleanup", "migration"],
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "cleanup",
+        "migration"
+      ],
       "file": "pt-rebuild/lib/rehab-coverage.js, pt-rebuild/pages/pt-view.js, pt-rebuild/pages/pt-view.module.css, pt-rebuild/components/PatientNotes.js, pt-rebuild/components/PatientNotes.module.css, pt-rebuild/components/HistoryList.js, pt-rebuild/components/HistoryList.module.css, pt-rebuild/docs/STRUCTURE_GUIDELINES.md",
       "issue": "Pre-migration cleanup: bring STRUCTURE_GUIDELINES.md cap violations into compliance before Phase 3.",
       "resolved": "2026-02-28",
@@ -606,8 +682,13 @@
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["migration", "ui"],
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
       "file": "pt-rebuild/lib/pt-view.js, pt-rebuild/pages/pt-view.js, pt-rebuild/pages/pt-view.module.css, pt-rebuild/hooks/useMessages.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/components/MessagesModal.module.css, pt-rebuild/components/ExerciseHistoryModal.js, pt-rebuild/components/ExerciseHistoryModal.module.css, pt-rebuild/components/NavMenu.js",
       "issue": "Phase 2 of Next.js Strangler Fig migration: pt_view.html → pages/pt-view.js at /pt-view.",
       "resolved": "2026-02-28",
