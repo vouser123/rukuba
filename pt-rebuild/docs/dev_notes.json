@@ -228,7 +228,6 @@
       ],
       "file": "pt-rebuild/pages/program.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/DosageModal.js, pt-rebuild/components/DosageModal.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/docs/NEXTJS_MIGRATION.md",
       "issue": "Phase 3b: roles editing (ExerciseFormCues section 7 made editable) + DosageModal shared component for patient program dosage management.",
-      "resolved": null,
       "context": "Roles: POST /api/roles (create) + DELETE /api/roles/:id (soft-delete, active=false). No PUT. Callbacks flow from ExerciseForm.js → ExerciseFormCues (no API calls in components). Guard: Add/Remove disabled for unsaved exercises. DosageModal: shared component, props onSave/onClose, fields adapt to exercise.pattern_modifiers. Triggered from /program selector panel. Programs loaded at page load via GET /api/programs?patient_id=X, keyed by exercise_id. Reusable from future tracker migration.",
       "constraints_caveats": "No new API routes. DosageModal must not import from lib/ — receives onSave callback from parent. Roles require exercise.id — disable add/remove for new unsaved exercises.",
       "last_updated": "2026-03-01"

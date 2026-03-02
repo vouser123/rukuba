@@ -405,7 +405,7 @@ Split into sub-phases because pt_editor has 4 distinct feature areas, each indep
 - Files: `lib/pt-editor.js`, `components/ExerciseForm.js`, `components/ExerciseFormCore.js`, `components/ExerciseFormCues.js`, `components/ExerciseFormLifecycle.js`, `components/ExerciseForm.module.css`
 - No new API routes (uses existing `/api/exercises`, `/api/vocab`, `/api/reference-data`)
 
-#### Phase 3b: Roles editing + DosageModal (DN-042)
+#### Phase 3b: Roles editing + DosageModal (DN-043) ✅ COMPLETE (verified 2026-03-01)
 **Roles:**
 - Makes Roles section (section 7) editable in `ExerciseFormCues.js` — was read-only in 3a
 - Add role: region × capacity × focus (optional) × contribution; POST `/api/roles`
@@ -490,6 +490,8 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 
 #### Phase 4f: UX parity fixes during migration
 - Add exercise ordering persistence behavior (DN-012)
+- Add explicit sort modes in exercise list: custom/manual order, body area, recent activity, alphabetical, and PT/program order fallback
+- Add drag-and-drop manual ordering for iOS and touch devices with a visible grip handle (left or right placement acceptable), drag ghost while moving, and reliable touch interaction (`onPointerUp`/pointer events)
 - Resolve intermittent `Signed in as -` timing on initial load (DN-015)
 
 #### Phase 4g: Offline/sync domain
