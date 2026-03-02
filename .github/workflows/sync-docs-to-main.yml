@@ -12,7 +12,7 @@ on:
       - 'pt-rebuild/docs/NEXTJS_MIGRATION.md'
       - 'pt-rebuild/docs/dev_notes.json'
       - 'pt-rebuild/docs/DEV_NOTES.md'
-      - 'pt-rebuild/docs/STRUCTURE_GUIDELINES.md'
+      - 'pt-rebuild/docs/NEXTJS_STRUCTURE.md'
       - 'pt-rebuild/AGENTS.md'
 
 jobs:
@@ -38,7 +38,7 @@ jobs:
           cp pt-rebuild/docs/NEXTJS_MIGRATION.md /tmp/NEXTJS_MIGRATION.md
           cp pt-rebuild/docs/dev_notes.json /tmp/dev_notes.json
           cp pt-rebuild/docs/DEV_NOTES.md /tmp/DEV_NOTES.md
-          cp pt-rebuild/docs/STRUCTURE_GUIDELINES.md /tmp/STRUCTURE_GUIDELINES.md
+          cp pt-rebuild/docs/NEXTJS_STRUCTURE.md /tmp/NEXTJS_STRUCTURE.md
           cp pt-rebuild/AGENTS.md /tmp/AGENTS.md
 
           git checkout main
@@ -46,7 +46,7 @@ jobs:
           cp /tmp/NEXTJS_MIGRATION.md pt-rebuild/docs/NEXTJS_MIGRATION.md
           cp /tmp/dev_notes.json pt-rebuild/docs/dev_notes.json
           cp /tmp/DEV_NOTES.md pt-rebuild/docs/DEV_NOTES.md
-          cp /tmp/STRUCTURE_GUIDELINES.md pt-rebuild/docs/STRUCTURE_GUIDELINES.md
+          cp /tmp/NEXTJS_STRUCTURE.md pt-rebuild/docs/NEXTJS_STRUCTURE.md
           cp /tmp/AGENTS.md pt-rebuild/AGENTS.md
 
           if git diff --quiet; then
@@ -56,7 +56,7 @@ jobs:
               pt-rebuild/docs/NEXTJS_MIGRATION.md \
               pt-rebuild/docs/dev_notes.json \
               pt-rebuild/docs/DEV_NOTES.md \
-              pt-rebuild/docs/STRUCTURE_GUIDELINES.md \
+              pt-rebuild/docs/NEXTJS_STRUCTURE.md \
               pt-rebuild/AGENTS.md
             git commit -m "docs: auto-sync docs from nextjs branch [skip ci]"
             git push origin main

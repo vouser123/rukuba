@@ -1,6 +1,6 @@
-# File Structure Guidelines
+# Next.js Migration Structure Guidelines
 
-Authoritative rules for `pt-rebuild/` code organization. Apply to all Next.js pages. Do not re-evaluate these decisions per session.
+Authoritative rules for `pt-rebuild/` code organization during the Next.js migration. Apply to all Next.js pages. Do not re-evaluate these decisions per session.
 
 **Loaded by:** `AGENTS.md`, `NEXTJS_MIGRATION.md`
 
