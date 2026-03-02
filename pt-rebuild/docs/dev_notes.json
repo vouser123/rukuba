@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-03-01"
+    "last_updated": "2026-03-02"
   },
   "enums": {
     "priority_levels": [
@@ -180,11 +180,11 @@
       "scope": "current",
       "agent": ["claude"],
       "tags": ["migration", "ui"],
-      "file": "pt-rebuild/pages/program.js, pt-rebuild/pages/program.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseFormCore.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/NavMenu.js",
+      "file": "pt-rebuild/pages/program.js, pt-rebuild/pages/program.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseFormCore.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseFormLifecycle.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/NavMenu.js, pt-rebuild/lib/handlers/exercises.js",
       "issue": "Phase 3a: migrate pt_editor exercise management to Next.js at /program. Covers exercise list, add/edit exercises (all 8 form sections), auth guard, NavMenu. Roles editing (Phase 3b) and vocab editor (Phase 3c) are follow-on phases.",
       "resolved": null,
-      "context": "Page file: pages/program.js. Route: /program. URL chosen over /pt (conflicts with vercel.json rewrite), /edit (too generic), /exercises (too narrow). Components split per STRUCTURE_GUIDELINES caps: ExerciseFormCore (sections 1-4), ExerciseFormCues (sections 5-8), ExerciseForm (orchestrator). Roles section within form is read-only display in Phase 3a — editing is Phase 3b. API: uses existing /api/exercises, /api/vocab, /api/reference-data — no new API routes. NavMenu label updated to 'Program Editor'. No vercel.json changes needed.",
-      "constraints_caveats": "POST/PUT /api/exercises returns raw DB row, not full normalized object — page re-fetches all exercises after save. Do not create new API routes (currently 9/12 Vercel slots used)."
+      "context": "Page file: pages/program.js. Route: /program. URL chosen over /pt (conflicts with vercel.json rewrite), /edit (too generic), /exercises (too narrow). Components split per STRUCTURE_GUIDELINES caps: ExerciseFormCore (sections 1-4), ExerciseFormCues (sections 5, 7, 8), ExerciseFormLifecycle (section 6 — extracted for supersedes support), ExerciseForm (orchestrator). Roles section within form is read-only display in Phase 3a — editing is Phase 3b. API: uses existing /api/exercises, /api/vocab, /api/reference-data — no new API routes. NavMenu label updated to 'Program Editor'. Lifecycle decisions: deprecated = permanently hidden (never shows in list); archived = temporarily set aside (shows with Show archived toggle); lifecycle section extracted to ExerciseFormLifecycle.js to support supersedes dropdown without polluting ExerciseFormCues. Supersedes: DB migration added supersedes_exercise_id column; PUT handler writes bi-directional (supersedes_exercise_id on A, superseded_by_exercise_id + superseded_date on B).",
+      "constraints_caveats": "POST/PUT /api/exercises returns raw DB row, not full normalized object — page re-fetches all exercises after save. Do not create new API routes (currently 9/12 Vercel slots used). Supersedes validation: exercise cannot supersede itself (handler returns 400)."
     },
     {
       "id": "DN-039",
