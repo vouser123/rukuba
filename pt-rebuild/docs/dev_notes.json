@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-03-02"
+    "last_updated": "2026-03-01"
   },
   "enums": {
     "priority_levels": [
@@ -173,6 +173,104 @@
   },
   "open_items": [
     {
+      "id": "DN-051",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["migration", "ui", "pwa"],
+      "file": "pt-rebuild/components/PwaInstallPrompt.js",
+      "issue": "Phase 4h: Port PWA install prompt from public/index.html into components/PwaInstallPrompt.js. Preserve service worker registration and install prompt behavior.",
+      "resolved": null,
+      "context": "Part of Phase 4 index.html migration (DN-045). Port the beforeinstallprompt listener and install button display logic from index.html into a standalone React component. Claude verifies on mobile preview.",
+      "constraints_caveats": "No onClick — use onPointerUp. 44px touch targets. Must not break offline shell behavior."
+    },
+    {
+      "id": "DN-050",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/components/ExercisePicker.module.css",
+      "issue": "Phase 4f: Add exercise sort mode selector + drag-and-drop manual ordering to ExercisePicker. Sort modes: custom/manual, body area, recent activity, alphabetical, PT/program order fallback. Persist preference to localStorage (user-scoped key). Drag-and-drop: pointer events, onPointerUp, 44px grip handle, drag ghost while moving.",
+      "resolved": null,
+      "context": "Part of Phase 4 index.html migration (DN-045). Resolves DN-012. Sort preference key: pt_sort_mode_${userId}. Custom order key: pt_exercise_order_${userId}. No onclick/click handlers — iOS-safe only. Claude reviews and fixes if needed, then verifies on iOS preview.",
+      "constraints_caveats": "No onClick or click events. onPointerUp only. touch-action: manipulation. Drag ghost must be visible during move. localStorage keys must include userId to be user-scoped."
+    },
+    {
+      "id": "DN-049",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/components/TimerPanel.js, pt-rebuild/components/TimerPanel.module.css, pt-rebuild/hooks/useTimerSpeech.js",
+      "issue": "Phase 4d: Port rep counter, hold timer, duration timer, and voice cues from public/index.html into TimerPanel + useTimerSpeech hook. Web Audio API (iOS-safe beep). Web Speech API for voice cues.",
+      "resolved": null,
+      "context": "Part of Phase 4 index.html migration (DN-045). TimerPanel receives exercise and set context as props. useTimerSpeech manages timer state and speech synthesis. Claude verifies iOS audio + speech behavior on preview.",
+      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Web Audio API must use AudioContext resume() for iOS autoplay policy. Speech synthesis must handle iOS quirks (utterance must be triggered from user gesture)."
+    },
+    {
+      "id": "DN-048",
+      "status": "open",
+      "priority": "P2",
+      "risk": "medium",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["migration", "ui", "api"],
+      "file": "pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/components/SessionLoggerModal.module.css, pt-rebuild/hooks/useSessionLogging.js",
+      "issue": "Phase 4c: Port the session logging modal (set/reps/side/form_data/hold/duration) from public/index.html into SessionLoggerModal + useSessionLogging. Preserve all pattern modifier handling, form_data permutations, client_mutation_id idempotency, and PATCH (update) flow.",
+      "resolved": null,
+      "context": "Part of Phase 4 index.html migration (DN-045). useSessionLogging manages: create (POST /api/logs) and update (PATCH /api/logs/:id) flows, set management, client_mutation_id generation. Must pass the Activity Log Testing Checklist in AGENTS.md (all exercise/set/side/path combinations). Claude reviews against checklist before wiring up.",
+      "constraints_caveats": "client_mutation_id must be generated per-set, not per-session. No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix."
+    },
+    {
+      "id": "DN-047",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/components/ExercisePicker.module.css",
+      "issue": "Phase 4b: Port exercise list/search/select behavior from public/index.html into ExercisePicker component. Include adherence badge, dosage summary, sort UI stub (mode selector only — drag-and-drop handled in DN-050). Preserve program-based loading and role visibility.",
+      "resolved": null,
+      "context": "Part of Phase 4 index.html migration (DN-045). Props: exercises, programs, selectedId, onSelect, sortMode, onSortChange. Dosage summary format: reuse formatDosageSummary from pages/program.js or extract to lib. Adherence badge reads from programs entry for the exercise. Role visibility: exercises with no active roles still shown; role display is informational only.",
+      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Do not implement drag-and-drop here — that is DN-050. Sort mode selector UI stub only (calls onSortChange, does not implement sorting logic)."
+    },
+    {
+      "id": "DN-046",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/pages/index.js, pt-rebuild/pages/index.module.css, pt-rebuild/hooks/useIndexData.js, pt-rebuild/lib/index-data.js",
+      "issue": "Phase 4a: Scaffold pages/index.js shell (auth guard + layout composition, no section content yet), hooks/useIndexData.js (fetch exercises/programs/logs with loading/error state), and lib/index-data.js (fetch adapters for GET /api/exercises, /api/programs, /api/logs).",
+      "resolved": null,
+      "context": "Part of Phase 4 index.html migration (DN-045). pages/index.js: useAuth guard → AuthForm if not signed in, NavMenu, BottomNav placeholder, component slots (ExercisePicker, SessionLoggerModal, HistoryPanel). useIndexData: Promise.all for all three fetches, returns { exercises, programs, logs, loading, error }. lib/index-data.js: pure fetch functions matching existing lib/*.js patterns. Claude wires up after scaffolding.",
+      "constraints_caveats": "CRITICAL: Do not create pages/index.js until confirmed — currently public/index.html serves /. Creating pages/index.js will immediately shadow it on the nextjs branch preview. This is intentional for Phase 4 but must not be accidentally deployed to main. All work is on the nextjs branch."
+    },
+    {
+      "id": "DN-045",
+      "status": "in_progress",
+      "priority": "P2",
+      "risk": "medium",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/pages/index.js, pt-rebuild/pages/index.module.css, pt-rebuild/components/ExercisePicker.js, pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/components/TimerPanel.js, pt-rebuild/components/HistoryPanel.js, pt-rebuild/components/BottomNav.js, pt-rebuild/components/PwaInstallPrompt.js, pt-rebuild/hooks/useIndexData.js, pt-rebuild/hooks/useSessionLogging.js, pt-rebuild/hooks/useIndexOfflineQueue.js, pt-rebuild/hooks/useTimerSpeech.js, pt-rebuild/lib/index-data.js, pt-rebuild/lib/index-history.js, pt-rebuild/lib/index-offline.js",
+      "issue": "Phase 4: Migrate public/index.html to pages/index.js (main patient tracker). Sub-phases: 4a shell, 4b exercise picker, 4c logging, 4d timer/speech, 4e history+nav, 4f sorting, 4g offline/sync, 4h PWA, 4i cutover.",
+      "resolved": null,
+      "context": "Last and largest migration phase. pages/index.js cannot exist until public/index.html is retired (cutover in 4i). Codex handles coding of 4a, 4b, 4c, 4d, 4f, 4h (see DN-046 through DN-051). Claude owns 4e (history filter — cross-component state), 4g (offline scoping — security fix DN-022), 4i (cutover + retirement). History behavior: all logs when no exercise open; exercise-filtered when session/modal open (DN-014). Sort: custom drag-and-drop, body area, recent, alpha, PT order (DN-012). Offline queue scoped by userId (addresses DN-022).",
+      "constraints_caveats": "Never merge pages/index.js to main until public/index.html is retired in 4i. All work on nextjs branch. Do not re-introduce /api/sync. Offline queue key must be user-scoped: pt_offline_queue_${userId}."
+    },
+    {
       "id": "DN-044",
       "status": "in_progress",
       "priority": "P2",
@@ -247,7 +345,7 @@
       "file": "pt-rebuild/package.json, pt-rebuild/next.config.mjs, pt-rebuild/pages/rehab.js, pt-rebuild/pages/rehab.module.css, pt-rebuild/pages/_app.js, pt-rebuild/lib/rehab-coverage.js, pt-rebuild/lib/supabase.js, pt-rebuild/hooks/useAuth.js, pt-rebuild/components/NavMenu.js, pt-rebuild/components/NavMenu.module.css, pt-rebuild/components/AuthForm.js, pt-rebuild/components/AuthForm.module.css, pt-rebuild/styles/globals.css",
       "issue": "Strangler Fig migration to Next.js (Pages Router). Existing static HTML pages remain untouched; new pages built in Next.js one at a time. Phase 1: scaffolding + shared architecture (lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js) + rehab_coverage migrated to pages/rehab.js.",
       "resolved": null,
-      "context": "Phase 1 and Phase 2 complete on nextjs branch. Pre-migration cleanup (DN-035) done: PatientNotes + HistoryList extracted to components/, pt-view.module.css 670L→369L. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard. Components: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, components/PatientNotes.js, components/HistoryList.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. Vanilla JS pages untouched. Phase 3a complete (DN-041): pt_editor → /program. Exercise management (list, add/edit, lifecycle, supersedes) verified on preview 2026-03-01. Phase 3b next: roles editing + dosage management.",
+      "context": "Phase 1 and Phase 2 complete on nextjs branch. Pre-migration cleanup (DN-035) done: PatientNotes + HistoryList extracted to components/, pt-view.module.css 670L→369L. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard. Components: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, components/PatientNotes.js, components/HistoryList.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. Vanilla JS pages untouched. Phase 3a complete (DN-041): pt_editor → /program. Exercise management (list, add/edit, lifecycle, supersedes) verified on preview 2026-03-01. Phase 3b complete (DN-043): roles editing + DosageModal verified on preview 2026-03-01. Phase 4 in progress (DN-045): public/index.html → pages/index.js migration. Codex sub-tasks: DN-046 through DN-051.",
       "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges."
     },
     {
