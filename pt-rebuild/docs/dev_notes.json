@@ -216,7 +216,7 @@
     },
     {
       "id": "DN-058",
-      "status": "in_progress",
+      "status": "blocked",
       "priority": "P1",
       "risk": "medium",
       "scope": "current",
@@ -266,8 +266,8 @@
       "file": "pt-rebuild/pages/index.js, pt-rebuild/components/ExercisePicker.js, pt-rebuild/public/index.html",
       "issue": "Exercise card tap in Next.js index only highlights selection (blue border) and does not enter logging flow; static index enters active exercise workflow on card tap.",
       "resolved": null,
-      "context": "User reported regression on 2026-03-03. Static behavior: exercise card tap triggers selectExercise and immediately enters counter/timer/logging workflow. Next.js behavior had a two-step requirement (select card then tap 'Log Session'). Codex fix in progress updates index card select handler to open create session flow immediately on tap using the same default form-data path as Log Session.",
-      "constraints_caveats": "Must preserve static tap semantics without changing broader workflow scope. Keep iOS-safe pointer interactions (no onClick). Do not regress DN-064 sort behavior."
+      "context": "User reported regression on 2026-03-03. Static behavior: exercise card tap triggers selectExercise and immediately enters counter/timer/logging workflow. A temporary Next.js patch introduced direct SessionLogger open and retained/expanded 'Log Session' semantics on the index list, which user explicitly rejected as a major UX change.",
+      "constraints_caveats": "Blocked by explicit product direction: 'Log Session' does not belong on main index page. Do not reintroduce index-list modal logging actions without explicit user approval. Align tap behavior with final DN-049 workflow (counter/timer-driven) instead."
     },
     {
       "id": "DN-062",
@@ -287,6 +287,25 @@
       "resolved": null,
       "context": "Spotted during DN-058 testing (2026-03-03). static index.html computes adherence from activity history and shows detailed badge text (`Never done`, `Done today`, `X days ago`, with total sessions). Codex implementation now computes adherence badge fields in lib/index-history.js and wires pages/index.js to pass adherence-enriched program data into ExercisePicker, including exercise-name fallback matching for older logs and detailed static-style label text.",
       "constraints_caveats": "Codex item. Must not break existing ExercisePicker props or layout. onPointerUp only. Must handle exercises with no logs gracefully (show 'No history'). Do not add adherence logic directly in ExercisePicker — keep it in lib/index-history.js and pass computed value via props or compute at call site in pages/index.js."
+    },
+    {
+      "id": "DN-066",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/pages/index.js, pt-rebuild/public/index.html",
+      "issue": "Exercise dosage summary parity gaps in Next.js index: duration-based exercises show wrong text (e.g. `3 x 1 reps` instead of `3 x 30 sec`), and sided context (e.g. per-side indicator) is missing where expected.",
+      "resolved": null,
+      "context": "User-reported on 2026-03-03 during migration verification. Example: Soleus stretch duration dosage renders incorrectly in ExercisePicker summary. Static index dosage formatting should be treated as source-of-truth for summary wording and sided context display.",
+      "constraints_caveats": "Must match static behavior before introducing any UX changes. No onClick. Keep existing card layout intact. If static behavior is ambiguous for sided summaries, surface exact UX delta and get user approval before changing text semantics."
     },
     {
       "id": "DN-054",
