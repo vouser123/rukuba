@@ -1565,9 +1565,11 @@
         let currentUser = null;
         let authToken = null;
         let refreshToken = null;
+        let currentUserRole = null;
         let currentUserProfileId = null;
         let therapistId = null; // Patient's assigned therapist for messaging
         let viewingPatientId = null; // Patient whose data we're viewing (for therapists)
+        let threadRecipientId = null; // Other participant from latest message thread
         let currentEmailNotifyEnabled = true; // Mirrors users.email_notifications_enabled for toggle UI
         let allExercises = [];
         let allHistory = []; // All activity logs for smart dropdowns
@@ -1638,8 +1640,10 @@
                     currentUser = null;
                     authToken = null;
                     refreshToken = null;
+                    currentUserRole = null;
                     currentUserProfileId = null;
                     therapistId = null;
+                    threadRecipientId = null;
                     showAuthModal();
                     updateEditorLink();
                 }
@@ -1856,12 +1860,14 @@
 
                 // Get current user profile and determine which patient to view
                 viewingPatientId = null; // Reset global
+                therapistId = null; // Reset recipient fallback
                 try {
                     const usersResult = await fetchWithAuth('/api/users');
                     const users = usersResult.users || [];
                     // Match by auth_id (Supabase auth user ID) or email
                     const me = users.find(u => u.auth_id === currentUser.id || u.email === currentUser.email);
                     currentUserProfileId = me?.id ?? null;
+                    currentUserRole = me?.role ?? null;
 
                     if (!me) {
                         console.warn('Could not find current user in users list');
@@ -1895,7 +1901,6 @@
                         const patients = users.filter(u => u.therapist_id === me.id);
                         if (patients.length > 0) {
                             viewingPatient = patients[0];
-                            therapistId = me.id;
                         } else {
                             throw new Error('No patients assigned to this therapist');
                         }
@@ -4020,6 +4025,16 @@ ${queueData}
 
                 const data = await response.json();
                 const messages = data.messages || [];
+                const viewerId = currentUserProfileId || currentUser.id;
+
+                const participant = messages.find(msg =>
+                    msg.sender_id !== viewerId || msg.recipient_id !== viewerId
+                );
+                if (participant) {
+                    threadRecipientId = participant.sender_id === viewerId
+                        ? participant.recipient_id
+                        : participant.sender_id;
+                }
 
                 if (messages.length === 0) {
                     messagesList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No messages yet. Send a message to your PT!</div>';
@@ -4029,7 +4044,6 @@ ${queueData}
                 // Render messages
                 let html = '';
                 messages.forEach(msg => {
-                    const viewerId = currentUserProfileId || currentUser.id;
                     const isFromPatient = msg.sender_id === viewerId;
                     const createdAt = new Date(msg.created_at);
                     const sentDateTime = formatMessageDateTime(createdAt);
@@ -4125,8 +4139,19 @@ ${queueData}
             }
 
             try {
-                if (!therapistId) {
+                let recipientId = threadRecipientId || therapistId;
+                if (currentUserRole === 'therapist') {
+                    recipientId = threadRecipientId || viewingPatientId;
+                }
+
+                if (!recipientId) {
                     showToast('No therapist assigned. Cannot send message.', 'error');
+                    return;
+                }
+
+                const viewerId = currentUserProfileId || currentUser.id;
+                if (recipientId === viewerId) {
+                    showToast('Cannot send a message to yourself.', 'error');
                     return;
                 }
 
@@ -4137,7 +4162,7 @@ ${queueData}
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        recipient_id: therapistId,
+                        recipient_id: recipientId,
                         body: text
                     })
                 });
@@ -4223,10 +4248,19 @@ ${queueData}
 
                 const data = await response.json();
                 const messages = data.messages || [];
+                const viewerId = currentUserProfileId || currentUser.id;
+
+                const participant = messages.find(msg =>
+                    msg.sender_id !== viewerId || msg.recipient_id !== viewerId
+                );
+                if (participant) {
+                    threadRecipientId = participant.sender_id === viewerId
+                        ? participant.recipient_id
+                        : participant.sender_id;
+                }
 
                 // Count unread messages (received after lastReadMessageTime)
                 const unreadCount = messages.filter(msg => {
-                    const viewerId = currentUserProfileId || currentUser.id;
                     const isFromOther = msg.sender_id !== viewerId;
                     const isNew = new Date(msg.created_at) > new Date(lastReadMessageTime);
                     return isFromOther && isNew;
