@@ -21,6 +21,12 @@ function shouldShowReps(exercise) {
     return !isDuration && !isDistance;
 }
 
+function parameterOptions(paramName) {
+    if (paramName === 'weight') return ['lb', 'kg'];
+    if (paramName === 'distance') return ['ft', 'in', 'cm', 'deg'];
+    return [];
+}
+
 export default function SessionLoggerModal({
     isOpen,
     isEdit,
@@ -146,15 +152,38 @@ export default function SessionLoggerModal({
                                 <div className={styles.formDataGrid}>
                                     {formParams.map((paramName) => {
                                         const existing = (set.form_data ?? []).find((item) => item.parameter_name === paramName);
+                                        const options = parameterOptions(paramName);
+                                        const hasUnit = options.length > 0;
+                                        const currentUnit = existing?.parameter_unit || options[0] || null;
                                         return (
                                             <label key={paramName} className={styles.fieldLabel}>
                                                 {paramName.replace(/_/g, ' ')}
-                                                <input
-                                                    className={styles.input}
-                                                    type="text"
-                                                    value={existing?.parameter_value ?? ''}
-                                                    onChange={(event) => onFormParamChange(index, paramName, event.target.value.trim())}
-                                                />
+                                                {hasUnit ? (
+                                                    <div className={styles.withUnit}>
+                                                        <input
+                                                            className={styles.input}
+                                                            type="text"
+                                                            value={existing?.parameter_value ?? ''}
+                                                            onChange={(event) => onFormParamChange(index, paramName, event.target.value.trim(), currentUnit)}
+                                                        />
+                                                        <select
+                                                            className={styles.select}
+                                                            value={currentUnit}
+                                                            onChange={(event) => onFormParamChange(index, paramName, existing?.parameter_value ?? '', event.target.value)}
+                                                        >
+                                                            {options.map((unit) => (
+                                                                <option key={unit} value={unit}>{unit}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                ) : (
+                                                    <input
+                                                        className={styles.input}
+                                                        type="text"
+                                                        value={existing?.parameter_value ?? ''}
+                                                        onChange={(event) => onFormParamChange(index, paramName, event.target.value.trim(), null)}
+                                                    />
+                                                )}
                                             </label>
                                         );
                                     })}

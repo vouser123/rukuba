@@ -117,7 +117,7 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
         setSets((prev) => prev.map((set, i) => (i === index ? { ...set, ...patch } : set)));
     }, []);
 
-    const updateFormParam = useCallback((index, paramName, paramValue) => {
+    const updateFormParam = useCallback((index, paramName, paramValue, paramUnit = null) => {
         setSets((prev) => prev.map((set, i) => {
             if (i !== index) return set;
             const existing = Array.isArray(set.form_data) ? [...set.form_data] : [];
@@ -129,7 +129,7 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
             const nextParam = {
                 parameter_name: paramName,
                 parameter_value: paramValue,
-                parameter_unit: null,
+                parameter_unit: paramUnit,
             };
             if (matchIndex >= 0) existing[matchIndex] = nextParam;
             else existing.push(nextParam);
