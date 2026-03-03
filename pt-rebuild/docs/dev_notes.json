@@ -177,6 +177,20 @@
   },
   "open_items": [
     {
+      "id": "DN-056",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["ui", "migration"],
+      "file": "pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/pages/index.js",
+      "issue": "Form parameters (e.g. band_resistance) render as plain text inputs in Next.js SessionLoggerModal. Static index.html renders them as smart dropdowns built from historical log values, with an 'Other...' fallback to free text.",
+      "resolved": null,
+      "context": "Discovered during DN-048 regression testing (2026-03-03). Static app: renderFormParameterFields() merges exercise-specific and global historical param values into a <select> (with 'Other...' → text input). Next.js: parameterOptions() only handles 'weight' and 'distance' (unit selectors); all other params fall through to plain <input type=text>. Fix requires: (1) compute historicalFormParams from logs in pages/index.js — an object keyed by parameter_name with sorted arrays of previously-used values; (2) pass historicalFormParams prop to SessionLoggerModal; (3) in SessionLoggerModal, when historicalFormParams[paramName] has entries, render a <select> with those values plus 'Other...' option; 'Other...' switches to text input; if no historical values, fall back to text input. weight and distance params keep their existing unit-selector rendering.",
+      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Keep existing weight/distance unit-selector behavior unchanged. 'Other...' custom mode needs per-set-per-param local state in SessionLoggerModal (useState). Pre-existing form_data values (edit flow) that aren't in historicalFormParams must still display — add them as an option or pre-select correctly."
+    },
+    {
       "id": "DN-054",
       "status": "open",
       "priority": "P2",
