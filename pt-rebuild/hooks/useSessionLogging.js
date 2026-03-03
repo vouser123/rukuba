@@ -27,6 +27,9 @@ function nextMutationId() {
 
 function createDefaultSet(exercise, setNumber) {
     const { hasHold, hasDuration, hasDistance, isSided } = getPatternFlags(exercise);
+    const defaultFormData = Array.isArray(exercise?.default_form_data) && exercise.default_form_data.length > 0
+        ? exercise.default_form_data.map((param) => ({ ...param }))
+        : null;
     return {
         set_number: setNumber,
         reps: hasDuration ? 1 : (exercise?.current_reps ?? 1),
@@ -35,7 +38,7 @@ function createDefaultSet(exercise, setNumber) {
             : (hasHold ? (exercise?.seconds_per_rep ?? 10) : null),
         distance_feet: hasDistance ? (exercise?.distance_feet ?? 20) : null,
         side: isSided ? 'right' : null,
-        form_data: null,
+        form_data: defaultFormData,
         manual_log: true,
         partial_rep: false,
         performed_at: new Date().toISOString(),
@@ -212,11 +215,11 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
                         patient_id: patientId,
                         exercise_id: exercise.id,
                         exercise_name: exercise.canonical_name,
-                        activity_type,
+                        activity_type: inferActivityType(exercise),
                         notes: notes || null,
                         performed_at: performedAt,
                         client_mutation_id: nextMutationId(),
-                        sets: sets.map((set, index) => normalizeSet(set, index, activityType)),
+                        sets: sets.map((set, index) => normalizeSet(set, index, inferActivityType(exercise))),
                     };
                     onEnqueue(queuedPayload);
                     if (onSaved) await onSaved();

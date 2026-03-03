@@ -1,4 +1,5 @@
 // components/SessionLoggerModal.js — modal UI for create/update session logs with per-set fields
+import { useEffect, useState } from 'react';
 import styles from './SessionLoggerModal.module.css';
 
 function shouldShowSeconds(exercise) {
@@ -27,6 +28,14 @@ function parameterOptions(paramName) {
     return [];
 }
 
+function toLocalDateTimeInputValue(isoValue) {
+    if (!isoValue) return '';
+    const date = new Date(isoValue);
+    if (Number.isNaN(date.getTime())) return '';
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+}
+
 export default function SessionLoggerModal({
     isOpen,
     isEdit,
@@ -44,7 +53,14 @@ export default function SessionLoggerModal({
     onSetChange,
     onFormParamChange,
     onSubmit,
+    historicalFormParams = {},
 }) {
+    const [customModes, setCustomModes] = useState({});
+
+    useEffect(() => {
+        if (!isOpen) setCustomModes({});
+    }, [isOpen]);
+
     if (!isOpen || !exercise) return null;
 
     const formParams = exercise.form_parameters_required ?? [];
@@ -52,6 +68,11 @@ export default function SessionLoggerModal({
     const showSeconds = shouldShowSeconds(exercise);
     const showDistance = shouldShowDistance(exercise);
     const isSided = exercise.pattern === 'side';
+
+    function setCustomMode(setIndex, paramName, isCustom) {
+        const key = `${setIndex}:${paramName}`;
+        setCustomModes((prev) => ({ ...prev, [key]: isCustom }));
+    }
 
     return (
         <div className={styles.overlay} onPointerUp={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -74,8 +95,11 @@ export default function SessionLoggerModal({
                         <input
                             className={styles.input}
                             type="datetime-local"
-                            value={performedAt ? new Date(performedAt).toISOString().slice(0, 16) : ''}
-                            onChange={(event) => onPerformedAtChange(new Date(event.target.value).toISOString())}
+                            value={toLocalDateTimeInputValue(performedAt)}
+                            onChange={(event) => {
+                                if (!event.target.value) return;
+                                onPerformedAtChange(new Date(event.target.value).toISOString());
+                            }}
                         />
                     </label>
                 </div>
@@ -155,6 +179,16 @@ export default function SessionLoggerModal({
                                         const options = parameterOptions(paramName);
                                         const hasUnit = options.length > 0;
                                         const currentUnit = existing?.parameter_unit || options[0] || null;
+                                        const historicalValues = [...(historicalFormParams[paramName] ?? [])];
+                                        const existingValue = existing?.parameter_value ?? '';
+                                        if (!hasUnit && existingValue && !historicalValues.includes(existingValue)) {
+                                            historicalValues.push(existingValue);
+                                            historicalValues.sort((a, b) => String(a).localeCompare(String(b)));
+                                        }
+                                        const key = `${index}:${paramName}`;
+                                        const isCustom = Boolean(customModes[key]);
+                                        const selectedValue = isCustom ? '__custom__' : (existingValue || '');
+                                        const hasSelectedValue = Boolean(selectedValue && selectedValue !== '__custom__');
                                         return (
                                             <label key={paramName} className={styles.fieldLabel}>
                                                 {paramName.replace(/_/g, ' ')}
@@ -162,7 +196,9 @@ export default function SessionLoggerModal({
                                                     <div className={styles.withUnit}>
                                                         <input
                                                             className={styles.input}
-                                                            type="text"
+                                                            type="number"
+                                                            min="0"
+                                                            step="1"
                                                             value={existing?.parameter_value ?? ''}
                                                             onChange={(event) => onFormParamChange(index, paramName, event.target.value.trim(), currentUnit)}
                                                         />
@@ -177,12 +213,40 @@ export default function SessionLoggerModal({
                                                         </select>
                                                     </div>
                                                 ) : (
-                                                    <input
-                                                        className={styles.input}
-                                                        type="text"
-                                                        value={existing?.parameter_value ?? ''}
-                                                        onChange={(event) => onFormParamChange(index, paramName, event.target.value.trim(), null)}
-                                                    />
+                                                    <>
+                                                        {historicalValues.length > 0 && (
+                                                            <select
+                                                                className={styles.select}
+                                                                value={selectedValue}
+                                                                onChange={(event) => {
+                                                                    const value = event.target.value;
+                                                                    if (value === '__custom__') {
+                                                                        setCustomMode(index, paramName, true);
+                                                                        if (!existingValue) onFormParamChange(index, paramName, '', null);
+                                                                        return;
+                                                                    }
+                                                                    setCustomMode(index, paramName, false);
+                                                                    onFormParamChange(index, paramName, value, null);
+                                                                }}
+                                                            >
+                                                                {!hasSelectedValue && (
+                                                                    <option value="">Select {paramName.replace(/_/g, ' ')}</option>
+                                                                )}
+                                                                {historicalValues.map((value) => (
+                                                                    <option key={value} value={value}>{value}</option>
+                                                                ))}
+                                                                <option value="__custom__">Other...</option>
+                                                            </select>
+                                                        )}
+                                                        {(historicalValues.length === 0 || isCustom) && (
+                                                            <input
+                                                                className={styles.input}
+                                                                type="text"
+                                                                value={existingValue}
+                                                                onChange={(event) => onFormParamChange(index, paramName, event.target.value.trim(), null)}
+                                                            />
+                                                        )}
+                                                    </>
                                                 )}
                                             </label>
                                         );

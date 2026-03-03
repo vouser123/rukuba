@@ -484,6 +484,7 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 - `lib/index-data.js` — fetch adapters + payload shaping helpers
 - `lib/index-history.js` — grouping/filter/prefilter transforms
 - `lib/index-offline.js` — queue/idempotency helpers
+- `lib/session-form-params.js` — form-parameter history/default/unit helpers (global-by-parameter options, exercise-scoped last-used default, value+unit parsing/formatting)
 
 #### Phase 4a: Shell + auth + data bootstrap
 - Wire `useAuth`, `AuthForm`, and `NavMenu`
@@ -497,6 +498,11 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 #### Phase 4c: Logging domain
 - Port log modal + submit flow into `SessionLoggerModal` and `useSessionLogging`
 - Preserve existing set/form-data permutations and idempotency behavior
+- Extract form-parameter behavior to `lib/session-form-params.js` (pure functions), with this parity contract:
+  - dropdown options are global by `parameter_name`
+  - default selection uses last-used value for current exercise (not side-scoped)
+  - weight/distance default unit/value from last-used combined value (e.g. `3 lb`)
+  - always include `Other...` custom entry path
 
 #### Phase 4d: Timer/counter/speech domain
 - Port rep counter, timer variants, and voice cues into `TimerPanel` + `useTimerSpeech`

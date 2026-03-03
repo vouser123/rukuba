@@ -13,6 +13,7 @@ import BottomNav from '../components/BottomNav';
 import ExercisePicker from '../components/ExercisePicker';
 import SessionLoggerModal from '../components/SessionLoggerModal';
 import { useSessionLogging } from '../hooks/useSessionLogging';
+import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
 import styles from './index.module.css';
 
 export default function IndexPage() {
@@ -58,6 +59,8 @@ export default function IndexPage() {
         }
         return exercises;
     }, [exercises, programs]);
+
+    const historicalFormParams = useMemo(() => collectGlobalParameterValues(logs), [logs]);
 
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
@@ -165,7 +168,11 @@ export default function IndexPage() {
                                         id: selectedExercise.id,
                                         name: selectedExercise.canonical_name || '',
                                     });
-                                    logger.openCreate(selectedExercise);
+                                    const defaultFormData = buildDefaultFormDataForExercise(selectedExercise, logs);
+                                    const exerciseWithDefaults = defaultFormData
+                                        ? { ...selectedExercise, default_form_data: defaultFormData }
+                                        : selectedExercise;
+                                    logger.openCreate(exerciseWithDefaults);
                                 }}
                                 disabled={!selectedExercise}
                                 type="button"
@@ -211,6 +218,7 @@ export default function IndexPage() {
                     onSetChange={logger.updateSet}
                     onFormParamChange={logger.updateFormParam}
                     onSubmit={logger.submit}
+                    historicalFormParams={historicalFormParams}
                 />
             </div>
         </>
