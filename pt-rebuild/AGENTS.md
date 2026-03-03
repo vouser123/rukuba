@@ -99,6 +99,26 @@ Before coding any UX change found during parity review:
 - Ask for explicit approval.
 - Only then implement.
 
+### UX_APPROVED criteria (required)
+
+For any non-parity UX change, approval must be recorded in the related `DN-###` item context using a `UX_APPROVED:` note.  
+Approval is valid only when all of the following are explicit:
+- Exact surface: page/component/flow being changed.
+- Exact delta: before → after behavior (specific labels, thresholds, defaults, ordering, visibility, interactions).
+- Scope boundary: what is included and what is explicitly not included.
+- Validation target: what will be checked after implementation.
+
+Rules:
+- Approval is **not** global. A yes for one UX change does not approve any other UX change.
+- Approval is **not** transferable across DNs unless the user says so explicitly.
+- If implementation uncovers additional UX deltas, stop and request a new explicit approval.
+
+Consent-style enforcement:
+- Specific: approval must identify the exact UX change; broad or ambiguous approval is invalid.
+- Informed: approval must be based on a clear before/after description.
+- Scoped: approval applies only to the named surface and DN.
+- Revocable: user can withdraw approval at any time; stop immediately and revert/re-plan if requested.
+
 ## Testing Checklists
 
 See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for all regression and parity testing checklists, including the Activity Log Testing Checklist (exercise types, set variables, side variables, log paths, idempotency, DB verification query).

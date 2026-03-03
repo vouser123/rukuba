@@ -1,7 +1,9 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-03-03 (session end)"
+    "last_updated": "2026-03-03 (session end)",
+    "schema_file": "pt-rebuild/docs/dev_notes.schema.json",
+    "ux_approval_policy": "All items should include ux_approval status. Use: not_needed (requires reason_not_needed), required_pending (blocks implementation), approved (requires explicit scope+delta), revoked (blocks further UX work until re-approved)."
   },
   "enums": {
     "priority_levels": [
@@ -52,6 +54,50 @@
       {
         "value": "done",
         "definition": "Completed and close-looped with dated entry."
+      }
+    ],
+    "issue_type_values": [
+      {
+        "value": "bug",
+        "definition": "Behavior deviates from expected/current contract and needs correction."
+      },
+      {
+        "value": "feature",
+        "definition": "Net-new behavior or capability."
+      },
+      {
+        "value": "refactor",
+        "definition": "Structural/code-quality change with intended behavior parity."
+      },
+      {
+        "value": "docs",
+        "definition": "Documentation/process update."
+      },
+      {
+        "value": "ops",
+        "definition": "Tooling/automation/deployment workflow change."
+      },
+      {
+        "value": "security",
+        "definition": "Security hardening, vulnerability, or policy enforcement."
+      }
+    ],
+    "ux_approval_status_values": [
+      {
+        "value": "not_needed",
+        "definition": "No UX behavior delta expected. Requires reason_not_needed."
+      },
+      {
+        "value": "required_pending",
+        "definition": "Potential UX delta exists and explicit user approval is required before implementation."
+      },
+      {
+        "value": "approved",
+        "definition": "User explicitly approved a scoped UX delta (surface + before/after + scope boundary)."
+      },
+      {
+        "value": "revoked",
+        "definition": "Prior approval withdrawn; implementation must stop until re-approved."
       }
     ],
     "tag_vocabulary": [
