@@ -14,7 +14,7 @@ import styles from './HistoryList.module.css';
 export default function HistoryList({ groups, expandedSessions, onToggleSession, onExerciseClick, onEditLog }) {
     if (groups.length === 0) return <div className={styles['empty-state']}>No history to show.</div>;
 
-    /** Format a log's sets into a compact summary string. */
+    /** Format a log's sets into a compact summary string. Includes form_data parameter values (e.g. band resistance). */
     function summarizeSets(sets) {
         if (!sets?.length) return '';
         return sets.map(s => [
@@ -22,6 +22,7 @@ export default function HistoryList({ groups, expandedSessions, onToggleSession,
             s.seconds && `${s.seconds}s`,
             s.distance_feet && `${s.distance_feet} ft`,
             s.side,
+            ...(s.form_data ?? []).map(f => f.parameter_value),
         ].filter(Boolean).join(' · ')).join(' | ');
     }
 
@@ -63,6 +64,7 @@ export default function HistoryList({ groups, expandedSessions, onToggleSession,
                                                     {s.seconds && ` · ${s.seconds}s`}
                                                     {s.distance_feet && ` · ${s.distance_feet} ft`}
                                                     {s.side && ` · ${s.side}`}
+                                                    {(s.form_data ?? []).map(f => ` · ${f.parameter_value}`)}
                                                 </div>
                                             ))}
                                         </div>
