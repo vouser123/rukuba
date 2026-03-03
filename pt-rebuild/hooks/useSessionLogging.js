@@ -193,7 +193,11 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
                     },
                     body: JSON.stringify(createPayload),
                 });
-                if (!createRes.ok) throw new Error(`Failed to create log (${createRes.status})`);
+                if (createRes.status === 409) {
+                    // Idempotency duplicate — treat as success.
+                } else if (!createRes.ok) {
+                    throw new Error(`Failed to create log (${createRes.status})`);
+                }
             }
 
             if (onSaved) await onSaved();
@@ -202,7 +206,8 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
         } catch (err) {
             if (!logId && onEnqueue) {
                 const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
-                if (isOffline) {
+                const isNetworkFailure = err instanceof Error && /failed to fetch/i.test(err.message);
+                if (isOffline || isNetworkFailure) {
                     const queuedPayload = {
                         patient_id: patientId,
                         exercise_id: exercise.id,
