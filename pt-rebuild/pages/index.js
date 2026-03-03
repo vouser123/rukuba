@@ -14,7 +14,7 @@ import ExercisePicker from '../components/ExercisePicker';
 import SessionLoggerModal from '../components/SessionLoggerModal';
 import { useSessionLogging } from '../hooks/useSessionLogging';
 import { getAdherenceBadgeState } from '../lib/index-history';
-import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
+import { collectGlobalParameterValues } from '../lib/session-form-params';
 import styles from './index.module.css';
 
 export default function IndexPage() {
@@ -84,17 +84,7 @@ export default function IndexPage() {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
         setSelectedExercise(selected);
-        if (!selected) return;
-        setActiveExercise({
-            id: selected.id,
-            name: selected.canonical_name || '',
-        });
-        const defaultFormData = buildDefaultFormDataForExercise(selected, logs);
-        const exerciseWithDefaults = defaultFormData
-            ? { ...selected, default_form_data: defaultFormData }
-            : selected;
-        logger.openCreate(exerciseWithDefaults);
-    }, [logs, logger, pickerExercises]);
+    }, [pickerExercises]);
 
     const logger = useSessionLogging(token, userId, reload, enqueue);
 
@@ -188,25 +178,6 @@ export default function IndexPage() {
                                 sortMode={sortMode}
                                 onSortChange={setSortMode}
                             />
-                            <button
-                                className={styles.logButton}
-                                onPointerUp={() => {
-                                    if (!selectedExercise) return;
-                                    setActiveExercise({
-                                        id: selectedExercise.id,
-                                        name: selectedExercise.canonical_name || '',
-                                    });
-                                    const defaultFormData = buildDefaultFormDataForExercise(selectedExercise, logs);
-                                    const exerciseWithDefaults = defaultFormData
-                                        ? { ...selectedExercise, default_form_data: defaultFormData }
-                                        : selectedExercise;
-                                    logger.openCreate(exerciseWithDefaults);
-                                }}
-                                disabled={!selectedExercise}
-                                type="button"
-                            >
-                                {selectedExercise ? 'Log Session' : 'Select an exercise to log'}
-                            </button>
                         </>
                     )}
 
