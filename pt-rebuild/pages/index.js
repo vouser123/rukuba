@@ -13,6 +13,7 @@ import BottomNav from '../components/BottomNav';
 import ExercisePicker from '../components/ExercisePicker';
 import SessionLoggerModal from '../components/SessionLoggerModal';
 import { useSessionLogging } from '../hooks/useSessionLogging';
+import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
 import styles from './index.module.css';
 
@@ -61,6 +62,23 @@ export default function IndexPage() {
     }, [exercises, programs]);
 
     const historicalFormParams = useMemo(() => collectGlobalParameterValues(logs), [logs]);
+    const pickerPrograms = useMemo(() => {
+        if (programs.length > 0) {
+            return programs.map((program) => {
+                const exerciseName = program?.exercises?.canonical_name ?? null;
+                const adherence = getAdherenceBadgeState(logs, program.exercise_id, exerciseName);
+                return {
+                    ...program,
+                    ...adherence,
+                };
+            });
+        }
+
+        return exercises.map((exercise) => ({
+            exercise_id: exercise.id,
+            ...getAdherenceBadgeState(logs, exercise.id, exercise.canonical_name ?? null),
+        }));
+    }, [exercises, logs, programs]);
 
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
@@ -154,7 +172,7 @@ export default function IndexPage() {
                         <>
                             <ExercisePicker
                                 exercises={pickerExercises}
-                                programs={programs}
+                                programs={pickerPrograms}
                                 selectedId={selectedExerciseId}
                                 onSelect={handleExerciseSelect}
                                 sortMode={sortMode}

@@ -30,8 +30,11 @@ export function filterHistoryByExercise(logs, exerciseId) {
  * @param {string} exerciseId - Exercise to check
  * @returns {{ daysSince: number|null, totalSessions: number, colorClass: string }}
  */
-export function getAdherenceInfo(logs, exerciseId) {
-    const exerciseLogs = logs.filter(log => log.exercise_id === exerciseId);
+export function getAdherenceInfo(logs, exerciseId, exerciseName = null) {
+    const exerciseLogs = logs.filter((log) => (
+        log.exercise_id === exerciseId
+        || (exerciseName && log.exercise_name === exerciseName)
+    ));
     const totalSessions = exerciseLogs.length;
 
     if (totalSessions === 0) {
@@ -50,6 +53,38 @@ export function getAdherenceInfo(logs, exerciseId) {
     else if (daysSince >= 7) colorClass = 'due';  // 7-13 days — orange
 
     return { daysSince, totalSessions, colorClass };
+}
+
+/**
+ * Compute ExercisePicker-facing adherence fields from logs.
+ *
+ * @param {Array} logs
+ * @param {string} exerciseId
+ * @param {string|null} exerciseName
+ * @returns {{ adherence_status: string|null, last_performed_at: string|null }}
+ */
+export function getAdherenceBadgeState(logs, exerciseId, exerciseName = null) {
+    const info = getAdherenceInfo(logs, exerciseId, exerciseName);
+    if (info.daysSince === null) {
+        return { adherence_status: null, last_performed_at: null };
+    }
+
+    let adherenceStatus = null;
+    if (info.daysSince === 0) adherenceStatus = 'done_today';
+    else if (info.daysSince <= 7) adherenceStatus = 'due_soon';
+    else adherenceStatus = 'overdue';
+
+    const lastPerformedAt = logs
+        .filter((log) => (
+            log.exercise_id === exerciseId
+            || (exerciseName && log.exercise_name === exerciseName)
+        ))
+        .sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at))[0]?.performed_at ?? null;
+
+    return {
+        adherence_status: adherenceStatus,
+        last_performed_at: lastPerformedAt,
+    };
 }
 
 /**
