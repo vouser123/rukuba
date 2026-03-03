@@ -17,7 +17,7 @@ export function useIndexData(token, patientId) {
             const [nextExercises, nextPrograms, nextLogs] = await Promise.all([
                 fetchIndexExercises(token),
                 fetchIndexPrograms(token, patientId),
-                fetchIndexLogs(token, patientId),
+                fetchIndexLogs(token), // DN-059: no patientId — API resolves profile UUID from req.user.id
             ]);
             setExercises(nextExercises);
             setPrograms(nextPrograms);

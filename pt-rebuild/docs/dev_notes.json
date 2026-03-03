@@ -219,6 +219,20 @@
       "constraints_caveats": "Testing only in this item. If any failure is found, open/assign a follow-up code-fix DN to Codex and keep DN-048/056/057 open. Do not mark DN-048, DN-056, or DN-057 done until this verification item passes and evidence is recorded."
     },
     {
+      "id": "DN-059",
+      "status": "in_progress",
+      "priority": "P1",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["api", "migration", "reliability"],
+      "file": "pt-rebuild/lib/index-data.js, pt-rebuild/hooks/useIndexData.js",
+      "issue": "fetchIndexLogs passes session.user.id (auth UUID) as patient_id query param, but patient_activity_logs.patient_id stores profile UUIDs — causes 0 rows returned, historicalFormParams empty, and band_resistance showing plain text input instead of smart dropdown.",
+      "resolved": null,
+      "context": "Discovered during DN-058 testing (2026-03-03). session.user.id is the auth.users UUID (e.g. 11845649-...). patient_activity_logs.patient_id stores the public.users profile UUID (e.g. 35c3ec8d-...). The logs API fallback (line 62: targetPatientId = patient_id || req.user.id) uses req.user.id (profile UUID) when patient_id is omitted — so the fix is to simply omit patient_id from the fetchIndexLogs URL. fetchIndexPrograms is unaffected: programs API has resolvePatientId() with auth_id→users.id lookup and requires patient_id.",
+      "constraints_caveats": "Only fix fetchIndexLogs — remove patient_id from URL and update signature. fetchIndexPrograms keeps patient_id (programs API requires it and has resolvePatientId fallback). useIndexData hook signature (token, patientId) stays the same; patientId still needed for programs."
+    },
+    {
       "id": "DN-054",
       "status": "open",
       "priority": "P2",
