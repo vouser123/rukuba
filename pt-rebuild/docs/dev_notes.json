@@ -178,7 +178,7 @@
   "open_items": [
     {
       "id": "DN-057",
-      "status": "open",
+      "status": "in_progress",
       "priority": "P1",
       "risk": "low",
       "scope": "current",
@@ -187,22 +187,36 @@
       "file": "pt-rebuild/hooks/useSessionLogging.js",
       "issue": "ReferenceError in catch block offline-fallback path: `activity_type` shorthand (line ~215) references an undeclared variable. `activityType` (camelCase) is declared with `const` inside the `try` block and is out of scope in the `catch` block.",
       "resolved": null,
-      "context": "Discovered during DN-048 code review (2026-03-03). In useSessionLogging.js, the catch block fallback enqueue path builds a queuedPayload object using `activity_type,` shorthand notation — but there is no variable named `activity_type` in scope. The `const activityType = inferActivityType(exercise)` is declared inside the try block. This causes a ReferenceError only when: (1) creating a new log (not edit), AND (2) onEnqueue is defined, AND (3) the request fails with a network error or the device is offline. The happy-path (online POST) is unaffected.",
-      "constraints_caveats": "Fix: change `activity_type,` to `activity_type: inferActivityType(exercise),` in the catch block queuedPayload. Do not move `const activityType` before the try block — that would expose it as mutable. Just call inferActivityType again in the catch block."
+      "context": "Discovered during DN-048 code review (2026-03-03). In useSessionLogging.js, the catch block fallback enqueue path built queuedPayload using `activity_type,` shorthand with no variable in scope. Implemented fix now uses `activity_type: inferActivityType(exercise)` in catch fallback and normalizes queued sets with inferred type. This is a DN-048 sub-fix and closes with DN-048 after DN-058 verification passes.",
+      "constraints_caveats": "Fix: change `activity_type,` to `activity_type: inferActivityType(exercise),` in the catch block queuedPayload. Do not move `const activityType` before the try block — that would expose it as mutable. Just call inferActivityType again in the catch block. Verification is tracked in DN-058."
     },
     {
       "id": "DN-056",
-      "status": "open",
+      "status": "in_progress",
       "priority": "P2",
       "risk": "low",
       "scope": "current",
       "agent": ["codex"],
       "tags": ["ui", "migration"],
-      "file": "pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/pages/index.js",
+      "file": "pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/pages/index.js, pt-rebuild/hooks/useSessionLogging.js, pt-rebuild/lib/session-form-params.js",
       "issue": "Form parameters (e.g. band_resistance) render as plain text inputs in Next.js SessionLoggerModal. Static index.html renders them as smart dropdowns built from historical log values, with an 'Other...' fallback to free text.",
       "resolved": null,
-      "context": "Discovered during DN-048 regression testing (2026-03-03). Static app: renderFormParameterFields() merges exercise-specific and global historical param values into a <select> (with 'Other...' → text input). Next.js: parameterOptions() only handles 'weight' and 'distance' (unit selectors); all other params fall through to plain <input type=text>. Fix requires: (1) compute historicalFormParams from logs in pages/index.js — an object keyed by parameter_name with sorted arrays of previously-used values; (2) pass historicalFormParams prop to SessionLoggerModal; (3) in SessionLoggerModal, when historicalFormParams[paramName] has entries, render a <select> with those values plus 'Other...' option; 'Other...' switches to text input; if no historical values, fall back to text input. weight and distance params keep their existing unit-selector rendering.",
-      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Keep existing weight/distance unit-selector behavior unchanged. 'Other...' custom mode needs per-set-per-param local state in SessionLoggerModal (useState). Pre-existing form_data values (edit flow) that aren't in historicalFormParams must still display — add them as an option or pre-select correctly."
+      "context": "Discovered during DN-048 regression testing (2026-03-03). Codex implemented parity code updates: smart dropdown + 'Other...' for non-unit params, history-driven defaults for create flow (including value+unit parsing like `3 lb`), timezone-safe datetime-local rendering, numeric weight/distance inputs, and select placeholder parity when default exists. This is a DN-048 sub-fix and closes with DN-048 after DN-058 verification passes.",
+      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Keep existing weight/distance unit-selector behavior unchanged. 'Other...' custom mode needs per-set-per-param local state in SessionLoggerModal (useState). Pre-existing form_data values (edit flow) that aren't in historicalFormParams must still display — add them as an option or pre-select correctly. Verification is tracked in DN-058."
+    },
+    {
+      "id": "DN-058",
+      "status": "open",
+      "priority": "P1",
+      "risk": "medium",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["migration", "ui", "offline", "reliability", "api"],
+      "file": "pt-rebuild/pages/index.js, pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/hooks/useSessionLogging.js, pt-rebuild/lib/session-form-params.js, pt-rebuild/public/index.html",
+      "issue": "DN-048 verification gate: execute parity/regression testing for session logging flow, including DN-056 form-parameter behavior and DN-057 offline/network-fallback behavior, and record pass/fail evidence.",
+      "resolved": null,
+      "context": "Testing-only item for Claude. This is the closure gate for DN-048, DN-056, and DN-057. Must execute the full Activity Log Testing Checklist in AGENTS.md for DN-048 (all exercise-type, set-count, side, path, and idempotency combinations) and also verify DN-056/DN-057-specific parity: non-unit params show historical dropdown + Other path, create defaults from last-used per exercise including value+unit (e.g. 3 lb), edit preserves values not present in historical map, datetime-local roundtrip preserves intended local time, weight/distance remain numeric with correct unit default, and offline/network-failure enqueue path succeeds with correct activity_type and no ReferenceError.",
+      "constraints_caveats": "Testing only in this item. If any failure is found, open/assign a follow-up code-fix DN to Codex and keep DN-048/056/057 open. Do not mark DN-048, DN-056, or DN-057 done until this verification item passes and evidence is recorded."
     },
     {
       "id": "DN-054",
@@ -293,8 +307,8 @@
       "file": "pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/components/SessionLoggerModal.module.css, pt-rebuild/hooks/useSessionLogging.js",
       "issue": "Phase 4c: Port the session logging modal (set/reps/side/form_data/hold/duration) from public/index.html into SessionLoggerModal + useSessionLogging. Preserve all pattern modifier handling, form_data permutations, client_mutation_id idempotency, and PATCH (update) flow.",
       "resolved": null,
-      "context": "Part of Phase 4 index.html migration (DN-045). useSessionLogging manages: create (POST /api/logs) and update (PATCH /api/logs/:id) flows, set management, client_mutation_id generation. Must pass the Activity Log Testing Checklist in AGENTS.md (all exercise/set/side/path combinations). Claude reviews against checklist before wiring up.",
-      "constraints_caveats": "client_mutation_id must be generated per-set, not per-session. No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix. HOLD (2026-03-02): API currently accepts one client_mutation_id per activity log payload; pause implementation until contract decision is confirmed."
+      "context": "Part of Phase 4 index.html migration (DN-045). useSessionLogging manages: create (POST /api/logs) and update (PATCH /api/logs/:id) flows, set management, client_mutation_id generation. DN-056 and DN-057 are tracked sub-fixes under this item. Close DN-048 only after DN-058 verification passes.",
+      "constraints_caveats": "client_mutation_id contract is one ID per log submission payload (confirmed 2026-03-03). No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix."
     },
     {
       "id": "DN-045",
