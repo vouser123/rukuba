@@ -71,6 +71,7 @@ export function getAdherenceBadgeState(logs, exerciseId, exerciseName = null) {
             adherence_tone: 'gray',
             adherence_text: 'Never done',
             adherence_icon: '○',
+            adherence_days_since: null,
             total_sessions: 0,
             last_performed_at: null,
         };
@@ -111,6 +112,7 @@ export function getAdherenceBadgeState(logs, exerciseId, exerciseName = null) {
         adherence_tone: adherenceTone,
         adherence_text: adherenceText,
         adherence_icon: adherenceIcon,
+        adherence_days_since: info.daysSince,
         total_sessions: info.totalSessions,
         last_performed_at: lastPerformedAt,
     };

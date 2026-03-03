@@ -61,13 +61,49 @@ export default function ExercisePicker({
 
     const visibleExercises = useMemo(() => {
         const q = query.trim().toLowerCase();
-        return exercises.filter((exercise) => {
+        const filtered = exercises.filter((exercise) => {
             if (exercise?.archived) return false;
             if (!q) return true;
             const name = exercise?.canonical_name ?? '';
             return name.toLowerCase().includes(q);
         });
-    }, [exercises, query]);
+
+        const sorted = [...filtered];
+        const byName = (a, b) => (a?.canonical_name ?? '').localeCompare(b?.canonical_name ?? '');
+
+        if (sortMode === 'alpha') {
+            sorted.sort(byName);
+            return sorted;
+        }
+
+        if (sortMode === 'body_area') {
+            sorted.sort((a, b) => {
+                const aCategory = a?.pt_category ?? '';
+                const bCategory = b?.pt_category ?? '';
+                const byCategory = aCategory.localeCompare(bCategory);
+                if (byCategory !== 0) return byCategory;
+                return byName(a, b);
+            });
+            return sorted;
+        }
+
+        if (sortMode === 'recent') {
+            sorted.sort((a, b) => {
+                const aProgram = programsByExercise.get(a.id) ?? null;
+                const bProgram = programsByExercise.get(b.id) ?? null;
+                const aDays = aProgram?.adherence_days_since;
+                const bDays = bProgram?.adherence_days_since;
+                const aValue = Number.isFinite(aDays) ? aDays : Number.POSITIVE_INFINITY;
+                const bValue = Number.isFinite(bDays) ? bDays : Number.POSITIVE_INFINITY;
+                if (aValue !== bValue) return aValue - bValue;
+                return byName(a, b);
+            });
+            return sorted;
+        }
+
+        // pt_order/manual keep incoming order for now (drag-and-drop handled in DN-050).
+        return sorted;
+    }, [exercises, programsByExercise, query, sortMode]);
 
     return (
         <section className={styles.panel} aria-label="Exercise picker">
