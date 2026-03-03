@@ -170,7 +170,8 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
             } else {
                 const clientMutationId = nextMutationId();
                 const createPayload = {
-                    patient_id: patientId,
+                    // DN-059: omit patient_id — API uses req.user.id (profile UUID) via fallback.
+                    // Passing session.user.id (auth UUID) triggers the "log on behalf" branch and 500s.
                     exercise_id: exercise.id,
                     exercise_name: exercise.canonical_name,
                     activity_type: activityType,
@@ -212,7 +213,7 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
                 const isNetworkFailure = err instanceof Error && /failed to fetch/i.test(err.message);
                 if (isOffline || isNetworkFailure) {
                     const queuedPayload = {
-                        patient_id: patientId,
+                        // DN-059: omit patient_id — API uses req.user.id (profile UUID) via fallback.
                         exercise_id: exercise.id,
                         exercise_name: exercise.canonical_name,
                         activity_type: inferActivityType(exercise),

@@ -226,11 +226,11 @@
       "scope": "current",
       "agent": ["claude"],
       "tags": ["api", "migration", "reliability"],
-      "file": "pt-rebuild/lib/index-data.js, pt-rebuild/hooks/useIndexData.js",
-      "issue": "fetchIndexLogs passes session.user.id (auth UUID) as patient_id query param, but patient_activity_logs.patient_id stores profile UUIDs — causes 0 rows returned, historicalFormParams empty, and band_resistance showing plain text input instead of smart dropdown.",
+      "file": "pt-rebuild/lib/index-data.js, pt-rebuild/hooks/useIndexData.js, pt-rebuild/hooks/useSessionLogging.js",
+      "issue": "session.user.id (auth UUID) passed as patient_id in GET /api/logs query param and POST /api/logs body — GET returns 0 rows (historicalFormParams empty, no dropdown), POST 500s (API enters 'log on behalf' branch, INSERT fails). patient_activity_logs.patient_id stores profile UUIDs.",
       "resolved": null,
-      "context": "Discovered during DN-058 testing (2026-03-03). session.user.id is the auth.users UUID (e.g. 11845649-...). patient_activity_logs.patient_id stores the public.users profile UUID (e.g. 35c3ec8d-...). The logs API fallback (line 62: targetPatientId = patient_id || req.user.id) uses req.user.id (profile UUID) when patient_id is omitted — so the fix is to simply omit patient_id from the fetchIndexLogs URL. fetchIndexPrograms is unaffected: programs API has resolvePatientId() with auth_id→users.id lookup and requires patient_id.",
-      "constraints_caveats": "Only fix fetchIndexLogs — remove patient_id from URL and update signature. fetchIndexPrograms keeps patient_id (programs API requires it and has resolvePatientId fallback). useIndexData hook signature (token, patientId) stays the same; patientId still needed for programs."
+      "context": "Discovered during DN-058 testing (2026-03-03). session.user.id is auth.users UUID (e.g. 11845649-...); patient_activity_logs.patient_id stores public.users profile UUID (e.g. 35c3ec8d-...). GET fix: remove patient_id from fetchIndexLogs URL (API fallback uses req.user.id, profile UUID). POST fix: remove patient_id from createPayload and queuedPayload in useSessionLogging.js (same fallback applies). fetchIndexPrograms unchanged — programs API has resolvePatientId() auth_id→users.id lookup and requires the param.",
+      "constraints_caveats": "fetchIndexPrograms keeps patient_id (programs API requires it, has resolvePatientId fallback). useIndexData hook signature (token, patientId) stays same; patientId still needed for programs. For therapists logging on behalf of patients, the correct profile UUID would come from program data, not session — not affected by this change."
     },
     {
       "id": "DN-054",
