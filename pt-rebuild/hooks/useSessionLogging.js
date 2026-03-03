@@ -42,10 +42,14 @@ function createDefaultSet(exercise, setNumber) {
     };
 }
 
-function normalizeSet(set, index) {
+function normalizeSet(set, index, activityType = 'reps') {
+    let reps = set?.reps ?? null;
+    if (activityType === 'duration') reps = 1;
+    if (activityType === 'distance') reps = null;
+
     return {
         set_number: set?.set_number ?? index + 1,
-        reps: set?.reps ?? null,
+        reps,
         seconds: set?.seconds ?? null,
         distance_feet: set?.distance_feet ?? null,
         side: set?.side ?? null,
@@ -143,7 +147,8 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
         setSubmitting(true);
         setError(null);
         try {
-            const normalizedSets = sets.map((set, index) => normalizeSet(set, index));
+            const activityType = inferActivityType(exercise);
+            const normalizedSets = sets.map((set, index) => normalizeSet(set, index, activityType));
 
             if (logId) {
                 const patchRes = await fetch(`/api/logs?id=${logId}`, {
@@ -165,7 +170,7 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
                     patient_id: patientId,
                     exercise_id: exercise.id,
                     exercise_name: exercise.canonical_name,
-                    activity_type: inferActivityType(exercise),
+                    activity_type: activityType,
                     notes: notes || null,
                     performed_at: performedAt,
                     // One mutation id per log submission (API-level idempotency contract).
@@ -202,11 +207,11 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
                         patient_id: patientId,
                         exercise_id: exercise.id,
                         exercise_name: exercise.canonical_name,
-                        activity_type: inferActivityType(exercise),
+                        activity_type,
                         notes: notes || null,
                         performed_at: performedAt,
                         client_mutation_id: nextMutationId(),
-                        sets: sets.map((set, index) => normalizeSet(set, index)),
+                        sets: sets.map((set, index) => normalizeSet(set, index, activityType)),
                     };
                     onEnqueue(queuedPayload);
                     if (onSaved) await onSaved();

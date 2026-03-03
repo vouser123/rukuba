@@ -14,6 +14,13 @@ function shouldShowDistance(exercise) {
     return modifiers.includes('distance_feet') || exercise?.dosage_type === 'distance';
 }
 
+function shouldShowReps(exercise) {
+    const modifiers = exercise?.pattern_modifiers ?? [];
+    const isDuration = modifiers.includes('duration_seconds') || exercise?.dosage_type === 'duration';
+    const isDistance = modifiers.includes('distance_feet') || exercise?.dosage_type === 'distance';
+    return !isDuration && !isDistance;
+}
+
 export default function SessionLoggerModal({
     isOpen,
     isEdit,
@@ -35,6 +42,7 @@ export default function SessionLoggerModal({
     if (!isOpen || !exercise) return null;
 
     const formParams = exercise.form_parameters_required ?? [];
+    const showReps = shouldShowReps(exercise);
     const showSeconds = shouldShowSeconds(exercise);
     const showDistance = shouldShowDistance(exercise);
     const isSided = exercise.pattern === 'side';
@@ -82,16 +90,18 @@ export default function SessionLoggerModal({
                             </div>
 
                             <div className={styles.fieldGrid}>
-                                <label className={styles.fieldLabel}>
-                                    Reps
-                                    <input
-                                        className={styles.input}
-                                        type="number"
-                                        min="0"
-                                        value={set.reps ?? ''}
-                                        onChange={(event) => onSetChange(index, { reps: Number(event.target.value || 0) || null })}
-                                    />
-                                </label>
+                                {showReps && (
+                                    <label className={styles.fieldLabel}>
+                                        Reps
+                                        <input
+                                            className={styles.input}
+                                            type="number"
+                                            min="0"
+                                            value={set.reps ?? ''}
+                                            onChange={(event) => onSetChange(index, { reps: Number(event.target.value || 0) || null })}
+                                        />
+                                    </label>
+                                )}
                                 {showSeconds && (
                                     <label className={styles.fieldLabel}>
                                         Seconds
