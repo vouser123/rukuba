@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-03-02"
+    "last_updated": "2026-03-03"
   },
   "enums": {
     "priority_levels": [
@@ -126,6 +126,10 @@
       {
         "value": "notifications",
         "definition": "In-app or push notification behavior."
+      },
+      {
+        "value": "messages",
+        "definition": "Clinical messaging feature: inbox, send/receive, routing, labels, notifications."
       }
     ],
     "scope_values": [
@@ -139,7 +143,7 @@
       }
     ],
     "agent_values": {
-      "field_type": "array \u2014 one or more of the values below. Required on all open items.",
+      "field_type": "array — one or more of the values below. Required on all open items.",
       "values": [
         {
           "value": "codex",
@@ -154,12 +158,12 @@
           "definition": "Agent not yet determined. Surface for triage before execution."
         }
       ],
-      "note": "Use [\"codex\", \"claude\"] when either agent can handle the task. Never use an empty array \u2014 use [\"unassigned\"] if unsure."
+      "note": "Use [\"codex\", \"claude\"] when either agent can handle the task. Never use an empty array — use [\"unassigned\"] if unsure."
     },
     "reactivate_triggers": [
       {
         "value": "deployment_scope_change",
-        "definition": "Re-evaluate when the user base or deployment model changes (e.g. adding users beyond the current two-person setup). Requires explicit human decision \u2014 no automatic condition check."
+        "definition": "Re-evaluate when the user base or deployment model changes (e.g. adding users beyond the current two-person setup). Requires explicit human decision — no automatic condition check."
       },
       {
         "value": "query_volume_sufficient",
@@ -178,8 +182,17 @@
       "priority": "P1",
       "risk": "high",
       "scope": "current",
-      "agent": ["codex", "claude"],
-      "tags": ["api", "auth", "reliability", "security", "notifications"],
+      "agent": [
+        "codex",
+        "claude"
+      ],
+      "tags": [
+        "api",
+        "auth",
+        "reliability",
+        "security",
+        "notifications"
+      ],
       "file": "pt-rebuild/public/pt_view.html, pt-rebuild/public/index.html, pt-rebuild/pages/pt-view.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/api/logs.js",
       "issue": "Therapist outbound messages can be self-addressed (`sender_id === recipient_id`), causing silent non-delivery to patient and misrouted unread-email notifications.",
       "resolved": null,
@@ -204,7 +217,7 @@
       "issue": "Phase 4h: Port PWA install prompt from public/index.html into components/PwaInstallPrompt.js. Preserve service worker registration and install prompt behavior.",
       "resolved": null,
       "context": "Part of Phase 4 index.html migration (DN-045). Port the beforeinstallprompt listener and install button display logic from index.html into a standalone React component. Claude verifies on mobile preview.",
-      "constraints_caveats": "No onClick \u2014 use onPointerUp. 44px touch targets. Must not break offline shell behavior."
+      "constraints_caveats": "No onClick — use onPointerUp. 44px touch targets. Must not break offline shell behavior."
     },
     {
       "id": "DN-050",
@@ -222,7 +235,7 @@
       "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/components/ExercisePicker.module.css",
       "issue": "Phase 4f: Add exercise sort mode selector + drag-and-drop manual ordering to ExercisePicker. Sort modes: custom/manual, body area, recent activity, alphabetical, PT/program order fallback. Persist preference to localStorage (user-scoped key). Drag-and-drop: pointer events, onPointerUp, 44px grip handle, drag ghost while moving.",
       "resolved": null,
-      "context": "Part of Phase 4 index.html migration (DN-045). Resolves DN-012. Sort preference key: pt_sort_mode_${userId}. Custom order key: pt_exercise_order_${userId}. No onclick/click handlers \u2014 iOS-safe only. Claude reviews and fixes if needed, then verifies on iOS preview.",
+      "context": "Part of Phase 4 index.html migration (DN-045). Resolves DN-012. Sort preference key: pt_sort_mode_${userId}. Custom order key: pt_exercise_order_${userId}. No onclick/click handlers — iOS-safe only. Claude reviews and fixes if needed, then verifies on iOS preview.",
       "constraints_caveats": "No onClick or click events. onPointerUp only. touch-action: manipulation. Drag ghost must be visible during move. localStorage keys must include userId to be user-scoped."
     },
     {
@@ -246,7 +259,7 @@
     },
     {
       "id": "DN-048",
-      "status": "open",
+      "status": "in_progress",
       "priority": "P2",
       "risk": "medium",
       "scope": "current",
@@ -280,7 +293,7 @@
       "file": "pt-rebuild/pages/index.js, pt-rebuild/pages/index.module.css, pt-rebuild/components/ExercisePicker.js, pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/components/TimerPanel.js, pt-rebuild/components/HistoryPanel.js, pt-rebuild/components/BottomNav.js, pt-rebuild/components/PwaInstallPrompt.js, pt-rebuild/hooks/useIndexData.js, pt-rebuild/hooks/useSessionLogging.js, pt-rebuild/hooks/useIndexOfflineQueue.js, pt-rebuild/hooks/useTimerSpeech.js, pt-rebuild/lib/index-data.js, pt-rebuild/lib/index-history.js, pt-rebuild/lib/index-offline.js",
       "issue": "Phase 4: Migrate public/index.html to pages/index.js (main patient tracker). Sub-phases: 4a shell, 4b exercise picker, 4c logging, 4d timer/speech, 4e history+nav, 4f sorting, 4g offline/sync, 4h PWA, 4i cutover.",
       "resolved": null,
-      "context": "Last and largest migration phase. pages/index.js cannot exist until public/index.html is retired (cutover in 4i). Codex handles coding of 4a, 4b, 4c, 4d, 4f, 4h (see DN-046 through DN-051). Claude owns 4e (history filter \u2014 cross-component state), 4g (offline scoping \u2014 security fix DN-022), 4i (cutover + retirement). History behavior: all logs when no exercise open; exercise-filtered when session/modal open (DN-014). Sort: custom drag-and-drop, body area, recent, alpha, PT order (DN-012). Offline queue scoped by userId (addresses DN-022).",
+      "context": "Last and largest migration phase. pages/index.js cannot exist until public/index.html is retired (cutover in 4i). Codex handles coding of 4a, 4b, 4c, 4d, 4f, 4h (see DN-046 through DN-051). Claude owns 4e (history filter — cross-component state), 4g (offline scoping — security fix DN-022), 4i (cutover + retirement). History behavior: all logs when no exercise open; exercise-filtered when session/modal open (DN-014). Sort: custom drag-and-drop, body area, recent, alpha, PT order (DN-012). Offline queue scoped by userId (addresses DN-022).",
       "constraints_caveats": "Never merge pages/index.js to main until public/index.html is retired in 4i. All work on nextjs branch. Do not re-introduce /api/sync. Offline queue key must be user-scoped: pt_offline_queue_${userId}."
     },
     {
@@ -358,8 +371,8 @@
       "file": "pt-rebuild/package.json, pt-rebuild/next.config.mjs, pt-rebuild/pages/rehab.js, pt-rebuild/pages/rehab.module.css, pt-rebuild/pages/_app.js, pt-rebuild/lib/rehab-coverage.js, pt-rebuild/lib/supabase.js, pt-rebuild/hooks/useAuth.js, pt-rebuild/components/NavMenu.js, pt-rebuild/components/NavMenu.module.css, pt-rebuild/components/AuthForm.js, pt-rebuild/components/AuthForm.module.css, pt-rebuild/styles/globals.css",
       "issue": "Strangler Fig migration to Next.js (Pages Router). Existing static HTML pages remain untouched; new pages built in Next.js one at a time. Phase 1: scaffolding + shared architecture (lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js) + rehab_coverage migrated to pages/rehab.js.",
       "resolved": null,
-      "context": "Phase 1 and Phase 2 complete on nextjs branch. Pre-migration cleanup (DN-035) done: PatientNotes + HistoryList extracted to components/, pt-view.module.css 670L\u2192369L. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab \u2014 Coverage Analysis. Phase 2: /pt-view \u2014 History Dashboard. Components: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, components/PatientNotes.js, components/HistoryList.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. Vanilla JS pages untouched. Phase 3a complete (DN-041): pt_editor \u2192 /program. Exercise management (list, add/edit, lifecycle, supersedes) verified on preview 2026-03-01. Phase 3b complete (DN-043): roles editing + DosageModal verified on preview 2026-03-01. Phase 4 in progress (DN-045): public/index.html \u2192 pages/index.js migration. Codex sub-tasks: DN-046 through DN-051.",
-      "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch \u2014 do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges."
+      "context": "Phase 1 and Phase 2 complete on nextjs branch. Pre-migration cleanup (DN-035) done: PatientNotes + HistoryList extracted to components/, pt-view.module.css 670L→369L. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard. Components: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, components/PatientNotes.js, components/HistoryList.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. Vanilla JS pages untouched. Phase 3a complete (DN-041): pt_editor → /program. Exercise management (list, add/edit, lifecycle, supersedes) verified on preview 2026-03-01. Phase 3b complete (DN-043): roles editing + DosageModal verified on preview 2026-03-01. Phase 4 in progress (DN-045): public/index.html → pages/index.js migration. Codex sub-tasks: DN-046 through DN-051.",
+      "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges."
     },
     {
       "id": "DN-032",
@@ -374,10 +387,10 @@
         "cleanup"
       ],
       "file": "pt-rebuild/public/pt_view.html, pt-rebuild/public/rehab_coverage.html",
-      "issue": "Remove dead code left over from DN-006 hamburger refactor: updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html both reference elements (#userEmail, #ptTrackerLink) that were removed when hamburger panel HTML was extracted to HamburgerMenu.inject(). Both functions silently no-op due to null-checks \u2014 no functional impact \u2014 but they are dead code.",
+      "issue": "Remove dead code left over from DN-006 hamburger refactor: updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html both reference elements (#userEmail, #ptTrackerLink) that were removed when hamburger panel HTML was extracted to HamburgerMenu.inject(). Both functions silently no-op due to null-checks — no functional impact — but they are dead code.",
       "resolved": null,
-      "context": "DN-006 removed hamburger panel HTML from all pages. updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html were not cleaned up. HamburgerMenu.init() \u2192 updateUserDisplay() now handles the user email display. The #ptTrackerLink element no longer exists in any page.",
-      "constraints_caveats": "Verify nothing else calls these functions before removing. updateMenuVisibility() in rehab_coverage.html also sets userRole \u2014 confirm that logic is fully handled by the HamburgerMenu.init() isAdmin param before deleting."
+      "context": "DN-006 removed hamburger panel HTML from all pages. updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html were not cleaned up. HamburgerMenu.init() → updateUserDisplay() now handles the user email display. The #ptTrackerLink element no longer exists in any page.",
+      "constraints_caveats": "Verify nothing else calls these functions before removing. updateMenuVisibility() in rehab_coverage.html also sets userRole — confirm that logic is fully handled by the HamburgerMenu.init() isAdmin param before deleting."
     },
     {
       "id": "DN-005",
@@ -453,7 +466,7 @@
       "file": "pt-rebuild/supabase",
       "issue": "Resolve duplicate permissive SELECT policies on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables.",
       "resolved": null,
-      "context": "Supabase performance advisor flags 9 tables with two SELECT policies for `authenticated` on the same table. Both policies are evaluated per query. The older `_select_own` / `patient_activity_*_select` policies predate the broader `activity_logs_select` / `activity_sets_select` / `set_form_data_select` policies. The broader policies cover all cases the older ones do, plus therapist access. The older narrow ones can likely be dropped \u2014 but access behavior must be verified first.",
+      "context": "Supabase performance advisor flags 9 tables with two SELECT policies for `authenticated` on the same table. Both policies are evaluated per query. The older `_select_own` / `patient_activity_*_select` policies predate the broader `activity_logs_select` / `activity_sets_select` / `set_form_data_select` policies. The broader policies cover all cases the older ones do, plus therapist access. The older narrow ones can likely be dropped — but access behavior must be verified first.",
       "constraints_caveats": "Read both policy bodies carefully before dropping anything. Verify that the broader policy covers every case the narrow one does (patient own access + therapist access + admin access). Do not drop without testing patient and therapist SELECT access in staging."
     },
     {
@@ -471,7 +484,7 @@
       "file": "pt-rebuild/public/index.html",
       "issue": "History tab on index shows all exercises; when navigating from a specific exercise it should pre-filter to that exercise's history only.",
       "resolved": null,
-      "context": "User taps an exercise card, then taps the History tab \u2014 expects to see that exercise's history, not the full log across all exercises.",
+      "context": "User taps an exercise card, then taps the History tab — expects to see that exercise's history, not the full log across all exercises.",
       "constraints_caveats": "Needs a way to pass exercise context to the History tab (e.g. in-memory state or scroll-to). Should still allow clearing the filter to see full history."
     },
     {
@@ -487,7 +500,7 @@
         "ui"
       ],
       "file": "pt-rebuild/public/index.html",
-      "issue": "No robust exercise sorting/reordering controls on the patient index page \u2014 list order is currently tied to API return order.",
+      "issue": "No robust exercise sorting/reordering controls on the patient index page — list order is currently tied to API return order.",
       "resolved": null,
       "context": "User needs flexible list organization: sort by body area, recency/activity, alphabetical, and manual drag-and-drop custom order. Drag handle can be on left or right, but interaction should feel iOS-native with a visible grip and drag ghost while moving.",
       "constraints_caveats": "Sort preference should persist across sessions (localStorage or user profile) and be user-scoped. Must not affect underlying program/dosage data, only display order. Touch interactions must remain iOS-safe (`pointerup`/pointer events, 44px minimum targets)."
@@ -527,7 +540,7 @@
         "api"
       ],
       "file": "pt-rebuild/api/users.js,pt-rebuild/public",
-      "issue": "No user profile editor \u2014 users cannot change their own name, email, or password from within the app.",
+      "issue": "No user profile editor — users cannot change their own name, email, or password from within the app.",
       "resolved": null,
       "context": "Currently `PATCH /api/users` only accepts `email_notifications_enabled`. A profile editor would allow users to update `first_name`, `last_name`, email (requires Supabase Auth update), and password (requires Supabase Auth password change flow). Admin may also need ability to edit other users' profiles.",
       "constraints_caveats": "Email/password changes must go through Supabase Auth API (`supabase.auth.updateUser()`), not just the `users` table. Need to consider whether therapist can edit patient profiles or only admins can."
@@ -552,10 +565,10 @@
         "reliability"
       ],
       "file": "pt-rebuild/api/logs.js",
-      "issue": "Clinical message creation (`POST /api/logs?type=messages`) validates recipient existence but does not enforce therapist\u2194patient relationship constraints.",
+      "issue": "Clinical message creation (`POST /api/logs?type=messages`) validates recipient existence but does not enforce therapist↔patient relationship constraints.",
       "resolved": null,
       "context": "Current logic allows any authenticated caller to target any existing `users.id` as `recipient_id` if RLS permits the insert. The intended messaging model is patient-therapist communication, so relationship checks should mirror assignment rules used elsewhere.",
-      "constraints_caveats": "Define and preserve intended matrix explicitly (patient\u2192assigned therapist only; therapist\u2192assigned patient only; admin behavior defined). Verify against current `clinical_messages` RLS policy bodies before tightening endpoint logic."
+      "constraints_caveats": "Define and preserve intended matrix explicitly (patient→assigned therapist only; therapist→assigned patient only; admin behavior defined). Verify against current `clinical_messages` RLS policy bodies before tightening endpoint logic."
     },
     {
       "id": "DN-022",
@@ -597,7 +610,7 @@
         "supabase"
       ],
       "file": "pt-rebuild/db/schema.sql",
-      "issue": "`schema.sql` drifts out of sync with the live database every time a migration is applied \u2014 no automated mechanism keeps it current.",
+      "issue": "`schema.sql` drifts out of sync with the live database every time a migration is applied — no automated mechanism keeps it current.",
       "resolved": null,
       "context": "`schema.sql` is a manually maintained snapshot. Each migration in `pt-rebuild/db/migrations/` changes the live DB but does not update `schema.sql`. Over time the file becomes unreliable as a reference for the current DB structure.",
       "options": "(A) After each migration, regenerate `schema.sql` using `supabase db dump --schema public > pt-rebuild/db/schema.sql` as a manual step. (B) Treat `schema.sql` as deprecated documentation and rely solely on numbered migration files as source of truth. (C) Add a note in CLAUDE.md reminding agents to update `schema.sql` after applying migrations.",
@@ -634,8 +647,13 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["codex"],
-      "tags": ["migration", "ui"],
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
       "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/components/ExercisePicker.module.css, pt-rebuild/pages/index.js",
       "issue": "Phase 4b: Port exercise list/search/select behavior from public/index.html into ExercisePicker component. Include adherence badge, dosage summary, sort UI stub (mode selector only — drag-and-drop handled in DN-050). Preserve program-based loading and role visibility.",
       "resolved": "2026-03-02",
@@ -689,13 +707,13 @@
       "file": "pt-rebuild/pages/program.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/DosageModal.js, pt-rebuild/components/DosageModal.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/docs/NEXTJS_MIGRATION.md",
       "issue": "Phase 3b: roles editing (ExerciseFormCues section 7 made editable) + DosageModal shared component for patient program dosage management.",
       "resolved": "2026-03-01",
-      "context": "Roles: POST /api/roles (create) + DELETE /api/roles/:id (soft-delete, active=false). No PUT. Callbacks flow from ExerciseForm.js \u2192 ExerciseFormCues (no API calls in components). Guard: Add/Remove disabled for unsaved exercises. DosageModal: shared component, props onSave/onClose, fields adapt to exercise.pattern_modifiers. Triggered from /program selector panel. Programs loaded at page load via GET /api/programs?patient_id=X, keyed by exercise_id. Reusable from future tracker migration.",
-      "constraints_caveats": "No new API routes. DosageModal must not import from lib/ \u2014 receives onSave callback from parent. Roles require exercise.id \u2014 disable add/remove for new unsaved exercises.",
+      "context": "Roles: POST /api/roles (create) + DELETE /api/roles/:id (soft-delete, active=false). No PUT. Callbacks flow from ExerciseForm.js → ExerciseFormCues (no API calls in components). Guard: Add/Remove disabled for unsaved exercises. DosageModal: shared component, props onSave/onClose, fields adapt to exercise.pattern_modifiers. Triggered from /program selector panel. Programs loaded at page load via GET /api/programs?patient_id=X, keyed by exercise_id. Reusable from future tracker migration.",
+      "constraints_caveats": "No new API routes. DosageModal must not import from lib/ — receives onSave callback from parent. Roles require exercise.id — disable add/remove for new unsaved exercises.",
       "problem": "Roles section in ExerciseFormCues was read-only. No UI existed to set patient dosage for exercises.",
       "root_cause": "Phase 3a intentionally deferred roles editing and dosage management to keep scope contained.",
       "change_made": "Made Roles section editable (add/remove via /api/roles POST+DELETE). Added DosageModal shared component with pattern_modifiers-aware field visibility. Wired programs state and dosage button into program.js. Added fetchRoles, addRole, deleteRole, fetchPrograms, createProgram, updateProgram to lib/pt-editor.js.",
       "files_touched": "pt-rebuild/pages/program.js, pt-rebuild/pages/program.module.css, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/DosageModal.js (new), pt-rebuild/components/DosageModal.module.css (new), pt-rebuild/lib/pt-editor.js, pt-rebuild/docs/NEXTJS_MIGRATION.md",
-      "validation": "Verified on Vercel preview 2026-03-01: roles table shows with Remove buttons; Add Role form populates from vocab; dosage button shows existing summary (1 \u00d7 20); DosageModal opens pre-filled, saves correctly, button updates to new values; re-open shows persisted values. No console errors.",
+      "validation": "Verified on Vercel preview 2026-03-01: roles table shows with Remove buttons; Add Role form populates from vocab; dosage button shows existing summary (1 × 20); DosageModal opens pre-filled, saves correctly, button updates to new values; re-open shows persisted values. No console errors.",
       "follow_ups": "Phase 3c (vocabulary editor) remains. DosageModal reused from Phase 4 tracker page migration."
     },
     {
@@ -717,7 +735,7 @@
       "resolved": "2026-03-01",
       "context": "User requested stronger prevention with explicit false-positive control after prior real secret exposure in history. Configure blocking checks around high-confidence findings only, with scoped suppressions for known documentation placeholders.",
       "constraints_caveats": "Do not log raw secret values in CI output. Keep suppressions path-scoped and avoid global regex allowlists that could mask real leaks.",
-      "problem": "No automated secret scanning in CI \u2014 secrets could be committed without detection.",
+      "problem": "No automated secret scanning in CI — secrets could be committed without detection.",
       "root_cause": "Project lacked CI enforcement; prior real secret exposure (email) occurred and was caught manually.",
       "change_made": "Created secret-scan-fast.yml (blocking, PR/push), secret-scan-deep.yml (scheduled deep scan). Added .gitleaks-strict.toml config and .trufflehog-exclude-paths.txt for false-positive suppression. Scoped suppressions to known documentation placeholders only.",
       "files_touched": "rukuba/.github/workflows/secret-scan-fast.yml, rukuba/.github/workflows/secret-scan-deep.yml, rukuba/.gitleaks-strict.toml, rukuba/.trufflehog-exclude-paths.txt",
@@ -740,8 +758,8 @@
       "file": "pt-rebuild/pages/program.js, pt-rebuild/pages/program.module.css, pt-rebuild/lib/pt-editor.js, pt-rebuild/components/ExerciseForm.js, pt-rebuild/components/ExerciseFormCore.js, pt-rebuild/components/ExerciseFormCues.js, pt-rebuild/components/ExerciseFormLifecycle.js, pt-rebuild/components/ExerciseForm.module.css, pt-rebuild/components/NavMenu.js, pt-rebuild/lib/handlers/exercises.js",
       "issue": "Phase 3a: migrate pt_editor exercise management to Next.js at /program. Covers exercise list, add/edit exercises (all 8 form sections), auth guard, NavMenu. Roles editing (Phase 3b) and vocab editor (Phase 3c) are follow-on phases.",
       "resolved": "2026-03-01",
-      "context": "Page file: pages/program.js. Route: /program. URL chosen over /pt (conflicts with vercel.json rewrite), /edit (too generic), /exercises (too narrow). Components split per STRUCTURE_GUIDELINES caps: ExerciseFormCore (sections 1-4), ExerciseFormCues (sections 5, 7, 8), ExerciseFormLifecycle (section 6 \u2014 extracted for supersedes support), ExerciseForm (orchestrator). Roles section within form is read-only display in Phase 3a \u2014 editing is Phase 3b. API: uses existing /api/exercises, /api/vocab, /api/reference-data \u2014 no new API routes. NavMenu label updated to 'Program Editor'. Lifecycle decisions: deprecated = permanently hidden (never shows in list); archived = temporarily set aside (shows with Show archived toggle); lifecycle section extracted to ExerciseFormLifecycle.js to support supersedes dropdown without polluting ExerciseFormCues. Supersedes: DB migration added supersedes_exercise_id column; PUT handler writes bi-directional (supersedes_exercise_id on A, superseded_by_exercise_id + superseded_date on B). Verified on Vercel preview 2026-03-01: 34 exercises load, form populates correctly, Lifecycle & Status section renders with status dropdown (active/archived/deprecated), hint text, effective dates, supersedes dropdown (all other exercises populated, current excluded), superseded-by display. No console errors.",
-      "constraints_caveats": "POST/PUT /api/exercises returns raw DB row, not full normalized object \u2014 page re-fetches all exercises after save. Do not create new API routes (currently 9/12 Vercel slots used). Supersedes validation: exercise cannot supersede itself (handler returns 400).",
+      "context": "Page file: pages/program.js. Route: /program. URL chosen over /pt (conflicts with vercel.json rewrite), /edit (too generic), /exercises (too narrow). Components split per STRUCTURE_GUIDELINES caps: ExerciseFormCore (sections 1-4), ExerciseFormCues (sections 5, 7, 8), ExerciseFormLifecycle (section 6 — extracted for supersedes support), ExerciseForm (orchestrator). Roles section within form is read-only display in Phase 3a — editing is Phase 3b. API: uses existing /api/exercises, /api/vocab, /api/reference-data — no new API routes. NavMenu label updated to 'Program Editor'. Lifecycle decisions: deprecated = permanently hidden (never shows in list); archived = temporarily set aside (shows with Show archived toggle); lifecycle section extracted to ExerciseFormLifecycle.js to support supersedes dropdown without polluting ExerciseFormCues. Supersedes: DB migration added supersedes_exercise_id column; PUT handler writes bi-directional (supersedes_exercise_id on A, superseded_by_exercise_id + superseded_date on B). Verified on Vercel preview 2026-03-01: 34 exercises load, form populates correctly, Lifecycle & Status section renders with status dropdown (active/archived/deprecated), hint text, effective dates, supersedes dropdown (all other exercises populated, current excluded), superseded-by display. No console errors.",
+      "constraints_caveats": "POST/PUT /api/exercises returns raw DB row, not full normalized object — page re-fetches all exercises after save. Do not create new API routes (currently 9/12 Vercel slots used). Supersedes validation: exercise cannot supersede itself (handler returns 400).",
       "problem": "Phase 3a program editor migration remained tracked as open with an invalid status, causing dev-notes validation drift.",
       "root_cause": "The item used status resolved in open_items instead of being closed in closed_items as done with closure narrative fields.",
       "change_made": "Moved DN-041 from open_items to closed_items, set status to done, and added required closure narrative fields.",
@@ -838,9 +856,9 @@
       "resolved": "2026-02-28",
       "problem": "Three files violated STRUCTURE_GUIDELINES.md hard caps: lib/rehab-coverage.js (588L > 450L cap), pages/pt-view.module.css (670L > 500L cap). Two inline components (PatientNotes 46L, HistoryList 64L) also exceeded the 40L inline sub-component limit.",
       "root_cause": "Files were written before STRUCTURE_GUIDELINES.md existed. Caps and inline limits were not enforced during Phase 2 implementation.",
-      "change_made": "(1) lib/rehab-coverage.js: added // NOTE: cohesive domain comment documenting that no valid split exists \u2014 import layer rules prohibit lib-imports-lib and all functions are tightly interdependent. (2) Extracted PatientNotes inline component to components/PatientNotes.js + components/PatientNotes.module.css. Moved keyword detection computation to page derived data (components cannot import from lib/). (3) Extracted HistoryList inline component to components/HistoryList.js + components/HistoryList.module.css. Dark mode selectors for each component moved with the component. (4) Updated STRUCTURE_GUIDELINES.md: added Guideline Conflicts escalation section, updated Required Fixes table to show completed status.",
+      "change_made": "(1) lib/rehab-coverage.js: added // NOTE: cohesive domain comment documenting that no valid split exists — import layer rules prohibit lib-imports-lib and all functions are tightly interdependent. (2) Extracted PatientNotes inline component to components/PatientNotes.js + components/PatientNotes.module.css. Moved keyword detection computation to page derived data (components cannot import from lib/). (3) Extracted HistoryList inline component to components/HistoryList.js + components/HistoryList.module.css. Dark mode selectors for each component moved with the component. (4) Updated STRUCTURE_GUIDELINES.md: added Guideline Conflicts escalation section, updated Required Fixes table to show completed status.",
       "files_touched": "pt-rebuild/lib/rehab-coverage.js (comment added), pt-rebuild/pages/pt-view.js (removed inline components, added imports, added processedNotes derivation), pt-rebuild/pages/pt-view.module.css (removed PatientNotes + HistoryList CSS sections + dark mode selectors), pt-rebuild/components/PatientNotes.js (new), pt-rebuild/components/PatientNotes.module.css (new), pt-rebuild/components/HistoryList.js (new), pt-rebuild/components/HistoryList.module.css (new), pt-rebuild/docs/STRUCTURE_GUIDELINES.md (conflict escalation section + Required Fixes table updated)",
-      "validation": "Line counts after: pt-view.module.css 369L (was 670L, cap 500L \u2713), pt-view.js 353L (was 446L, at aim \u2713), PatientNotes.js 45L \u2713, PatientNotes.module.css 158L \u2713, HistoryList.js 77L \u2713, HistoryList.module.css 155L \u2713. Verified on preview URL: /pt-view loads, PatientNotes renders/collapses/dismisses, HistoryList renders with date groups, dark mode correct, no console errors.",
+      "validation": "Line counts after: pt-view.module.css 369L (was 670L, cap 500L ✓), pt-view.js 353L (was 446L, at aim ✓), PatientNotes.js 45L ✓, PatientNotes.module.css 158L ✓, HistoryList.js 77L ✓, HistoryList.module.css 155L ✓. Verified on preview URL: /pt-view loads, PatientNotes renders/collapses/dismisses, HistoryList renders with date groups, dark mode correct, no console errors.",
       "follow_ups": "pages/rehab.module.css (478L) and pages/rehab.js (452L) are within cap but will shrink naturally when rehab inline components are extracted during Phase 3 cleanup."
     },
     {
@@ -857,13 +875,13 @@
         "ui"
       ],
       "file": "pt-rebuild/lib/pt-view.js, pt-rebuild/pages/pt-view.js, pt-rebuild/pages/pt-view.module.css, pt-rebuild/hooks/useMessages.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/components/MessagesModal.module.css, pt-rebuild/components/ExerciseHistoryModal.js, pt-rebuild/components/ExerciseHistoryModal.module.css, pt-rebuild/components/NavMenu.js",
-      "issue": "Phase 2 of Next.js Strangler Fig migration: pt_view.html \u2192 pages/pt-view.js at /pt-view.",
+      "issue": "Phase 2 of Next.js Strangler Fig migration: pt_view.html → pages/pt-view.js at /pt-view.",
       "resolved": "2026-02-28",
       "problem": "pt_view.html was a ~2,575-line vanilla JS page that needed migrating to Next.js as part of the Strangler Fig migration.",
-      "root_cause": "N/A \u2014 planned migration phase.",
-      "change_made": "Created lib/pt-view.js (pure data functions: fetchLogs, fetchPrograms, fetchUsers, groupLogsByDate, findNeedsAttention, computeSummaryStats, detectKeywords, applyFilters, message CRUD). Created hooks/useMessages.js (30-second polling, send, archive, markRead, localStorage badge timestamps). Created components/MessagesModal.js + .module.css and ExerciseHistoryModal.js + .module.css. Created pages/pt-view.js and pt-view.module.css. Fixed 3 bugs post-build: (1) localStorage SSR guard \u2014 typeof window guard in useState initializers; (2) patient detection \u2014 DB has no 'patient' role, patient = user with therapist_id !== null; (3) DB user id vs Supabase auth_id mismatch \u2014 messages use DB PK (users.id), not auth UUID. Updated NavMenu NAV_PAGES: pt_view href /pt_view.html \u2192 /pt-view.",
+      "root_cause": "N/A — planned migration phase.",
+      "change_made": "Created lib/pt-view.js (pure data functions: fetchLogs, fetchPrograms, fetchUsers, groupLogsByDate, findNeedsAttention, computeSummaryStats, detectKeywords, applyFilters, message CRUD). Created hooks/useMessages.js (30-second polling, send, archive, markRead, localStorage badge timestamps). Created components/MessagesModal.js + .module.css and ExerciseHistoryModal.js + .module.css. Created pages/pt-view.js and pt-view.module.css. Fixed 3 bugs post-build: (1) localStorage SSR guard — typeof window guard in useState initializers; (2) patient detection — DB has no 'patient' role, patient = user with therapist_id !== null; (3) DB user id vs Supabase auth_id mismatch — messages use DB PK (users.id), not auth UUID. Updated NavMenu NAV_PAGES: pt_view href /pt_view.html → /pt-view.",
       "files_touched": "pt-rebuild/lib/pt-view.js (new), pt-rebuild/pages/pt-view.js (new), pt-rebuild/pages/pt-view.module.css (new), pt-rebuild/hooks/useMessages.js (new), pt-rebuild/components/MessagesModal.js (new), pt-rebuild/components/MessagesModal.module.css (new), pt-rebuild/components/ExerciseHistoryModal.js (new), pt-rebuild/components/ExerciseHistoryModal.module.css (new), pt-rebuild/components/NavMenu.js (NAV_PAGES pt_view href), pt-rebuild/docs/NEXTJS_MIGRATION.md (Phase 2 complete + architecture guidelines)",
-      "validation": "Verified on preview URL https://pt-rehab-git-nextjs-pt-tracker.vercel.app/pt-view. Checklist: pt_view.html still loads \u2713; /pt-view loads with real data (10 days, 16 exercises, 79 sessions) \u2713; NavMenu 'Signed in as' + email \u2713; Coverage Analysis nav link works without re-login \u2713; no console errors \u2713; dark mode \u2713; patient notes (7, keyword highlighting) \u2713; needs attention (10 exercises) \u2713; filters expand/collapse + dropdown (34 options) + localStorage persistence \u2713; messages modal (7 sent, '\u2713 Read' status) \u2713; exercise history modal from Needs Attention card \u2713.",
+      "validation": "Verified on preview URL https://pt-rehab-git-nextjs-pt-tracker.vercel.app/pt-view. Checklist: pt_view.html still loads ✓; /pt-view loads with real data (10 days, 16 exercises, 79 sessions) ✓; NavMenu 'Signed in as' + email ✓; Coverage Analysis nav link works without re-login ✓; no console errors ✓; dark mode ✓; patient notes (7, keyword highlighting) ✓; needs attention (10 exercises) ✓; filters expand/collapse + dropdown (34 options) + localStorage persistence ✓; messages modal (7 sent, '✓ Read' status) ✓; exercise history modal from Needs Attention card ✓.",
       "follow_ups": "pt_view.html stays live in public/ until all phases merged to main and verified in production."
     },
     {
@@ -885,8 +903,8 @@
       "issue": "Consolidate hamburger menu into one shared module: hamburger-menu.js injects the full panel HTML, generates nav links dynamically (excluding current page, role-gated), and handles all toggle/user-display logic. Each page reduces to the trigger button only.",
       "resolved": "2026-02-24",
       "problem": "Each of the 4 pages had the full hamburger overlay + panel HTML duplicated inline with inconsistent class names (.user-info vs .hamburger-user-info), different nav link sets, and inline toggleHamburger() reimplementations. Only pt_editor.html used hamburger-menu.js for init; the other three had no shared module at all. Drift was accumulating across pages.",
-      "root_cause": "The original hamburger-menu.js only handled binding and user-display \u2014 it assumed pages provided the HTML. No shared injection mechanism existed, so each page maintained its own copy. When pages diverged (different badge count, stale links, non-canonical classes), there was no single source to fix.",
-      "change_made": "Added NAV_PAGES constant, inject() method (builds and appends overlay + panel to body; idempotent), and renderNavLinks() (excludes current page; hides adminOnly:true entries for patients) to hamburger-menu.js. Updated config with page, isAdmin, and menuItems fields. Updated init() to call inject() before bindHandlers(). Added stopPropagation in handleAction when action is handled to prevent document-level dispatchers from double-firing. Removed hamburger panel HTML from all 4 pages; each page now only keeps the \u2630 trigger button. Removed inline toggleHamburger() from index.html, pt_view.html, rehab_coverage.html. Removed hamburger-related dispatcher cases from all pages. Added HamburgerMenu.init() calls with page-specific menuItems (Messages+Sync+Debug for index, Messages for pt_view, Refresh Data for rehab_coverage, none for pt_editor). Added no-op case 'toggle-hamburger' to pt_editor.js handleAction to suppress spurious unknown-action warning from bindPointerHandlers binding the \u2630 trigger before inject() runs.",
+      "root_cause": "The original hamburger-menu.js only handled binding and user-display — it assumed pages provided the HTML. No shared injection mechanism existed, so each page maintained its own copy. When pages diverged (different badge count, stale links, non-canonical classes), there was no single source to fix.",
+      "change_made": "Added NAV_PAGES constant, inject() method (builds and appends overlay + panel to body; idempotent), and renderNavLinks() (excludes current page; hides adminOnly:true entries for patients) to hamburger-menu.js. Updated config with page, isAdmin, and menuItems fields. Updated init() to call inject() before bindHandlers(). Added stopPropagation in handleAction when action is handled to prevent document-level dispatchers from double-firing. Removed hamburger panel HTML from all 4 pages; each page now only keeps the ☰ trigger button. Removed inline toggleHamburger() from index.html, pt_view.html, rehab_coverage.html. Removed hamburger-related dispatcher cases from all pages. Added HamburgerMenu.init() calls with page-specific menuItems (Messages+Sync+Debug for index, Messages for pt_view, Refresh Data for rehab_coverage, none for pt_editor). Added no-op case 'toggle-hamburger' to pt_editor.js handleAction to suppress spurious unknown-action warning from bindPointerHandlers binding the ☰ trigger before inject() runs.",
       "files_touched": "pt-rebuild/public/js/hamburger-menu.js (full rewrite: NAV_PAGES, inject, renderNavLinks, updated config/init/handleAction), pt-rebuild/public/index.html (remove panel HTML + toggleHamburger, fix showMessagesModal, add init), pt-rebuild/public/pt_view.html (remove panel HTML + toggleHamburger, fix signOut, add init), pt-rebuild/public/pt_editor.html (remove panel HTML), pt-rebuild/public/js/pt_editor.js (update init call, add no-op toggle-hamburger case), pt-rebuild/public/rehab_coverage.html (remove panel HTML + toggleHamburger, remove dispatcher cases, add init)",
       "validation": "Deployed to Vercel preview (pt-rehab-git-dn-006-shared-hamburger-pt-tracker.vercel.app). Chrome DevTools MCP verified all 4 pages: hamburger opens/closes, user email populates, nav links correct (no self-link, adminOnly Exercise Editor visible for admin), page-specific items present (Messages/Sync/Debug on index, Messages on pt_view, Refresh Data on rehab_coverage), no JS errors or warnings on any page.",
       "follow_ups": "None."
@@ -908,11 +926,11 @@
       "file": "pt-rebuild/public/index.html",
       "issue": "Reduce INP from 800ms mobile average; worst offenders identified from Vercel Speed Insights real-user data.",
       "resolved": "2026-02-24",
-      "problem": "Tapping Messages in the hamburger menu produced 3,488ms INP (worst offender in field data). Root cause: showMessagesModal() ran a synchronous chain \u2014 toggleHamburger (classList toggles), messagesModal.classList.remove('hidden'), notifyToggle.checked, and loadMessages() innerHTML write \u2014 all in one frame before the first await fetch(). Browser could not paint the menu-closed state until all four DOM mutations had been processed together, compressing two layout recalculations (menu close + modal open) into a single blocking frame.",
+      "problem": "Tapping Messages in the hamburger menu produced 3,488ms INP (worst offender in field data). Root cause: showMessagesModal() ran a synchronous chain — toggleHamburger (classList toggles), messagesModal.classList.remove('hidden'), notifyToggle.checked, and loadMessages() innerHTML write — all in one frame before the first await fetch(). Browser could not paint the menu-closed state until all four DOM mutations had been processed together, compressing two layout recalculations (menu close + modal open) into a single blocking frame.",
       "root_cause": "showMessagesModal() had no yield between closing the hamburger menu and opening the messages modal. The combined layout recalculation (display change on menu + unhiding modal tree) happened synchronously in the same frame.",
       "change_made": "Inserted `await new Promise(r => requestAnimationFrame(r))` between toggleHamburger() and messagesModal.classList.remove('hidden') in showMessagesModal(). This yields the browser after the menu-close so it can paint before opening the modal. No other changes to showMessagesModal or loadMessages.",
       "files_touched": "pt-rebuild/public/index.html (showMessagesModal)",
-      "validation": "Deploy to Vercel and open hamburger \u2192 tap Messages. Menu should close visibly first, then modal opens (two distinct steps). DevTools Performance panel: INP for #hamburgerMenu interaction measurably reduced. Remaining INP offenders (timerMode, logSetModal, sessionNotes) are separate items.",
+      "validation": "Deploy to Vercel and open hamburger → tap Messages. Menu should close visibly first, then modal opens (two distinct steps). DevTools Performance panel: INP for #hamburgerMenu interaction measurably reduced. Remaining INP offenders (timerMode, logSetModal, sessionNotes) are separate items.",
       "follow_ups": "Other INP offenders remain unaddressed (#timerMode 1,768ms, #messagesModal 1,296ms, #sessionNotes 1,368ms, #logSetModal 632ms). Same rAF yield pattern can be applied to those handlers in a follow-up pass."
     },
     {
@@ -934,7 +952,7 @@
       "resolved": "2026-02-24",
       "problem": "Multiple audio/speech inconsistencies: (1) iOS speech synthesis froze silently when utterances stacked; (2) no per-tap audio feedback when counting reps, making eyes-free tracking impossible on iOS (no haptic); (3) hold exercises with dosage_type='hold' without hold_seconds modifier fell to duration branch at timer-zero, giving no rep tracking; (4) hold timer announced every rep completion, inconsistent with counter's 5/3/1/0 milestones; (5) pocket mode for eyes-free exercise tracking was entirely absent from the new app.",
       "root_cause": "speakText() never cancelled prior utterances before calling speak(). increaseCounter() had no audio feedback. Timer-zero hold detection checked only pattern_modifiers, not dosage_type, diverging from initTimerMode() detection. Hold speech loop had no milestone filtering. Pocket mode was not ported from the legacy /pt app when pt-rebuild was created.",
-      "change_made": "Fix 1: added window.speechSynthesis.cancel() in speakText() before each speak() call. Fix 2: added optional gain param to playBeep() (default 0.5), added soft per-tap beep (440Hz, 80ms, gain=0.25) in increaseCounter(). Fix 3: timer-zero hold detection now checks pattern_modifiers?.includes('hold_seconds') || dosage_type === 'hold', matching initTimerMode(). Fix 4: hold speech normalized to 5/3/1/0 milestones matching counter mode. Fix 5: ported pocket mode \u2014 fullscreen overlay with large tap zone, counter and timer support, long-press partial rep log for hold exercises, 200ms refresh interval for live timer display, toggle-pocket-mode and pocket-tap dispatcher cases.",
+      "change_made": "Fix 1: added window.speechSynthesis.cancel() in speakText() before each speak() call. Fix 2: added optional gain param to playBeep() (default 0.5), added soft per-tap beep (440Hz, 80ms, gain=0.25) in increaseCounter(). Fix 3: timer-zero hold detection now checks pattern_modifiers?.includes('hold_seconds') || dosage_type === 'hold', matching initTimerMode(). Fix 4: hold speech normalized to 5/3/1/0 milestones matching counter mode. Fix 5: ported pocket mode — fullscreen overlay with large tap zone, counter and timer support, long-press partial rep log for hold exercises, 200ms refresh interval for live timer display, toggle-pocket-mode and pocket-tap dispatcher cases.",
       "files_touched": "pt-rebuild/public/index.html (speakText, playBeep, increaseCounter, timer-zero hold branch, hold speech milestones, pocket mode CSS/HTML/JS/dispatcher)",
       "validation": "Deploy to Vercel and verify: counter tap tick, milestone speech at 5/3/1/0, hold exercise rep tracking, hold speech milestones, pocket mode open/close/counter-tap/timer-start-pause/long-press. Confirm no speech freeze on rapid taps.",
       "follow_ups": "Update SOUND_TRIGGER_AUDIT.md to reflect the changes made in this pass if a re-audit is needed."
@@ -954,8 +972,8 @@
       "issue": "Use auth-context Supabase client (`getSupabaseWithAuth(req.accessToken)`) instead of anon client.",
       "resolved": "2026-02-20",
       "problem": "`api/sync.js` used the anon Supabase client for patient data inserts, bypassing RLS user context.",
-      "root_cause": "`getSupabaseClient()` was used instead of `getSupabaseWithAuth()` \u2014 the token was available on `req.accessToken` but not passed to the client.",
-      "change_made": "Swapped `getSupabaseClient()` \u2192 `getSupabaseWithAuth(req.accessToken)` in `sync.js`.",
+      "root_cause": "`getSupabaseClient()` was used instead of `getSupabaseWithAuth()` — the token was available on `req.accessToken` but not passed to the client.",
+      "change_made": "Swapped `getSupabaseClient()` → `getSupabaseWithAuth(req.accessToken)` in `sync.js`.",
       "files_touched": "`pt-rebuild/api/sync.js`",
       "validation": "Code paths verified by inspection. Regression: patients logging own data unaffected (no `patient_id` body field).",
       "follow_ups": "None. DN-001 and DN-002 closed."
@@ -994,9 +1012,9 @@
       "file": "pt-rebuild/api/sync.js,pt-rebuild/api/logs.js",
       "issue": "Prevent orphaned logs when sets insert fails (cleanup or transactional behavior).",
       "resolved": "2026-02-21",
-      "problem": "When `patient_activity_sets` insert failed after `patient_activity_logs` was already written, the log row was left orphaned with no sets \u2014 silent data corruption in clinical records with no error visible to the patient. The same issue existed in both `createActivityLog` (logs.js) and `processActivityLog` (sync.js).",
-      "root_cause": "Three-table insert was done in separate sequential statements with no transaction boundary. Cleanup-on-error was considered but rejected: if the log insert succeeds but the cleanup delete also fails, the `client_mutation_id` unique constraint entry persists \u2014 the clinical record becomes permanently unrecoverable on retry.",
-      "change_made": "Created Postgres function `create_activity_log_atomic` (`SECURITY INVOKER` \u2014 all existing RLS policies remain in full effect, no privilege escalation). Function wraps all three inserts in a single implicit PL/pgSQL transaction; any failure rolls back atomically so no orphaned row is ever written and `client_mutation_id` is only committed on full success. Replaced three-step inline insert in `createActivityLog` and two-step insert in `processActivityLog` with `supabase.rpc('create_activity_log_atomic', {...})`. Also: `processActivityLog` in `sync.js` previously never inserted `patient_activity_set_form_data` at all \u2014 the RPC now handles all three tables in both code paths.",
+      "problem": "When `patient_activity_sets` insert failed after `patient_activity_logs` was already written, the log row was left orphaned with no sets — silent data corruption in clinical records with no error visible to the patient. The same issue existed in both `createActivityLog` (logs.js) and `processActivityLog` (sync.js).",
+      "root_cause": "Three-table insert was done in separate sequential statements with no transaction boundary. Cleanup-on-error was considered but rejected: if the log insert succeeds but the cleanup delete also fails, the `client_mutation_id` unique constraint entry persists — the clinical record becomes permanently unrecoverable on retry.",
+      "change_made": "Created Postgres function `create_activity_log_atomic` (`SECURITY INVOKER` — all existing RLS policies remain in full effect, no privilege escalation). Function wraps all three inserts in a single implicit PL/pgSQL transaction; any failure rolls back atomically so no orphaned row is ever written and `client_mutation_id` is only committed on full success. Replaced three-step inline insert in `createActivityLog` and two-step insert in `processActivityLog` with `supabase.rpc('create_activity_log_atomic', {...})`. Also: `processActivityLog` in `sync.js` previously never inserted `patient_activity_set_form_data` at all — the RPC now handles all three tables in both code paths.",
       "files_touched": "`pt-rebuild/api/logs.js`, `pt-rebuild/api/sync.js`, `pt-rebuild/db/migrations/013_create_activity_log_rpc.sql` (new)",
       "validation": "Migration applied via Supabase MCP. Function confirmed in DB (`SECURITY_TYPE: INVOKER`). Deployment `dpl_AhHBKZ9xpiaxfeJG4v9qb3QZoj9b` READY (commit cd566b5). Existing log history loads correctly in app.",
       "follow_ups": "None."
@@ -1016,7 +1034,7 @@
       "resolved": "2026-02-21",
       "problem": "Form data (e.g. band resistance, weight) was matched to sets by array index position; if Supabase returned inserted rows in a different order than submitted, form parameters would attach to the wrong clinical set with no error raised.",
       "root_cause": "Array-index matching assumed Supabase preserves insert-order in responses, which is not guaranteed.",
-      "change_made": "Form data is now matched to sets by `set_number` captured from each set's `RETURNING id` clause \u2014 not by array index. Fixed `updateActivityLog` array-index form data matching with a `set_number`-keyed Map lookup. Added `set_number` validation to `createActivityLog` (consistent with `sync.js`).",
+      "change_made": "Form data is now matched to sets by `set_number` captured from each set's `RETURNING id` clause — not by array index. Fixed `updateActivityLog` array-index form data matching with a `set_number`-keyed Map lookup. Added `set_number` validation to `createActivityLog` (consistent with `sync.js`).",
       "files_touched": "`pt-rebuild/api/logs.js`, `pt-rebuild/api/sync.js`",
       "validation": "Covered by DN-003 validation (same migration and deployment). Existing log history loads correctly with correct set-to-form-data associations.",
       "follow_ups": "None."
@@ -1036,7 +1054,7 @@
       "file": "pt-rebuild/public/index.html",
       "issue": "History view on index does not show notes; pt_view.html shows notes on log entries but index.html does not.",
       "resolved": "2026-02-23",
-      "context": "Notes are already fetched with the activity log data \u2014 just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.",
+      "context": "Notes are already fetched with the activity log data — just not rendered in the index history UI. pt_view.html is the reference implementation for how notes should appear.",
       "constraints_caveats": "Check pt_view.html notes rendering and replicate the same pattern on index.",
       "problem": "The patient index history list did not show session notes even though notes were fetched with activity log records. `pt_view.html` already displayed inline notes, but `index.html` omitted them.",
       "root_cause": "`renderHistory()` in `index.html` rendered date, exercise, set summary, and optional form parameters, but never appended `log.notes` to the history card template.",
@@ -1061,15 +1079,15 @@
         "reliability"
       ],
       "file": "pt-rebuild/api/sync.js,pt-rebuild/public/js/offline.js,pt-rebuild/public/index.html",
-      "issue": "Two competing offline sync systems exist \u2014 the active one (localStorage + `/api/logs` per item in index.html) and a dead one (`offline.js` IndexedDB queue + `/api/sync` batch endpoint). `manualSync()` in offline.js is never called; `/api/sync` is reachable but unused by any UI flow.",
+      "issue": "Two competing offline sync systems exist — the active one (localStorage + `/api/logs` per item in index.html) and a dead one (`offline.js` IndexedDB queue + `/api/sync` batch endpoint). `manualSync()` in offline.js is never called; `/api/sync` is reachable but unused by any UI flow.",
       "context": "`offline.js` is imported in index.html and used for IndexedDB read-caching only (exercises, programs, logs). Its queue/sync functionality was never wired up. The active offline pattern is entirely in `syncOfflineQueue()` in index.html using localStorage. `/api/sync` takes up one of Vercel's 12-function free-tier slots.",
-      "options": "(A) Remove `/api/sync` and dead offline.js sync code \u2014 cleans up confusion, frees function slot, but requires careful audit of what IndexedDB code is safe to remove. (B) Activate `/api/sync` as a proper batch endpoint replacing per-item `/api/logs` calls \u2014 significant redesign. (C) Leave as-is but document clearly.",
+      "options": "(A) Remove `/api/sync` and dead offline.js sync code — cleans up confusion, frees function slot, but requires careful audit of what IndexedDB code is safe to remove. (B) Activate `/api/sync` as a proper batch endpoint replacing per-item `/api/logs` calls — significant redesign. (C) Leave as-is but document clearly.",
       "constraints_caveats": "Do not touch index.html IndexedDB hydration code without fully understanding what it caches and whether anything reads from it. This is a full separate project, not a quick cleanup.",
-      "problem": "Two competing offline sync systems existed: the active one (localStorage queue + syncOfflineQueue() \u2192 POST /api/logs per item in index.html) and a dead one (IndexedDB queue + manualSync() in offline.js \u2192 POST /api/sync). manualSync() was never called from any UI flow. /api/sync was reachable but unused, occupying one of 12 Vercel free-tier function slots. The IndexedDB parts of offline.js were legitimately used for read caching (exercises, programs, logs).",
+      "problem": "Two competing offline sync systems existed: the active one (localStorage queue + syncOfflineQueue() → POST /api/logs per item in index.html) and a dead one (IndexedDB queue + manualSync() in offline.js → POST /api/sync). manualSync() was never called from any UI flow. /api/sync was reachable but unused, occupying one of 12 Vercel free-tier function slots. The IndexedDB parts of offline.js were legitimately used for read caching (exercises, programs, logs).",
       "root_cause": "The IndexedDB-based sync system was built but never wired into the UI. The localStorage-based system in index.html became the de-facto implementation. Both systems coexisted, creating confusion for agents and risk of accidental reactivation of the dead path.",
-      "change_made": "Chose Option A: removed the dead queue/sync code. Deleted api/sync.js entirely (frees one Vercel function slot). Stripped addToQueue, getQueueItems, createAutoExport, manualSync, getQueueCount, getSyncMetadata, setSyncMetadata from offline.js. Removed offline_queue, auto_exports, sync_metadata IndexedDB stores from onupgradeneeded \u2014 bumped DB_VERSION from 1 to 2 so the upgrade handler drops those stores from existing browsers. Kept all read-caching code (hydrateCache, getCachedExercises, getCachedPrograms, getCachedLogs) unchanged. Updated file header comment to accurately describe offline.js as a read cache only.",
+      "change_made": "Chose Option A: removed the dead queue/sync code. Deleted api/sync.js entirely (frees one Vercel function slot). Stripped addToQueue, getQueueItems, createAutoExport, manualSync, getQueueCount, getSyncMetadata, setSyncMetadata from offline.js. Removed offline_queue, auto_exports, sync_metadata IndexedDB stores from onupgradeneeded — bumped DB_VERSION from 1 to 2 so the upgrade handler drops those stores from existing browsers. Kept all read-caching code (hydrateCache, getCachedExercises, getCachedPrograms, getCachedLogs) unchanged. Updated file header comment to accurately describe offline.js as a read cache only.",
       "files_touched": "pt-rebuild/api/sync.js (deleted), pt-rebuild/public/js/offline.js (dead queue/sync methods removed, DB_VERSION bumped to 2), pt-rebuild/public/index.html (removed stale getSyncMetadata call in initOfflineManager that caused console error on load)",
-      "validation": "Verified all callers of removed methods \u2014 none exist in index.html or any other file. Active sync path (syncOfflineQueue in index.html) untouched. Caching methods (getCachedExercises etc.) still present and unchanged. Preview deployment tested: exercises load, Log Set modal works, history loads, Sync Now shows 'Nothing to sync', unsynced badge shows/clears correctly, zero /api/sync calls in network traffic. PR #315 merged to main.",
+      "validation": "Verified all callers of removed methods — none exist in index.html or any other file. Active sync path (syncOfflineQueue in index.html) untouched. Caching methods (getCachedExercises etc.) still present and unchanged. Preview deployment tested: exercises load, Log Set modal works, history loads, Sync Now shows 'Nothing to sync', unsynced badge shows/clears correctly, zero /api/sync calls in network traffic. PR #315 merged to main.",
       "follow_ups": "None."
     },
     {
@@ -1083,7 +1101,7 @@
         "reliability"
       ],
       "file": "pt-rebuild/api/logs.js",
-      "issue": "Type safety bug in message validation \u2014 `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings.",
+      "issue": "Type safety bug in message validation — `recipient_id?.trim()` / `body?.trim()` can throw before try/catch when payload fields are non-strings.",
       "resolved": "2026-02-23",
       "context": "Validation currently happens outside the `try` block and assumes string inputs. Malformed JSON payloads (number/object types) can raise a `TypeError` and return an unhandled 500 path instead of a controlled 400 response.",
       "constraints_caveats": "Keep behavior for valid string payloads unchanged; add explicit type checks and ensure error shape remains consistent with existing API contracts.",
@@ -1106,11 +1124,11 @@
         "ui"
       ],
       "file": "pt-rebuild/api/roles.js,pt-rebuild/public/js/pt_editor.js,pt-rebuild/vercel.json",
-      "issue": "Potential route mismatch for role deletion \u2014 frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`.",
+      "issue": "Potential route mismatch for role deletion — frontend calls `DELETE /api/roles/:id`, while deployment routing may only map file-based `/api/roles`.",
       "resolved": "2026-02-23",
       "context": "`pt_editor.js` calls `/api/roles/${roleId}` and `api/roles.js` parses a path suffix from `req.url`, but there is no explicit rewrite for nested `/api/roles/:id` in `vercel.json`.",
       "constraints_caveats": "Confirm behavior in deployed Vercel environment before changing API shape. If needed, support both `DELETE /api/roles?id=...` and path variant to avoid breaking existing clients.",
-      "problem": "Dev note flagged that `DELETE /api/roles/:id` might fail in Vercel because there is no explicit rewrite for the nested path in vercel.json \u2014 only file-based routing for `/api/roles`.",
+      "problem": "Dev note flagged that `DELETE /api/roles/:id` might fail in Vercel because there is no explicit rewrite for the nested path in vercel.json — only file-based routing for `/api/roles`.",
       "root_cause": "Investigation revealed this is not a bug. Vercel's file-based routing passes the full request URL to the handler, so `req.url` inside `roles.js` is `/api/roles/<uuid>`. The handler already splits on `/` and takes the last segment, with an explicit guard `roleId !== 'roles'` confirming the author accounted for this. No rewrite is needed.",
       "change_made": "No code change. Closed DN-021 as confirmed-working after code review of `roles.js` handler, `pt_editor.js` call site, and `vercel.json`.",
       "files_touched": "None.",
@@ -1132,14 +1150,14 @@
         "api"
       ],
       "file": "pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql",
-      "issue": "Function public.create_activity_log_atomic has a mutable search_path \u2014 Supabase security advisor flag.",
+      "issue": "Function public.create_activity_log_atomic has a mutable search_path — Supabase security advisor flag.",
       "resolved": "2026-02-23",
       "context": "Supabase security advisor flagged the RPC function for missing SET search_path, which allows schema injection if an attacker can create objects in a schema earlier in the search path.",
       "problem": "Supabase security advisor flagged `public.create_activity_log_atomic` for having a mutable search_path. Without an explicit SET search_path, a malicious actor who can create objects in a schema earlier in the default search path could potentially redirect function calls to shadow objects.",
       "root_cause": "The function was created without `SET search_path = public, pg_temp` or explicit `SECURITY INVOKER` declaration, leaving search path resolution at runtime rather than function-definition time.",
-      "change_made": "Replaced the function with `CREATE OR REPLACE` adding `SECURITY INVOKER` and `SET search_path = public, pg_temp`. No logic changes \u2014 identical behavior, locked search path.",
+      "change_made": "Replaced the function with `CREATE OR REPLACE` adding `SECURITY INVOKER` and `SET search_path = public, pg_temp`. No logic changes — identical behavior, locked search path.",
       "files_touched": "pt-rebuild/db/migrations/015_fix_activity_log_rpc_search_path.sql (new). Applied directly to DB via Supabase MCP.",
-      "validation": "Migration applied successfully. Function signature and behavior unchanged \u2014 existing callers in logs.js and sync.js unaffected.",
+      "validation": "Migration applied successfully. Function signature and behavior unchanged — existing callers in logs.js and sync.js unaffected.",
       "follow_ups": "None."
     },
     {
@@ -1153,10 +1171,10 @@
         "ui"
       ],
       "file": "pt-rebuild/public/reset-password.html",
-      "issue": "Password reset link always shows 'Invalid or Expired Link' \u2014 Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash.",
+      "issue": "Password reset link always shows 'Invalid or Expired Link' — Supabase client clears the URL hash on createClient(), so the type=recovery check always finds an empty hash.",
       "resolved": "2026-02-23",
       "problem": "Clicking a valid, freshly-issued password reset link on pttracker.app immediately showed 'Invalid or Expired Link'. The Supabase verify endpoint redirected correctly to /reset-password.html, but the page rejected every token.",
-      "root_cause": "The Supabase JS client (implicit flow) calls history.replaceState to strip the hash tokens from the URL the moment createClient() is called. The old code read window.location.hash after createClient(), so it always found an empty hash (#) and the type !== 'recovery' guard triggered showInvalid() on every valid link. This was a latent bug present before the pttracker.app domain move \u2014 it never worked.",
+      "root_cause": "The Supabase JS client (implicit flow) calls history.replaceState to strip the hash tokens from the URL the moment createClient() is called. The old code read window.location.hash after createClient(), so it always found an empty hash (#) and the type !== 'recovery' guard triggered showInvalid() on every valid link. This was a latent bug present before the pttracker.app domain move — it never worked.",
       "change_made": "Moved the window.location.hash capture to the very top of init(), before fetch('/api/env') and createClient(). The hash is intact at that point; after createClient() processes it, the captured value is still used for the type check.",
       "files_touched": "pt-rebuild/public/reset-password.html",
       "validation": "Code path reviewed: hash is read synchronously before any async calls or client initialization. getSession() after createClient() still returns the recovery session established from the hash tokens.",
@@ -1172,7 +1190,7 @@
         "reliability"
       ],
       "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/docs/DEV_NOTES.md,pt-rebuild/AGENTS.md,pt-rebuild/CLAUDE.md,pt-rebuild/docs/AI_WORKFLOW.md",
-      "issue": "Follow-up review requested explicit intake\u2192execute\u2192close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion.",
+      "issue": "Follow-up review requested explicit intake→execute→close-loop proof for the JSON-canonical dev-notes migration; create and close a tracked item documenting the completion.",
       "resolved": "2026-02-22",
       "problem": "Review follow-up asked whether the migration work actually followed the required lifecycle and requested explicit create/close tracking in dev notes.",
       "root_cause": "The prior change migrated formats and guidance but did not include a dedicated DN issue closure entry proving the lifecycle was executed for the migration request itself.",
@@ -1215,13 +1233,13 @@
         "cleanup"
       ],
       "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs",
-      "issue": "Remove redundant  field from dev_notes.json \u2014 it duplicates  and is drift-prone.",
+      "issue": "Remove redundant  field from dev_notes.json — it duplicates  and is drift-prone.",
       "resolved": "2026-02-23",
-      "problem": "All open_items in dev_notes.json carried a 'checkbox' field ('open'/'done') that duplicated the 'status' field. The generator already derived checkbox state from 'status' and 'resolved', making the field pure noise. It was also drift-prone \u2014 proven when DN-018 had mismatched checkbox/status values after a partial update.",
+      "problem": "All open_items in dev_notes.json carried a 'checkbox' field ('open'/'done') that duplicated the 'status' field. The generator already derived checkbox state from 'status' and 'resolved', making the field pure noise. It was also drift-prone — proven when DN-018 had mismatched checkbox/status values after a partial update.",
       "root_cause": "The field was originally added as a user-facing display marker before the JSON schema matured. Once 'status' became the canonical source of truth, 'checkbox' became redundant but was never cleaned.",
       "change_made": "Removed 'checkbox' from all 26 items in open_items. Updated generate-dev-notes.mjs to derive checked state from 'status === done || Boolean(resolved)' only. Bumped schema_version to 1.4.0.",
-      "files_touched": "pt-rebuild/docs/dev_notes.json (26 items updated, schema 1.3.0 \u2192 1.4.0), pt-rebuild/scripts/generate-dev-notes.mjs (checkbox fallback removed from renderOpenItem)",
-      "validation": "Ran dev-notes:build \u2014 output identical structure, all checkboxes render correctly from status/resolved alone.",
+      "files_touched": "pt-rebuild/docs/dev_notes.json (26 items updated, schema 1.3.0 → 1.4.0), pt-rebuild/scripts/generate-dev-notes.mjs (checkbox fallback removed from renderOpenItem)",
+      "validation": "Ran dev-notes:build — output identical structure, all checkboxes render correctly from status/resolved alone.",
       "follow_ups": "None."
     },
     {
@@ -1240,7 +1258,7 @@
       "file": "pt-rebuild/docs/dev_notes.json,pt-rebuild/scripts/generate-dev-notes.mjs,pt-rebuild/AGENTS.md",
       "issue": "Separate open_items into open_items (active work queue) and closed_items (done) to reduce agent token cost and eliminate noise.",
       "resolved": "2026-02-23",
-      "problem": "open_items mixed active (open/in_progress/blocked) and done items in one array. At schema 1.4.0, 13 of 27 items were done \u2014 50% noise for agents loading the work queue. Ratio worsens over time.",
+      "problem": "open_items mixed active (open/in_progress/blocked) and done items in one array. At schema 1.4.0, 13 of 27 items were done — 50% noise for agents loading the work queue. Ratio worsens over time.",
       "root_cause": "Original schema had no closed_items array. Done items accumulated in open_items with no mechanism to move them out.",
       "change_made": "Script split open_items by status: open/in_progress/blocked stay in open_items; done moves to new closed_items array. Generator updated to validate and render both sections separately. AGENTS.md updated with lifecycle rules for all status values. Schema bumped to 1.5.0.",
       "files_touched": "pt-rebuild/docs/dev_notes.json (split into open_items + closed_items, schema 1.4.0 -> 1.5.0), pt-rebuild/scripts/generate-dev-notes.mjs (validate + render closed_items), pt-rebuild/AGENTS.md (lifecycle rules updated)",
@@ -1300,7 +1318,7 @@
       "root_cause": "The backfill (commit `a7efd59`, 2026-01-30) was added as a workaround for RLS silently blocking patients from reading `exercise_form_parameters` via nested Supabase joins. A server-side fix (commit `4fc6973`, 78 minutes earlier) using an admin-client fetch in `programs.js` already resolved the same issue authoritatively. The client-side backfill was never removed after the server fix was confirmed working.",
       "change_made": "Removed the `missingFormParams` block (28 lines) from `loadData()` in `index.html`. The programs API already returns correct `form_parameters_required` for all exercises via the admin client fetch in `lib/handlers/programs.js` (lines 219-235). Verified live: 12 of 33 exercises return form parameters correctly, band resistance defaults to last used value, logging modal renders all required fields.",
       "files_touched": "`pt-rebuild/public/index.html`",
-      "validation": "Confirmed `/api/programs` response contains correct `form_parameters_required` for all exercises with parameters. Opened Log Set modal for Ankle Inversion (TheraBand) \u2014 band_resistance field present, populated from history, defaulting to last used value (\"black\"). No regressions.",
+      "validation": "Confirmed `/api/programs` response contains correct `form_parameters_required` for all exercises with parameters. Opened Log Set modal for Ankle Inversion (TheraBand) — band_resistance field present, populated from history, defaulting to last used value (\"black\"). No regressions.",
       "follow_ups": "None."
     },
     {
@@ -1371,9 +1389,9 @@
       "file": "pt-rebuild/db/migrations/",
       "issue": "Exercise IDs: bug fix + data migration to proper UUID format",
       "resolved": "2026-02-20",
-      "problem": "13 of 34 exercises had non-UUID IDs. 9 had sequential `ex000X` IDs from the original Firebase migration (Jan 18). 4 had slug IDs like `passive-great-toe-plantarflexion-stretch` added Jan 28 \u2013 Feb 3 via `pt_editor`. All 13 had linked records across 11 child tables that had to be preserved.",
+      "problem": "13 of 34 exercises had non-UUID IDs. 9 had sequential `ex000X` IDs from the original Firebase migration (Jan 18). 4 had slug IDs like `passive-great-toe-plantarflexion-stretch` added Jan 28 – Feb 3 via `pt_editor`. All 13 had linked records across 11 child tables that had to be preserved.",
       "root_cause": "`generateExerciseId(name)` in `pt_editor.js` slugified the canonical name instead of generating a UUID. The 9 `ex000X` IDs were grandfathered from Firebase. The 4 slug IDs were created when exercises were manually added through the editor after the Firebase migration.",
-      "change_made": "1. **Bug fix** \u2014 Replaced `generateExerciseId(name)` body to use `crypto.randomUUID()` (native browser API, no vendor dependency). Removed the vendored `ulid.js` library that was briefly added.\n  2. **Display field** \u2014 Added a read-only Exercise ID display field in `pt_editor.html` above the Canonical Name field (both add and edit modes). Pre-generates a UUID when adding; shows existing ID when editing. Field is monospace, readonly, not user-editable.\n  3. **JS wiring** \u2014 `loadExerciseForEdit()` populates `exerciseIdDisplay` from `exercise.id`. `clearForm()` pre-generates a fresh UUID into `exerciseIdDisplay`. `collectFormData()` reads from `exerciseIdDisplay` instead of calling `generateExerciseId(canonicalName)`.\n  4. **Data migration** \u2014 Applied atomic migration `20260221000001_fix_exercise_ids.sql` via Supabase MCP: dropped all 11 FK constraints, updated all 13 bad IDs in `exercises` and all child tables (using a temp mapping table), re-added FK constraints with original ON DELETE behavior. Backup table `exercises_backup_20260221` preserved.",
+      "change_made": "1. **Bug fix** — Replaced `generateExerciseId(name)` body to use `crypto.randomUUID()` (native browser API, no vendor dependency). Removed the vendored `ulid.js` library that was briefly added.\n  2. **Display field** — Added a read-only Exercise ID display field in `pt_editor.html` above the Canonical Name field (both add and edit modes). Pre-generates a UUID when adding; shows existing ID when editing. Field is monospace, readonly, not user-editable.\n  3. **JS wiring** — `loadExerciseForEdit()` populates `exerciseIdDisplay` from `exercise.id`. `clearForm()` pre-generates a fresh UUID into `exerciseIdDisplay`. `collectFormData()` reads from `exerciseIdDisplay` instead of calling `generateExerciseId(canonicalName)`.\n  4. **Data migration** — Applied atomic migration `20260221000001_fix_exercise_ids.sql` via Supabase MCP: dropped all 11 FK constraints, updated all 13 bad IDs in `exercises` and all child tables (using a temp mapping table), re-added FK constraints with original ON DELETE behavior. Backup table `exercises_backup_20260221` preserved.",
       "files_touched": "`pt-rebuild/public/js/pt_editor.js`, `pt-rebuild/public/pt_editor.html`, `pt-rebuild/supabase/migrations/20260221000001_fix_exercise_ids.sql`, `pt-rebuild/db/migrations/012_fix_exercise_ids.sql`",
       "validation": "34 exercises total (unchanged). 0 old IDs remaining in `exercises`. All 11 FK constraints restored. Backup table `exercises_backup_20260221` contains 34 rows.",
       "follow_ups": "Drop `exercises_backup_20260221` after confirming app behavior is correct in production."
@@ -1392,8 +1410,8 @@
       "issue": "P0 security: auth client in sync.js + therapist-patient authorization in logs.js",
       "resolved": "2026-02-20",
       "problem": "(1) `api/sync.js` used the anon Supabase client for patient data inserts, bypassing RLS user context. (2) `createActivityLog()` in `api/logs.js` allowed any authenticated caller to post an activity log to any arbitrary `patient_id` with no relationship check.",
-      "root_cause": "(1) `getSupabaseClient()` was used instead of `getSupabaseWithAuth()` \u2014 the token was available on `req.accessToken` but not passed to the client. (2) `targetPatientId` was set from the request body `patient_id` without verifying the caller had a therapist relationship to that patient.",
-      "change_made": "(1) Swapped `getSupabaseClient()` \u2192 `getSupabaseWithAuth(req.accessToken)` in `sync.js`. (2) Added authorization block in `createActivityLog()`: when `patient_id` differs from `req.user.id`, rejects non-therapist/non-admin callers with 403; for therapists, queries `users` table via admin client to confirm `therapist_id` matches, rejects with 403 if not assigned.",
+      "root_cause": "(1) `getSupabaseClient()` was used instead of `getSupabaseWithAuth()` — the token was available on `req.accessToken` but not passed to the client. (2) `targetPatientId` was set from the request body `patient_id` without verifying the caller had a therapist relationship to that patient.",
+      "change_made": "(1) Swapped `getSupabaseClient()` → `getSupabaseWithAuth(req.accessToken)` in `sync.js`. (2) Added authorization block in `createActivityLog()`: when `patient_id` differs from `req.user.id`, rejects non-therapist/non-admin callers with 403; for therapists, queries `users` table via admin client to confirm `therapist_id` matches, rejects with 403 if not assigned.",
       "files_touched": "`pt-rebuild/api/sync.js`, `pt-rebuild/api/logs.js`",
       "validation": "Code paths verified by inspection. Regression: patients logging own data unaffected (no `patient_id` body field). Therapists logging for assigned patients pass the relationship check. Unassigned callers receive 403.",
       "follow_ups": "None. DN-001 and DN-002 closed."
@@ -1412,10 +1430,10 @@
       "resolved": "2026-02-20",
       "problem": "Supabase performance advisor flagged 17 RLS policies across 9 tables for re-evaluating `auth.uid()` once per row instead of once per query.",
       "root_cause": "Policies used bare `auth.uid()` in WHERE conditions. PostgreSQL re-evaluates this for every row scanned. Wrapping in `(select auth.uid())` forces a single evaluation per query.",
-      "change_made": "Dropped and recreated 15 affected policies on `patient_activity_logs` (select/update/delete), `patient_activity_sets` (select/update/delete), `patient_activity_set_form_data` (select/update/delete), and all 6 `vocab_*` tables (`_modify` policy on each). Replaced all bare `auth.uid()` with `(SELECT auth.uid())`. Zero behavior change \u2014 purely a query planner optimization.",
+      "change_made": "Dropped and recreated 15 affected policies on `patient_activity_logs` (select/update/delete), `patient_activity_sets` (select/update/delete), `patient_activity_set_form_data` (select/update/delete), and all 6 `vocab_*` tables (`_modify` policy on each). Replaced all bare `auth.uid()` with `(SELECT auth.uid())`. Zero behavior change — purely a query planner optimization.",
       "files_touched": "DB only (migration `fix_rls_auth_uid_initplan` applied via Supabase MCP)",
       "validation": "Migration applied successfully. Re-run performance advisor to confirm warnings cleared.",
-      "follow_ups": "DN-009 \u2014 duplicate permissive SELECT policies still present on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables. Requires careful review before fixing (medium risk). DN-010 \u2014 13 unused indexes flagged; defer until real query traffic confirms they're unneeded."
+      "follow_ups": "DN-009 — duplicate permissive SELECT policies still present on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables. Requires careful review before fixing (medium risk). DN-010 — 13 unused indexes flagged; defer until real query traffic confirms they're unneeded."
     },
     {
       "id": "LE-010",
@@ -1429,12 +1447,12 @@
       "file": "pt-rebuild/db/migrations/",
       "issue": "Supabase migrations file corrupted by storage-internal trigger lines",
       "resolved": "2026-02-20",
-      "problem": "VS Code Supabase extension reported errors on `20260220000755_remote_schema.sql`. The file is a full `pg_dump`-style schema export that GPT inserted after truncating `supabase_migrations.schema_migrations`. It contained `drop extension if exists \"pg_net\"` and 5 `CREATE TRIGGER` statements on `storage.objects` / `storage.prefixes` \u2014 internal Supabase objects that cannot be created by user migrations.",
+      "problem": "VS Code Supabase extension reported errors on `20260220000755_remote_schema.sql`. The file is a full `pg_dump`-style schema export that GPT inserted after truncating `supabase_migrations.schema_migrations`. It contained `drop extension if exists \"pg_net\"` and 5 `CREATE TRIGGER` statements on `storage.objects` / `storage.prefixes` — internal Supabase objects that cannot be created by user migrations.",
       "root_cause": "GPT truncated the migrations table and inserted a single mega-migration row pointing at a full schema dump. The dump included storage-internal triggers at the end that Supabase tooling rejects. The DB itself was unaffected (the migration row was already marked applied), but the local file caused tooling errors.",
-      "change_made": "Removed lines 2034\u20132045 from `pt-rebuild/supabase/migrations/20260220000755_remote_schema.sql` \u2014 specifically `drop extension if exists \"pg_net\"` and the 5 `CREATE TRIGGER` statements on `storage.objects` and `storage.prefixes`. No DB changes were needed.",
+      "change_made": "Removed lines 2034–2045 from `pt-rebuild/supabase/migrations/20260220000755_remote_schema.sql` — specifically `drop extension if exists \"pg_net\"` and the 5 `CREATE TRIGGER` statements on `storage.objects` and `storage.prefixes`. No DB changes were needed.",
       "files_touched": "`pt-rebuild/supabase/migrations/20260220000755_remote_schema.sql`",
       "validation": "Verified zero `storage.` and `pg_net` matches remain in the file.",
-      "follow_ups": "None \u2014 DB was never affected. If the VS Code extension still reports issues, verify the migration row in `supabase_migrations.schema_migrations` is still present and marked applied."
+      "follow_ups": "None — DB was never affected. If the VS Code extension still reports issues, verify the migration row in `supabase_migrations.schema_migrations` is still present and marked applied."
     },
     {
       "id": "LE-011",
@@ -1449,8 +1467,8 @@
       "issue": "Admin-role user blocked from patient app (programs, sync)",
       "resolved": "2026-02-21",
       "problem": "Admin user (who is also the sole patient) could not see their programs in the patient app, and the offline sync queue was rejected entirely with 403.",
-      "root_cause": "(1) `patient_programs` and `patient_program_history` SELECT RLS policies had no admin bypass \u2014 they only allowed own `patient_id` or therapist relationship. (2) `/api/sync` used `requirePatient` middleware which rejects any non-`patient` role, blocking the admin user even though they are also a patient.",
-      "change_made": "(1) Dropped and recreated `patient_programs_select_own` and `patient_program_history_select` RLS policies to add `OR (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin'))`. (2) Changed `sync.js` from `requirePatient` \u2192 `requireAuth`; updated comment to reflect that RLS on `patient_activity_logs` still enforces own-`patient_id` inserts. All other exercise/role/vocab write endpoints already allowed admin.",
+      "root_cause": "(1) `patient_programs` and `patient_program_history` SELECT RLS policies had no admin bypass — they only allowed own `patient_id` or therapist relationship. (2) `/api/sync` used `requirePatient` middleware which rejects any non-`patient` role, blocking the admin user even though they are also a patient.",
+      "change_made": "(1) Dropped and recreated `patient_programs_select_own` and `patient_program_history_select` RLS policies to add `OR (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'admin'))`. (2) Changed `sync.js` from `requirePatient` → `requireAuth`; updated comment to reflect that RLS on `patient_activity_logs` still enforces own-`patient_id` inserts. All other exercise/role/vocab write endpoints already allowed admin.",
       "files_touched": "DB (migration `fix_admin_patient_rls`), `pt-rebuild/api/sync.js`",
       "validation": "Migration applied successfully. RLS SELECT policies now include admin bypass. Sync endpoint accepts any authenticated user; RLS still blocks cross-patient inserts.",
       "follow_ups": "None."
@@ -1469,9 +1487,9 @@
       "resolved": "2026-02-21",
       "problem": "The daily cron (`handleNotify` in `logs.js`) used SendGrid (never configured), sent only a count (no message bodies), had no \"new since last email\" guard (re-sent daily for old unread messages), and had no opt-out support.",
       "root_cause": "Feature was scaffolded but never fully implemented. `SENDGRID_API_KEY` was never set in Vercel.",
-      "change_made": "Rewrote `handleNotify` to use Resend API (`RESEND_API_KEY` already configured via Vercel integration). Added `last_notified_at` timestamptz column to track per-user send time. Added `email_notifications_enabled` boolean column (default true) for opt-out. New logic: skip opted-out users, skip if notified within 23 hours, filter to messages newer than `last_notified_at`, skip if no new messages, send HTML email with message bodies + role-based deep link + opt-out footer, update `last_notified_at` on success. Added `PATCH /api/users` handler (own record only, boolean only). Added email notify toggle to messages modal in both `index.html` and `pt_view.html`. Fixed message font sizes (body 14\u219216px, labels 13\u219215px, timestamps/buttons 11\u219213px). Added `font-size: 16px` to compose textarea (prevents iOS auto-zoom).",
+      "change_made": "Rewrote `handleNotify` to use Resend API (`RESEND_API_KEY` already configured via Vercel integration). Added `last_notified_at` timestamptz column to track per-user send time. Added `email_notifications_enabled` boolean column (default true) for opt-out. New logic: skip opted-out users, skip if notified within 23 hours, filter to messages newer than `last_notified_at`, skip if no new messages, send HTML email with message bodies + role-based deep link + opt-out footer, update `last_notified_at` on success. Added `PATCH /api/users` handler (own record only, boolean only). Added email notify toggle to messages modal in both `index.html` and `pt_view.html`. Fixed message font sizes (body 14→16px, labels 13→15px, timestamps/buttons 11→13px). Added `font-size: 16px` to compose textarea (prevents iOS auto-zoom).",
       "files_touched": "`pt-rebuild/api/logs.js`, `pt-rebuild/api/users.js`, `pt-rebuild/public/index.html`, `pt-rebuild/public/pt_view.html`; Vercel env vars added: `EMAIL_FROM`, `APP_URL`, `CRON_SECRET`; Supabase migrations: `add_last_notified_at_to_users`, `add_email_notifications_opt_out`",
-      "validation": "Triggered cron manually \u2014 `{\"sent\":1,\"skipped\":0,\"total\":1}`. DB `last_notified_at` updated for therapist. Re-triggered immediately \u2014 `{\"sent\":0,\"skipped\":1,\"total\":1}` (23-hour guard working).",
+      "validation": "Triggered cron manually — `{\"sent\":1,\"skipped\":0,\"total\":1}`. DB `last_notified_at` updated for therapist. Re-triggered immediately — `{\"sent\":0,\"skipped\":1,\"total\":1}` (23-hour guard working).",
       "follow_ups": "Remove `SENDGRID_API_KEY` from Vercel if it exists (was never set, but worth confirming)."
     },
     {
@@ -1486,11 +1504,11 @@
       "file": "pt-rebuild/db/migrations/014_fix_activity_log_rpc_null_form_data.sql",
       "issue": "Regression: exercises without form data failed to log (500) after RPC migration",
       "resolved": "2026-02-21",
-      "problem": "Any exercise without form parameters (e.g. Ankle Inversion \u2014 Isometric) returned a 500 error immediately after the DN-003/DN-004 RPC migration. Existing offline queue sessions failed to sync.",
-      "root_cause": "The client sends `\"form_data\": null` in set objects when an exercise has no form parameters. In Postgres JSONB, `v_set->'form_data'` on a JSON null value returns a JSONB null \u2014 not a SQL NULL. The RPC's guard `v_set->'form_data' IS NOT NULL` evaluated to `true` for JSON nulls, causing `jsonb_array_length()` to be called on a non-array type, raising an exception and rolling back the transaction with a 500.",
-      "change_made": "Replaced `IS NOT NULL` check with `jsonb_typeof(v_set->'form_data') = 'array'`. This correctly handles `null`, missing key, and empty array without error. Fix applied directly in DB via Supabase MCP (`apply_migration`) \u2014 no Vercel deployment required.",
-      "files_touched": "DB only \u2014 migration `014_fix_activity_log_rpc_null_form_data.sql` (new); `pt-rebuild/db/migrations/014_fix_activity_log_rpc_null_form_data.sql` saved to repo.",
-      "validation": "Tested RPC directly with `\"form_data\": null` payload \u2014 returned `log_id`, no error. Confirmed Ankle Inversion \u2014 Isometric log from offline queue synced correctly: set_count=1, reps=10, seconds=10, side=right, manual_log=true.",
+      "problem": "Any exercise without form parameters (e.g. Ankle Inversion — Isometric) returned a 500 error immediately after the DN-003/DN-004 RPC migration. Existing offline queue sessions failed to sync.",
+      "root_cause": "The client sends `\"form_data\": null` in set objects when an exercise has no form parameters. In Postgres JSONB, `v_set->'form_data'` on a JSON null value returns a JSONB null — not a SQL NULL. The RPC's guard `v_set->'form_data' IS NOT NULL` evaluated to `true` for JSON nulls, causing `jsonb_array_length()` to be called on a non-array type, raising an exception and rolling back the transaction with a 500.",
+      "change_made": "Replaced `IS NOT NULL` check with `jsonb_typeof(v_set->'form_data') = 'array'`. This correctly handles `null`, missing key, and empty array without error. Fix applied directly in DB via Supabase MCP (`apply_migration`) — no Vercel deployment required.",
+      "files_touched": "DB only — migration `014_fix_activity_log_rpc_null_form_data.sql` (new); `pt-rebuild/db/migrations/014_fix_activity_log_rpc_null_form_data.sql` saved to repo.",
+      "validation": "Tested RPC directly with `\"form_data\": null` payload — returned `log_id`, no error. Confirmed Ankle Inversion — Isometric log from offline queue synced correctly: set_count=1, reps=10, seconds=10, side=right, manual_log=true.",
       "follow_ups": "None. Should have tested with a no-form-data exercise before shipping DN-003/DN-004."
     },
     {
@@ -1524,12 +1542,39 @@
       "file": "pt-rebuild/AGENTS.md",
       "issue": "Move activity_log_testing_checklist out of dev_notes.json into AGENTS.md where operational guidance belongs.",
       "resolved": "2026-02-23",
-      "problem": "The activity log testing checklist was stored as a special key in dev_notes.json and rendered in DEV_NOTES.md. It is procedural/operational guidance, not tracking data \u2014 it does not belong in the JSON schema.",
-      "root_cause": "When the checklist was added after DN-003/DN-004 regressions, dev_notes.json was used as a convenient place to store it. AGENTS.md \u2014 the correct home for agent operational guidance \u2014 was not considered at the time.",
+      "problem": "The activity log testing checklist was stored as a special key in dev_notes.json and rendered in DEV_NOTES.md. It is procedural/operational guidance, not tracking data — it does not belong in the JSON schema.",
+      "root_cause": "When the checklist was added after DN-003/DN-004 regressions, dev_notes.json was used as a convenient place to store it. AGENTS.md — the correct home for agent operational guidance — was not considered at the time.",
       "change_made": "Moved checklist content to AGENTS.md under a new \"Activity Log Testing Checklist\" section. Removed activity_log_testing_checklist key from dev_notes.json. Removed checklist rendering from generate-dev-notes.mjs (variable, ToC entry, and inline render). Schema was already clean (key was not in required).",
       "files_touched": "`pt-rebuild/AGENTS.md`, `pt-rebuild/docs/dev_notes.json`, `pt-rebuild/scripts/generate-dev-notes.mjs`",
       "validation": "`npm run dev-notes:build` and `dev-notes:check` pass. Checklist content confirmed present in AGENTS.md.",
       "follow_ups": "None."
+    },
+    {
+      "id": "DN-053",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "ui",
+        "messages"
+      ],
+      "file": "pt-rebuild/public/pt_view.html",
+      "issue": "Message labels in pt_view.html hardcode therapist-perspective text (\"Patient → You\" / \"You → Patient\") regardless of viewer role; patients see wrong sender labels when opening /pt",
+      "resolved": "2026-03-03",
+      "context": "Discovered during DN-052 runtime verification. currentUserRole is already available (added in DN-052 fix). Fix: compute otherPartyLabel from currentUserRole and use it in the template literal.",
+      "constraints_caveats": "index.html already uses correct role-aware labels (\"You → PT\" / \"PT → You\"). Fix pt_view.html to match. Also verify MessagesModal.js (Next.js /pt-view route) renders correct role-aware labels — it currently uses CSS class positioning only (no text labels); may need label text added.",
+      "resolution_type": "fix",
+      "resolution_summary": "Fixed pt_view.html message labels to use role-aware text: patient viewers see \"PT → You\" / \"You → PT\"; therapist viewers see \"Patient → You\" / \"You → Patient\". Uses currentUserRole variable added in DN-052 fix. Next.js MessagesModal noted for future review.",
+      "problem": "Message labels in pt_view.html hardcoded to therapist perspective: patients saw \"Patient → You\" (from PT) and \"You → Patient\" (to PT), both with wrong role labels.",
+      "root_cause": "Label text used string literals instead of computing from currentUserRole. Variable was already available from DN-052 fix but not used for label generation.",
+      "change_made": "Replaced hardcoded label with IIFE that reads currentUserRole: patient viewers get \"PT → You\" / \"You → PT\"; therapist viewers retain \"Patient → You\" / \"You → Patient\".",
+      "files_touched": "pt-rebuild/public/pt_view.html",
+      "validation": "Verified in Chrome DevTools: patient-logged-in view of /pt now shows PT → You for received and You → PT for sent. Confirmed currentUserRole is set before messages render.",
+      "follow_ups": "Check MessagesModal.js (Next.js /pt-view route) for role-aware label support — currently uses CSS positioning only (no text role labels); add if needed for parity."
     }
   ]
 }

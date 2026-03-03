@@ -2331,7 +2331,7 @@
                         ">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span style="font-weight: 600; font-size: 15px; color: ${isFromPatient ? '#28a745' : '#007bff'};">
-                                    ${isFromPatient ? 'Patient → You' : 'You → Patient'}
+                                    ${(function(){ const other = currentUserRole === 'patient' ? 'PT' : 'Patient'; return isFromPatient ? other + ' → You' : 'You → ' + other; })()}
                                 </span>
                                 <span style="font-size: 13px; color: #888;">${sentDateTime}</span>
                             </div>
