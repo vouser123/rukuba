@@ -76,6 +76,19 @@ If no trigger conditions are met, proceed without surfacing deferred items. Do n
    - `pt-rebuild/docs/HISTORY.md` is a read-only archive for pre-structured notes; agents do not need to read or update it.
    - Regenerate Markdown after JSON edits.
 
+## Routine Codex Use: Parity Checking
+
+Codex is effective at **behavioral parity checks** — comparing a new Next.js component against the corresponding static HTML to find differences in behavior, options, defaults, or logic.
+
+Use this routinely, not just when a problem is already suspected:
+- When a component is freshly ported from static HTML
+- When a component is modified as part of a migration fix
+- After a testing session surfaces a gap — ask Codex to scan for similar gaps elsewhere
+
+**How to assign:** Give Codex both the static source file (e.g. `public/index.html`) and the new component (e.g. `components/SessionLoggerModal.js`) and ask it to list behavioral differences. Be specific about which feature area to check (side selector, form params, timer behavior, etc.).
+
+Codex cannot live-test on preview, but it can read code and reason about behavior — which is most of what parity checking requires.
+
 ## Activity Log Testing Checklist
 
 When modifying any part of the activity log flow (`createActivityLog`, `updateActivityLog`, `processActivityLog`, `create_activity_log_atomic`), test all of the following variable combinations. Skipping any of these has caused regressions.
@@ -94,10 +107,10 @@ When modifying any part of the activity log flow (`createActivityLog`, `updateAc
 - Sets where set_number is not contiguous (e.g. 1, 3, 5 — edit flow)
 
 ### Side variables
-- `side = null` (exercises that do not track side)
+- `side = null` (bilateral exercises — both sides together, side selector hidden)
 - `side = 'left'`
 - `side = 'right'`
-- `side = 'both'`
+- Note: `side = 'both'` is NOT a valid DB value — confirmed across 823 sets in production. Bilateral exercises log `side = null`. (See DN-063 for Next.js parity fix.)
 
 ### Log path variables
 - Online, direct POST to `/api/logs` (createActivityLog)
