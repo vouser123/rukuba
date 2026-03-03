@@ -154,14 +154,25 @@ export default function PtViewPage() {
 
         async function load() {
             try {
-                const [usersData, logsData] = await Promise.all([
+                const [usersData] = await Promise.all([
                     fetchUsers(token),
                     // We need patientId first — fetch users then logs
                 ]);
                 const currentUser = usersData.find(u => u.auth_id === session.user.id);
-                // Patient = the user who has a therapist assigned (therapist_id non-null).
-                // Roles in DB are 'admin' and 'therapist' — there is no 'patient' role.
-                const patientUser = usersData.find(u => u.therapist_id !== null);
+                if (!currentUser) throw new Error('Current user profile not found');
+
+                let patientUser = null;
+                let fallbackRecipientId = null;
+
+                if (currentUser.role === 'therapist') {
+                    const patients = usersData.filter(u => u.therapist_id === currentUser.id);
+                    patientUser = patients[0] ?? null;
+                    fallbackRecipientId = patientUser?.id ?? null;
+                } else {
+                    patientUser = currentUser;
+                    fallbackRecipientId = currentUser.therapist_id ?? null;
+                }
+
                 if (!patientUser) throw new Error('No patient found');
 
                 const pid = patientUser.id;
@@ -170,9 +181,8 @@ export default function PtViewPage() {
                 setUserRole(currentUser?.role ?? 'patient');
                 setEmailEnabled(currentUser?.email_notifications_enabled ?? true);
 
-                // Recipient = the other party — use DB user `id` (messages use DB ids, not auth_id)
-                const otherUser = usersData.find(u => u.auth_id !== session.user.id);
-                setRecipientId(otherUser?.id ?? null);
+                // Fallback recipient for first outbound message (before a thread exists).
+                setRecipientId(fallbackRecipientId);
 
                 const [logsArr, programsArr] = await Promise.all([
                     fetchLogs(token, pid),

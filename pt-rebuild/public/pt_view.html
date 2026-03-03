@@ -1317,6 +1317,9 @@
         // Track viewing patient ID and name (for therapists viewing patient data)
         let viewingPatientId = null;
         let viewingPatientName = null;
+        let currentUserRole = null;
+        let assignedTherapistId = null;
+        let threadRecipientId = null;
 
         /**
          * Get display name for a user
@@ -1357,6 +1360,8 @@
                 // Match by auth_id (Supabase auth user ID) or email
                 const me = users.find(user => user.auth_id === currentUser.id || user.email === currentUser.email);
                 currentUserProfileId = me?.id ?? null;
+                currentUserRole = me?.role ?? null;
+                assignedTherapistId = me?.therapist_id ?? null;
 
                 if (!me) {
                     console.warn('Could not find current user in users list');
@@ -2279,6 +2284,17 @@
                 if (!response.ok) throw new Error('Failed to fetch messages');
 
                 const { messages } = await response.json();
+                const viewerId = currentUserProfileId || currentUser.id;
+
+                // Resolve thread recipient from latest message participant (reply-to-sender behavior).
+                const participant = (messages || []).find(msg => {
+                    return msg.sender_id !== viewerId || msg.recipient_id !== viewerId;
+                });
+                if (participant) {
+                    threadRecipientId = participant.sender_id === viewerId
+                        ? participant.recipient_id
+                        : participant.sender_id;
+                }
 
                 if (messages.length === 0) {
                     messagesList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No messages yet.</div>';
@@ -2287,7 +2303,6 @@
 
                 let html = '';
                 messages.forEach(msg => {
-                    const viewerId = currentUserProfileId || currentUser.id;
                     const isFromPatient = msg.sender_id !== viewerId;
                     const createdAt = new Date(msg.created_at);
                     const sentDateTime = formatMessageDateTime(createdAt);
@@ -2387,12 +2402,11 @@
                 return;
             }
 
-            // Get recipient from logs data - find the patient whose logs we're viewing
-            // If current user is patient, they don't have anyone to message from pt_view
-            // If current user is therapist, get patient_id from logs
-            let recipientId = null;
-            if (allLogs.length > 0) {
-                recipientId = allLogs[0].patient_id;
+            let recipientId = threadRecipientId;
+            if (!recipientId && currentUserRole === 'therapist') {
+                recipientId = viewingPatientId;
+            } else if (!recipientId && currentUserRole === 'patient') {
+                recipientId = assignedTherapistId;
             }
 
             const viewerId = currentUserProfileId || currentUser.id;

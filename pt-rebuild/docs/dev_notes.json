@@ -174,25 +174,17 @@
   "open_items": [
     {
       "id": "DN-052",
-      "status": "open",
+      "status": "in_progress",
       "priority": "P1",
       "risk": "high",
       "scope": "current",
-      "agent": [
-        "claude"
-      ],
-      "tags": [
-        "api",
-        "auth",
-        "reliability",
-        "security",
-        "notifications"
-      ],
-      "file": "pt-rebuild/public/pt_view.html, pt-rebuild/public/index.html, pt-rebuild/api/logs.js",
+      "agent": ["codex", "claude"],
+      "tags": ["api", "auth", "reliability", "security", "notifications"],
+      "file": "pt-rebuild/public/pt_view.html, pt-rebuild/public/index.html, pt-rebuild/pages/pt-view.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/api/logs.js",
       "issue": "Therapist outbound messages can be self-addressed (`sender_id === recipient_id`), causing silent non-delivery to patient and misrouted unread-email notifications.",
       "resolved": null,
-      "context": "Confirmed in production data: a therapist-authored message row was inserted with sender_id and recipient_id both equal to therapist user ID, while patient outbound rows correctly target therapist ID. This creates a false-success send UX while patient never receives the message in-app or by email.",
-      "constraints_caveats": "Fix must enforce recipient correctness in both UI and API: (1) client must derive recipient from resolved viewingPatientId/current thread participant instead of log-array heuristics; (2) server must reject self-recipient and enforce therapist\u2194assigned-patient relationship for POST /api/logs?type=messages. Add explicit 400/403 errors and regression tests for two-user and multi-patient therapist scenarios."
+      "context": "Confirmed in production data: a therapist-authored message row was inserted with sender_id and recipient_id both equal to therapist user ID, while patient outbound rows correctly target therapist ID. Implemented: UI recipient now resolves from current thread participant with role-based fallback in both legacy and Next.js flows; API now rejects self-recipient and validates therapist/patient assignment relationship before insert. Pending: runtime regression verification for two-user and multi-patient therapist scenarios.",
+      "constraints_caveats": "Keep DN-052 in_progress until runtime validation completes. Required checks: therapist reply reaches patient, patient reply reaches assigned therapist, self-recipient returns 400, unassigned recipient returns 403, and existing read/archive behavior remains intact."
     },
     {
       "id": "DN-051",
@@ -270,31 +262,9 @@
       "issue": "Phase 4c: Port the session logging modal (set/reps/side/form_data/hold/duration) from public/index.html into SessionLoggerModal + useSessionLogging. Preserve all pattern modifier handling, form_data permutations, client_mutation_id idempotency, and PATCH (update) flow.",
       "resolved": null,
       "context": "Part of Phase 4 index.html migration (DN-045). useSessionLogging manages: create (POST /api/logs) and update (PATCH /api/logs/:id) flows, set management, client_mutation_id generation. Must pass the Activity Log Testing Checklist in AGENTS.md (all exercise/set/side/path combinations). Claude reviews against checklist before wiring up.",
-      "constraints_caveats": "client_mutation_id must be generated per-set, not per-session. No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix."
+      "constraints_caveats": "client_mutation_id must be generated per-set, not per-session. No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix. HOLD (2026-03-02): API currently accepts one client_mutation_id per activity log payload; pause implementation until contract decision is confirmed."
     },
     {
-<<<<<<< ours
-=======
-      "id": "DN-047",
-      "status": "in_progress",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": [
-        "codex"
-      ],
-      "tags": [
-        "migration",
-        "ui"
-      ],
-      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/components/ExercisePicker.module.css",
-      "issue": "Phase 4b: Port exercise list/search/select behavior from public/index.html into ExercisePicker component. Include adherence badge, dosage summary, sort UI stub (mode selector only \u2014 drag-and-drop handled in DN-050). Preserve program-based loading and role visibility.",
-      "resolved": null,
-      "context": "Part of Phase 4 index.html migration (DN-045). Props: exercises, programs, selectedId, onSelect, sortMode, onSortChange. Dosage summary format: reuse formatDosageSummary from pages/program.js or extract to lib. Adherence badge reads from programs entry for the exercise. Role visibility: exercises with no active roles still shown; role display is informational only.",
-      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Do not implement drag-and-drop here \u2014 that is DN-050. Sort mode selector UI stub only (calls onSortChange, does not implement sorting logic)."
-    },
-    {
->>>>>>> theirs
       "id": "DN-045",
       "status": "in_progress",
       "priority": "P2",

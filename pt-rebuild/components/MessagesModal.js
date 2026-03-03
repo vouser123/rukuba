@@ -55,12 +55,22 @@ export default function MessagesModal({
     // Filter out archived messages for display
     const visible = messages.filter(m => !m.archived);
 
+    function resolveReplyRecipientId() {
+        const participant = messages.find(msg =>
+            msg.sender_id !== viewerId || msg.recipient_id !== viewerId
+        );
+        if (!participant) return recipientId;
+        return participant.sender_id === viewerId ? participant.recipient_id : participant.sender_id;
+    }
+
     async function handleSend() {
         const body = draft.trim();
         if (!body || sending) return;
+        const targetId = resolveReplyRecipientId();
+        if (!targetId || targetId === viewerId) return;
         setSending(true);
         try {
-            await onSend(recipientId, body);
+            await onSend(targetId, body);
             setDraft('');
         } finally {
             setSending(false);
