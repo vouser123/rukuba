@@ -19,6 +19,10 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - Prefer plain JavaScript and browser APIs unless explicitly instructed otherwise.
 - Preserve offline/PWA behavior and iOS-safe interaction patterns (`pointerup`, touch-safe UI behavior).
 - Respect Vercel/serverless limits: avoid endpoint sprawl and prefer extending existing handlers.
+- MUST obtain explicit user permission before any UX behavior change.
+- DO NOT simplify, alter, or remove existing UX semantics during migration/refactor without approval.
+- This includes (non-exhaustive): labels/copy, thresholds, status buckets, icons, defaults, sort/order behavior, visibility rules, interaction patterns, fallback states, and summary text/details.
+- If parity is unclear: stop, surface the exact proposed UX delta, and wait for user approval before implementing.
 
 ## iOS PWA Interaction Rules
 
@@ -68,7 +72,7 @@ If no trigger conditions are met, proceed without surfacing deferred items. Do n
    - For every request, check whether work already exists in `open_items`.
    - If user asks for ad-hoc work not already tracked, create a new issue ID (`DN-###`, next available number) in `open_items` before execution or at the start of execution.
    - Every new open item **must** include an `agent` field (array). Use `["codex"]`, `["claude"]`, or `["codex", "claude"]`. Use `["unassigned"]` only if genuinely unclear — but triage it before proceeding.
-   - Note: Codex cannot live-test deployments, access Vercel logs, or query Supabase directly. If any part of a task requires those steps, assign `["claude"]` for the whole item — Claude can choose to hand off the coding portion to Codex within a session, but ownership stays with Claude.
+   - Note: Codex can live-test preview UI flows when Playwright skill/extension is available. Codex still cannot access Vercel logs or query Supabase directly unless explicitly provided that access. If any part of a task requires those steps, assign `["claude"]` for the whole item — Claude can choose to hand off the coding portion to Codex within a session, but ownership stays with Claude.
 2. **Execute**
    - Set status to `in_progress` in `open_items` while work is active.
 3. **Close-loop**
@@ -88,7 +92,12 @@ Use this routinely, not just when a problem is already suspected:
 
 **How to assign:** Give Codex both the static source file (e.g. `public/index.html`) and the new component (e.g. `components/SessionLoggerModal.js`) and ask it to list behavioral differences. Be specific about which feature area to check (side selector, form params, timer behavior, etc.).
 
-Codex cannot live-test on preview, but it can read code and reason about behavior — which is most of what parity checking requires.
+Codex can live-test preview UI flows when Playwright is available, and can also read code for static parity checks.
+
+Before coding any UX change found during parity review:
+- Present the exact behavior diff to the user (what changes from current behavior).
+- Ask for explicit approval.
+- Only then implement.
 
 ## Testing Checklists
 
@@ -98,3 +107,4 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 - Keep instructions concise and avoid duplicating detailed architecture from docs.
 - If guidance conflicts within `pt-rebuild/`, `AGENTS.md` is the operational source of truth.
+
