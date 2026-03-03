@@ -127,4 +127,5 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 - Keep instructions concise and avoid duplicating detailed architecture from docs.
 - If guidance conflicts within `pt-rebuild/`, `AGENTS.md` is the operational source of truth.
+- Commit attribution: include a single `Co-authored-by:` trailer for agent-authored commits using the same convention already used in this repo.
 
