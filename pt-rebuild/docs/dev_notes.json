@@ -270,6 +270,20 @@
       "constraints_caveats": "Codex item. Must not break existing ExercisePicker props or layout. onPointerUp only. Must handle exercises with no logs gracefully (show 'No history'). Do not add adherence logic directly in ExercisePicker — keep it in lib/index-history.js and pass computed value via props or compute at call site in pages/index.js."
     },
     {
+      "id": "DN-064",
+      "status": "in_progress",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/pages/index.js, pt-rebuild/lib/index-history.js",
+      "issue": "Index exercise sort dropdown is no-op in Next.js — changing sort mode does not reorder exercise cards.",
+      "resolved": null,
+      "context": "Exploration confirmed the bug: ExercisePicker stored sortMode but only filtered; no sort comparator was applied. Codex implementation in progress adds sort behavior for alpha, body area, and recent activity, with pt_order/manual preserving source order for now. Recent mode uses adherence recency from logs via index-history helper data passed through pages/index.js.",
+      "constraints_caveats": "Keep UI behavior iOS-safe (no onClick). Do not break existing selection/search behavior. Sort change must be deterministic and stable by canonical_name as tie-breaker. Manual drag-drop order remains in DN-050 scope."
+    },
+    {
       "id": "DN-054",
       "status": "open",
       "priority": "P2",
