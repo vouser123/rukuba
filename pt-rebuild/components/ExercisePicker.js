@@ -16,7 +16,7 @@ function formatDosageSummary(exercise, program) {
     const hasHold = modifiers.includes('hold_seconds') || dosageType === 'hold';
     const hasDistance = modifiers.includes('distance_feet') || dosageType === 'distance';
 
-    if (hasDistance && distanceFeet > 0) return `${distanceFeet} feet`;
+    if (hasDistance && distanceFeet > 0) return `${sets > 0 ? `${sets} x ` : ''}${distanceFeet} feet`;
     if (hasDuration && durationSeconds > 0) return `${sets} x ${durationSeconds} sec`;
     if (hasHold && holdSeconds > 0 && reps > 0) return `${sets} x ${reps} reps (${holdSeconds}s hold)`;
     if (reps > 0 && sets > 0) return `${sets} x ${reps} reps`;
