@@ -1,61 +1,51 @@
 # PT Rebuild Testing Checklists
 
-All regression, parity, and verification checklists for `pt-rebuild/`. Add new checklists here as they are created. Linked from `AGENTS.md` and relevant dev notes.
-
-**Loaded by:** `AGENTS.md`
+Canonical checklist reference for `pt-rebuild/`. Loaded by `AGENTS.md`. New checklists are added here.
 
 ---
 
 ## Activity Log Testing Checklist
 
-When modifying any part of the activity log flow (`createActivityLog`, `updateActivityLog`, `processActivityLog`, `create_activity_log_atomic`), test all of the following variable combinations. Skipping any of these has caused regressions.
+**Trigger:** Any change to `createActivityLog`, `updateActivityLog`, `processActivityLog`, or `create_activity_log_atomic`. All combinations below must pass. Skipping any has caused regressions.
 
-### Exercise type variables
-- Exercise **with** form parameters (e.g. Theraband Row — has resistance/color form param)
-- Exercise **without** form parameters (e.g. Ankle Inversion — Isometric — form_data is null in payload)
-- Exercise with pattern modifier only (duration_seconds or hold_seconds — not form_data)
-- Exercise with distance_feet set
-- Exercise with reps only (no seconds, no distance)
+**Exercise type** — test each:
+- form parameters present (e.g. Theraband Row — band_resistance)
+- no form parameters (e.g. Ankle Inversion Isometric — form_data null in payload)
+- pattern modifier only: `hold_seconds` or `duration_seconds`
+- `distance_feet` set
+- reps only (no seconds, no distance)
 
-### Set variables
-- Single set
-- Multiple sets (3+) — test that form data ends up on the correct set_number, not shifted
-- Sets with different form_data per set (e.g. set 1: band=blue, set 2: band=red) — verifies DN-004 fix
-- Sets where set_number is not contiguous (e.g. 1, 3, 5 — edit flow)
+**Set count** — test each:
+- single set
+- 3+ sets — verify form_data lands on correct set_number, not shifted (DN-004)
+- different form_data per set (e.g. set 1: band=blue, set 2: band=red)
+- non-contiguous set_numbers (e.g. 1, 3, 5) — edit flow only
 
-### Side variables
-- `side = null` (bilateral exercises — both sides together, side selector hidden)
+**Side** — test each:
+- `side = null` — bilateral exercise; side selector must be hidden; null logged
 - `side = 'left'`
 - `side = 'right'`
-- Note: `side = 'both'` is NOT a valid DB value — confirmed across 823 sets in production. Bilateral exercises log `side = null`. (See DN-063 for Next.js parity fix.)
+- `side = 'both'` is NOT a valid DB value (confirmed 823 sets in production). DN-063 tracks the Next.js fix.
 
-### Log path variables
-- Online, direct POST to `/api/logs` (createActivityLog)
-- Offline, queued to localStorage then synced via `syncOfflineQueue` → POST to `/api/logs` (same endpoint, different entry point)
-- Edit/update via PATCH to `/api/logs/:id` (updateActivityLog)
-- Sync path via POST to `/api/sync` (processActivityLog) — reachable endpoint, tests separately
+**Log path** — test each:
+- online POST `/api/logs` (createActivityLog)
+- offline: queue to localStorage → sync via `syncOfflineQueue` → POST `/api/logs`
+- edit: PATCH `/api/logs/:id` (updateActivityLog)
+- sync: POST `/api/sync` (processActivityLog) — separate test
 
-### Idempotency
-- POST same `client_mutation_id` twice — must return 409, no duplicate rows
-- Confirm exactly one row in `patient_activity_logs` for the mutation ID after double-post
+**Idempotency:**
+- POST same `client_mutation_id` twice → must 409, no duplicate row
+- Confirm exactly one row in `patient_activity_logs` after double-post
 
-### DB verification query (paste into Supabase SQL editor)
+**DB verification query:**
 ```sql
 SELECT
-  l.id AS log_id,
-  l.exercise_name,
-  s.set_number,
-  s.reps,
-  s.seconds,
-  s.distance_feet,
-  s.side,
-  s.manual_log,
-  f.parameter_name,
-  f.parameter_value,
-  f.parameter_unit
+  l.id AS log_id, l.exercise_name,
+  s.set_number, s.reps, s.seconds, s.distance_feet, s.side, s.manual_log,
+  f.parameter_name, f.parameter_value, f.parameter_unit
 FROM patient_activity_logs l
 LEFT JOIN patient_activity_sets s ON s.activity_log_id = l.id
 LEFT JOIN patient_activity_set_form_data f ON f.activity_set_id = s.id
-WHERE l.patient_id = '35c3ec8d-...'  -- replace with real patient UUID
+WHERE l.patient_id = '35c3ec8d-...'  -- replace with actual patient UUID
 ORDER BY l.created_at DESC, s.set_number, f.parameter_name;
 ```
