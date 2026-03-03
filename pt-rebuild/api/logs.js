@@ -612,17 +612,43 @@ async function createMessage(req, res) {
     return res.status(400).json({ error: 'Invalid recipient_id format' });
   }
 
+  if (recipient_id === req.user.id) {
+    return res.status(400).json({ error: 'recipient_id cannot match sender_id' });
+  }
+
   try {
-    // Validate recipient exists (use admin client to avoid RLS blocking lookups)
+    // Validate recipient and relationship constraints using admin client
     const supabaseAdmin = getSupabaseAdmin();
+    const { data: sender, error: senderError } = await supabaseAdmin
+      .from('users')
+      .select('id, role, therapist_id')
+      .eq('id', req.user.id)
+      .single();
+
+    if (senderError || !sender) {
+      return res.status(403).json({ error: 'Sender profile not found' });
+    }
+
     const { data: recipient, error: recipientError } = await supabaseAdmin
       .from('users')
-      .select('id, role')
+      .select('id, role, therapist_id')
       .eq('id', recipient_id)
       .single();
 
     if (recipientError || !recipient) {
       return res.status(404).json({ error: 'Recipient not found' });
+    }
+
+    if (sender.role === 'patient') {
+      // Patient can only message their assigned therapist.
+      if (!sender.therapist_id || recipient.id !== sender.therapist_id) {
+        return res.status(403).json({ error: 'Patient recipient must be assigned therapist' });
+      }
+    } else if (sender.role === 'therapist') {
+      // Therapist can only message assigned patients.
+      if (recipient.therapist_id !== sender.id) {
+        return res.status(403).json({ error: 'Recipient is not assigned to this therapist' });
+      }
     }
 
     // For patient-to-therapist messages, patient_id is the sender (current user)
