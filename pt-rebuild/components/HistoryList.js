@@ -9,8 +9,9 @@ import styles from './HistoryList.module.css';
  * @param {Set}      expandedSessions - Set of log ids currently expanded
  * @param {Function} onToggleSession  - Toggle a session's expanded state by log id
  * @param {Function} onExerciseClick  - Open exercise history modal (exerciseId, exerciseName)
+ * @param {Function} onEditLog        - Open edit logger modal for a specific log
  */
-export default function HistoryList({ groups, expandedSessions, onToggleSession, onExerciseClick }) {
+export default function HistoryList({ groups, expandedSessions, onToggleSession, onExerciseClick, onEditLog }) {
     if (groups.length === 0) return <div className={styles['empty-state']}>No history to show.</div>;
 
     /** Format a log's sets into a compact summary string. */
@@ -65,6 +66,17 @@ export default function HistoryList({ groups, expandedSessions, onToggleSession,
                                                 </div>
                                             ))}
                                         </div>
+                                        {onEditLog && (
+                                            <div className={styles['session-actions']}>
+                                                <button
+                                                    type="button"
+                                                    className={styles['edit-btn']}
+                                                    onPointerUp={e => { e.stopPropagation(); onEditLog(log); }}
+                                                >
+                                                    Edit Session
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

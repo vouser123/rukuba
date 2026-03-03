@@ -1,0 +1,150 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    z-index: 1100;
+    display: grid;
+    place-items: center;
+    padding: 12px;
+}
+
+.modal {
+    width: min(760px, 100%);
+    max-height: 90vh;
+    overflow: auto;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 14px;
+    display: grid;
+    gap: 12px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.title {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.subtitle {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.closeBtn,
+.removeBtn,
+.secondaryBtn,
+.primaryBtn {
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    padding: 0 12px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.primaryBtn {
+    background: var(--accent-color);
+    color: #fff;
+    border-color: transparent;
+}
+
+.error {
+    border: 1px solid var(--danger-color);
+    background: color-mix(in srgb, var(--danger-color) 12%, transparent);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.metaRow {
+    display: grid;
+}
+
+.setList {
+    display: grid;
+    gap: 10px;
+}
+
+.setCard {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    display: grid;
+    gap: 10px;
+}
+
+.setHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.setTitle {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.fieldGrid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.formDataGrid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fieldLabel {
+    display: grid;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.input,
+.select,
+.textarea {
+    min-height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.textarea {
+    min-height: 86px;
+    resize: vertical;
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+    .fieldGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .formDataGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .footer > button {
+        flex: 1;
+    }
+}

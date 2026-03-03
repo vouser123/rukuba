@@ -14,8 +14,9 @@ import styles from './HistoryPanel.module.css';
  * @param {string|null} activeExerciseId    - Set when a session is open; null = show all history
  * @param {string|null} activeExerciseName  - Display name for the filter badge
  * @param {Function}    onClearFilter       - Called when user taps "Show all" in the filter badge
+ * @param {Function}    onEditLog           - Open edit logger modal for selected log
  */
-export default function HistoryPanel({ logs, activeExerciseId, activeExerciseName, onClearFilter }) {
+export default function HistoryPanel({ logs, activeExerciseId, activeExerciseName, onClearFilter, onEditLog }) {
     const [expandedSessions, setExpandedSessions] = useState(new Set());
 
     /** Toggle expanded state for a session card. */
@@ -52,6 +53,7 @@ export default function HistoryPanel({ logs, activeExerciseId, activeExerciseNam
                 expandedSessions={expandedSessions}
                 onToggleSession={handleToggleSession}
                 onExerciseClick={() => {}} // no-op on index: exercise context set by ExercisePicker
+                onEditLog={onEditLog}
             />
         </div>
     );

@@ -11,20 +11,9 @@ import NavMenu from '../components/NavMenu';
 import HistoryPanel from '../components/HistoryPanel';
 import BottomNav from '../components/BottomNav';
 import ExercisePicker from '../components/ExercisePicker';
+import SessionLoggerModal from '../components/SessionLoggerModal';
+import { useSessionLogging } from '../hooks/useSessionLogging';
 import styles from './index.module.css';
-
-/**
- * Temporary placeholder for components not yet built (4b, 4c).
- * Removed when the real component is wired in.
- */
-function Placeholder({ title, description }) {
-    return (
-        <section className={styles.panel} aria-label={title}>
-            <h2 className={styles.panelTitle}>{title}</h2>
-            <p className={styles.panelDescription}>{description}</p>
-        </section>
-    );
-}
 
 export default function IndexPage() {
     const { session, loading: authLoading, signIn } = useAuth();
@@ -39,6 +28,7 @@ export default function IndexPage() {
     const [activeTab, setActiveTab] = useState('exercises');
     const [sortMode, setSortMode] = useState('pt_order');
     const [selectedExerciseId, setSelectedExerciseId] = useState(null);
+    const [selectedExercise, setSelectedExercise] = useState(null);
 
     /**
      * Currently open exercise (set by SessionLoggerModal in Phase 4c).
@@ -72,8 +62,25 @@ export default function IndexPage() {
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
+        setSelectedExercise(selected);
         setActiveExercise(selected ? { id: selected.id, name: selected.canonical_name || '' } : null);
     }, [pickerExercises]);
+
+    const logger = useSessionLogging(token, userId, reload, enqueue);
+
+    const handleEditLog = useCallback((log) => {
+        const byId = pickerExercises.find((exercise) => exercise.id === log.exercise_id);
+        const byName = pickerExercises.find((exercise) => exercise.canonical_name === log.exercise_name);
+        const exercise = byId || byName || {
+            id: log.exercise_id ?? null,
+            canonical_name: log.exercise_name ?? 'Exercise',
+            pattern_modifiers: [],
+            form_parameters_required: [],
+            pattern: null,
+            dosage_type: null,
+        };
+        logger.openEdit(exercise, log);
+    }, [logger, pickerExercises]);
 
     /**
      * Sign out — clear the offline queue first to prevent cross-user data leakage (DN-022 fix),
@@ -144,11 +151,14 @@ export default function IndexPage() {
                                 sortMode={sortMode}
                                 onSortChange={setSortMode}
                             />
-                            {/* Phase 4c: SessionLoggerModal */}
-                            <Placeholder
-                                title="SessionLoggerModal"
-                                description="DN-048 — logging modal (sets/reps/side/form_data), timer, speech."
-                            />
+                            <button
+                                className={styles.logButton}
+                                onPointerUp={() => selectedExercise && logger.openCreate(selectedExercise)}
+                                disabled={!selectedExercise}
+                                type="button"
+                            >
+                                {selectedExercise ? 'Log Session' : 'Select an exercise to log'}
+                            </button>
                         </>
                     )}
 
@@ -159,6 +169,7 @@ export default function IndexPage() {
                             activeExerciseId={activeExercise?.id ?? null}
                             activeExerciseName={activeExercise?.name ?? null}
                             onClearFilter={() => setActiveExercise(null)}
+                            onEditLog={handleEditLog}
                         />
                     )}
                 </main>
@@ -168,6 +179,25 @@ export default function IndexPage() {
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
                     pendingSync={pendingCount}
+                />
+
+                <SessionLoggerModal
+                    isOpen={logger.isOpen}
+                    isEdit={logger.isEdit}
+                    exercise={logger.exercise}
+                    performedAt={logger.performedAt}
+                    notes={logger.notes}
+                    sets={logger.sets}
+                    submitting={logger.submitting}
+                    error={logger.error}
+                    onClose={logger.close}
+                    onPerformedAtChange={logger.setPerformedAt}
+                    onNotesChange={logger.setNotes}
+                    onAddSet={logger.addSet}
+                    onRemoveSet={logger.removeSet}
+                    onSetChange={logger.updateSet}
+                    onFormParamChange={logger.updateFormParam}
+                    onSubmit={logger.submit}
                 />
             </div>
         </>
