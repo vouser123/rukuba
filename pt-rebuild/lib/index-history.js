@@ -66,13 +66,38 @@ export function getAdherenceInfo(logs, exerciseId, exerciseName = null) {
 export function getAdherenceBadgeState(logs, exerciseId, exerciseName = null) {
     const info = getAdherenceInfo(logs, exerciseId, exerciseName);
     if (info.daysSince === null) {
-        return { adherence_status: null, last_performed_at: null };
+        return {
+            adherence_status: null,
+            adherence_tone: 'gray',
+            adherence_text: 'Never done',
+            adherence_icon: '○',
+            total_sessions: 0,
+            last_performed_at: null,
+        };
     }
 
     let adherenceStatus = null;
     if (info.daysSince === 0) adherenceStatus = 'done_today';
     else if (info.daysSince <= 7) adherenceStatus = 'due_soon';
     else adherenceStatus = 'overdue';
+
+    let adherenceTone = 'red';
+    let adherenceIcon = '❗ ';
+    let adherenceText = `${info.daysSince} days ago`;
+
+    if (info.daysSince === 0) {
+        adherenceTone = 'green';
+        adherenceIcon = '✓ ';
+        adherenceText = 'Done today';
+    } else if (info.daysSince <= 3) {
+        adherenceTone = 'green';
+        adherenceIcon = '';
+        adherenceText = `${info.daysSince} day${info.daysSince > 1 ? 's' : ''} ago`;
+    } else if (info.daysSince <= 7) {
+        adherenceTone = 'orange';
+        adherenceIcon = '⚠️ ';
+        adherenceText = `${info.daysSince} days ago`;
+    }
 
     const lastPerformedAt = logs
         .filter((log) => (
@@ -83,6 +108,10 @@ export function getAdherenceBadgeState(logs, exerciseId, exerciseName = null) {
 
     return {
         adherence_status: adherenceStatus,
+        adherence_tone: adherenceTone,
+        adherence_text: adherenceText,
+        adherence_icon: adherenceIcon,
+        total_sessions: info.totalSessions,
         last_performed_at: lastPerformedAt,
     };
 }

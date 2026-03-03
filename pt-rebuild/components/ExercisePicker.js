@@ -25,6 +25,15 @@ function formatDosageSummary(exercise, program) {
 }
 
 function getAdherence(program) {
+    if (program?.adherence_text) {
+        const suffix = program?.total_sessions > 0
+            ? ` · ${program.total_sessions} session${program.total_sessions > 1 ? 's' : ''} total`
+            : '';
+        return {
+            label: `${program.adherence_icon ?? ''}${program.adherence_text}${suffix}`,
+            tone: program?.adherence_tone ?? 'gray',
+        };
+    }
     if (program?.adherence_status === 'done_today') return { label: 'Done today', tone: 'green' };
     if (program?.adherence_status === 'due_soon') return { label: 'Due soon', tone: 'orange' };
     if (program?.adherence_status === 'overdue') return { label: 'Overdue', tone: 'red' };
