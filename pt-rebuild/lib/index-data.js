@@ -29,7 +29,7 @@ export async function fetchIndexPrograms(token, patientId) {
 }
 
 export async function fetchIndexLogs(token, patientId) {
-    const response = await fetch(`/api/logs?patient_id=${patientId}&limit=1000`, {
+    const response = await fetch(`/api/logs?patient_id=${patientId}&include_all=true&limit=1000`, {
         headers: authHeaders(token),
     });
     if (!response.ok) {
