@@ -270,20 +270,6 @@
       "constraints_caveats": "Codex item. Must not break existing ExercisePicker props or layout. onPointerUp only. Must handle exercises with no logs gracefully (show 'No history'). Do not add adherence logic directly in ExercisePicker — keep it in lib/index-history.js and pass computed value via props or compute at call site in pages/index.js."
     },
     {
-      "id": "DN-064",
-      "status": "in_progress",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": ["codex"],
-      "tags": ["migration", "ui"],
-      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/pages/index.js, pt-rebuild/lib/index-history.js",
-      "issue": "Index exercise sort dropdown is no-op in Next.js — changing sort mode does not reorder exercise cards.",
-      "resolved": null,
-      "context": "Exploration confirmed the bug: ExercisePicker stored sortMode but only filtered; no sort comparator was applied. Codex implementation in progress adds sort behavior for alpha, body area, and recent activity, with pt_order/manual preserving source order for now. Recent mode uses adherence recency from logs via index-history helper data passed through pages/index.js.",
-      "constraints_caveats": "Keep UI behavior iOS-safe (no onClick). Do not break existing selection/search behavior. Sort change must be deterministic and stable by canonical_name as tie-breaker. Manual drag-drop order remains in DN-050 scope."
-    },
-    {
       "id": "DN-054",
       "status": "open",
       "priority": "P2",
@@ -744,6 +730,34 @@
     }
   ],
   "closed_items": [
+    {
+      "id": "DN-064",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/pages/index.js, pt-rebuild/lib/index-history.js",
+      "issue": "Index exercise sort dropdown is no-op in Next.js — changing sort mode does not reorder exercise cards.",
+      "resolved": "2026-03-03",
+      "resolution_type": "fix",
+      "problem": "Selecting sort mode in the index ExercisePicker changed the dropdown value but exercise card order stayed unchanged.",
+      "root_cause": "ExercisePicker applied query filtering only; no comparator was applied for sort modes. Recency sort also lacked numeric adherence-day data.",
+      "resolution": "Implemented sorting comparators for alpha, body_area, and recent modes in ExercisePicker. Added adherence_days_since to index-history badge state and wired adherence-enriched program data in pages/index.js so recent sorting can order by recency; pt_order/manual preserve incoming order.",
+      "change_made": "components/ExercisePicker.js: added sortMode-based ordering logic with canonical_name tie-breaks. lib/index-history.js: added adherence_days_since in getAdherenceBadgeState. pages/index.js: passes adherence-enriched program data used by recent sort.",
+      "files_touched": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/lib/index-history.js, pt-rebuild/pages/index.js, pt-rebuild/docs/dev_notes.json",
+      "validation": "Code-path validation complete and changes pushed in commit 237ad99. User verification pending in preview for each dropdown mode.",
+      "context": "Exploration confirmed the bug: sortMode state changed but no sorting occurred. Fix keeps existing iOS-safe interaction behavior and does not alter DN-050 drag-and-drop scope.",
+      "constraints_caveats": "Manual drag-and-drop ordering remains DN-050 scope.",
+      "follow_ups": "If preview behavior differs from expected for any sort mode, open follow-up DN with exact mode+ordering examples.",
+      "reactivate_triggers": null
+    },
     {
       "id": "DN-061",
       "status": "done",
