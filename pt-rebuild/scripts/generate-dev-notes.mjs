@@ -9,6 +9,7 @@ const markdownPath = path.join(rootDir, 'docs', 'DEV_NOTES.md');
 const checkMode = process.argv.includes('--check');
 
 const REQUIRED_ENUM_KEYS = ['priority_levels', 'risk_levels', 'status_values', 'tag_vocabulary'];
+const UX_APPROVAL_STATUSES = ['not_needed', 'required_pending', 'approved', 'revoked'];
 const REQUIRED_CLOSED_NARRATIVE_FIELDS = [
   'problem',
   'root_cause',
@@ -79,6 +80,19 @@ function validateAgainstSchema(data, schema) {
       }
     }
   }
+
+  const schemaTagCatalog = schema?.x_enum_catalog?.tag_vocabulary;
+  if (Array.isArray(schemaTagCatalog) && schemaTagCatalog.length > 0) {
+    const dataTagValues = (data?.enums?.tag_vocabulary ?? []).map((entry) => entry?.value);
+    if (schemaTagCatalog.length !== dataTagValues.length) {
+      fail('Schema drift: tag_vocabulary length differs between docs/dev_notes.schema.json and docs/dev_notes.json.');
+    }
+    for (let i = 0; i < schemaTagCatalog.length; i += 1) {
+      if (schemaTagCatalog[i] !== dataTagValues[i]) {
+        fail(`Schema drift: tag_vocabulary mismatch at index ${i} ('${schemaTagCatalog[i]}' !== '${dataTagValues[i]}').`);
+      }
+    }
+  }
 }
 
 function validate(data, schema) {
@@ -123,6 +137,27 @@ function validate(data, schema) {
     for (const tag of item.tags) {
       if (!tags.includes(tag)) {
         fail(`Open item ${item.id} has invalid tag '${tag}'.`);
+      }
+    }
+
+    const ux = item.ux_approval;
+    if (!ux || typeof ux !== 'object') {
+      fail(`Open item ${item.id} missing required ux_approval object.`);
+    }
+    if (!UX_APPROVAL_STATUSES.includes(ux.status)) {
+      fail(`Open item ${item.id} has invalid ux_approval.status '${ux.status}'.`);
+    }
+    if (ux.status === 'not_needed') {
+      if (typeof ux.reason_not_needed !== 'string' || ux.reason_not_needed.trim() === '') {
+        fail(`Open item ${item.id} ux_approval.status='not_needed' requires non-empty reason_not_needed.`);
+      }
+    }
+    if (ux.status === 'approved') {
+      const requiredApprovalFields = ['approved_by', 'approved_on', 'surface', 'delta', 'scope', 'validation_target'];
+      for (const field of requiredApprovalFields) {
+        if (typeof ux[field] !== 'string' || ux[field].trim() === '') {
+          fail(`Open item ${item.id} ux_approval.status='approved' missing '${field}'.`);
+        }
       }
     }
   }

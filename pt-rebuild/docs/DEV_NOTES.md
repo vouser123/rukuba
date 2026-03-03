@@ -54,6 +54,7 @@ This file is generated from `docs/dev_notes.json`. Do not hand-edit this Markdow
 - `security`: Access control, privacy, and exploit prevention.
 - `migration`: Database/data migration planning and execution.
 - `docs`: Documentation or workflow process updates.
+- `bug`: Behavior defect/regression fix.
 - `cleanup`: Refactors, debt paydown, and housekeeping.
 - `email`: Notification or email delivery behavior.
 - `lcp`: Largest Contentful Paint and first-render metrics.
