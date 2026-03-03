@@ -1,6 +1,6 @@
-# Next.js Migration Testing Checklists
+# PT Rebuild Testing Checklists
 
-Reference checklists for regression and parity testing during the Next.js migration. Applies to Next.js components and pages in `pt-rebuild/`. Linked from `AGENTS.md` and relevant dev notes.
+All regression, parity, and verification checklists for `pt-rebuild/`. Add new checklists here as they are created. Linked from `AGENTS.md` and relevant dev notes.
 
 **Loaded by:** `AGENTS.md`
 
