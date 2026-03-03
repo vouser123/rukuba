@@ -1,7 +1,7 @@
 // pages/index.js — Phase 4 tracker page (Strangler Fig: replaces public/index.html on cutover)
 // 4a: shell + auth + data (Codex) | 4e: HistoryPanel + BottomNav (Claude) | 4g: offline queue (Claude)
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import { useAuth } from '../hooks/useAuth';
 import { useIndexData } from '../hooks/useIndexData';
@@ -63,7 +63,6 @@ export default function IndexPage() {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
         setSelectedExercise(selected);
-        setActiveExercise(selected ? { id: selected.id, name: selected.canonical_name || '' } : null);
     }, [pickerExercises]);
 
     const logger = useSessionLogging(token, userId, reload, enqueue);
@@ -79,8 +78,15 @@ export default function IndexPage() {
             pattern: null,
             dosage_type: null,
         };
+        setActiveExercise({ id: exercise.id, name: exercise.canonical_name || log.exercise_name || '' });
         logger.openEdit(exercise, log);
     }, [logger, pickerExercises]);
+
+    useEffect(() => {
+        if (!logger.isOpen) {
+            setActiveExercise(null);
+        }
+    }, [logger.isOpen]);
 
     /**
      * Sign out — clear the offline queue first to prevent cross-user data leakage (DN-022 fix),
@@ -153,7 +159,14 @@ export default function IndexPage() {
                             />
                             <button
                                 className={styles.logButton}
-                                onPointerUp={() => selectedExercise && logger.openCreate(selectedExercise)}
+                                onPointerUp={() => {
+                                    if (!selectedExercise) return;
+                                    setActiveExercise({
+                                        id: selectedExercise.id,
+                                        name: selectedExercise.canonical_name || '',
+                                    });
+                                    logger.openCreate(selectedExercise);
+                                }}
                                 disabled={!selectedExercise}
                                 type="button"
                             >
