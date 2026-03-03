@@ -98,11 +98,32 @@ export default function MessagesModal({
         setUndoTarget(null);
     }
 
-    function formatTime(isoString) {
-        return new Date(isoString).toLocaleString(undefined, {
-            month: 'short', day: 'numeric',
-            hour: 'numeric', minute: '2-digit',
-        });
+    /**
+     * Format a message timestamp as "sent: Mon 3/2/26 8:18 PM EST"
+     * Matches the static pt_view.html formatMessageDateTime format.
+     * @param {string} isoString - ISO date string
+     * @param {string} [prefix='sent:'] - Label prefix (e.g. 'sent:' or 'read at:')
+     */
+    function formatMsgDateTime(isoString, prefix = 'sent:') {
+        const date = new Date(isoString);
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayName = days[date.getDay()];
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const year = String(date.getFullYear()).slice(-2);
+        let hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        let tz = '';
+        try {
+            const tzParts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(date);
+            const tzPart = tzParts.find(p => p.type === 'timeZoneName');
+            if (tzPart) tz = tzPart.value;
+        } catch (e) {
+            tz = 'local';
+        }
+        return `${prefix} ${dayName} ${month}/${day}/${year} ${hours}:${minutes} ${ampm} ${tz}`;
     }
 
     return (
@@ -125,8 +146,12 @@ export default function MessagesModal({
                                 <div className={`${styles['message-bubble']} ${isSent ? styles.sent : styles.received}`}>
                                     {msg.body}
                                     <div className={styles['message-meta']}>
-                                        <span>{formatTime(msg.created_at)}</span>
-                                        {isSent && msg.read_by_recipient && <span>✓ Read</span>}
+                                        <span>{formatMsgDateTime(msg.created_at, 'sent:')}</span>
+                                        {isSent && (
+                                            msg.read_at
+                                                ? <span className={styles['read-receipt']}>{formatMsgDateTime(msg.read_at, 'read at:')}</span>
+                                                : <span className={styles['delivered']}>Delivered</span>
+                                        )}
                                     </div>
                                     <div className={styles['message-actions']}>
                                         {!isSent && !msg.read_by_recipient && (
