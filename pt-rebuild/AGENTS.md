@@ -10,7 +10,7 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/docs/vocabularies.md` - canonical field names and data contracts
 - `pt-rebuild/docs/dev_notes.json` - canonical development tracking log (source of truth)
 - `pt-rebuild/docs/AI_WORKFLOW.md` - required intake/execute/close-loop workflow
-- `pt-rebuild/docs/TESTING_CHECKLISTS.md` - regression and parity testing checklists
+- `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
 
 ## Core Rules
 
