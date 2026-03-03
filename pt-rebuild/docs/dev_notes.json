@@ -251,6 +251,25 @@
       "constraints_caveats": "Codex-appropriate fix once spec is clear. Must not break sided exercises (pattern === 'side'). No onClick — onPointerUp only. Verify: sided exercise shows left/right selector; bilateral exercise hides it and logs side=null."
     },
     {
+      "id": "DN-065",
+      "status": "in_progress",
+      "priority": "P1",
+      "risk": "medium",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/pages/index.js, pt-rebuild/components/ExercisePicker.js, pt-rebuild/public/index.html",
+      "issue": "Exercise card tap in Next.js index only highlights selection (blue border) and does not enter logging flow; static index enters active exercise workflow on card tap.",
+      "resolved": null,
+      "context": "User reported regression on 2026-03-03. Static behavior: exercise card tap triggers selectExercise and immediately enters counter/timer/logging workflow. Next.js behavior had a two-step requirement (select card then tap 'Log Session'). Codex fix in progress updates index card select handler to open create session flow immediately on tap using the same default form-data path as Log Session.",
+      "constraints_caveats": "Must preserve static tap semantics without changing broader workflow scope. Keep iOS-safe pointer interactions (no onClick). Do not regress DN-064 sort behavior."
+    },
+    {
       "id": "DN-062",
       "status": "open",
       "priority": "P2",

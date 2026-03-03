@@ -84,7 +84,17 @@ export default function IndexPage() {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
         setSelectedExercise(selected);
-    }, [pickerExercises]);
+        if (!selected) return;
+        setActiveExercise({
+            id: selected.id,
+            name: selected.canonical_name || '',
+        });
+        const defaultFormData = buildDefaultFormDataForExercise(selected, logs);
+        const exerciseWithDefaults = defaultFormData
+            ? { ...selected, default_form_data: defaultFormData }
+            : selected;
+        logger.openCreate(exerciseWithDefaults);
+    }, [logs, logger, pickerExercises]);
 
     const logger = useSessionLogging(token, userId, reload, enqueue);
 
