@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-03-03"
+    "last_updated": "2026-03-03 (session end)"
   },
   "enums": {
     "priority_levels": [
@@ -182,8 +182,13 @@
       "priority": "P1",
       "risk": "low",
       "scope": "current",
-      "agent": ["codex"],
-      "tags": ["offline", "reliability"],
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "offline",
+        "reliability"
+      ],
       "file": "pt-rebuild/hooks/useSessionLogging.js",
       "issue": "ReferenceError in catch block offline-fallback path: `activity_type` shorthand (line ~215) references an undeclared variable. `activityType` (camelCase) is declared with `const` inside the `try` block and is out of scope in the `catch` block.",
       "resolved": null,
@@ -196,8 +201,13 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["codex"],
-      "tags": ["ui", "migration"],
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "ui",
+        "migration"
+      ],
       "file": "pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/pages/index.js, pt-rebuild/hooks/useSessionLogging.js, pt-rebuild/lib/session-form-params.js",
       "issue": "Form parameters (e.g. band_resistance) render as plain text inputs in Next.js SessionLoggerModal. Static index.html renders them as smart dropdowns built from historical log values, with an 'Other...' fallback to free text.",
       "resolved": null,
@@ -210,55 +220,40 @@
       "priority": "P1",
       "risk": "medium",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["migration", "ui", "offline", "reliability", "api"],
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "migration",
+        "ui",
+        "offline",
+        "reliability",
+        "api"
+      ],
       "file": "pt-rebuild/pages/index.js, pt-rebuild/components/SessionLoggerModal.js, pt-rebuild/hooks/useSessionLogging.js, pt-rebuild/lib/session-form-params.js, pt-rebuild/public/index.html",
       "issue": "DN-048 verification gate: execute parity/regression testing for session logging flow, including DN-056 form-parameter behavior and DN-057 offline/network-fallback behavior, and record pass/fail evidence.",
       "resolved": null,
-      "context": "Testing-only item for Claude. This is the closure gate for DN-048, DN-056, and DN-057. Must execute the full Activity Log Testing Checklist in AGENTS.md for DN-048 (all exercise-type, set-count, side, path, and idempotency combinations) and also verify DN-056/DN-057-specific parity: non-unit params show historical dropdown + Other path, create defaults from last-used per exercise including value+unit (e.g. 3 lb), edit preserves values not present in historical map, datetime-local roundtrip preserves intended local time, weight/distance remain numeric with correct unit default, and offline/network-failure enqueue path succeeds with correct activity_type and no ReferenceError.",
-      "constraints_caveats": "Testing only in this item. If any failure is found, open/assign a follow-up code-fix DN to Codex and keep DN-048/056/057 open. Do not mark DN-048, DN-056, or DN-057 done until this verification item passes and evidence is recorded."
+      "context": "Testing-only item for Claude. This is the closure gate for DN-048, DN-056, and DN-057. Must execute the full Activity Log Testing Checklist in AGENTS.md for DN-048 (all exercise-type, set-count, side, path, and idempotency combinations) and also verify DN-056/DN-057-specific parity: non-unit params show historical dropdown + Other path, create defaults from last-used per exercise including value+unit (e.g. 3 lb), edit preserves values not present in historical map, datetime-local roundtrip preserves intended local time, weight/distance remain numeric with correct unit default, and offline/network-failure enqueue path succeeds with correct activity_type and no ReferenceError. --- PROGRESS AS OF 2026-03-03: Found and fixed DN-059 (patient_id UUID mismatch in GET+POST), DN-060 (Box Lift dosage set count), DN-061 (HistoryList missing form_data). Verified: GET /api/logs ✅ (band_resistance dropdown working), POST /api/logs ✅ (201 on Ankle Dorsiflexion), exercise type click-through: reps-only ✅, band form param ✅, hold timer (Ankle Inversion Isometric) ✅, duration (Passive GToe Plantarflexion Stretch) ✅, distance (Box Lift) ✅. --- REMAINING for next session: (1) edit/PATCH flow — open existing log in edit modal, verify pre-fill (click-through only); (2) idempotency — 409 on duplicate client_mutation_id; (3) side=null and side=both click-through; (4) offline enqueue path; (5) verify DN-061 on preview (form_data in history). Adherence badge ('No history' for all exercises) is a known Next.js gap — tracked as DN-062 (Codex).",
+      "constraints_caveats": "Testing only in this item. If any failure is found, open/assign a follow-up code-fix DN to Codex and keep DN-048/056/057 open. Do not mark DN-048, DN-056, or DN-057 done until this verification item passes and evidence is recorded. DO NOT submit real clinical logs as test data — click-through verification only unless user grants explicit permission for a specific exercise."
     },
     {
-      "id": "DN-061",
+      "id": "DN-062",
       "status": "open",
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["migration", "ui"],
-      "file": "pt-rebuild/components/HistoryList.js",
-      "issue": "HistoryList does not render form_data parameter values (e.g. band_resistance) in either the collapsed set summary or the expanded set detail view.",
-      "resolved": null,
-      "context": "Discovered during DN-058 testing (2026-03-03). summarizeSets() builds set summary from reps/seconds/distance_feet/side but omits form_data[].parameter_value. Expanded set view has same omission. Fix: spread form_data.map(f => f.parameter_value) into the summarizeSets array, and append form_data entries in the expanded set JSX.",
-      "constraints_caveats": "form_data may be null or undefined — guard with (s.form_data ?? []). Only parameter_value is displayed; parameter_name and parameter_unit are omitted to keep the summary compact."
-    },
-    {
-      "id": "DN-060",
-      "status": "open",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": ["claude"],
-      "tags": ["migration", "ui"],
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
       "file": "pt-rebuild/components/ExercisePicker.js",
-      "issue": "Box Lift dosage shows '10 feet' instead of '1 x 10 feet' — formatDosageSummary distance branch omits set count.",
+      "issue": "ExercisePicker shows 'No history' adherence badge for all exercises even when logs exist — adherence_status not computed in Next.js (Phase 4f gap).",
       "resolved": null,
-      "context": "Spotted during DN-058 testing (2026-03-03). formatDosageSummary line 19: hasDistance branch returns only distanceFeet, unlike all other branches which include sets. Fix: prepend sets x when sets > 0.",
-      "constraints_caveats": "One-line fix. Verify that Box Lift program has current_sets or sets > 0 in the programs API response."
-    },
-    {
-      "id": "DN-059",
-      "status": "in_progress",
-      "priority": "P1",
-      "risk": "low",
-      "scope": "current",
-      "agent": ["claude"],
-      "tags": ["api", "migration", "reliability"],
-      "file": "pt-rebuild/lib/index-data.js, pt-rebuild/hooks/useIndexData.js, pt-rebuild/hooks/useSessionLogging.js",
-      "issue": "session.user.id (auth UUID) passed as patient_id in GET /api/logs query param and POST /api/logs body — GET returns 0 rows (historicalFormParams empty, no dropdown), POST 500s (API enters 'log on behalf' branch, INSERT fails). patient_activity_logs.patient_id stores profile UUIDs.",
-      "resolved": null,
-      "context": "Discovered during DN-058 testing (2026-03-03). session.user.id is auth.users UUID (e.g. 11845649-...); patient_activity_logs.patient_id stores public.users profile UUID (e.g. 35c3ec8d-...). GET fix: remove patient_id from fetchIndexLogs URL (API fallback uses req.user.id, profile UUID). POST fix: remove patient_id from createPayload and queuedPayload in useSessionLogging.js (same fallback applies). fetchIndexPrograms unchanged — programs API has resolvePatientId() auth_id→users.id lookup and requires the param.",
-      "constraints_caveats": "fetchIndexPrograms keeps patient_id (programs API requires it, has resolvePatientId fallback). useIndexData hook signature (token, patientId) stays same; patientId still needed for programs. For therapists logging on behalf of patients, the correct profile UUID would come from program data, not session — not affected by this change."
+      "context": "Spotted during DN-058 testing (2026-03-03). static index.html computes adherence from activity history (last session date, streak, etc.) and shows a colored badge. Next.js ExercisePicker passes a static 'No history' string. The logs array is available via useIndexData — Codex should compute adherence per exercise from logs and pass the result into the badge. Adherence logic is in lib/index-history.js (getAdherenceInfo). See static index.html for reference implementation.",
+      "constraints_caveats": "Codex item. Must not break existing ExercisePicker props or layout. onPointerUp only. Must handle exercises with no logs gracefully (show 'No history'). Do not add adherence logic directly in ExercisePicker — keep it in lib/index-history.js and pass computed value via props or compute at call site in pages/index.js."
     },
     {
       "id": "DN-054",
@@ -266,8 +261,13 @@
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["ui", "messages"],
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "ui",
+        "messages"
+      ],
       "file": "pt-rebuild/public/pt_view.html, pt-rebuild/public/index.html, pt-rebuild/components/MessagesModal.js",
       "issue": "Message sender/recipient labels use generic role names ('Patient', 'PT') instead of the actual user's first name.",
       "resolved": null,
@@ -717,13 +717,103 @@
   ],
   "closed_items": [
     {
+      "id": "DN-061",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/components/HistoryList.js",
+      "issue": "HistoryList does not render form_data parameter values (e.g. band_resistance) in either the collapsed set summary or the expanded set detail view.",
+      "resolved": "2026-03-03",
+      "resolution_type": "fix",
+      "problem": "After logging Ankle Dorsiflexion with band_resistance=black, the History tab showed no band color in set summary or expanded detail.",
+      "root_cause": "summarizeSets() mapped only reps/seconds/distance_feet/side — form_data was never included. Expanded set view JSX had same omission.",
+      "resolution": "Spread (s.form_data ?? []).map(f => f.parameter_value) into summarizeSets array. Added {(s.form_data ?? []).map(f => ' · ' + f.parameter_value)} to expanded set JSX.",
+      "change_made": "components/HistoryList.js: summarizeSets() and expanded set view both updated to render form_data parameter_value entries.",
+      "files_touched": "pt-rebuild/components/HistoryList.js, pt-rebuild/docs/dev_notes.json",
+      "validation": "Code fix committed (d30d37d). Verify on next session: Ankle Dorsiflexion log should show 'black' in collapsed summary and expanded detail in History tab.",
+      "context": "Discovered during DN-058 testing (2026-03-03). summarizeSets() builds set summary from reps/seconds/distance_feet/side but omits form_data[].parameter_value. Expanded set view has same omission. Fix: spread form_data.map(f => f.parameter_value) into the summarizeSets array, and append form_data entries in the expanded set JSX.",
+      "constraints_caveats": "Codex-appropriate fix: targeted template change with clear spec. Claude diagnosed during testing; Codex could have implemented given issue description. form_data may be null or undefined — guard with (s.form_data ?? []). Only parameter_value is displayed; parameter_name and parameter_unit are omitted to keep the summary compact.",
+      "follow_ups": "None.",
+      "reactivate_triggers": null
+    },
+    {
+      "id": "DN-060",
+      "status": "done",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "migration",
+        "ui"
+      ],
+      "file": "pt-rebuild/components/ExercisePicker.js",
+      "issue": "Box Lift dosage shows '10 feet' instead of '5 x 10 feet' — formatDosageSummary distance branch omits set count.",
+      "resolved": "2026-03-03",
+      "resolution_type": "fix",
+      "problem": "Box Lift exercise button showed '10 feet' with no set count, while all other exercise types show 'N x ...'.",
+      "root_cause": "formatDosageSummary() distance branch returned only distanceFeet string, omitting the sets prefix present in all other branches.",
+      "resolution": "Added sets > 0 guard to prepend 'sets x ' in the distance branch, matching all other branches.",
+      "change_made": "components/ExercisePicker.js: formatDosageSummary distance branch updated to `${sets > 0 ? sets + ' x ' : ''}${distanceFeet} feet`.",
+      "files_touched": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/docs/dev_notes.json",
+      "validation": "Verified on preview (2026-03-03): Box Lift shows '5 x 10 feet' ✅",
+      "context": "Spotted during DN-058 testing (2026-03-03). formatDosageSummary line 19: hasDistance branch returns only distanceFeet, unlike all other branches which include sets. Fix: prepend sets x when sets > 0.",
+      "constraints_caveats": "Codex-appropriate fix: one-line change with clear spec. Claude diagnosed during testing; Codex could have implemented given issue description.",
+      "follow_ups": "None.",
+      "reactivate_triggers": null
+    },
+    {
+      "id": "DN-059",
+      "status": "done",
+      "priority": "P1",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "api",
+        "migration",
+        "reliability"
+      ],
+      "file": "pt-rebuild/lib/index-data.js, pt-rebuild/hooks/useIndexData.js, pt-rebuild/hooks/useSessionLogging.js",
+      "issue": "session.user.id (auth UUID) passed as patient_id in GET /api/logs query param and POST /api/logs body — GET returns 0 rows (historicalFormParams empty, no dropdown), POST 500s (API enters 'log on behalf' branch, INSERT fails). patient_activity_logs.patient_id stores profile UUIDs.",
+      "resolved": "2026-03-03",
+      "resolution_type": "fix",
+      "problem": "GET /api/logs returned 0 rows causing empty band_resistance dropdown and no history. POST /api/logs 500d preventing session submission.",
+      "root_cause": "session.user.id (auth UUID, e.g. 11845649-c217-4533-9eda-f9bfb0fad53b) was passed as patient_id in both GET query param and POST body. patient_activity_logs.patient_id stores public.users profile UUIDs (e.g. 35c3ec8d-7e60-44b3-8ac8-969d559aae83). GET: API used patient_id directly in .eq() finding 0 rows. POST: patient_id !== req.user.id triggered 'log on behalf' branch, INSERT failed FK constraints.",
+      "resolution": "Remove patient_id from fetchIndexLogs URL (API uses req.user.id profile UUID via existing fallback). Remove patient_id from createPayload and queuedPayload in useSessionLogging.js (same fallback). fetchIndexPrograms unchanged — programs API requires patient_id and has resolvePatientId() auth→profile lookup.",
+      "change_made": "lib/index-data.js: removed patient_id param from fetchIndexLogs and URL. hooks/useIndexData.js: updated call site. hooks/useSessionLogging.js: removed patient_id from createPayload and queuedPayload.",
+      "files_touched": "pt-rebuild/lib/index-data.js, pt-rebuild/hooks/useIndexData.js, pt-rebuild/hooks/useSessionLogging.js, pt-rebuild/docs/dev_notes.json",
+      "validation": "GET confirmed on preview: /api/logs 200, response patient_id is profile UUID 35c3ec8d-..., band_resistance dropdown shows historical values (black, heavy) ✅. POST confirmed: 201, response patient_id: 35c3ec8d-... ✅",
+      "context": "Discovered during DN-058 testing (2026-03-03). session.user.id is auth.users UUID (e.g. 11845649-...); patient_activity_logs.patient_id stores public.users profile UUID (e.g. 35c3ec8d-...). GET fix: remove patient_id from fetchIndexLogs URL (API fallback uses req.user.id, profile UUID). POST fix: remove patient_id from createPayload and queuedPayload in useSessionLogging.js (same fallback applies). fetchIndexPrograms unchanged — programs API has resolvePatientId() auth_id→users.id lookup and requires the param.",
+      "constraints_caveats": "fetchIndexPrograms keeps patient_id (programs API requires it, has resolvePatientId fallback). useIndexData hook signature (token, patientId) stays same; patientId still needed for programs. For therapists logging on behalf of patients, the correct profile UUID would come from program data, not session — not affected by this change.",
+      "follow_ups": "None.",
+      "reactivate_triggers": null
+    },
+    {
       "id": "DN-055",
       "status": "done",
       "priority": "P2",
       "risk": "low",
       "scope": "current",
-      "agent": ["claude"],
-      "tags": ["ui", "messages"],
+      "agent": [
+        "claude"
+      ],
+      "tags": [
+        "ui",
+        "messages"
+      ],
       "file": "pt-rebuild/components/MessagesModal.js, pt-rebuild/components/MessagesModal.module.css",
       "issue": "Next.js MessagesModal showed bare timestamp with no 'sent:' label and no 'read at:' / 'Delivered' read receipt.",
       "resolved": "2026-03-03",
@@ -745,8 +835,17 @@
       "priority": "P1",
       "risk": "high",
       "scope": "current",
-      "agent": ["codex", "claude"],
-      "tags": ["api", "auth", "reliability", "security", "messages"],
+      "agent": [
+        "codex",
+        "claude"
+      ],
+      "tags": [
+        "api",
+        "auth",
+        "reliability",
+        "security",
+        "messages"
+      ],
       "file": "pt-rebuild/public/pt_view.html, pt-rebuild/public/index.html, pt-rebuild/pages/pt-view.js, pt-rebuild/components/MessagesModal.js, pt-rebuild/api/logs.js",
       "issue": "Therapist outbound messages can be self-addressed (`sender_id === recipient_id`), causing silent non-delivery to patient and misrouted unread-email notifications.",
       "resolved": "2026-03-03",
