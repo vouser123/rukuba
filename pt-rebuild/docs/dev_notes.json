@@ -219,6 +219,20 @@
       "constraints_caveats": "Testing only in this item. If any failure is found, open/assign a follow-up code-fix DN to Codex and keep DN-048/056/057 open. Do not mark DN-048, DN-056, or DN-057 done until this verification item passes and evidence is recorded."
     },
     {
+      "id": "DN-061",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["claude"],
+      "tags": ["migration", "ui"],
+      "file": "pt-rebuild/components/HistoryList.js",
+      "issue": "HistoryList does not render form_data parameter values (e.g. band_resistance) in either the collapsed set summary or the expanded set detail view.",
+      "resolved": null,
+      "context": "Discovered during DN-058 testing (2026-03-03). summarizeSets() builds set summary from reps/seconds/distance_feet/side but omits form_data[].parameter_value. Expanded set view has same omission. Fix: spread form_data.map(f => f.parameter_value) into the summarizeSets array, and append form_data entries in the expanded set JSX.",
+      "constraints_caveats": "form_data may be null or undefined — guard with (s.form_data ?? []). Only parameter_value is displayed; parameter_name and parameter_unit are omitted to keep the summary compact."
+    },
+    {
       "id": "DN-060",
       "status": "open",
       "priority": "P2",
