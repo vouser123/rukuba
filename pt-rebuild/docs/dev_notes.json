@@ -262,7 +262,7 @@
       "issue": "Phase 4c: Port the session logging modal (set/reps/side/form_data/hold/duration) from public/index.html into SessionLoggerModal + useSessionLogging. Preserve all pattern modifier handling, form_data permutations, client_mutation_id idempotency, and PATCH (update) flow.",
       "resolved": null,
       "context": "Part of Phase 4 index.html migration (DN-045). useSessionLogging manages: create (POST /api/logs) and update (PATCH /api/logs/:id) flows, set management, client_mutation_id generation. Must pass the Activity Log Testing Checklist in AGENTS.md (all exercise/set/side/path combinations). Claude reviews against checklist before wiring up.",
-      "constraints_caveats": "client_mutation_id must be generated per-set, not per-session. No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix. HOLD (2026-03-02): API currently accepts one client_mutation_id per activity log payload; pause implementation until contract decision is confirmed."
+      "constraints_caveats": "client_mutation_id is one UUID per log submission (per POST /api/logs call), not per-set — API deduplicates at the log level. No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix."
     },
     {
       "id": "DN-045",
