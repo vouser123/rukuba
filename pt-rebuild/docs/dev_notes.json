@@ -177,6 +177,20 @@
   },
   "open_items": [
     {
+      "id": "DN-057",
+      "status": "open",
+      "priority": "P1",
+      "risk": "low",
+      "scope": "current",
+      "agent": ["codex"],
+      "tags": ["offline", "reliability"],
+      "file": "pt-rebuild/hooks/useSessionLogging.js",
+      "issue": "ReferenceError in catch block offline-fallback path: `activity_type` shorthand (line ~215) references an undeclared variable. `activityType` (camelCase) is declared with `const` inside the `try` block and is out of scope in the `catch` block.",
+      "resolved": null,
+      "context": "Discovered during DN-048 code review (2026-03-03). In useSessionLogging.js, the catch block fallback enqueue path builds a queuedPayload object using `activity_type,` shorthand notation — but there is no variable named `activity_type` in scope. The `const activityType = inferActivityType(exercise)` is declared inside the try block. This causes a ReferenceError only when: (1) creating a new log (not edit), AND (2) onEnqueue is defined, AND (3) the request fails with a network error or the device is offline. The happy-path (online POST) is unaffected.",
+      "constraints_caveats": "Fix: change `activity_type,` to `activity_type: inferActivityType(exercise),` in the catch block queuedPayload. Do not move `const activityType` before the try block — that would expose it as mutable. Just call inferActivityType again in the catch block."
+    },
+    {
       "id": "DN-056",
       "status": "open",
       "priority": "P2",
