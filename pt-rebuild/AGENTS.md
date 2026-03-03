@@ -43,6 +43,11 @@ If no trigger conditions are met, proceed without surfacing deferred items. Do n
 - After any change to dev notes JSON, run `npm run dev-notes:build`.
 - Before finishing, run `npm run dev-notes:check` to ensure no drift.
 
+## Validation Preference
+
+- Prefer Vercel deployment checks/logs as the default validation path for routine changes.
+- Run local `npm run build` only when Vercel signal is insufficient, when debugging environment-specific issues, or before especially risky refactors.
+
 ### Item arrays and status rules
 
 - `open_items`: active work queue. Only statuses `open`, `in_progress`, or `blocked` belong here.
