@@ -73,6 +73,9 @@ Closed items must include all six narrative fields:
 - Legacy pre-structured notes are archived in `docs/HISTORY.md` and are not machine-processed.
 
 ## Open Items
+- [ ] DN-052 | status:open | priority:P1 | risk:high | tags:[api,auth,reliability,security,notifications] | file:pt-rebuild/public/pt_view.html, pt-rebuild/public/index.html, pt-rebuild/api/logs.js | issue:Therapist outbound messages can be self-addressed (`sender_id === recipient_id`), causing silent non-delivery to patient and misrouted unread-email notifications.
+  - Context: Confirmed in production data: a therapist-authored message row was inserted with sender_id and recipient_id both equal to therapist user ID, while patient outbound rows correctly target therapist ID. This creates a false-success send UX while patient never receives the message in-app or by email.
+  - Constraints/Caveats: Fix must enforce recipient correctness in both UI and API: (1) client must derive recipient from resolved viewingPatientId/current thread participant instead of log-array heuristics; (2) server must reject self-recipient and enforce therapist↔assigned-patient relationship for POST /api/logs?type=messages. Add explicit 400/403 errors and regression tests for two-user and multi-patient therapist scenarios.
 - [ ] DN-051 | status:open | priority:P2 | risk:low | tags:[migration,ui,pwa] | file:pt-rebuild/components/PwaInstallPrompt.js | issue:Phase 4h: Port PWA install prompt from public/index.html into components/PwaInstallPrompt.js. Preserve service worker registration and install prompt behavior.
   - Context: Part of Phase 4 index.html migration (DN-045). Port the beforeinstallprompt listener and install button display logic from index.html into a standalone React component. Claude verifies on mobile preview.
   - Constraints/Caveats: No onClick — use onPointerUp. 44px touch targets. Must not break offline shell behavior.
