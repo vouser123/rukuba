@@ -1065,11 +1065,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const SOUND_PRESET_LIBRARY = {
       chime_soft: {
         duration: 0.12,
-        partials: [{ freq: 659, gain: 0.45 }, { freq: 823, gain: 0.22 }]
+        partials: [{ freq: 659, gain: 0.18 }, { freq: 823, gain: 0.08 }]
       },
       chime_bright: {
         duration: 0.12,
-        partials: [{ freq: 523, gain: 0.55 }, { freq: 659, gain: 0.28 }]
+        partials: [{ freq: 523, gain: 0.22 }, { freq: 659, gain: 0.11 }]
       },
       pulse_low: {
         duration: 0.12,
@@ -1081,11 +1081,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       },
       marker_tone: {
         duration: 0.14,
-        partials: [{ freq: tones.user.base, gain: 0.55 }]
+        partials: [{ freq: tones.user.base, gain: 0.22 }]
       },
       confirm_chime: {
         duration: 0.18,
-        partials: [{ freq: tones.confirm.base, gain: 0.6 }, { freq: tones.confirm.harmonic, gain: 0.28 }]
+        partials: [{ freq: tones.confirm.base, gain: 0.24 }, { freq: tones.confirm.harmonic, gain: 0.11 }]
       }
     };
     function presetTone(name, options = {}) {
@@ -1198,7 +1198,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const gain = context.createGain();
       const attack = 0.01;
       const release = 0.07;
-      const outputLevel = 0.25 * TEST_TUNING.masterVolume * volumeScale;
+      const outputLevel = TEST_TUNING.masterVolume * volumeScale;
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(outputLevel, now + attack);
       gain.gain.linearRampToValueAtTime(0, now + duration + release);
