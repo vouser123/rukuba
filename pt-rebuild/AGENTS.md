@@ -156,6 +156,27 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   - `bd create "<title>" -t task -p 2 --deps discovered-from:ptrebuild-uf1 --description "<incident + impact + root cause + mitigation>" --json`
   - Optional explicit parent-child link: `bd dep add <child-id> ptrebuild-uf1 --type parent-child`
 
+## Beads Agent Discipline (Required)
+
+- Claim first in multi-agent workflows:
+  - `bd update <id> --claim --assignee codex` (or `claude`)
+- Search before create to reduce duplicate issues:
+  - `bd list --json` then title/label search before `bd create`
+- Use dependency types correctly:
+  - Only `blocks` should gate readiness
+  - Use `related`, `parent-child`, and `discovered-from` for context/structure
+- Keep ready queue clean:
+  - For non-actionable meta/friction items, use low priority + defer:
+  - `bd update <id> --priority 4 --defer +14d`
+- Land-the-plane rule:
+  - Update/close Beads items and push code before ending session; do not leave local-only state
+
+Reference docs (local mirror for agents):
+- `C:\Users\cindi\OneDrive\Documents\PT_Backup\beads\AGENT_INSTRUCTIONS.md`
+- `C:\Users\cindi\OneDrive\Documents\PT_Backup\beads\docs\FAQ.md`
+- `C:\Users\cindi\OneDrive\Documents\PT_Backup\beads\docs\TROUBLESHOOTING.md`
+- `C:\Users\cindi\OneDrive\Documents\PT_Backup\beads\docs\PLUGIN.md`
+
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
 
