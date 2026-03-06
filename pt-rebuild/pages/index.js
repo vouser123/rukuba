@@ -84,7 +84,12 @@ export default function IndexPage() {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
         setSelectedExercise(selected);
-    }, [pickerExercises]);
+        // Open the logging modal immediately on exercise tap (DN-064).
+        if (selected) {
+            setActiveExercise({ id: selected.id, name: selected.canonical_name || '' });
+            logger.openCreate(selected);
+        }
+    }, [pickerExercises, logger]);
 
     const logger = useSessionLogging(token, userId, reload, enqueue);
 
