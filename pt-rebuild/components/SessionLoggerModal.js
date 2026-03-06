@@ -166,7 +166,6 @@ export default function SessionLoggerModal({
                                         >
                                             <option value="left">Left</option>
                                             <option value="right">Right</option>
-                                            <option value="both">Both</option>
                                         </select>
                                     </label>
                                 )}
