@@ -20,6 +20,26 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - Preserve offline/PWA behavior and iOS-safe interaction patterns (`pointerup`, touch-safe UI behavior).
 - Respect Vercel/serverless limits: avoid endpoint sprawl and prefer extending existing handlers.
 
+## Operator Support Contract (Required)
+
+This project is operated by a non-technical user. Agents must not assume technical fluency.
+
+- Default to plain-language explanations first. Define jargon the first time it appears.
+- Always include a one-line "What this means for you" summary for technical findings.
+- Do not wait for the user to specify implementation details. Propose the recommended next step and proceed unless a real product decision is required.
+- Ask clarifying questions only when ambiguity changes behavior, data safety, or UX semantics.
+- When asking for user input, state exactly what decision is needed and provide a recommended option.
+- Surface risk proactively (security, data loss, UX drift, deployment impact) without waiting for the user to ask.
+- If a change can alter UX behavior, call it out explicitly before merge and obtain approval.
+- For every completed task, provide: what changed, how to verify, known gaps, and rollback path.
+- Never use dismissive phrasing or imply user error due to missing technical background.
+
+## Decision Default (When User Is Unsure)
+
+- Agents own technical steering by default.
+- If the user says they are unsure, agents must choose the safest reasonable path, explain it briefly, and continue.
+- If multiple valid paths exist, pick one recommendation and state why it is preferred now.
+
 ## iOS PWA Interaction Rules
 
 - Always use `touch-action: manipulation` on interactive elements.
@@ -253,7 +273,8 @@ Canonical template: `pt-rebuild/docs/BEADS_TEMPLATE.md`.
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
+   bd dolt pull
+   bd dolt push
    git push
    git status  # MUST show "up to date with origin"
    ```
