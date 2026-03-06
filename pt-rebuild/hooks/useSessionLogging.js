@@ -85,6 +85,16 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
         setIsOpen(true);
     }, []);
 
+    const openCreateWithSeedSet = useCallback((selectedExercise, seedPatch) => {
+        setExercise(selectedExercise);
+        setLogId(null);
+        setPerformedAt(new Date().toISOString());
+        setNotes('');
+        setSets([{ ...createDefaultSet(selectedExercise, 1), ...(seedPatch ?? {}), set_number: 1 }]);
+        setError(null);
+        setIsOpen(true);
+    }, []);
+
     const openEdit = useCallback((selectedExercise, log) => {
         setExercise(selectedExercise);
         setLogId(log?.id ?? null);
@@ -245,6 +255,7 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
         submitting,
         error,
         openCreate,
+        openCreateWithSeedSet,
         openEdit,
         close,
         setPerformedAt,

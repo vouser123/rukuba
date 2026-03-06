@@ -12,6 +12,7 @@ import HistoryPanel from '../components/HistoryPanel';
 import BottomNav from '../components/BottomNav';
 import ExercisePicker from '../components/ExercisePicker';
 import SessionLoggerModal from '../components/SessionLoggerModal';
+import TimerPanel from '../components/TimerPanel';
 import { useSessionLogging } from '../hooks/useSessionLogging';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { collectGlobalParameterValues } from '../lib/session-form-params';
@@ -31,6 +32,7 @@ export default function IndexPage() {
     const [sortMode, setSortMode] = useState('pt_order');
     const [selectedExerciseId, setSelectedExerciseId] = useState(null);
     const [selectedExercise, setSelectedExercise] = useState(null);
+    const [isTimerOpen, setIsTimerOpen] = useState(false);
 
     /**
      * Currently open exercise (set by SessionLoggerModal in Phase 4c).
@@ -88,12 +90,28 @@ export default function IndexPage() {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
         setSelectedExercise(selected);
-        // Open the logging modal immediately on exercise tap (DN-064).
         if (selected) {
             setActiveExercise({ id: selected.id, name: selected.canonical_name || '' });
-            logger.openCreate(selected);
+            // Open timer/counter panel first; it can seed or hand off to full log form.
+            setIsTimerOpen(true);
         }
-    }, [pickerExercises, logger]);
+    }, [pickerExercises]);
+
+    const handleTimerClose = useCallback(() => {
+        setIsTimerOpen(false);
+    }, []);
+
+    const handleTimerApplySet = useCallback((setPatch) => {
+        if (!selectedExercise) return;
+        logger.openCreateWithSeedSet(selectedExercise, setPatch);
+        setIsTimerOpen(false);
+    }, [logger, selectedExercise]);
+
+    const handleTimerOpenManual = useCallback(() => {
+        if (!selectedExercise) return;
+        logger.openCreate(selectedExercise);
+        setIsTimerOpen(false);
+    }, [logger, selectedExercise]);
 
     const handleEditLog = useCallback((log) => {
         const byId = pickerExercises.find((exercise) => exercise.id === log.exercise_id);
@@ -225,6 +243,14 @@ export default function IndexPage() {
                     onFormParamChange={logger.updateFormParam}
                     onSubmit={logger.submit}
                     historicalFormParams={historicalFormParams}
+                />
+
+                <TimerPanel
+                    isOpen={isTimerOpen}
+                    exercise={selectedExercise}
+                    onClose={handleTimerClose}
+                    onApplySet={handleTimerApplySet}
+                    onOpenManual={handleTimerOpenManual}
                 />
             </div>
         </>
