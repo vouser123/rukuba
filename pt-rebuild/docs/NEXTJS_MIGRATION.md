@@ -452,6 +452,12 @@ The main app entry. Must be migrated last because `pages/index.js` takes precede
 - ⏳ 4h PWA — DN-051 pending (Codex)
 - ⏳ 4i cutover + retirement — pending (Claude, after all above complete)
 
+**Phase 4 parity addendum (2026-03-05):**
+- DN-064: index interaction/messages parity on '/' (tap/open flow + messages access) is now explicit scope.
+- DN-065: nav target + iOS zoom-lock parity are tracked explicitly (not implied).
+- DN-066: /pt-view message direction labels (textual to/from labels) tracked explicitly.
+- DN-067: offline resilience parity (auto-sync on open + offline cold-open fallback) is tracked and can be implemented in Next.js first before deciding static backport.
+
 **Production merge strategy:**
 - `/rehab`, `/pt-view`, `/program` are verified on preview but not yet in production. Per DN-045 plan, these can be merged to `main` before Phase 4 completes (they don't conflict with `public/index.html`). Decision: ask user before merging.
 - `pages/index.js` cannot go to `main` until `public/index.html` is retired (4i cutover).
@@ -530,7 +536,7 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 
 #### Phase 4i: Cutover + retirement
 - Verify preview then production parity
-- Retire `public/index.html` and update routing/nav references
+- Retire `public/index.html`, update routing/nav references, and switch NavMenu PT Tracker target from `/index.html` to `/`
 - Keep rollback path documented before final cutover
 
 ---

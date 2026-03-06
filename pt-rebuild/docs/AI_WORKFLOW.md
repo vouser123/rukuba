@@ -4,6 +4,16 @@ This workflow defines how agents (Codex/Claude) must track work using:
 - Canonical source: `docs/dev_notes.json` (only hand-edited dev-tracking file)
 - Generated artifact: `docs/DEV_NOTES.md`
 
+## Tracker Split (Pilot Rule)
+
+Until explicitly changed:
+
+- NextJS migration/workstream tasks are tracked in **Beads**.
+- Non-NextJS tasks remain tracked in `docs/dev_notes.json`.
+
+Do not create duplicate items across both systems for the same task.
+If a task crosses both domains, split it into two linked tasks (one in Beads, one in dev_notes) with explicit cross-reference.
+
 ## 1) Intake
 
 ### Planned work

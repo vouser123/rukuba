@@ -1,9 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-03-03 (session end)",
-    "schema_file": "pt-rebuild/docs/dev_notes.schema.json",
-    "ux_approval_policy": "All items should include ux_approval status. Use: not_needed (requires reason_not_needed), required_pending (blocks implementation), approved (requires explicit scope+delta), revoked (blocks further UX work until re-approved)."
+    "last_updated": "2026-03-05 (parity triage update)"
   },
   "enums": {
     "priority_levels": [
@@ -54,50 +52,6 @@
       {
         "value": "done",
         "definition": "Completed and close-looped with dated entry."
-      }
-    ],
-    "issue_type_values": [
-      {
-        "value": "bug",
-        "definition": "Behavior deviates from expected/current contract and needs correction."
-      },
-      {
-        "value": "feature",
-        "definition": "Net-new behavior or capability."
-      },
-      {
-        "value": "refactor",
-        "definition": "Structural/code-quality change with intended behavior parity."
-      },
-      {
-        "value": "docs",
-        "definition": "Documentation/process update."
-      },
-      {
-        "value": "ops",
-        "definition": "Tooling/automation/deployment workflow change."
-      },
-      {
-        "value": "security",
-        "definition": "Security hardening, vulnerability, or policy enforcement."
-      }
-    ],
-    "ux_approval_status_values": [
-      {
-        "value": "not_needed",
-        "definition": "No UX behavior delta expected. Requires reason_not_needed."
-      },
-      {
-        "value": "required_pending",
-        "definition": "Potential UX delta exists and explicit user approval is required before implementation."
-      },
-      {
-        "value": "approved",
-        "definition": "User explicitly approved a scoped UX delta (surface + before/after + scope boundary)."
-      },
-      {
-        "value": "revoked",
-        "definition": "Prior approval withdrawn; implementation must stop until re-approved."
       }
     ],
     "tag_vocabulary": [
@@ -156,10 +110,6 @@
       {
         "value": "docs",
         "definition": "Documentation or workflow process updates."
-      },
-      {
-        "value": "bug",
-        "definition": "Behavior defect/regression fix."
       },
       {
         "value": "cleanup",
@@ -227,6 +177,89 @@
   },
   "open_items": [
     {
+      "id": "DN-064",
+      "status": "open",
+      "priority": "P1",
+      "risk": "medium",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "migration",
+        "ui",
+        "reliability"
+      ],
+      "file": "pt-rebuild/pages/index.js, pt-rebuild/components/ExercisePicker.js, pt-rebuild/components/HistoryPanel.js, pt-rebuild/components/SessionLoggerModal.js",
+      "issue": "Next.js index parity gaps: tapping exercise/history entries does not open the session logging flow, and the index route lacks messages modal entry/parity with static index.",
+      "resolved": null,
+      "context": "Bundled from user-reported parity issues (2026-03-05). Current nextjs index page wires selection and history rendering but still misses static parity for direct tap-to-open logging behavior and index messages access.",
+      "constraints_caveats": "Reference behavior is public/index.html. Keep iOS-safe interactions (onPointerUp, 44px targets). Do not simplify/alter UX semantics without explicit user approval."
+    },
+    {
+      "id": "DN-065",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "migration",
+        "ui",
+        "ios"
+      ],
+      "file": "pt-rebuild/components/NavMenu.js, pt-rebuild/pages/_app.js, pt-rebuild/pages/index.js, pt-rebuild/styles/globals.css",
+      "issue": "Next.js parity gaps: NavMenu PT Tracker target is still /index.html in migrated views, and iOS zoom-lock parity (double-tap/focus zoom prevention) is incomplete versus static pages.",
+      "resolved": null,
+      "context": "Observed during parity triage (2026-03-05). In nextjs branch, NavMenu index href remains /index.html (expected pre-cutover in docs but creates preview 404 behavior), while static index enforces stronger zoom-safe viewport and interaction rules.",
+      "constraints_caveats": "Coordinate with Phase 4i cutover routing notes so NavMenu target changes are intentional. Preserve existing accessibility and avoid blocking pinch-zoom unless explicitly required by user policy."
+    },
+    {
+      "id": "DN-066",
+      "status": "open",
+      "priority": "P2",
+      "risk": "low",
+      "scope": "current",
+      "agent": [
+        "codex"
+      ],
+      "tags": [
+        "migration",
+        "messages",
+        "ui"
+      ],
+      "file": "pt-rebuild/components/MessagesModal.js, pt-rebuild/pages/pt-view.js",
+      "issue": "Next.js /pt-view messages modal lacks explicit role-aware direction labels (e.g., PT -> You / You -> PT) present in static views.",
+      "resolved": null,
+      "context": "Static parity expectation already exists from message-label fixes in public pages (DN-053/DN-054 context). Current nextjs MessagesModal renders bubble direction by styling but omits explicit textual direction labels.",
+      "constraints_caveats": "Reuse the same role-aware label semantics as static pages. Keep sender/recipient safeguards from DN-052 intact; labels must reflect resolved viewer role and other-party role correctly."
+    },
+    {
+      "id": "DN-067",
+      "status": "open",
+      "priority": "P2",
+      "risk": "medium",
+      "scope": "current",
+      "agent": [
+        "codex",
+        "claude"
+      ],
+      "tags": [
+        "offline",
+        "sync",
+        "reliability",
+        "migration",
+        "pwa"
+      ],
+      "file": "pt-rebuild/public/index.html, pt-rebuild/pages/index.js, pt-rebuild/hooks/useIndexOfflineQueue.js, pt-rebuild/lib/index-offline.js, pt-rebuild/public/js/offline.js",
+      "issue": "Offline resilience parity gap: app-open while already online does not auto-sync unsynced entries, and offline cold-open can fail with \"Offline and no cached data available\" when cache hydration has not previously occurred.",
+      "resolved": null,
+      "context": "User confirmed this can be deferred to nextjs implementation if that is lower-friction. Current static behavior attempts cache fallback but cannot serve first offline open without prior hydration, and sync is currently online-event/manual driven rather than on-open.",
+      "constraints_caveats": "Default plan: implement in nextjs path first, then decide if static hotfix is still needed before cutover. Preserve idempotency and user-scoped queue semantics. Do not re-introduce /api/sync."
+    },
+    {
       "id": "DN-057",
       "status": "in_progress",
       "priority": "P1",
@@ -243,18 +276,7 @@
       "issue": "ReferenceError in catch block offline-fallback path: `activity_type` shorthand (line ~215) references an undeclared variable. `activityType` (camelCase) is declared with `const` inside the `try` block and is out of scope in the `catch` block.",
       "resolved": null,
       "context": "Discovered during DN-048 code review (2026-03-03). In useSessionLogging.js, the catch block fallback enqueue path built queuedPayload using `activity_type,` shorthand with no variable in scope. Implemented fix now uses `activity_type: inferActivityType(exercise)` in catch fallback and normalizes queued sets with inferred type. This is a DN-048 sub-fix and closes with DN-048 after DN-058 verification passes.",
-      "constraints_caveats": "Fix: change `activity_type,` to `activity_type: inferActivityType(exercise),` in the catch block queuedPayload. Do not move `const activityType` before the try block — that would expose it as mutable. Just call inferActivityType again in the catch block. Verification is tracked in DN-058.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Fix: change `activity_type,` to `activity_type: inferActivityType(exercise),` in the catch block queuedPayload. Do not move `const activityType` before the try block — that would expose it as mutable. Just call inferActivityType again in the catch block. Verification is tracked in DN-058."
     },
     {
       "id": "DN-056",
@@ -273,22 +295,11 @@
       "issue": "Form parameters (e.g. band_resistance) render as plain text inputs in Next.js SessionLoggerModal. Static index.html renders them as smart dropdowns built from historical log values, with an 'Other...' fallback to free text.",
       "resolved": null,
       "context": "Discovered during DN-048 regression testing (2026-03-03). Codex implemented parity code updates: smart dropdown + 'Other...' for non-unit params, history-driven defaults for create flow (including value+unit parsing like `3 lb`), timezone-safe datetime-local rendering, numeric weight/distance inputs, and select placeholder parity when default exists. This is a DN-048 sub-fix and closes with DN-048 after DN-058 verification passes.",
-      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Keep existing weight/distance unit-selector behavior unchanged. 'Other...' custom mode needs per-set-per-param local state in SessionLoggerModal (useState). Pre-existing form_data values (edit flow) that aren't in historicalFormParams must still display — add them as an option or pre-select correctly. Verification is tracked in DN-058.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Keep existing weight/distance unit-selector behavior unchanged. 'Other...' custom mode needs per-set-per-param local state in SessionLoggerModal (useState). Pre-existing form_data values (edit flow) that aren't in historicalFormParams must still display — add them as an option or pre-select correctly. Verification is tracked in DN-058."
     },
     {
       "id": "DN-058",
-      "status": "blocked",
+      "status": "open",
       "priority": "P1",
       "risk": "medium",
       "scope": "current",
@@ -306,18 +317,7 @@
       "issue": "DN-048 verification gate: execute parity/regression testing for session logging flow, including DN-056 form-parameter behavior and DN-057 offline/network-fallback behavior, and record pass/fail evidence.",
       "resolved": null,
       "context": "Testing-only item for Claude. This is the closure gate for DN-048, DN-056, and DN-057. Must execute the full Activity Log Testing Checklist in AGENTS.md for DN-048 (all exercise-type, set-count, side, path, and idempotency combinations) and also verify DN-056/DN-057-specific parity: non-unit params show historical dropdown + Other path, create defaults from last-used per exercise including value+unit (e.g. 3 lb), edit preserves values not present in historical map, datetime-local roundtrip preserves intended local time, weight/distance remain numeric with correct unit default, and offline/network-failure enqueue path succeeds with correct activity_type and no ReferenceError. --- PROGRESS AS OF 2026-03-03: Found and fixed DN-059 (patient_id UUID mismatch in GET+POST), DN-060 (Box Lift dosage set count), DN-061 (HistoryList missing form_data). Verified: GET /api/logs ✅ (band_resistance dropdown working), POST /api/logs ✅ (201 on Ankle Dorsiflexion), exercise type click-through: reps-only ✅, band form param ✅, hold timer (Ankle Inversion Isometric) ✅, duration (Passive GToe Plantarflexion Stretch) ✅, distance (Box Lift) ✅. --- REMAINING for next session: (1) edit/PATCH flow — open existing log in edit modal, verify pre-fill (click-through only); (2) idempotency — 409 on duplicate client_mutation_id; (3) side parity — static app hides side selector and sets currentSide=null for bilateral exercises; Next.js modal has a 'Both' option that may be incorrect (tracked as DN-063); (4) offline enqueue path; (5) verify DN-061 on preview (form_data in history). Adherence badge ('No history' for all exercises) is a known Next.js gap — tracked as DN-062 (Codex).",
-      "constraints_caveats": "Testing only in this item. If any failure is found, open/assign a follow-up code-fix DN to Codex and keep DN-048/056/057 open. Do not mark DN-048, DN-056, or DN-057 done until this verification item passes and evidence is recorded. DO NOT submit real clinical logs as test data — click-through verification only unless user grants explicit permission for a specific exercise.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Testing only in this item. If any failure is found, open/assign a follow-up code-fix DN to Codex and keep DN-048/056/057 open. Do not mark DN-048, DN-056, or DN-057 done until this verification item passes and evidence is recorded. DO NOT submit real clinical logs as test data — click-through verification only unless user grants explicit permission for a specific exercise."
     },
     {
       "id": "DN-063",
@@ -336,48 +336,7 @@
       "issue": "Next.js SessionLoggerModal shows a 'Both' option in the side selector, but DB confirms 'both' is never stored — only 'left', 'right', or null. Static app hides side selector for bilateral exercises (pattern !== 'side') and logs side=null. Next.js modal must match: hide selector for bilateral, omit side from payload.",
       "resolved": null,
       "context": "Discovered during DN-058 side checklist review (2026-03-03). Confirmed via backup JSON (823 sets): distinct side values are 'right', 'left', null — 'both' never appears. Static index.html: isSided = exercise.pattern === 'side'; bilateral exercises get currentSide=null and side selector hidden. Next.js SessionLoggerModal always shows left/right/both when hasSide is true — incorrect for bilateral pattern. Fix: when exercise.pattern !== 'side', hide side selector and omit side from set payload (or send null).",
-      "constraints_caveats": "Codex-appropriate fix once spec is clear. Must not break sided exercises (pattern === 'side'). No onClick — onPointerUp only. Verify: sided exercise shows left/right selector; bilateral exercise hides it and logs side=null.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
-    },
-    {
-      "id": "DN-065",
-      "status": "in_progress",
-      "priority": "P1",
-      "risk": "medium",
-      "scope": "current",
-      "agent": [
-        "codex"
-      ],
-      "tags": [
-        "migration",
-        "ui"
-      ],
-      "file": "pt-rebuild/pages/index.js, pt-rebuild/components/ExercisePicker.js, pt-rebuild/public/index.html",
-      "issue": "Exercise card tap in Next.js index only highlights selection (blue border) and does not enter logging flow; static index enters active exercise workflow on card tap.",
-      "resolved": null,
-      "context": "User reported regression on 2026-03-03. Static behavior: exercise card tap triggers selectExercise and immediately enters counter/timer/logging workflow. A temporary Next.js patch introduced direct SessionLogger open and retained/expanded 'Log Session' semantics on the index list, which user explicitly rejected as a major UX change.",
-      "constraints_caveats": "Blocked by explicit product direction: 'Log Session' does not belong on main index page. Do not reintroduce index-list modal logging actions without explicit user approval. Align tap behavior with final DN-049 workflow (counter/timer-driven) instead.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Codex-appropriate fix once spec is clear. Must not break sided exercises (pattern === 'side'). No onClick — onPointerUp only. Verify: sided exercise shows left/right selector; bilateral exercise hides it and logs side=null."
     },
     {
       "id": "DN-062",
@@ -392,52 +351,11 @@
         "migration",
         "ui"
       ],
-      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/pages/index.js, pt-rebuild/lib/index-history.js",
+      "file": "pt-rebuild/components/ExercisePicker.js",
       "issue": "ExercisePicker shows 'No history' adherence badge for all exercises even when logs exist — adherence_status not computed in Next.js (Phase 4f gap).",
       "resolved": null,
-      "context": "Spotted during DN-058 testing (2026-03-03). static index.html computes adherence from activity history and shows detailed badge text (`Never done`, `Done today`, `X days ago`, with total sessions). Codex implementation now computes adherence badge fields in lib/index-history.js and wires pages/index.js to pass adherence-enriched program data into ExercisePicker, including exercise-name fallback matching for older logs and detailed static-style label text.",
-      "constraints_caveats": "Codex item. Must not break existing ExercisePicker props or layout. onPointerUp only. Must handle exercises with no logs gracefully (show 'No history'). Do not add adherence logic directly in ExercisePicker — keep it in lib/index-history.js and pass computed value via props or compute at call site in pages/index.js.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
-    },
-    {
-      "id": "DN-066",
-      "status": "open",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": [
-        "codex"
-      ],
-      "tags": [
-        "migration",
-        "ui"
-      ],
-      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/pages/index.js, pt-rebuild/public/index.html",
-      "issue": "Exercise dosage summary parity gaps in Next.js index: duration-based exercises show wrong text (e.g. `3 x 1 reps` instead of `3 x 30 sec`), and sided context (e.g. per-side indicator) is missing where expected.",
-      "resolved": null,
-      "context": "User-reported on 2026-03-03 during migration verification. Example: Soleus stretch duration dosage renders incorrectly in ExercisePicker summary. Static index dosage formatting should be treated as source-of-truth for summary wording and sided context display.",
-      "constraints_caveats": "Must match static behavior before introducing any UX changes. No onClick. Keep existing card layout intact. If static behavior is ambiguous for sided summaries, surface exact UX delta and get user approval before changing text semantics.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "context": "Spotted during DN-058 testing (2026-03-03). static index.html computes adherence from activity history (last session date, streak, etc.) and shows a colored badge. Next.js ExercisePicker passes a static 'No history' string. The logs array is available via useIndexData — Codex should compute adherence per exercise from logs and pass the result into the badge. Adherence logic is in lib/index-history.js (getAdherenceInfo). See static index.html for reference implementation.",
+      "constraints_caveats": "Codex item. Must not break existing ExercisePicker props or layout. onPointerUp only. Must handle exercises with no logs gracefully (show 'No history'). Do not add adherence logic directly in ExercisePicker — keep it in lib/index-history.js and pass computed value via props or compute at call site in pages/index.js."
     },
     {
       "id": "DN-054",
@@ -456,18 +374,7 @@
       "issue": "Message sender/recipient labels use generic role names ('Patient', 'PT') instead of the actual user's first name.",
       "resolved": null,
       "context": "Discovered during DN-052 verification. Currently: static pages show 'PT → You' / 'You → PT' (patient view) and 'Patient → You' / 'You → Patient' (therapist view). Next.js MessagesModal has no text labels at all (CSS positioning only). User wants first name from the users table displayed instead of generic role name. Requires fetching/passing the other party's display name into the message render logic.",
-      "constraints_caveats": "Must handle cases where display_name or first_name may be null. Next.js MessagesModal currently has no labels — adding first-name labels is a new feature for that component.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Must handle cases where display_name or first_name may be null. Next.js MessagesModal currently has no labels — adding first-name labels is a new feature for that component."
     },
     {
       "id": "DN-051",
@@ -487,18 +394,7 @@
       "issue": "Phase 4h: Port PWA install prompt from public/index.html into components/PwaInstallPrompt.js. Preserve service worker registration and install prompt behavior.",
       "resolved": null,
       "context": "Part of Phase 4 index.html migration (DN-045). Port the beforeinstallprompt listener and install button display logic from index.html into a standalone React component. Claude verifies on mobile preview.",
-      "constraints_caveats": "No onClick — use onPointerUp. 44px touch targets. Must not break offline shell behavior.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "No onClick — use onPointerUp. 44px touch targets. Must not break offline shell behavior."
     },
     {
       "id": "DN-050",
@@ -517,18 +413,7 @@
       "issue": "Phase 4f: Add exercise sort mode selector + drag-and-drop manual ordering to ExercisePicker. Sort modes: custom/manual, body area, recent activity, alphabetical, PT/program order fallback. Persist preference to localStorage (user-scoped key). Drag-and-drop: pointer events, onPointerUp, 44px grip handle, drag ghost while moving.",
       "resolved": null,
       "context": "Part of Phase 4 index.html migration (DN-045). Resolves DN-012. Sort preference key: pt_sort_mode_${userId}. Custom order key: pt_exercise_order_${userId}. No onclick/click handlers — iOS-safe only. Claude reviews and fixes if needed, then verifies on iOS preview.",
-      "constraints_caveats": "No onClick or click events. onPointerUp only. touch-action: manipulation. Drag ghost must be visible during move. localStorage keys must include userId to be user-scoped.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "No onClick or click events. onPointerUp only. touch-action: manipulation. Drag ghost must be visible during move. localStorage keys must include userId to be user-scoped."
     },
     {
       "id": "DN-049",
@@ -547,18 +432,7 @@
       "issue": "Phase 4d: Port rep counter, hold timer, duration timer, and voice cues from public/index.html into TimerPanel + useTimerSpeech hook. Web Audio API (iOS-safe beep). Web Speech API for voice cues.",
       "resolved": null,
       "context": "Part of Phase 4 index.html migration (DN-045). TimerPanel receives exercise and set context as props. useTimerSpeech manages timer state and speech synthesis. Claude verifies iOS audio + speech behavior on preview.",
-      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Web Audio API must use AudioContext resume() for iOS autoplay policy. Speech synthesis must handle iOS quirks (utterance must be triggered from user gesture).",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "No onClick. onPointerUp only. 44px targets. Web Audio API must use AudioContext resume() for iOS autoplay policy. Speech synthesis must handle iOS quirks (utterance must be triggered from user gesture)."
     },
     {
       "id": "DN-048",
@@ -578,18 +452,7 @@
       "issue": "Phase 4c: Port the session logging modal (set/reps/side/form_data/hold/duration) from public/index.html into SessionLoggerModal + useSessionLogging. Preserve all pattern modifier handling, form_data permutations, client_mutation_id idempotency, and PATCH (update) flow.",
       "resolved": null,
       "context": "Part of Phase 4 index.html migration (DN-045). useSessionLogging manages: create (POST /api/logs) and update (PATCH /api/logs/:id) flows, set management, client_mutation_id generation. DN-056 and DN-057 are tracked sub-fixes under this item. Close DN-048 only after DN-058 verification passes.",
-      "constraints_caveats": "client_mutation_id contract is one ID per log submission payload (confirmed 2026-03-03). No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "client_mutation_id contract is one ID per log submission payload (confirmed 2026-03-03). No onClick. Pattern modifiers: hold_seconds, duration_seconds, distance_feet, side. See AGENTS.md Activity Log Testing Checklist for required test matrix."
     },
     {
       "id": "DN-045",
@@ -608,18 +471,7 @@
       "issue": "Phase 4: Migrate public/index.html to pages/index.js (main patient tracker). Sub-phases: 4a shell, 4b exercise picker, 4c logging, 4d timer/speech, 4e history+nav, 4f sorting, 4g offline/sync, 4h PWA, 4i cutover.",
       "resolved": null,
       "context": "Last and largest migration phase. pages/index.js cannot exist until public/index.html is retired (cutover in 4i). Codex handles coding of 4a, 4b, 4c, 4d, 4f, 4h (see DN-046 through DN-051). Claude owns 4e (history filter — cross-component state), 4g (offline scoping — security fix DN-022), 4i (cutover + retirement). History behavior: all logs when no exercise open; exercise-filtered when session/modal open (DN-014). Sort: custom drag-and-drop, body area, recent, alpha, PT order (DN-012). Offline queue scoped by userId (addresses DN-022).",
-      "constraints_caveats": "Never merge pages/index.js to main until public/index.html is retired in 4i. All work on nextjs branch. Do not re-introduce /api/sync. Offline queue key must be user-scoped: pt_offline_queue_${userId}.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Never merge pages/index.js to main until public/index.html is retired in 4i. All work on nextjs branch. Do not re-introduce /api/sync. Offline queue key must be user-scoped: pt_offline_queue_${userId}."
     },
     {
       "id": "DN-044",
@@ -639,18 +491,7 @@
       "issue": "Enable and verify secret-scan CI checks in GitHub Actions and document expected behavior for PR/push workflows.",
       "resolved": null,
       "context": "User requested CI as an explicit to-do after secret scanning setup. This task tracks rollout verification (workflow triggers, pass/fail visibility, and branch-protection readiness).",
-      "constraints_caveats": "Keep guidance concise; do not include raw findings or secret values in notes.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Keep guidance concise; do not include raw findings or secret values in notes."
     },
     {
       "id": "DN-039",
@@ -669,18 +510,7 @@
       "issue": "Document current Vercel CLI command syntax used for migration verification to avoid repeated failures from outdated flags.",
       "resolved": null,
       "context": "Recent verification work hit CLI syntax changes (e.g., list/inspect/logs flags). Migration file is the most-read current workflow doc and should carry a concise, dated reference.",
-      "constraints_caveats": "Keep this as short operational guidance; do not duplicate full CLI manuals.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Keep this as short operational guidance; do not duplicate full CLI manuals."
     },
     {
       "id": "DN-038",
@@ -700,18 +530,7 @@
       "issue": "Set up Playwright test runner and add a minimal smoke test workflow that can be run from VS Code or terminal.",
       "resolved": null,
       "context": "User installed Playwright VS Code extension and requested Codex to set up dependencies plus a first smoke test.",
-      "constraints_caveats": "Keep setup lightweight and avoid hardcoding credentials. Use environment variables for any optional authenticated flow.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Keep setup lightweight and avoid hardcoding credentials. Use environment variables for any optional authenticated flow."
     },
     {
       "id": "DN-033",
@@ -730,18 +549,7 @@
       "issue": "Strangler Fig migration to Next.js (Pages Router). Existing static HTML pages remain untouched; new pages built in Next.js one at a time. Phase 1: scaffolding + shared architecture (lib/supabase.js, hooks/useAuth.js, components/NavMenu.js, components/AuthForm.js) + rehab_coverage migrated to pages/rehab.js.",
       "resolved": null,
       "context": "Phase 1 and Phase 2 complete on nextjs branch. Pre-migration cleanup (DN-035) done: PatientNotes + HistoryList extracted to components/, pt-view.module.css 670L→369L. Phases verified on Vercel preview (https://pt-rehab-git-nextjs-pt-tracker.vercel.app). Phase 1: /rehab — Coverage Analysis. Phase 2: /pt-view — History Dashboard. Components: lib/supabase.js, hooks/useAuth.js, hooks/useMessages.js, components/NavMenu.js, components/AuthForm.js, components/MessagesModal.js, components/ExerciseHistoryModal.js, components/PatientNotes.js, components/HistoryList.js, lib/rehab-coverage.js, lib/pt-view.js, pages/rehab.js, pages/pt-view.js, CSS modules for all. Vanilla JS pages untouched. Phase 3a complete (DN-041): pt_editor → /program. Exercise management (list, add/edit, lifecycle, supersedes) verified on preview 2026-03-01. Phase 3b complete (DN-043): roles editing + DosageModal verified on preview 2026-03-01. Phase 4 in progress (DN-045): public/index.html → pages/index.js migration. Codex sub-tasks: DN-046 through DN-051.",
-      "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Never create pages/index.js until public/index.html is retired. Do not migrate api/ routes. public/rehab_coverage.html kept until pages/rehab.js verified in production. All migration work on nextjs branch — do NOT merge to main until user confirms. Branch strategy: one long-lived nextjs branch, not page-by-page merges."
     },
     {
       "id": "DN-032",
@@ -759,18 +567,7 @@
       "issue": "Remove dead code left over from DN-006 hamburger refactor: updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html both reference elements (#userEmail, #ptTrackerLink) that were removed when hamburger panel HTML was extracted to HamburgerMenu.inject(). Both functions silently no-op due to null-checks — no functional impact — but they are dead code.",
       "resolved": null,
       "context": "DN-006 removed hamburger panel HTML from all pages. updateUserDisplay() in pt_view.html and updateMenuVisibility() in rehab_coverage.html were not cleaned up. HamburgerMenu.init() → updateUserDisplay() now handles the user email display. The #ptTrackerLink element no longer exists in any page.",
-      "constraints_caveats": "Verify nothing else calls these functions before removing. updateMenuVisibility() in rehab_coverage.html also sets userRole — confirm that logic is fully handled by the HamburgerMenu.init() isAdmin param before deleting.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Verify nothing else calls these functions before removing. updateMenuVisibility() in rehab_coverage.html also sets userRole — confirm that logic is fully handled by the HamburgerMenu.init() isAdmin param before deleting."
     },
     {
       "id": "DN-005",
@@ -789,18 +586,7 @@
       "issue": "Push role-based filtering to DB query (`.eq()` etc.) instead of fetching all users then filtering in memory.",
       "resolved": null,
       "context": "Therapists/patients currently fetch full user sets before reducing in app logic.",
-      "constraints_caveats": "Behavior parity (who can see which users) must remain identical after query-level filtering.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Behavior parity (who can see which users) must remain identical after query-level filtering."
     },
     {
       "id": "DN-008",
@@ -819,18 +605,7 @@
       "issue": "Delete `20260220000755_remote_schema.sql.bak` once VS Code Supabase extension confirms no more storage trigger errors.",
       "resolved": null,
       "context": "Created as a backup before stripping the storage-internal trigger lines from the migrations file. Safe to delete once tooling is confirmed clean.",
-      "constraints_caveats": "Verify VS Code extension no longer flags the file before deleting.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Verify VS Code extension no longer flags the file before deleting."
     },
     {
       "id": "DN-009",
@@ -849,18 +624,7 @@
       "issue": "Drop backup table `exercises_backup_20260221` after confirming exercise ID migration is working correctly in production.",
       "resolved": null,
       "context": "Table was created as a safety net during the atomic migration that remapped 13 non-UUID exercise IDs (ex000X and slug IDs) to proper UUIDs. All 34 exercises and 11 FK constraint tables verified correct post-migration. See dated entry 2026-02-20.",
-      "constraints_caveats": "Confirm pt_editor loads/saves exercises correctly and no FK errors appear in logs before dropping.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Confirm pt_editor loads/saves exercises correctly and no FK errors appear in logs before dropping."
     },
     {
       "id": "DN-010",
@@ -880,18 +644,7 @@
       "issue": "Resolve duplicate permissive SELECT policies on patient_activity_logs, patient_activity_sets, patient_activity_set_form_data, and vocab_* tables.",
       "resolved": null,
       "context": "Supabase performance advisor flags 9 tables with two SELECT policies for `authenticated` on the same table. Both policies are evaluated per query. The older `_select_own` / `patient_activity_*_select` policies predate the broader `activity_logs_select` / `activity_sets_select` / `set_form_data_select` policies. The broader policies cover all cases the older ones do, plus therapist access. The older narrow ones can likely be dropped — but access behavior must be verified first.",
-      "constraints_caveats": "Read both policy bodies carefully before dropping anything. Verify that the broader policy covers every case the narrow one does (patient own access + therapist access + admin access). Do not drop without testing patient and therapist SELECT access in staging.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Read both policy bodies carefully before dropping anything. Verify that the broader policy covers every case the narrow one does (patient own access + therapist access + admin access). Do not drop without testing patient and therapist SELECT access in staging."
     },
     {
       "id": "DN-014",
@@ -909,18 +662,7 @@
       "issue": "History tab on index shows all exercises; when navigating from a specific exercise it should pre-filter to that exercise's history only.",
       "resolved": null,
       "context": "User taps an exercise card, then taps the History tab — expects to see that exercise's history, not the full log across all exercises.",
-      "constraints_caveats": "Needs a way to pass exercise context to the History tab (e.g. in-memory state or scroll-to). Should still allow clearing the filter to see full history.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Needs a way to pass exercise context to the History tab (e.g. in-memory state or scroll-to). Should still allow clearing the filter to see full history."
     },
     {
       "id": "DN-012",
@@ -938,18 +680,7 @@
       "issue": "No robust exercise sorting/reordering controls on the patient index page — list order is currently tied to API return order.",
       "resolved": null,
       "context": "User needs flexible list organization: sort by body area, recency/activity, alphabetical, and manual drag-and-drop custom order. Drag handle can be on left or right, but interaction should feel iOS-native with a visible grip and drag ghost while moving.",
-      "constraints_caveats": "Sort preference should persist across sessions (localStorage or user profile) and be user-scoped. Must not affect underlying program/dosage data, only display order. Touch interactions must remain iOS-safe (`pointerup`/pointer events, 44px minimum targets).",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Sort preference should persist across sessions (localStorage or user profile) and be user-scoped. Must not affect underlying program/dosage data, only display order. Touch interactions must remain iOS-safe (`pointerup`/pointer events, 44px minimum targets)."
     },
     {
       "id": "DN-015",
@@ -969,18 +700,7 @@
       "issue": "Hamburger menu sometimes shows \"Signed in as -\" (dash) instead of the user's name on page load.",
       "resolved": null,
       "context": "User name is populated after the users API call resolves. On slow loads or when the menu is opened before the API response arrives, the name placeholder \"-\" is visible instead of the real name.",
-      "constraints_caveats": "Investigate whether the menu renders before `me` is resolved and whether a re-render or reactive update is needed once the name is available.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Investigate whether the menu renders before `me` is resolved and whether a re-render or reactive update is needed once the name is available."
     },
     {
       "id": "DN-016",
@@ -1000,18 +720,7 @@
       "issue": "No user profile editor — users cannot change their own name, email, or password from within the app.",
       "resolved": null,
       "context": "Currently `PATCH /api/users` only accepts `email_notifications_enabled`. A profile editor would allow users to update `first_name`, `last_name`, email (requires Supabase Auth update), and password (requires Supabase Auth password change flow). Admin may also need ability to edit other users' profiles.",
-      "constraints_caveats": "Email/password changes must go through Supabase Auth API (`supabase.auth.updateUser()`), not just the `users` table. Need to consider whether therapist can edit patient profiles or only admins can.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Email/password changes must go through Supabase Auth API (`supabase.auth.updateUser()`), not just the `users` table. Need to consider whether therapist can edit patient profiles or only admins can."
     },
     {
       "id": "DN-019",
@@ -1036,18 +745,7 @@
       "issue": "Clinical message creation (`POST /api/logs?type=messages`) validates recipient existence but does not enforce therapist↔patient relationship constraints.",
       "resolved": null,
       "context": "Current logic allows any authenticated caller to target any existing `users.id` as `recipient_id` if RLS permits the insert. The intended messaging model is patient-therapist communication, so relationship checks should mirror assignment rules used elsewhere.",
-      "constraints_caveats": "Define and preserve intended matrix explicitly (patient→assigned therapist only; therapist→assigned patient only; admin behavior defined). Verify against current `clinical_messages` RLS policy bodies before tightening endpoint logic.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Define and preserve intended matrix explicitly (patient→assigned therapist only; therapist→assigned patient only; admin behavior defined). Verify against current `clinical_messages` RLS policy bodies before tightening endpoint logic."
     },
     {
       "id": "DN-022",
@@ -1072,18 +770,7 @@
       "issue": "Offline queue is stored under a global localStorage key (`pt_offline_queue`) and is not cleared/scoped on sign-out, risking cross-user data carryover on shared devices.",
       "resolved": null,
       "context": "Queue load/save are key-based only and `signOut()` only ends Supabase auth session. A subsequent user on the same device/browser profile can inherit prior unsynced sessions.",
-      "constraints_caveats": "Preserve offline durability for the same user while preventing cross-account leakage (e.g., scope key by user ID and/or clear queue on auth change with migration strategy).",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Preserve offline durability for the same user while preventing cross-account leakage (e.g., scope key by user ID and/or clear queue on auth change with migration strategy)."
     },
     {
       "id": "DN-017",
@@ -1104,18 +791,7 @@
       "resolved": null,
       "context": "`schema.sql` is a manually maintained snapshot. Each migration in `pt-rebuild/db/migrations/` changes the live DB but does not update `schema.sql`. Over time the file becomes unreliable as a reference for the current DB structure.",
       "options": "(A) After each migration, regenerate `schema.sql` using `supabase db dump --schema public > pt-rebuild/db/schema.sql` as a manual step. (B) Treat `schema.sql` as deprecated documentation and rely solely on numbered migration files as source of truth. (C) Add a note in CLAUDE.md reminding agents to update `schema.sql` after applying migrations.",
-      "constraints_caveats": "`supabase db dump` requires Supabase CLI and project credentials. Option B is safest but means agents must read all migration files to understand current schema. Option A keeps a single readable file but relies on discipline to run it.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "`supabase db dump` requires Supabase CLI and project credentials. Option B is safest but means agents must read all migration files to understand current schema. Option A keeps a single readable file but relies on discipline to run it."
     },
     {
       "id": "DN-011",
@@ -1138,49 +814,10 @@
       "issue": "Evaluate and drop unused indexes once the app has real query traffic.",
       "resolved": null,
       "context": "Supabase performance advisor flagged 13 indexes as unused: idx_patient_programs_assigned_at, idx_patient_programs_assigned_by, idx_patient_programs_archived_at, idx_program_history_patient, idx_program_history_changed_at, idx_patient_program_history_changed_by, idx_clinical_messages_patient, idx_clinical_messages_created_at, idx_clinical_messages_deleted_by, idx_offline_mutations_user, idx_offline_mutations_pending, exercise_pattern_modifiers_exercise_id_idx, exercise_form_parameters_exercise_id_idx, idx_exercise_roles_active.",
-      "constraints_caveats": "Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows.",
-      "ux_approval": {
-        "status": "required_pending",
-        "reason_not_needed": null,
-        "approved_by": null,
-        "approved_on": null,
-        "surface": null,
-        "delta": null,
-        "scope": null,
-        "validation_target": null,
-        "revoked": false
-      }
+      "constraints_caveats": "Indexes may not yet be used because patient data volume is low. Re-check after real patient usage before dropping. Some (e.g. exercise child table indexes) may become useful as exercise count grows."
     }
   ],
   "closed_items": [
-    {
-      "id": "DN-064",
-      "status": "done",
-      "priority": "P2",
-      "risk": "low",
-      "scope": "current",
-      "agent": [
-        "codex"
-      ],
-      "tags": [
-        "migration",
-        "ui"
-      ],
-      "file": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/pages/index.js, pt-rebuild/lib/index-history.js",
-      "issue": "Index exercise sort dropdown is no-op in Next.js — changing sort mode does not reorder exercise cards.",
-      "resolved": "2026-03-03",
-      "resolution_type": "fix",
-      "problem": "Selecting sort mode in the index ExercisePicker changed the dropdown value but exercise card order stayed unchanged.",
-      "root_cause": "ExercisePicker applied query filtering only; no comparator was applied for sort modes. Recency sort also lacked numeric adherence-day data.",
-      "resolution": "Implemented sorting comparators for alpha, body_area, and recent modes in ExercisePicker. Added adherence_days_since to index-history badge state and wired adherence-enriched program data in pages/index.js so recent sorting can order by recency; pt_order/manual preserve incoming order.",
-      "change_made": "components/ExercisePicker.js: added sortMode-based ordering logic with canonical_name tie-breaks. lib/index-history.js: added adherence_days_since in getAdherenceBadgeState. pages/index.js: passes adherence-enriched program data used by recent sort.",
-      "files_touched": "pt-rebuild/components/ExercisePicker.js, pt-rebuild/lib/index-history.js, pt-rebuild/pages/index.js, pt-rebuild/docs/dev_notes.json",
-      "validation": "Code-path validation complete and changes pushed in commit 237ad99. User verification pending in preview for each dropdown mode.",
-      "context": "Exploration confirmed the bug: sortMode state changed but no sorting occurred. Fix keeps existing iOS-safe interaction behavior and does not alter DN-050 drag-and-drop scope.",
-      "constraints_caveats": "Manual drag-and-drop ordering remains DN-050 scope.",
-      "follow_ups": "If preview behavior differs from expected for any sort mode, open follow-up DN with exact mode+ordering examples.",
-      "reactivate_triggers": null
-    },
     {
       "id": "DN-061",
       "status": "done",
