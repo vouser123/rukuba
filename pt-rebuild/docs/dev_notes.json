@@ -1,7 +1,9 @@
 {
   "metadata": {
     "schema_version": "1.6.0",
-    "last_updated": "2026-03-05 (parity triage update)"
+    "last_updated": "2026-03-05 (parity triage update)",
+    "schema_file": "pt-rebuild/docs/dev_notes.schema.json",
+    "ux_approval_policy": "No patient-facing UX changes without explicit user approval. All UI changes must be verified on iOS Safari/PWA before closing."
   },
   "enums": {
     "priority_levels": [
@@ -112,6 +114,10 @@
         "definition": "Documentation or workflow process updates."
       },
       {
+        "value": "bug",
+        "definition": "Bug-type issue tag; use for items tracking a defect."
+      },
+      {
         "value": "cleanup",
         "definition": "Refactors, debt paydown, and housekeeping."
       },
@@ -172,6 +178,42 @@
       {
         "value": "api_capacity_available",
         "definition": "Re-evaluate when Vercel function slot count is no longer a constraint (e.g. plan upgrade or function consolidation)."
+      }
+    ],
+    "issue_type_values": [
+      {
+        "value": "bug",
+        "definition": "Something broken or incorrect."
+      },
+      {
+        "value": "feature",
+        "definition": "New functionality."
+      },
+      {
+        "value": "task",
+        "definition": "Work item: testing, docs, refactoring."
+      },
+      {
+        "value": "enhancement",
+        "definition": "Improvement to existing behavior."
+      },
+      {
+        "value": "chore",
+        "definition": "Maintenance: dependencies, tooling, cleanup."
+      }
+    ],
+    "ux_approval_status_values": [
+      {
+        "value": "not_required",
+        "definition": "Change has no patient-facing UX impact."
+      },
+      {
+        "value": "pending",
+        "definition": "UX change awaiting explicit user approval."
+      },
+      {
+        "value": "approved",
+        "definition": "User has explicitly approved the UX change."
       }
     ]
   },
