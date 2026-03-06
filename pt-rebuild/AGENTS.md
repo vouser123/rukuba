@@ -12,6 +12,19 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/docs/AI_WORKFLOW.md` - required intake/execute/close-loop workflow
 - `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
 
+## Local Memory Files (Outside GitHub Repo)
+
+These local files are operator memory for agents and are not committed to GitHub:
+
+- `C:\Users\cindi\OneDrive\Documents\claude-memory\MEMORY.md`
+- `C:\Users\cindi\OneDrive\Documents\PT_Backup\agent_memory\MEMORY.md`
+
+Session-start requirement:
+
+- Read both files if present before work begins.
+- If guidance conflicts, prefer the file with the newer `LastWriteTime` and note the conflict in session updates.
+- When adding durable local operational notes, update both files with the same change.
+
 ## Core Rules
 
 - Use a docs-first workflow: check the canonical references before editing code.
@@ -133,6 +146,15 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 - Keep instructions concise and avoid duplicating detailed architecture from docs.
 - If guidance conflicts within `pt-rebuild/`, `AGENTS.md` is the operational source of truth.
+
+## Agent Ops Friction Logging
+
+- Use Beads epic `ptrebuild-uf1` ("Agent Ops Epic: tracker/tooling friction log") for system/process/tooling friction discovered during execution.
+- Create child issues from that epic for concrete incidents, include root cause + mitigation, and close child issues after fix.
+- Keep the epic open as the longitudinal signal for whether current tracker/process choices still serve agent throughput.
+- Child issue command pattern:
+  - `bd create "<title>" -t task -p 2 --deps discovered-from:ptrebuild-uf1 --description "<incident + impact + root cause + mitigation>" --json`
+  - Optional explicit parent-child link: `bd dep add <child-id> ptrebuild-uf1 --type parent-child`
 
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
