@@ -80,6 +80,10 @@ export default function IndexPage() {
         }));
     }, [exercises, logs, programs]);
 
+    // logger must be declared before handleExerciseSelect so it is initialized
+    // when useCallback evaluates the dependency array (avoids TDZ crash on SSR).
+    const logger = useSessionLogging(token, userId, reload, enqueue);
+
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
@@ -90,8 +94,6 @@ export default function IndexPage() {
             logger.openCreate(selected);
         }
     }, [pickerExercises, logger]);
-
-    const logger = useSessionLogging(token, userId, reload, enqueue);
 
     const handleEditLog = useCallback((log) => {
         const byId = pickerExercises.find((exercise) => exercise.id === log.exercise_id);
