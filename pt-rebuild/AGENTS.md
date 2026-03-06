@@ -19,10 +19,6 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - Prefer plain JavaScript and browser APIs unless explicitly instructed otherwise.
 - Preserve offline/PWA behavior and iOS-safe interaction patterns (`pointerup`, touch-safe UI behavior).
 - Respect Vercel/serverless limits: avoid endpoint sprawl and prefer extending existing handlers.
-- MUST obtain explicit user permission before any UX behavior change.
-- DO NOT simplify, alter, or remove existing UX semantics during migration/refactor without approval.
-- This includes (non-exhaustive): labels/copy, thresholds, status buckets, icons, defaults, sort/order behavior, visibility rules, interaction patterns, fallback states, and summary text/details.
-- If parity is unclear: stop, surface the exact proposed UX delta, and wait for user approval before implementing.
 
 ## iOS PWA Interaction Rules
 
@@ -48,6 +44,21 @@ If no trigger conditions are met, proceed without surfacing deferred items. Do n
 - After any change to dev notes JSON, run `npm run dev-notes:build`.
 - Before finishing, run `npm run dev-notes:check` to ensure no drift.
 
+## Tracker Routing Policy (Required)
+
+Use a split tracker model until explicitly retired:
+
+- `NextJS migration/workstream` items: track in **Beads only**.
+- `Non-NextJS` items (static app, API/security, DB/migrations, infra, docs/process outside NextJS migration): track in **dev_notes.json**.
+
+Hard rules:
+
+- Do not create new NextJS work items in `dev_notes.json` during the Beads pilot.
+- Do not move or delete existing non-NextJS `dev_notes.json` items unless they are actually resolved/closed per current workflow rules.
+- At session start, always check both queues:
+  - Beads for NextJS active work.
+  - `dev_notes.json` for non-NextJS open/deferred work.
+
 ## Validation Preference
 
 - Prefer Vercel deployment checks/logs as the default validation path for routine changes.
@@ -72,7 +83,7 @@ If no trigger conditions are met, proceed without surfacing deferred items. Do n
    - For every request, check whether work already exists in `open_items`.
    - If user asks for ad-hoc work not already tracked, create a new issue ID (`DN-###`, next available number) in `open_items` before execution or at the start of execution.
    - Every new open item **must** include an `agent` field (array). Use `["codex"]`, `["claude"]`, or `["codex", "claude"]`. Use `["unassigned"]` only if genuinely unclear — but triage it before proceeding.
-   - Note: Codex can live-test preview UI flows when Playwright skill/extension is available. Codex still cannot access Vercel logs or query Supabase directly unless explicitly provided that access. If any part of a task requires those steps, assign `["claude"]` for the whole item — Claude can choose to hand off the coding portion to Codex within a session, but ownership stays with Claude.
+   - Note: Codex cannot live-test deployments, access Vercel logs, or query Supabase directly. If any part of a task requires those steps, assign `["claude"]` for the whole item — Claude can choose to hand off the coding portion to Codex within a session, but ownership stays with Claude.
 2. **Execute**
    - Set status to `in_progress` in `open_items` while work is active.
 3. **Close-loop**
@@ -92,32 +103,7 @@ Use this routinely, not just when a problem is already suspected:
 
 **How to assign:** Give Codex both the static source file (e.g. `public/index.html`) and the new component (e.g. `components/SessionLoggerModal.js`) and ask it to list behavioral differences. Be specific about which feature area to check (side selector, form params, timer behavior, etc.).
 
-Codex can live-test preview UI flows when Playwright is available, and can also read code for static parity checks.
-
-Before coding any UX change found during parity review:
-- Present the exact behavior diff to the user (what changes from current behavior).
-- Ask for explicit approval.
-- Only then implement.
-
-### UX_APPROVED criteria (required)
-
-For any non-parity UX change, approval must be recorded in the related `DN-###` item context using a `UX_APPROVED:` note.  
-Approval is valid only when all of the following are explicit:
-- Exact surface: page/component/flow being changed.
-- Exact delta: before → after behavior (specific labels, thresholds, defaults, ordering, visibility, interactions).
-- Scope boundary: what is included and what is explicitly not included.
-- Validation target: what will be checked after implementation.
-
-Rules:
-- Approval is **not** global. A yes for one UX change does not approve any other UX change.
-- Approval is **not** transferable across DNs unless the user says so explicitly.
-- If implementation uncovers additional UX deltas, stop and request a new explicit approval.
-
-Consent-style enforcement:
-- Specific: approval must identify the exact UX change; broad or ambiguous approval is invalid.
-- Informed: approval must be based on a clear before/after description.
-- Scoped: approval applies only to the named surface and DN.
-- Revocable: user can withdraw approval at any time; stop immediately and revert/re-plan if requested.
+Codex cannot live-test on preview, but it can read code and reason about behavior — which is most of what parity checking requires.
 
 ## Testing Checklists
 
@@ -127,5 +113,158 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 - Keep instructions concise and avoid duplicating detailed architecture from docs.
 - If guidance conflicts within `pt-rebuild/`, `AGENTS.md` is the operational source of truth.
-- Commit attribution: include a single `Co-authored-by:` trailer for agent-authored commits using the same convention already used in this repo.
 
+<!-- BEGIN BEADS INTEGRATION -->
+## Issue Tracking with bd (beads)
+
+**IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
+
+### Why bd?
+
+- Dependency-aware: Track blockers and relationships between issues
+- Git-friendly: Dolt-powered version control with native sync
+- Agent-optimized: JSON output, ready work detection, discovered-from links
+- Prevents duplicate tracking systems and confusion
+
+### Quick Start
+
+**Check for ready work:**
+
+```bash
+bd ready --json
+```
+
+**Create new issues:**
+
+```bash
+bd create "Issue title" --description="Detailed context" -t bug|feature|task -p 0-4 --json
+bd create "Issue title" --description="What this issue is about" -p 1 --deps discovered-from:bd-123 --json
+```
+
+**Claim and update:**
+
+```bash
+bd update <id> --claim --json
+bd update bd-42 --priority 1 --json
+```
+
+**Complete work:**
+
+```bash
+bd close bd-42 --reason "Completed" --json
+```
+
+### Issue Types
+
+- `bug` - Something broken
+- `feature` - New functionality
+- `task` - Work item (tests, docs, refactoring)
+- `epic` - Large feature with subtasks
+- `chore` - Maintenance (dependencies, tooling)
+
+### Priorities
+
+- `0` - Critical (security, data loss, broken builds)
+- `1` - High (major features, important bugs)
+- `2` - Medium (default, nice-to-have)
+- `3` - Low (polish, optimization)
+- `4` - Backlog (future ideas)
+
+### Workflow for AI Agents
+
+1. **Check ready work**: `bd ready` shows unblocked issues
+2. **Claim your task atomically**: `bd update <id> --claim`
+3. **Work on it**: Implement, test, document
+4. **Discover new work?** Create linked issue:
+   - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
+5. **Complete**: `bd close <id> --reason "Done"`
+
+### Auto-Sync
+
+bd automatically syncs via Dolt:
+
+- Each write auto-commits to Dolt history
+- Use `bd dolt push`/`bd dolt pull` for remote sync
+- No manual export/import needed!
+
+### Important Rules
+
+- ✅ Use bd for ALL task tracking
+- ✅ Always use `--json` flag for programmatic use
+- ✅ Link discovered work with `discovered-from` dependencies
+- ✅ Check `bd ready` before asking "what should I work on?"
+- ❌ Do NOT create markdown TODO lists
+- ❌ Do NOT use external issue trackers
+- ❌ Do NOT duplicate tracking systems
+
+For more details, see README.md and docs/QUICKSTART.md.
+
+### PT-Rebuild Beads Template (Required)
+
+All new Beads issues in this repo must include the following sections in the description body:
+
+1. `Source Reference` (Beads ID; DN optional)
+2. `Status`
+3. `Priority`
+4. `Risk`
+5. `Scope`
+6. `Agent Owner`
+7. `Agent Eligible`
+8. `Tags`
+9. `File Scope`
+10. `Issue`
+11. `Context`
+12. `Constraints/Caveats`
+13. `Validation Checklist`
+14. `Dependencies`
+15. `Reactivation Trigger` (if deferred)
+
+For closure notes, include:
+
+1. `Problem`
+2. `Root Cause`
+3. `Change Made`
+4. `Files Touched`
+5. `Validation`
+6. `Follow-ups`
+
+Agent assignment convention:
+
+- Use Beads `assignee` for the active owner (`codex` or `claude`).
+- Add labels: `agent:codex`, `agent:claude`, or `agent:shared`.
+- Use Beads IDs as primary references in chat, commits, and handoffs.
+- If a legacy DN exists, keep it only as optional `external-ref` during transition.
+
+Execution caveat for this environment:
+
+- In this workspace, `bd` commands may require elevated execution from Codex sessions even when local VS Code terminal commands work.
+
+Canonical template: `pt-rebuild/docs/BEADS_TEMPLATE.md`.
+
+## Landing the Plane (Session Completion)
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd sync
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
+
+<!-- END BEADS INTEGRATION -->
