@@ -476,6 +476,7 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 - `components/ExercisePicker.js` + `ExercisePicker.module.css`
 - `components/SessionLoggerModal.js` + `SessionLoggerModal.module.css`
 - `components/TimerPanel.js` + `TimerPanel.module.css`
+- `components/PocketModeOverlay.js` + `PocketModeOverlay.module.css`
 - `components/HistoryPanel.js` + `HistoryPanel.module.css`
 - `components/BottomNav.js` + `BottomNav.module.css`
 - `components/PwaInstallPrompt.js` + `PwaInstallPrompt.module.css`
@@ -484,13 +485,16 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 - `hooks/useIndexData.js` — exercises/programs/logs loading state
 - `hooks/useSessionLogging.js` — create/update log submission state machine
 - `hooks/useIndexOfflineQueue.js` — queue/sync lifecycle with user-scoped keys
-- `hooks/useTimerSpeech.js` — timer/counter/voice behavior
+- `hooks/useTimerSpeech.js` — execution-state coordinator for the tracker logger panel
+- `hooks/useExerciseTimer.js` — timer state machine for hold/duration execution flows
+- `hooks/useTimerAudio.js` — Web Audio + speech side effects for timer/counter feedback
 
 **Lib (pure functions only)**
 - `lib/index-data.js` — fetch adapters + payload shaping helpers
 - `lib/index-history.js` — grouping/filter/prefilter transforms
 - `lib/index-offline.js` — queue/idempotency helpers
 - `lib/session-form-params.js` — form-parameter history/default/unit helpers (global-by-parameter options, exercise-scoped last-used default, value+unit parsing/formatting)
+- `lib/timer-panel.js` — pure timer/counter execution helpers and set-patch shaping
 
 #### Phase 4a: Shell + auth + data bootstrap
 - Wire `useAuth`, `AuthForm`, and `NavMenu`
@@ -511,7 +515,7 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
   - always include `Other...` custom entry path
 
 #### Phase 4d: Timer/counter/speech domain
-- Port rep counter, timer variants, and voice cues into `TimerPanel` + `useTimerSpeech`
+- Port rep counter, timer variants, Pocket Mode overlay, and voice cues into `TimerPanel`, `PocketModeOverlay`, `useTimerSpeech`, `useExerciseTimer`, `useTimerAudio`, and `lib/timer-panel.js`
 - Preserve iOS-safe interaction rules (`onPointerUp`, touch-safe targets/styles)
 
 #### Phase 4e: History + nav domain
