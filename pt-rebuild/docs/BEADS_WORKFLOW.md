@@ -71,6 +71,31 @@ bd create "Title" --body-file description.md
 bd update <id> --body-file description.md
 ```
 
+### Useful `bd 0.60.0` commands
+
+These are the new commands and behaviors most likely to help in this workspace:
+
+```bash
+# Safer troubleshooting context when bd errors
+bd context
+
+# Recovery/bootstrap helper for fresh clones or damaged local state
+bd bootstrap
+
+# Machine-readable command discovery
+bd help --list
+bd help --doc
+
+# Closure alias
+bd done <id> "Completed"
+```
+
+Practical notes:
+
+- `bd done` is an alias for `bd close`; use either one.
+- `bd search` now includes `external_ref`, so legacy DN refs or external tracker refs are easier to find.
+- `--json` output and error handling are more reliable in `0.60.0`, especially for agent-driven workflows.
+
 ## Create vs Update Rules
 
 Set dependencies at creation time whenever possible:
@@ -202,6 +227,15 @@ BEADS_DB=/tmp/test.db bd list
 bd doctor          # detect orphaned issues, schema problems
 bd doctor --fix    # detect and auto-fix
 ```
+
+If startup or local recovery is failing before normal commands work, try:
+
+```bash
+bd context
+bd bootstrap
+```
+
+`bd bootstrap` is now an action-oriented recovery command in `0.60.0`, not just a hint printer.
 
 Orphaned issues = open issues where work was committed to git but the issue was never closed. Detected by cross-referencing commit history against open issue IDs.
 
@@ -360,6 +394,12 @@ To stop the server (end of session or before restart):
 ```bash
 bd dolt stop
 ```
+
+`bd 0.60.0` also improved Dolt pull behavior:
+
+- pending local changes are auto-committed before pull in more cases
+- metadata merge conflicts during `bd dolt pull` are more likely to auto-resolve
+- ephemeral Dolt ports reduce Windows port-collision issues
 
 If `bd dolt start` fails after a Windows restart (stale stats cache):
 
@@ -553,3 +593,8 @@ Three separate things — do not confuse them:
 | Issue database sync | `bd sync` or `bd dolt pull/push` | Every session |
 | Docs reference refresh | `git pull` in PT_Backup/beads | Periodically / before referencing docs |
 | bd binary update | Original installer (Homebrew etc.) | When new bd version is released |
+
+Current repo note:
+
+- As of March 13, 2026, upstream `bd` is `0.60.0`.
+- The local mirror at `C:\Users\cindi\OneDrive\Documents\PT_Backup\beads` was refreshed on March 13, 2026.
