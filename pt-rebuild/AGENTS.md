@@ -11,6 +11,7 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/docs/dev_notes.json` - canonical development tracking log (source of truth)
 - `pt-rebuild/docs/AI_WORKFLOW.md` - required intake/execute/close-loop workflow
 - `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
+- `pt-rebuild/docs/BEADS_WORKFLOW.md` - detailed Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
 
 ## Local Memory Files (Outside GitHub Repo)
 
@@ -158,6 +159,9 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 ## Beads Agent Discipline (Required)
 
+- Detailed operating rules live in `pt-rebuild/docs/BEADS_WORKFLOW.md`.
+- Keep `AGENTS.md` as the policy surface; use the workflow doc for command patterns, parallel-thread rules, and Dolt cleanup steps.
+- Do not use `bd edit` from agent sessions; use `bd update` flags instead.
 - Claim first in multi-agent workflows:
   - `bd update <id> --claim --assignee codex` (or `claude`)
 - Search before create to reduce duplicate issues:
@@ -183,6 +187,8 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   - `bd update <id> --priority 4 --defer +14d`
 - Land-the-plane rule:
   - Update/close Beads items and push code before ending session; do not leave local-only state
+- Concurrency rule:
+  - Beads supports multi-agent coordination, but shared-file implementation still needs one owner at a time. Use parallel threads for review/verification or clearly separate file domains, not for the same helper/state path.
 
 Reference docs (local mirror for agents):
 - `C:\Users\cindi\OneDrive\Documents\PT_Backup\beads\AGENT_INSTRUCTIONS.md`
@@ -261,7 +267,8 @@ bd automatically syncs via Dolt:
 
 - Each write auto-commits to Dolt history
 - Use `bd dolt push`/`bd dolt pull` for remote sync
-- No manual export/import needed!
+- No manual export/import needed
+- If sync fails on Windows, see `pt-rebuild/docs/BEADS_WORKFLOW.md` for metadata / working-set cleanup
 
 ### Important Rules
 
@@ -316,6 +323,8 @@ Execution caveat for this environment:
 - In this workspace, `bd` commands may require elevated execution from Codex sessions even when local VS Code terminal commands work.
 
 Canonical template: `pt-rebuild/docs/BEADS_TEMPLATE.md`.
+
+Detailed workflow and troubleshooting: `pt-rebuild/docs/BEADS_WORKFLOW.md`.
 
 ## Landing the Plane (Session Completion)
 
