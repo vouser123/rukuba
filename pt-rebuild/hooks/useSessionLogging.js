@@ -1,67 +1,6 @@
 // hooks/useSessionLogging.js — session logging state machine for create/update activity logs
 import { useCallback, useMemo, useState } from 'react';
-
-function getPatternFlags(exercise) {
-    const modifiers = exercise?.pattern_modifiers ?? [];
-    const dosageType = exercise?.dosage_type ?? null;
-    return {
-        hasHold: modifiers.includes('hold_seconds') || dosageType === 'hold',
-        hasDuration: modifiers.includes('duration_seconds') || dosageType === 'duration',
-        hasDistance: modifiers.includes('distance_feet') || dosageType === 'distance',
-        isSided: exercise?.pattern === 'side',
-    };
-}
-
-function inferActivityType(exercise) {
-    const { hasHold, hasDuration, hasDistance } = getPatternFlags(exercise);
-    if (hasDistance) return 'distance';
-    if (hasDuration) return 'duration';
-    if (hasHold) return 'hold';
-    return 'reps';
-}
-
-function nextMutationId() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-    return `mut-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function createDefaultSet(exercise, setNumber) {
-    const { hasHold, hasDuration, hasDistance, isSided } = getPatternFlags(exercise);
-    const defaultFormData = Array.isArray(exercise?.default_form_data) && exercise.default_form_data.length > 0
-        ? exercise.default_form_data.map((param) => ({ ...param }))
-        : null;
-    return {
-        set_number: setNumber,
-        reps: hasDuration ? 1 : (exercise?.current_reps ?? 1),
-        seconds: hasDuration
-            ? (exercise?.seconds_per_set ?? 30)
-            : (hasHold ? (exercise?.seconds_per_rep ?? 10) : null),
-        distance_feet: hasDistance ? (exercise?.distance_feet ?? 20) : null,
-        side: isSided ? 'right' : null,
-        form_data: defaultFormData,
-        manual_log: true,
-        partial_rep: false,
-        performed_at: new Date().toISOString(),
-    };
-}
-
-function normalizeSet(set, index, activityType = 'reps') {
-    let reps = set?.reps ?? null;
-    if (activityType === 'duration') reps = 1;
-    if (activityType === 'distance') reps = null;
-
-    return {
-        set_number: set?.set_number ?? index + 1,
-        reps,
-        seconds: set?.seconds ?? null,
-        distance_feet: set?.distance_feet ?? null,
-        side: set?.side ?? null,
-        form_data: Array.isArray(set?.form_data) && set.form_data.length > 0 ? set.form_data : null,
-        manual_log: set?.manual_log ?? true,
-        partial_rep: set?.partial_rep ?? false,
-        performed_at: set?.performed_at ?? new Date().toISOString(),
-    };
-}
+import { buildCreatePayload, createDefaultSet, inferActivityType, normalizeSet } from '../lib/session-logging';
 
 export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
     const [isOpen, setIsOpen] = useState(false);
@@ -178,19 +117,7 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
                 });
                 if (!patchRes.ok) throw new Error(`Failed to update log (${patchRes.status})`);
             } else {
-                const clientMutationId = nextMutationId();
-                const createPayload = {
-                    // DN-059: omit patient_id — API uses req.user.id (profile UUID) via fallback.
-                    // Passing session.user.id (auth UUID) triggers the "log on behalf" branch and 500s.
-                    exercise_id: exercise.id,
-                    exercise_name: exercise.canonical_name,
-                    activity_type: activityType,
-                    notes: notes || null,
-                    performed_at: performedAt,
-                    // One mutation id per log submission (API-level idempotency contract).
-                    client_mutation_id: clientMutationId,
-                    sets: normalizedSets,
-                };
+                const createPayload = buildCreatePayload(exercise, performedAt, notes, normalizedSets);
 
                 if (typeof navigator !== 'undefined' && navigator.onLine === false && onEnqueue) {
                     onEnqueue(createPayload);
@@ -229,9 +156,9 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
                         activity_type: inferActivityType(exercise),
                         notes: notes || null,
                         performed_at: performedAt,
-                        client_mutation_id: nextMutationId(),
                         sets: sets.map((set, index) => normalizeSet(set, index, inferActivityType(exercise))),
                     };
+                    Object.assign(queuedPayload, buildCreatePayload(exercise, performedAt, notes, queuedPayload.sets));
                     onEnqueue(queuedPayload);
                     if (onSaved) await onSaved();
                     close();
@@ -244,6 +171,47 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
             setSubmitting(false);
         }
     }, [close, exercise, logId, notes, onEnqueue, onSaved, patientId, performedAt, sets, token]);
+
+    const submitSeedSet = useCallback(async (selectedExercise, seedSet, options = {}) => {
+        if (!token || !patientId || !selectedExercise) return false;
+        const performedAtValue = options.performedAt ?? new Date().toISOString();
+        const payload = buildCreatePayload(
+            selectedExercise,
+            performedAtValue,
+            options.notes ?? '',
+            [{ ...createDefaultSet(selectedExercise, 1), ...(seedSet ?? {}), set_number: 1, performed_at: performedAtValue }]
+        );
+
+        setSubmitting(true);
+        setError(null);
+        try {
+            if (typeof navigator !== 'undefined' && navigator.onLine === false && onEnqueue) {
+                onEnqueue(payload);
+                if (onSaved) await onSaved();
+                return true;
+            }
+
+            const createRes = await fetch('/api/logs', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            if (createRes.status !== 409 && !createRes.ok) {
+                throw new Error(`Failed to create log (${createRes.status})`);
+            }
+
+            if (onSaved) await onSaved();
+            return true;
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to save session log');
+            return false;
+        } finally {
+            setSubmitting(false);
+        }
+    }, [onEnqueue, onSaved, patientId, token]);
 
     return {
         isOpen,
@@ -265,5 +233,6 @@ export function useSessionLogging(token, patientId, onSaved, onEnqueue) {
         updateSet,
         updateFormParam,
         submit,
+        submitSeedSet,
     };
 }

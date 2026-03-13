@@ -12,7 +12,7 @@ import {
 import { useExerciseTimer } from './useExerciseTimer';
 import { useTimerAudio } from './useTimerAudio';
 
-export function useTimerSpeech(exercise, isOpen = false) {
+export function useTimerSpeech(exercise, isOpen = false, resetToken = 0) {
     const mode = useMemo(() => getExerciseMode(exercise), [exercise]);
     const isSided = exercise?.pattern === 'side';
     const targetReps = useMemo(() => getTargetReps(exercise), [exercise]);
@@ -32,7 +32,7 @@ export function useTimerSpeech(exercise, isOpen = false) {
     useEffect(() => {
         setCounterValue(0);
         setSelectedSide(isSided ? 'right' : null);
-    }, [exercise, isOpen, isSided]);
+    }, [exercise, isOpen, isSided, resetToken]);
 
     const incrementCounter = useCallback(() => {
         setCounterValue((prev) => {

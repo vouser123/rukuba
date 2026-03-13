@@ -11,11 +11,12 @@ import NavMenu from '../components/NavMenu';
 import HistoryPanel from '../components/HistoryPanel';
 import BottomNav from '../components/BottomNav';
 import ExercisePicker from '../components/ExercisePicker';
+import NextSetConfirmModal from '../components/NextSetConfirmModal';
 import SessionLoggerModal from '../components/SessionLoggerModal';
 import TimerPanel from '../components/TimerPanel';
 import { useSessionLogging } from '../hooks/useSessionLogging';
 import { getAdherenceBadgeState } from '../lib/index-history';
-import { collectGlobalParameterValues } from '../lib/session-form-params';
+import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
 import styles from './index.module.css';
 
 export default function IndexPage() {
@@ -33,6 +34,8 @@ export default function IndexPage() {
     const [selectedExerciseId, setSelectedExerciseId] = useState(null);
     const [selectedExercise, setSelectedExercise] = useState(null);
     const [isTimerOpen, setIsTimerOpen] = useState(false);
+    const [panelResetToken, setPanelResetToken] = useState(0);
+    const [pendingSetPatch, setPendingSetPatch] = useState(null);
 
     /**
      * Currently open exercise (set by SessionLoggerModal in Phase 4c).
@@ -89,28 +92,51 @@ export default function IndexPage() {
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
-        setSelectedExercise(selected);
-        if (selected) {
-            setActiveExercise({ id: selected.id, name: selected.canonical_name || '' });
+        const enrichedSelected = selected ? {
+            ...selected,
+            default_form_data: selected.default_form_data ?? buildDefaultFormDataForExercise(selected, logs),
+        } : null;
+        setSelectedExercise(enrichedSelected);
+        if (enrichedSelected) {
+            setPendingSetPatch(null);
+            setActiveExercise({ id: enrichedSelected.id, name: enrichedSelected.canonical_name || '' });
             setIsTimerOpen(true);
         }
-    }, [pickerExercises]);
+    }, [logs, pickerExercises]);
 
     const handleTimerClose = useCallback(() => {
         setIsTimerOpen(false);
+        setPendingSetPatch(null);
     }, []);
 
     const handleTimerApplySet = useCallback((setPatch) => {
         if (!selectedExercise) return;
-        logger.openCreateWithSeedSet(selectedExercise, setPatch);
-        setIsTimerOpen(false);
-    }, [logger, selectedExercise]);
+        setPendingSetPatch({
+            ...setPatch,
+            form_data: setPatch.form_data ?? selectedExercise.default_form_data ?? null,
+        });
+    }, [selectedExercise]);
 
     const handleTimerOpenManual = useCallback(() => {
         if (!selectedExercise) return;
         logger.openCreate(selectedExercise);
         setIsTimerOpen(false);
     }, [logger, selectedExercise]);
+
+    const handleConfirmNextSet = useCallback(async () => {
+        if (!selectedExercise || !pendingSetPatch) return;
+        const didSave = await logger.submitSeedSet(selectedExercise, pendingSetPatch);
+        if (!didSave) return;
+        setPendingSetPatch(null);
+        setPanelResetToken((value) => value + 1);
+    }, [logger, pendingSetPatch, selectedExercise]);
+
+    const handleEditNextSet = useCallback(() => {
+        if (!selectedExercise || !pendingSetPatch) return;
+        logger.openCreateWithSeedSet(selectedExercise, pendingSetPatch);
+        setPendingSetPatch(null);
+        setIsTimerOpen(false);
+    }, [logger, pendingSetPatch, selectedExercise]);
 
     const handleEditLog = useCallback((log) => {
         const byId = pickerExercises.find((exercise) => exercise.id === log.exercise_id);
@@ -247,9 +273,21 @@ export default function IndexPage() {
                 <TimerPanel
                     isOpen={isTimerOpen}
                     exercise={selectedExercise}
+                    resetToken={panelResetToken}
                     onClose={handleTimerClose}
                     onApplySet={handleTimerApplySet}
                     onOpenManual={handleTimerOpenManual}
+                />
+
+                <NextSetConfirmModal
+                    isOpen={Boolean(pendingSetPatch)}
+                    exercise={selectedExercise}
+                    setPatch={pendingSetPatch}
+                    submitting={logger.submitting}
+                    error={logger.error}
+                    onClose={() => setPendingSetPatch(null)}
+                    onEdit={handleEditNextSet}
+                    onConfirm={handleConfirmNextSet}
                 />
             </div>
         </>

@@ -8,11 +8,12 @@ import { useTimerSpeech } from '../hooks/useTimerSpeech';
 export default function TimerPanel({
     isOpen,
     exercise,
+    resetToken = 0,
     onClose,
     onApplySet,
     onOpenManual,
 }) {
-    const timer = useTimerSpeech(exercise, isOpen);
+    const timer = useTimerSpeech(exercise, isOpen, resetToken);
     const [isPocketOpen, setIsPocketOpen] = useState(false);
 
     if (!isOpen || !exercise) return null;
