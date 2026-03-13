@@ -486,6 +486,7 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 - `hooks/useIndexData.js` — exercises/programs/logs loading state
 - `hooks/useSessionLogging.js` — create/update log submission state machine
 - `hooks/useIndexOfflineQueue.js` — queue/sync lifecycle with user-scoped keys
+- `hooks/usePanelSessionProgress.js` — per-exercise panel session progress for side/sets parity
 - `hooks/useTimerSpeech.js` — execution-state coordinator for the tracker logger panel
 - `hooks/useExerciseTimer.js` — timer state machine for hold/duration execution flows
 - `hooks/useTimerAudio.js` — Web Audio + speech side effects for timer/counter feedback
