@@ -474,6 +474,7 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 
 **Components**
 - `components/ExercisePicker.js` + `ExercisePicker.module.css`
+- `components/NextSetConfirmModal.js` + `NextSetConfirmModal.module.css`
 - `components/SessionLoggerModal.js` + `SessionLoggerModal.module.css`
 - `components/TimerPanel.js` + `TimerPanel.module.css`
 - `components/PocketModeOverlay.js` + `PocketModeOverlay.module.css`
@@ -493,6 +494,7 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 - `lib/index-data.js` — fetch adapters + payload shaping helpers
 - `lib/index-history.js` — grouping/filter/prefilter transforms
 - `lib/index-offline.js` — queue/idempotency helpers
+- `lib/session-logging.js` — session log payload/default-set helpers for manual and app-recorded paths
 - `lib/session-form-params.js` — form-parameter history/default/unit helpers (global-by-parameter options, exercise-scoped last-used default, value+unit parsing/formatting)
 - `lib/timer-panel.js` — pure timer/counter execution helpers and set-patch shaping
 
@@ -507,6 +509,7 @@ This phase is split by **domain ownership** per `NEXTJS_STRUCTURE.md` (page shel
 
 #### Phase 4c: Logging domain
 - Port log modal + submit flow into `SessionLoggerModal` and `useSessionLogging`
+- Add production-style `Next Set` confirmation flow via `NextSetConfirmModal`
 - Preserve existing set/form-data permutations and idempotency behavior
 - Extract form-parameter behavior to `lib/session-form-params.js` (pure functions), with this parity contract:
   - dropdown options are global by `parameter_name`
