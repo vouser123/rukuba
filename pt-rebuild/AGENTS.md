@@ -116,7 +116,7 @@ Hard rules:
    - For every request, check whether work already exists in `open_items`.
    - If user asks for ad-hoc work not already tracked, create a new issue ID (`DN-###`, next available number) in `open_items` before execution or at the start of execution.
    - Every new open item **must** include an `agent` field (array). Use `["codex"]`, `["claude"]`, or `["codex", "claude"]`. Use `["unassigned"]` only if genuinely unclear — but triage it before proceeding.
-   - Note: Codex cannot live-test deployments, access Vercel logs, or query Supabase directly. If any part of a task requires those steps, assign `["claude"]` for the whole item — Claude can choose to hand off the coding portion to Codex within a session, but ownership stays with Claude.
+- Note: If the current Codex environment does not have access to deployment previews, Vercel logs, or Supabase data needed for the task, assign `["claude"]` for the whole item or explicitly hand off that validation step. Claude can choose to hand off the coding portion to Codex within a session, but ownership stays with Claude for environment-dependent validation.
 2. **Execute**
    - Set status to `in_progress` in `open_items` while work is active.
 3. **Close-loop**
@@ -180,7 +180,7 @@ Reference docs (local mirror for agents):
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
 
-**IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
+**IMPORTANT**: This project uses **bd (beads)** for all NextJS migration/workstream issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
 
 ### Why bd?
 
@@ -252,7 +252,7 @@ bd automatically syncs via Dolt:
 
 ### Important Rules
 
-- ✅ Use bd for ALL task tracking
+- ✅ Use bd for all NextJS migration/workstream task tracking
 - ✅ Always use `--json` flag for programmatic use
 - ✅ Link discovered work with `discovered-from` dependencies
 - ✅ Check `bd ready` before asking "what should I work on?"
@@ -306,7 +306,7 @@ Canonical template: `pt-rebuild/docs/BEADS_TEMPLATE.md`.
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session that included code changes**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
 
 **MANDATORY WORKFLOW:**
 

@@ -16,7 +16,7 @@ function formatTime(ms) {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-export function useTimerSpeech(exercise) {
+export function useTimerSpeech(exercise, isOpen = false) {
     const mode = useMemo(() => getMode(exercise), [exercise]);
     const isSided = exercise?.pattern === 'side';
     const targetReps = Number(exercise?.current_reps ?? 0) || 0;
@@ -31,6 +31,7 @@ export function useTimerSpeech(exercise) {
         elapsedMs: 0,
         currentRep: 1,
         totalReps: Math.max(1, targetReps || 1),
+        completedReps: 0,
         lastAnnouncedSecond: null,
     });
 
@@ -60,9 +61,10 @@ export function useTimerSpeech(exercise) {
             elapsedMs: 0,
             currentRep: 1,
             totalReps: Math.max(1, targetReps || 1),
+            completedReps: 0,
             lastAnnouncedSecond: null,
         });
-    }, [clearTimerInterval, exercise, isSided, targetReps]);
+    }, [clearTimerInterval, exercise, isOpen, isSided, targetReps]);
 
     const ensureAudioReady = useCallback(() => {
         try {
@@ -131,6 +133,7 @@ export function useTimerSpeech(exercise) {
             ...prev,
             elapsedMs: 0,
             currentRep: 1,
+            completedReps: 0,
             lastAnnouncedSecond: null,
             totalReps: Math.max(1, targetReps || 1),
         }));
@@ -159,7 +162,8 @@ export function useTimerSpeech(exercise) {
                     clearTimerInterval();
 
                     if (mode === 'hold') {
-                        const repsLeft = snapshot.totalReps - snapshot.currentRep;
+                        const nextCompletedReps = Math.min(snapshot.completedReps + 1, snapshot.totalReps);
+                        const repsLeft = snapshot.totalReps - nextCompletedReps;
                         if (repsLeft <= 0) speakText('Set complete');
                         else if (repsLeft === 1) speakText('Last rep');
                         else if (repsLeft === 3) speakText('3 reps left');
@@ -170,7 +174,8 @@ export function useTimerSpeech(exercise) {
                             isRunning: false,
                             elapsedMs: 0,
                             lastAnnouncedSecond: null,
-                            currentRep: Math.min(prev.currentRep + 1, prev.totalReps),
+                            completedReps: nextCompletedReps,
+                            currentRep: Math.min(nextCompletedReps + 1, prev.totalReps),
                         }));
                         return;
                     }
@@ -238,6 +243,11 @@ export function useTimerSpeech(exercise) {
         [targetSeconds, timer.elapsedMs]
     );
 
+    const elapsedSeconds = useMemo(
+        () => Math.floor(timer.elapsedMs / 1000),
+        [timer.elapsedMs]
+    );
+
     const timerDisplay = useMemo(
         () => formatTime(Math.max(0, remainingSeconds) * 1000),
         [remainingSeconds]
@@ -245,9 +255,12 @@ export function useTimerSpeech(exercise) {
 
     const repInfoText = useMemo(() => {
         if (mode === 'duration') return 'Duration Exercise';
-        if (mode === 'hold') return `Rep ${timer.currentRep} of ${timer.totalReps}`;
+        if (mode === 'hold') {
+            if (timer.completedReps >= timer.totalReps) return 'Set complete';
+            return `Rep ${timer.currentRep} of ${timer.totalReps}`;
+        }
         return targetReps > 0 ? `${counterValue} / ${targetReps} reps` : `${counterValue} reps`;
-    }, [counterValue, mode, targetReps, timer.currentRep, timer.totalReps]);
+    }, [counterValue, mode, targetReps, timer.completedReps, timer.currentRep, timer.totalReps]);
 
     const buildCurrentSetPatch = useCallback(() => {
         if (mode === 'distance') {
@@ -260,22 +273,23 @@ export function useTimerSpeech(exercise) {
         }
 
         if (mode === 'duration') {
-            const elapsedSeconds = Math.floor(timerRef.current.elapsedMs / 1000);
             return {
                 reps: 1,
                 seconds: elapsedSeconds > 0 ? elapsedSeconds : targetSeconds,
                 distance_feet: null,
                 side: selectedSide,
+                manual_log: false,
             };
         }
 
         if (mode === 'hold') {
-            const repsDone = Math.min(timerRef.current.currentRep, timerRef.current.totalReps);
+            const repsDone = Math.min(timerRef.current.completedReps, timerRef.current.totalReps);
             return {
-                reps: Math.max(1, repsDone),
+                reps: repsDone > 0 ? repsDone : null,
                 seconds: targetSeconds,
                 distance_feet: null,
                 side: selectedSide,
+                manual_log: false,
             };
         }
 
@@ -284,8 +298,9 @@ export function useTimerSpeech(exercise) {
             seconds: null,
             distance_feet: null,
             side: selectedSide,
+            manual_log: false,
         };
-    }, [counterValue, exercise?.distance_feet, mode, selectedSide, targetReps, targetSeconds]);
+    }, [counterValue, elapsedSeconds, exercise?.distance_feet, mode, selectedSide, targetReps, targetSeconds]);
 
     return {
         mode,
@@ -300,10 +315,12 @@ export function useTimerSpeech(exercise) {
         isRunning: timer.isRunning,
         targetSeconds,
         remainingSeconds,
+        elapsedSeconds,
         timerDisplay,
         repInfoText,
         currentRep: timer.currentRep,
         totalReps: timer.totalReps,
+        completedReps: timer.completedReps,
         startTimer,
         pauseTimer,
         resetTimer,
@@ -311,4 +328,3 @@ export function useTimerSpeech(exercise) {
         buildCurrentSetPatch,
     };
 }
-

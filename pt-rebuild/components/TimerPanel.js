@@ -8,14 +8,16 @@ export default function TimerPanel({
     onApplySet,
     onOpenManual,
 }) {
-    const timer = useTimerSpeech(exercise);
+    const timer = useTimerSpeech(exercise, isOpen);
 
     if (!isOpen || !exercise) return null;
 
-    const isTimerMode = timer.mode === 'hold' || timer.mode === 'duration';
-    const canApplyReps = timer.counterValue > 0 || timer.targetReps > 0;
+    const canApplyReps = timer.counterValue > 0;
+    const canApplyDuration = timer.mode === 'duration' && timer.elapsedSeconds > 0;
+    const canApplyHold = timer.mode === 'hold' && timer.completedReps > 0;
     const canApplyDistance = timer.mode === 'distance' && Number(exercise?.distance_feet ?? 0) > 0;
-    const canApply = isTimerMode || canApplyReps || canApplyDistance;
+    const canApply = canApplyReps || canApplyDuration || canApplyHold || canApplyDistance;
+    const isTimerMode = timer.mode === 'hold' || timer.mode === 'duration';
 
     return (
         <div className={styles.overlay} onPointerUp={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -100,4 +102,3 @@ export default function TimerPanel({
         </div>
     );
 }
-
