@@ -7,7 +7,7 @@
  * - API calls: network-only (no caching, offline.js manages IndexedDB)
  */
 
-const CACHE_NAME = 'pt-tracker-v9';
+const CACHE_NAME = 'pt-tracker-v10';
 const STATIC_ASSETS = [
   '/index.html',
   '/pt_editor.html',
@@ -92,11 +92,14 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) {
             return cachedResponse;
           }
-          // No cache available — return offline message for navigation
+          // No cache available for this URL — for navigation, try /index.html
+          // as a fallback (browsers navigate to / but pre-cache stores /index.html)
           if (request.mode === 'navigate') {
-            return new Response('Offline - no cached version available', {
-              status: 503,
-              headers: { 'Content-Type': 'text/plain' }
+            return caches.match('/index.html').then((indexResponse) => {
+              return indexResponse || new Response('Offline - no cached version available', {
+                status: 503,
+                headers: { 'Content-Type': 'text/plain' }
+              });
             });
           }
           return new Response('', { status: 503 });
