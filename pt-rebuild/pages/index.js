@@ -18,15 +18,6 @@ import { getAdherenceBadgeState } from '../lib/index-history';
 import { collectGlobalParameterValues } from '../lib/session-form-params';
 import styles from './index.module.css';
 
-function shouldOpenTimerPanel(exercise) {
-    const modifiers = exercise?.pattern_modifiers ?? [];
-    const dosageType = exercise?.dosage_type ?? null;
-    return modifiers.includes('hold_seconds')
-        || modifiers.includes('duration_seconds')
-        || dosageType === 'hold'
-        || dosageType === 'duration';
-}
-
 export default function IndexPage() {
     const { session, loading: authLoading, signIn } = useAuth();
 
@@ -101,13 +92,9 @@ export default function IndexPage() {
         setSelectedExercise(selected);
         if (selected) {
             setActiveExercise({ id: selected.id, name: selected.canonical_name || '' });
-            if (shouldOpenTimerPanel(selected)) {
-                setIsTimerOpen(true);
-            } else {
-                logger.openCreate(selected);
-            }
+            setIsTimerOpen(true);
         }
-    }, [logger, pickerExercises]);
+    }, [pickerExercises]);
 
     const handleTimerClose = useCallback(() => {
         setIsTimerOpen(false);

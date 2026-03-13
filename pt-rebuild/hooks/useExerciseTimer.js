@@ -1,5 +1,4 @@
 // hooks/useExerciseTimer.js — timer state machine for hold and duration execution flows
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createInitialTimerState, formatTimerDisplay } from '../lib/timer-panel';
 
@@ -12,7 +11,6 @@ export function useExerciseTimer({
 }) {
     const [timer, setTimer] = useState(() => createInitialTimerState(targetReps));
     const [partialRep, setPartialRep] = useState(false);
-
     const timerRef = useRef(timer);
     const intervalRef = useRef(null);
 
@@ -26,7 +24,6 @@ export function useExerciseTimer({
             intervalRef.current = null;
         }
     }, []);
-
     useEffect(() => () => clearTimerInterval(), [clearTimerInterval]);
 
     useEffect(() => {
@@ -38,9 +35,7 @@ export function useExerciseTimer({
     const pauseTimer = useCallback((announce = true) => {
         clearTimerInterval();
         setTimer((prev) => ({ ...prev, isRunning: false }));
-        if (announce && targetSeconds > 10) {
-            audio.speakText('Pause');
-        }
+        if (announce && targetSeconds > 10) audio.speakText('Pause');
     }, [audio, clearTimerInterval, targetSeconds]);
 
     const resetTimer = useCallback(() => {
@@ -48,7 +43,6 @@ export function useExerciseTimer({
         setPartialRep(false);
         setTimer(createInitialTimerState(targetReps));
     }, [pauseTimer, targetReps]);
-
     const startTimer = useCallback(() => {
         if (intervalRef.current) return;
         audio.ensureAudioReady();
@@ -68,9 +62,7 @@ export function useExerciseTimer({
             const previousRemaining = snapshot.lastAnnouncedSecond;
 
             if (remaining !== previousRemaining) {
-                if (remaining <= 3 && remaining > 0) {
-                    audio.playBeep(600, 100, 0.35);
-                }
+                if (remaining <= 3 && remaining > 0) audio.playBeep(600, 100, 0.35);
 
                 if (remaining === 0) {
                     audio.playCompletionSound();
@@ -137,15 +129,8 @@ export function useExerciseTimer({
         });
     }, [mode, pauseTimer]);
 
-    const remainingSeconds = useMemo(
-        () => Math.max(0, targetSeconds - Math.floor(timer.elapsedMs / 1000)),
-        [targetSeconds, timer.elapsedMs]
-    );
-
-    const elapsedSeconds = useMemo(
-        () => Math.floor(timer.elapsedMs / 1000),
-        [timer.elapsedMs]
-    );
+    const remainingSeconds = useMemo(() => Math.max(0, targetSeconds - Math.floor(timer.elapsedMs / 1000)), [targetSeconds, timer.elapsedMs]);
+    const elapsedSeconds = useMemo(() => Math.floor(timer.elapsedMs / 1000), [timer.elapsedMs]);
 
     return {
         isRunning: timer.isRunning,
