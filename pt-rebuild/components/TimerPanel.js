@@ -9,6 +9,7 @@ export default function TimerPanel({
     isOpen,
     exercise,
     resetToken = 0,
+    sessionProgress,
     onClose,
     onApplySet,
     onOpenManual,
@@ -19,18 +20,20 @@ export default function TimerPanel({
     if (!isOpen || !exercise) return null;
 
     const isTimerMode = timer.mode === 'hold' || timer.mode === 'duration';
-    const progressLabel = timer.isSided
-        ? `${timer.selectedSide === 'left' ? '👈' : '👉'} ${timer.selectedSide === 'left' ? 'Left' : 'Right'}: 0/1`
-        : 'Sets: 0/1';
+    const targetSets = sessionProgress?.targetSets ?? 0;
+    const totalLogged = sessionProgress?.totalLogged ?? 0;
+    const leftCount = sessionProgress?.leftCount ?? 0;
+    const rightCount = sessionProgress?.rightCount ?? 0;
     const pocketMeta = useMemo(() => {
+        const setsLeft = Math.max(0, targetSets - totalLogged);
         if (isTimerMode) {
             const runState = timer.isRunning ? 'Running' : 'Paused';
-            return `Rep ${timer.currentRep} of ${timer.totalReps} · Sets left: 1 · ${runState}`;
+            return `Rep ${timer.currentRep} of ${timer.totalReps} · Sets left: ${setsLeft} · ${runState}`;
         }
 
         const repsLeft = Math.max(0, timer.targetReps - timer.counterValue);
-        return `Sets left: 1 · Reps left: ${repsLeft}`;
-    }, [isTimerMode, timer.counterValue, timer.currentRep, timer.isRunning, timer.targetReps, timer.totalReps]);
+        return `Sets left: ${setsLeft} · Reps left: ${repsLeft}`;
+    }, [isTimerMode, targetSets, timer.counterValue, timer.currentRep, timer.isRunning, timer.targetReps, timer.totalReps, totalLogged]);
     const pocketHint = isTimerMode
         ? (timer.isRunning ? 'Tap to pause · Hold for partial' : 'Tap to start')
         : 'Tap to count';
@@ -102,9 +105,23 @@ export default function TimerPanel({
                 )}
 
                 <div className={styles.setInfo}>
-                    <div className={styles.setInfoRow}>
-                        <span>{progressLabel}</span>
-                    </div>
+                    {timer.isSided ? (
+                        <>
+                            <div className={styles.setInfoRow}>
+                                <span>👈 Left:</span>
+                                <span>{leftCount}/{targetSets}</span>
+                            </div>
+                            <div className={styles.setInfoRow}>
+                                <span>👉 Right:</span>
+                                <span>{rightCount}/{targetSets}</span>
+                            </div>
+                        </>
+                    ) : (
+                        <div className={styles.setInfoRow}>
+                            <span>Sets:</span>
+                            <span>{totalLogged}/{targetSets}</span>
+                        </div>
+                    )}
                     <div className={styles.setInfoRow}>
                         <span>Target:</span>
                         <span>{timer.targetDoseText}</span>
@@ -116,7 +133,7 @@ export default function TimerPanel({
                     <button
                         type="button"
                         className={styles.primaryBtn}
-                        onPointerUp={onOpenManual}
+                        onPointerUp={() => onOpenManual?.({ side: timer.selectedSide })}
                     >
                         Log Set
                     </button>

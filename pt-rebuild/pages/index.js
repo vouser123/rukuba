@@ -15,6 +15,7 @@ import NextSetConfirmModal from '../components/NextSetConfirmModal';
 import SessionLoggerModal from '../components/SessionLoggerModal';
 import TimerPanel from '../components/TimerPanel';
 import { useSessionLogging } from '../hooks/useSessionLogging';
+import { usePanelSessionProgress } from '../hooks/usePanelSessionProgress';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
 import styles from './index.module.css';
@@ -36,6 +37,7 @@ export default function IndexPage() {
     const [isTimerOpen, setIsTimerOpen] = useState(false);
     const [panelResetToken, setPanelResetToken] = useState(0);
     const [pendingSetPatch, setPendingSetPatch] = useState(null);
+    const { sessionProgress, appendLoggedSet, resetLoggedSets } = usePanelSessionProgress(selectedExercise);
 
     /**
      * Currently open exercise (set by SessionLoggerModal in Phase 4c).
@@ -107,7 +109,8 @@ export default function IndexPage() {
     const handleTimerClose = useCallback(() => {
         setIsTimerOpen(false);
         setPendingSetPatch(null);
-    }, []);
+        resetLoggedSets();
+    }, [resetLoggedSets]);
 
     const handleTimerApplySet = useCallback((setPatch) => {
         if (!selectedExercise) return;
@@ -117,9 +120,13 @@ export default function IndexPage() {
         });
     }, [selectedExercise]);
 
-    const handleTimerOpenManual = useCallback(() => {
+    const handleTimerOpenManual = useCallback((options = {}) => {
         if (!selectedExercise) return;
-        logger.openCreate(selectedExercise);
+        logger.openCreateWithSeedSet(selectedExercise, {
+            side: selectedExercise.pattern === 'side' ? (options.side ?? 'right') : null,
+            manual_log: true,
+            form_data: selectedExercise.default_form_data ?? null,
+        });
         setIsTimerOpen(false);
     }, [logger, selectedExercise]);
 
@@ -127,9 +134,10 @@ export default function IndexPage() {
         if (!selectedExercise || !pendingSetPatch) return;
         const didSave = await logger.submitSeedSet(selectedExercise, pendingSetPatch);
         if (!didSave) return;
+        appendLoggedSet(pendingSetPatch);
         setPendingSetPatch(null);
         setPanelResetToken((value) => value + 1);
-    }, [logger, pendingSetPatch, selectedExercise]);
+    }, [appendLoggedSet, logger, pendingSetPatch, selectedExercise]);
 
     const handleEditNextSet = useCallback(() => {
         if (!selectedExercise || !pendingSetPatch) return;
@@ -274,6 +282,7 @@ export default function IndexPage() {
                     isOpen={isTimerOpen}
                     exercise={selectedExercise}
                     resetToken={panelResetToken}
+                    sessionProgress={sessionProgress}
                     onClose={handleTimerClose}
                     onApplySet={handleTimerApplySet}
                     onOpenManual={handleTimerOpenManual}

@@ -84,7 +84,7 @@ export function useTimerSpeech(exercise, isOpen = false, resetToken = 0) {
         totalReps: timer.totalReps,
         selectedSide,
         distanceFeet: exercise?.distance_feet,
-        partialRep: timer.partialRep,
+        partialRep: false,
     }), [
         counterValue,
         exercise?.distance_feet,
@@ -94,7 +94,6 @@ export function useTimerSpeech(exercise, isOpen = false, resetToken = 0) {
         targetSeconds,
         timer.completedReps,
         timer.elapsedSeconds,
-        timer.partialRep,
         timer.totalReps,
     ]);
 
