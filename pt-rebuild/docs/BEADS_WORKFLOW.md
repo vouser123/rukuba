@@ -6,7 +6,9 @@ This document exists so `AGENTS.md` can stay short and policy-focused while this
 
 ## Purpose
 
+<!-- QUICKREF:BEGIN -->
 Use Beads for all `NextJS migration/workstream` tracking in `pt-rebuild/`.
+<!-- QUICKREF:END -->
 
 Beads is designed for concurrent multi-agent use, but safe concurrency still depends on work boundaries and ownership discipline.
 
@@ -46,6 +48,7 @@ Use dependency types deliberately:
 
 ## Command Patterns
 
+<!-- QUICKREF:BEGIN -->
 ### Safe update patterns
 
 Use `bd update`, not `bd edit`:
@@ -95,9 +98,11 @@ Practical notes:
 - `bd done` is an alias for `bd close`; use either one.
 - `bd search` now includes `external_ref`, so legacy DN refs or external tracker refs are easier to find.
 - `--json` output and error handling are more reliable in `0.60.0`, especially for agent-driven workflows.
+<!-- QUICKREF:END -->
 
 ## Create vs Update Rules
 
+<!-- QUICKREF:BEGIN -->
 Set dependencies at creation time whenever possible:
 
 ```bash
@@ -156,6 +161,7 @@ Quick decision guide:
   - `bd dep add ... --type ...`
 - Simple see-also relationship:
   - `bd dep relate <id1> <id2>`
+<!-- QUICKREF:END -->
 
 ## PT-Rebuild Issue Template
 
@@ -221,6 +227,7 @@ BEADS_DB=/tmp/test.db bd list
 
 ## Health Checks
 
+<!-- QUICKREF:BEGIN -->
 `bd doctor` detects problems in the Beads database. Use `--fix` to auto-remediate:
 
 ```bash
@@ -245,6 +252,7 @@ For git hook marker migration specifically:
 bd migrate hooks --dry-run    # preview what would change
 bd doctor --fix               # apply the standard fix path
 ```
+<!-- QUICKREF:END -->
 
 ## Duplicate Detection and Merge
 
@@ -327,18 +335,15 @@ git commit -m "Add IndexedDB read fallback in useIndexData (ptrebuild-zb3)"
 
 ## Sync and Landing-the-Plane
 
-Normal sync — two equivalent options:
+<!-- QUICKREF:BEGIN -->
+Normal sync:
 
 ```bash
-# Option 1: unified sync command (pull + push)
-bd sync
-
-# Option 2: manual pull/push pair
+# Pull latest tracker changes
 bd dolt pull
-bd dolt push
 
-# Pull only (no push):
-bd sync --no-push
+# Push local tracker changes
+bd dolt push
 ```
 
 ### Mandatory Session-End Workflow
@@ -361,7 +366,8 @@ git push          # work is stranded locally until this succeeds
 git status        # must show "up to date with origin/nextjs"
 
 # 5. Sync Beads
-bd sync
+bd dolt pull
+bd dolt push
 
 # 6. Clean up git state
 git stash clear
@@ -378,11 +384,13 @@ bd ready --json
 - NEVER stop before `git push` completes — stranded local work breaks multi-agent coordination
 - NEVER say "ready to push when you are" — push it yourself
 - If push fails, resolve and retry until it succeeds
+<!-- QUICKREF:END -->
 
 ## Windows / Dolt Troubleshooting
 
 ### Session Start (required every session)
 
+<!-- QUICKREF:BEGIN -->
 Dolt server stops between sessions — always restart at the beginning of each session:
 
 ```bash
@@ -464,6 +472,7 @@ dolt commit -m "bd: sync metadata"
 bd dolt pull
 bd dolt push
 ```
+<!-- QUICKREF:END -->
 
 ### Merge Conflicts
 
@@ -590,7 +599,7 @@ Three separate things — do not confuse them:
 
 | What | How | When |
 |------|-----|-------|
-| Issue database sync | `bd sync` or `bd dolt pull/push` | Every session |
+| Issue database sync | `bd dolt pull` / `bd dolt push` | Every session |
 | Docs reference refresh | `git pull` in PT_Backup/beads | Periodically / before referencing docs |
 | bd binary update | Original installer (Homebrew etc.) | When new bd version is released |
 

@@ -11,7 +11,8 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/docs/dev_notes.json` - canonical development tracking log (source of truth)
 - `pt-rebuild/docs/AI_WORKFLOW.md` - required intake/execute/close-loop workflow
 - `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
-- `pt-rebuild/docs/BEADS_WORKFLOW.md` - detailed Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
+- `pt-rebuild/docs/BEADS_WORKFLOW.md` - canonical Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
+- `pt-rebuild/docs/BEADS_QUICKREF.md` - generated quick reference derived from `BEADS_WORKFLOW.md` for agent session startup and recovery
 
 ## Local Memory Files (Outside GitHub Repo)
 
