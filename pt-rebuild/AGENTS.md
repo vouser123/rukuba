@@ -165,6 +165,19 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 - Use dependency types correctly:
   - Only `blocks` should gate readiness
   - Use `related`, `parent-child`, and `discovered-from` for context/structure
+- Set dependencies at creation time using `--deps` in `bd create` — do NOT follow up with `bd dep add` for the same link (creates duplicates):
+  ```bash
+  bd create "Title" --description="..." -p 1 --deps discovered-from:ptrebuild-abc --json
+  bd create "Title" --description="..." -p 1 --deps parent-child:ptrebuild-abc --json
+  ```
+- Use `bd dep add` only when adding a dependency to an **already-existing** issue:
+  ```bash
+  bd dep add <issue-id> <depends-on-id> --type discovered-from|parent-child|related|blocks
+  ```
+- Use `bd dep <id> --blocks <other-id>` to mark that `<id>` blocks `<other-id>`:
+  ```bash
+  bd dep ptrebuild-abc --blocks ptrebuild-xyz
+  ```
 - Keep ready queue clean:
   - For non-actionable meta/friction items, use low priority + defer:
   - `bd update <id> --priority 4 --defer +14d`
