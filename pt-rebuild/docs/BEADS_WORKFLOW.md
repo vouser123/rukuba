@@ -333,6 +333,14 @@ git commit -m "Add IndexedDB read fallback in useIndexData (ptrebuild-zb3)"
 
 `bd doctor` cross-references open issues against git history and flags any where work was committed but the issue wasn't closed.
 
+Because `.beads/hooks` is git-ignored, the commit-msg enforcement hook is installed locally from a tracked script:
+
+```bash
+npm run beads:install-commit-hook
+```
+
+This writes `.beads/hooks/commit-msg` for the current clone and rejects commit messages that do not include a Beads ID in parentheses.
+
 ## Sync and Landing-the-Plane
 
 <!-- QUICKREF:BEGIN -->

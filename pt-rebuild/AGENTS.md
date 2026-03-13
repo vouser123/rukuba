@@ -167,6 +167,8 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   - `bd update <id> --claim --assignee codex` (or `claude`)
 - Search before create to reduce duplicate issues:
   - `bd list --json` then title/label search before `bd create`
+- Install the repo-local commit message guard when setting up a clone:
+  - `npm run beads:install-commit-hook`
 - Use dependency types correctly:
   - Only `blocks` should gate readiness
   - Use `related`, `parent-child`, and `discovered-from` for context/structure
