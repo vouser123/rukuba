@@ -1,6 +1,6 @@
 // components/TimerPanel.js — in-panel exercise execution UI for reps/timer flows
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import PocketModeOverlay from './PocketModeOverlay';
 import styles from './TimerPanel.module.css';
 import { useTimerSpeech } from '../hooks/useTimerSpeech';
@@ -24,16 +24,10 @@ export default function TimerPanel({
     const totalLogged = sessionProgress?.totalLogged ?? 0;
     const leftCount = sessionProgress?.leftCount ?? 0;
     const rightCount = sessionProgress?.rightCount ?? 0;
-    const pocketMeta = useMemo(() => {
-        const setsLeft = Math.max(0, targetSets - totalLogged);
-        if (isTimerMode) {
-            const runState = timer.isRunning ? 'Running' : 'Paused';
-            return `Rep ${timer.currentRep} of ${timer.totalReps} · Sets left: ${setsLeft} · ${runState}`;
-        }
-
-        const repsLeft = Math.max(0, timer.targetReps - timer.counterValue);
-        return `Sets left: ${setsLeft} · Reps left: ${repsLeft}`;
-    }, [isTimerMode, targetSets, timer.counterValue, timer.currentRep, timer.isRunning, timer.targetReps, timer.totalReps, totalLogged]);
+    const setsLeft = Math.max(0, targetSets - totalLogged);
+    const pocketMeta = isTimerMode
+        ? `Rep ${timer.currentRep} of ${timer.totalReps} · Sets left: ${setsLeft} · ${timer.isRunning ? 'Running' : 'Paused'}`
+        : `Sets left: ${setsLeft} · Reps left: ${Math.max(0, timer.targetReps - timer.counterValue)}`;
     const pocketHint = isTimerMode
         ? (timer.isRunning ? 'Tap to pause · Hold for partial' : 'Tap to start')
         : 'Tap to count';
