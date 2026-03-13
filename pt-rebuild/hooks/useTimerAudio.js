@@ -1,0 +1,71 @@
+// hooks/useTimerAudio.js — audio and speech side effects for exercise execution feedback
+
+import { useCallback, useRef } from 'react';
+
+export function useTimerAudio() {
+    const audioContextRef = useRef(null);
+
+    const ensureAudioReady = useCallback(() => {
+        try {
+            if (!audioContextRef.current) {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                if (Ctx) audioContextRef.current = new Ctx();
+            }
+            if (audioContextRef.current?.state === 'suspended') {
+                audioContextRef.current.resume();
+            }
+        } catch {
+            audioContextRef.current = null;
+        }
+    }, []);
+
+    const playBeep = useCallback((frequency = 800, duration = 200, gain = 0.4) => {
+        try {
+            ensureAudioReady();
+            const context = audioContextRef.current;
+            if (!context) return;
+
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'square';
+
+            const durationInSeconds = duration / 1000;
+            gainNode.gain.setValueAtTime(gain, context.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + durationInSeconds);
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + durationInSeconds);
+        } catch {
+            // Audio availability is best-effort only.
+        }
+    }, [ensureAudioReady]);
+
+    const playCompletionSound = useCallback(() => {
+        playBeep(1000, 150);
+        setTimeout(() => playBeep(1200, 150), 200);
+        setTimeout(() => playBeep(1400, 200), 400);
+    }, [playBeep]);
+
+    const speakText = useCallback((text) => {
+        try {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            window.speechSynthesis.speak(utterance);
+        } catch {
+            // Speech availability is best-effort only.
+        }
+    }, []);
+
+    return {
+        ensureAudioReady,
+        playBeep,
+        playCompletionSound,
+        speakText,
+    };
+}

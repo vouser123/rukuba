@@ -1,3 +1,7 @@
+// components/TimerPanel.js — in-panel exercise execution UI for reps/timer flows
+
+import { useMemo, useState } from 'react';
+import PocketModeOverlay from './PocketModeOverlay';
 import styles from './TimerPanel.module.css';
 import { useTimerSpeech } from '../hooks/useTimerSpeech';
 
@@ -9,25 +13,36 @@ export default function TimerPanel({
     onOpenManual,
 }) {
     const timer = useTimerSpeech(exercise, isOpen);
+    const [isPocketOpen, setIsPocketOpen] = useState(false);
 
     if (!isOpen || !exercise) return null;
 
-    const canApplyReps = timer.counterValue > 0;
-    const canApplyDuration = timer.mode === 'duration' && timer.elapsedSeconds > 0;
-    const canApplyHold = timer.mode === 'hold' && timer.completedReps > 0;
-    const canApplyDistance = timer.mode === 'distance' && Number(exercise?.distance_feet ?? 0) > 0;
-    const canApply = canApplyReps || canApplyDuration || canApplyHold || canApplyDistance;
     const isTimerMode = timer.mode === 'hold' || timer.mode === 'duration';
+    const progressLabel = timer.isSided
+        ? `${timer.selectedSide === 'left' ? '👈' : '👉'} ${timer.selectedSide === 'left' ? 'Left' : 'Right'}: 0/1`
+        : 'Sets: 0/1';
+    const pocketMeta = useMemo(() => {
+        if (isTimerMode) {
+            const runState = timer.isRunning ? 'Running' : 'Paused';
+            return `Rep ${timer.currentRep} of ${timer.totalReps} · Sets left: 1 · ${runState}`;
+        }
+
+        const repsLeft = Math.max(0, timer.targetReps - timer.counterValue);
+        return `Sets left: 1 · Reps left: ${repsLeft}`;
+    }, [isTimerMode, timer.counterValue, timer.currentRep, timer.isRunning, timer.targetReps, timer.totalReps]);
+    const pocketHint = isTimerMode
+        ? (timer.isRunning ? 'Tap to pause · Hold for partial' : 'Tap to start')
+        : 'Tap to count';
 
     return (
         <div className={styles.overlay} onPointerUp={(event) => { if (event.target === event.currentTarget) onClose(); }}>
             <section className={styles.panel} aria-label="Exercise timer and counter">
                 <header className={styles.header}>
                     <div>
-                        <h2 className={styles.title}>Exercise Mode</h2>
-                        <p className={styles.subtitle}>{exercise.canonical_name}</p>
+                        <h2 className={styles.title}>{exercise.canonical_name}</h2>
+                        <p className={styles.subtitle}>{timer.targetDoseText}</p>
                     </div>
-                    <button className={styles.closeBtn} type="button" onPointerUp={onClose}>Close</button>
+                    <button className={styles.closeBtn} type="button" onPointerUp={onClose}>Done</button>
                 </header>
 
                 {timer.isSided && (
@@ -39,14 +54,14 @@ export default function TimerPanel({
                                 onPointerUp={() => timer.setSelectedSide('left')}
                                 className={`${styles.sideBtn} ${timer.selectedSide === 'left' ? styles.sideActive : ''}`}
                             >
-                                Left
+                                👈 Left
                             </button>
                             <button
                                 type="button"
                                 onPointerUp={() => timer.setSelectedSide('right')}
                                 className={`${styles.sideBtn} ${timer.selectedSide === 'right' ? styles.sideActive : ''}`}
                             >
-                                Right
+                                👉 Right
                             </button>
                         </div>
                     </div>
@@ -54,12 +69,12 @@ export default function TimerPanel({
 
                 {timer.mode === 'reps' && (
                     <div className={styles.modeBlock}>
-                        <p className={styles.repInfo}>{timer.repInfoText}</p>
-                        <div className={styles.counterValue}>{timer.counterValue}</div>
+                        <p className={styles.counterLabel}>Reps</p>
+                        <button type="button" className={styles.counterDisplay} onPointerUp={timer.incrementCounter}>
+                            {timer.counterValue}
+                        </button>
                         <div className={styles.controlRow}>
-                            <button type="button" className={styles.secondaryBtn} onPointerUp={timer.decrementCounter}>-</button>
-                            <button type="button" className={styles.primaryBtn} onPointerUp={timer.incrementCounter}>+1 Rep</button>
-                            <button type="button" className={styles.secondaryBtn} onPointerUp={timer.resetCounter}>Reset</button>
+                            <button type="button" className={styles.secondaryBtn} onPointerUp={timer.decrementCounter}>− Undo</button>
                         </div>
                     </div>
                 )}
@@ -85,20 +100,48 @@ export default function TimerPanel({
                     </div>
                 )}
 
-                <footer className={styles.footer}>
+                <div className={styles.setInfo}>
+                    <div className={styles.setInfoRow}>
+                        <span>{progressLabel}</span>
+                    </div>
+                    <div className={styles.setInfoRow}>
+                        <span>Target:</span>
+                        <span>{timer.targetDoseText}</span>
+                    </div>
+                </div>
+
+                <footer className={styles.controlFooter}>
+                    <button type="button" className={styles.secondaryBtn} disabled>Previous</button>
                     <button
                         type="button"
-                        className={styles.applyBtn}
-                        disabled={!canApply}
+                        className={styles.primaryBtn}
+                        onPointerUp={onOpenManual}
+                    >
+                        Log Set
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.successBtn}
+                        disabled={!timer.canApply}
                         onPointerUp={() => onApplySet?.(timer.buildCurrentSetPatch())}
                     >
-                        Use This Value
-                    </button>
-                    <button type="button" className={styles.secondaryBtn} onPointerUp={onOpenManual}>
-                        Open Full Log Form
+                        Next Set
                     </button>
                 </footer>
+                <button type="button" className={styles.finishBtn} onPointerUp={onClose}>Done</button>
+                <button type="button" className={styles.pocketBtn} onPointerUp={() => setIsPocketOpen(true)}>Pocket Mode</button>
+                <button type="button" className={styles.backBtn} onPointerUp={onClose}>← Back to Exercises</button>
             </section>
+            <PocketModeOverlay
+                isOpen={isPocketOpen}
+                label={isTimerMode ? timer.timerDisplay : String(timer.counterValue)}
+                meta={pocketMeta}
+                hint={pocketHint}
+                onClose={() => setIsPocketOpen(false)}
+                onTap={isTimerMode ? timer.toggleTimer : timer.incrementCounter}
+                onLongPress={isTimerMode ? timer.recordPartialRep : null}
+                longPressEnabled={timer.mode === 'hold'}
+            />
         </div>
     );
 }
