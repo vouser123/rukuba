@@ -11,7 +11,8 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/docs/dev_notes.json` - canonical development tracking log (source of truth)
 - `pt-rebuild/docs/AI_WORKFLOW.md` - required intake/execute/close-loop workflow
 - `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
-- `pt-rebuild/docs/BEADS_WORKFLOW.md` - detailed Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
+- `pt-rebuild/docs/BEADS_WORKFLOW.md` - canonical Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
+- `pt-rebuild/docs/BEADS_QUICKREF.md` - generated quick reference derived from `BEADS_WORKFLOW.md` for agent session startup and recovery
 
 ## Local Memory Files (Outside GitHub Repo)
 
@@ -150,12 +151,12 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 ## Agent Ops Friction Logging
 
-- Use Beads epic `ptrebuild-uf1` ("Agent Ops Epic: tracker/tooling friction log") for system/process/tooling friction discovered during execution.
+- Use Beads epic `pt-uf1` ("Agent Ops Epic: tracker/tooling friction log") for system/process/tooling friction discovered during execution.
 - Create child issues from that epic for concrete incidents, include root cause + mitigation, and close child issues after fix.
 - Keep the epic open as the longitudinal signal for whether current tracker/process choices still serve agent throughput.
 - Child issue command pattern:
-  - `bd create "<title>" -t task -p 2 --deps discovered-from:ptrebuild-uf1 --description "<incident + impact + root cause + mitigation>" --json`
-  - Optional explicit parent-child link: `bd dep add <child-id> ptrebuild-uf1 --type parent-child`
+  - `bd create "<title>" -t task -p 2 --deps discovered-from:pt-uf1 --description "<incident + impact + root cause + mitigation>" --json`
+  - Optional explicit parent-child link: `bd dep add <child-id> pt-uf1 --type parent-child`
 
 ## Beads Agent Discipline (Required)
 
@@ -166,13 +167,15 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   - `bd update <id> --claim --assignee codex` (or `claude`)
 - Search before create to reduce duplicate issues:
   - `bd list --json` then title/label search before `bd create`
+- Install the repo-local commit message guard when setting up a clone:
+  - `npm run beads:install-commit-hook`
 - Use dependency types correctly:
   - Only `blocks` should gate readiness
   - Use `related`, `parent-child`, and `discovered-from` for context/structure
 - Set dependencies at creation time using `--deps` in `bd create` — do NOT follow up with `bd dep add` for the same link (creates duplicates):
   ```bash
-  bd create "Title" --description="..." -p 1 --deps discovered-from:ptrebuild-abc --json
-  bd create "Title" --description="..." -p 1 --deps parent-child:ptrebuild-abc --json
+  bd create "Title" --description="..." -p 1 --deps discovered-from:pt-abc --json
+  bd create "Title" --description="..." -p 1 --deps parent-child:pt-abc --json
   ```
 - Use `bd dep add` only when adding a dependency to an **already-existing** issue:
   ```bash
@@ -180,7 +183,7 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   ```
 - Use `bd dep <id> --blocks <other-id>` to mark that `<id>` blocks `<other-id>`:
   ```bash
-  bd dep ptrebuild-abc --blocks ptrebuild-xyz
+  bd dep pt-abc --blocks pt-xyz
   ```
 - Keep ready queue clean:
   - For non-actionable meta/friction items, use low priority + defer:
