@@ -151,12 +151,12 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 ## Agent Ops Friction Logging
 
-- Use Beads epic `ptrebuild-uf1` ("Agent Ops Epic: tracker/tooling friction log") for system/process/tooling friction discovered during execution.
+- Use Beads epic `pt-uf1` ("Agent Ops Epic: tracker/tooling friction log") for system/process/tooling friction discovered during execution.
 - Create child issues from that epic for concrete incidents, include root cause + mitigation, and close child issues after fix.
 - Keep the epic open as the longitudinal signal for whether current tracker/process choices still serve agent throughput.
 - Child issue command pattern:
-  - `bd create "<title>" -t task -p 2 --deps discovered-from:ptrebuild-uf1 --description "<incident + impact + root cause + mitigation>" --json`
-  - Optional explicit parent-child link: `bd dep add <child-id> ptrebuild-uf1 --type parent-child`
+  - `bd create "<title>" -t task -p 2 --deps discovered-from:pt-uf1 --description "<incident + impact + root cause + mitigation>" --json`
+  - Optional explicit parent-child link: `bd dep add <child-id> pt-uf1 --type parent-child`
 
 ## Beads Agent Discipline (Required)
 
@@ -174,8 +174,8 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   - Use `related`, `parent-child`, and `discovered-from` for context/structure
 - Set dependencies at creation time using `--deps` in `bd create` — do NOT follow up with `bd dep add` for the same link (creates duplicates):
   ```bash
-  bd create "Title" --description="..." -p 1 --deps discovered-from:ptrebuild-abc --json
-  bd create "Title" --description="..." -p 1 --deps parent-child:ptrebuild-abc --json
+  bd create "Title" --description="..." -p 1 --deps discovered-from:pt-abc --json
+  bd create "Title" --description="..." -p 1 --deps parent-child:pt-abc --json
   ```
 - Use `bd dep add` only when adding a dependency to an **already-existing** issue:
   ```bash
@@ -183,7 +183,7 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   ```
 - Use `bd dep <id> --blocks <other-id>` to mark that `<id>` blocks `<other-id>`:
   ```bash
-  bd dep ptrebuild-abc --blocks ptrebuild-xyz
+  bd dep pt-abc --blocks pt-xyz
   ```
 - Keep ready queue clean:
   - For non-actionable meta/friction items, use low priority + defer:

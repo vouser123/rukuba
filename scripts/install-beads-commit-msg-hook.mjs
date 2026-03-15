@@ -16,12 +16,12 @@ if printf '%s' "$first_line" | grep -Eq '^(Merge |Revert |fixup! |squash! )'; th
   exit 0
 fi
 
-if grep -Eq '\\((ptrebuild|bd)-[A-Za-z0-9][A-Za-z0-9.-]*\\)' "$msg_file"; then
+if grep -Eq '\\((pt|bd)-[A-Za-z0-9][A-Za-z0-9.-]*\\)' "$msg_file"; then
   exit 0
 fi
 
 echo "Commit message must include a Beads ID in parentheses, e.g.:" >&2
-echo "  Add minimal PR template (ptrebuild-84e)" >&2
+echo "  Add minimal PR template (pt-84e)" >&2
 exit 1
 `;
 

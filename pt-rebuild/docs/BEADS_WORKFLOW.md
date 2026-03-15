@@ -106,9 +106,9 @@ Practical notes:
 Set dependencies at creation time whenever possible:
 
 ```bash
-bd create "Title" --description="..." -p 1 --deps discovered-from:ptrebuild-abc --json
-bd create "Title" --description="..." -p 1 --parent ptrebuild-abc --json
-bd create "Title" --description="..." -p 1 --parent ptrebuild-abc --deps discovered-from:ptrebuild-xyz --json
+bd create "Title" --description="..." -p 1 --deps discovered-from:pt-abc --json
+bd create "Title" --description="..." -p 1 --parent pt-abc --json
+bd create "Title" --description="..." -p 1 --parent pt-abc --deps discovered-from:pt-xyz --json
 ```
 
 Use `bd dep add` only when linking an already-existing issue:
@@ -121,26 +121,26 @@ Examples:
 
 ```bash
 # New child under a parent
-bd create "Child task" --description="..." --parent ptrebuild-abc --json
+bd create "Child task" --description="..." --parent pt-abc --json
 
 # New issue discovered while working a parent
-bd create "Found parity gap" --description="..." --deps discovered-from:ptrebuild-abc --json
+bd create "Found parity gap" --description="..." --deps discovered-from:pt-abc --json
 
 # New child that was also discovered during parent work
-bd create "Found parity gap" --description="..." --parent ptrebuild-abc --deps discovered-from:ptrebuild-abc --json
+bd create "Found parity gap" --description="..." --parent pt-abc --deps discovered-from:pt-abc --json
 
 # Add parent-child after creation
-bd dep add ptrebuild-child ptrebuild-parent --type parent-child
+bd dep add pt-child pt-parent --type parent-child
 
 # Add discovered-from after creation
-bd dep add ptrebuild-new ptrebuild-source --type discovered-from
+bd dep add pt-new pt-source --type discovered-from
 
 # Add blocking dependency
-bd dep add ptrebuild-blocked ptrebuild-blocker --type blocks
-bd dep ptrebuild-blocker --blocks ptrebuild-blocked
+bd dep add pt-blocked pt-blocker --type blocks
+bd dep pt-blocker --blocks pt-blocked
 
 # Relate two existing issues without hierarchy/blocking
-bd dep relate ptrebuild-a ptrebuild-b
+bd dep relate pt-a pt-b
 ```
 
 Use notes/comments instead of new children when:
@@ -267,9 +267,9 @@ bd duplicates --auto-merge # automatically merge all duplicates
 Merge specific issues manually:
 
 ```bash
-bd merge ptrebuild-42 --into ptrebuild-41           # merge one into another
-bd merge ptrebuild-42 ptrebuild-43 --into ptrebuild-41  # merge multiple
-bd merge ptrebuild-42 --into ptrebuild-41 --dry-run     # preview first
+bd merge pt-42 --into pt-41           # merge one into another
+bd merge pt-42 pt-43 --into pt-41  # merge multiple
+bd merge pt-42 --into pt-41 --dry-run     # preview first
 ```
 
 Merge closes the source issues and migrates all dependencies and text references to the target. Cannot be undone (but git history preserves original state).
@@ -277,15 +277,15 @@ Merge closes the source issues and migrates all dependencies and text references
 AI agent workflow when duplicates are found:
 
 1. `bd list --json | grep "similar text"` — search for similar issues
-2. `bd show ptrebuild-41 ptrebuild-42 --json` — compare details
-3. `bd merge ptrebuild-42 --into ptrebuild-41` — consolidate
+2. `bd show pt-41 pt-42 --json` — compare details
+3. `bd merge pt-42 --into pt-41` — consolidate
 
 ## Dependency Tree
 
 View the full dependency graph for an issue:
 
 ```bash
-bd dep tree ptrebuild-xxx
+bd dep tree pt-xxx
 ```
 
 ## Database Location
@@ -327,8 +327,8 @@ rm -rf directory
 Include the Beads issue ID in parentheses in git commit messages. This lets `bd doctor` detect orphaned issues — work committed but issue not closed:
 
 ```bash
-git commit -m "Fix offline cache hydration (ptrebuild-zb3)"
-git commit -m "Add IndexedDB read fallback in useIndexData (ptrebuild-zb3)"
+git commit -m "Fix offline cache hydration (pt-zb3)"
+git commit -m "Add IndexedDB read fallback in useIndexData (pt-zb3)"
 ```
 
 `bd doctor` cross-references open issues against git history and flags any where work was committed but the issue wasn't closed.
@@ -360,13 +360,13 @@ Work is NOT complete until `git push` succeeds and Beads is synced. Complete ALL
 
 ```bash
 # 1. File issues for any remaining work discovered this session
-bd create "..." -p 1 --deps discovered-from:ptrebuild-xxx --json
+bd create "..." -p 1 --deps discovered-from:pt-xxx --json
 
 # 2. Run quality gates (only if code changed)
 npm run dev-notes:check
 
 # 3. Close finished issues
-bd close ptrebuild-xxx --reason "Completed" --json
+bd close pt-xxx --reason "Completed" --json
 
 # 4. Push code to remote — MANDATORY, do not stop before this completes
 git pull --rebase
