@@ -241,6 +241,8 @@ function buildMarkdown(data) {
 
 This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markdown.
 
+> Legacy archive: Beads is the active tracker for current work. Use this file for historical reference only.
+
 ## Table of Contents
 - [How to Use This File](#how-to-use-this-file)
 - [Priority Levels](#priority-levels)
@@ -253,13 +255,11 @@ This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markd
 - [Closed Items](#closed-items)
 
 ## How to Use This File
-- Canonical source of truth: \`docs/dev_notes.json\`.
-- Run \`npm run dev-notes:build\` after JSON updates.
-- \`open_items\`: active work queue — statuses \`open\`, \`in_progress\`, \`blocked\` only.
-- \`closed_items\`: completed items — status \`done\` only.
-- \`in_progress\`: item is actively being worked on this session.
-- \`blocked\`: cannot proceed; must include a \`constraints_caveats\` note explaining the blocker.
-- Close-loop rule: when an item is resolved, move it from \`open_items\` to \`closed_items\` (set status to \`done\`, add \`resolved\` date) and fill all six narrative fields on the closed item: \`problem\`, \`root_cause\`, \`change_made\`, \`files_touched\`, \`validation\`, and \`follow_ups\`.
+- Canonical source of truth for the legacy archive: \`docs/dev_notes.json\`.
+- Active work now lives in Beads, not in \`open_items\`.
+- Run \`npm run dev-notes:build\` after legacy archive updates.
+- \`open_items\`: legacy active queue from before the Beads migration; should normally be empty.
+- \`closed_items\`: completed or retired legacy items — status \`done\` only.
 
 ## Priority Levels
 ${renderEnumSection(data.enums.priority_levels)}

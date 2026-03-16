@@ -31,9 +31,7 @@ Before deploying to Vercel:
 ## Documentation updates
 
 - Update `pt-rebuild/docs/` if you change architecture, routes, or data model.
-- Append a dated note to `pt-rebuild/docs/DEV_NOTES.md` after each fix using the defined `Entry Schema`.
-- Use `Open Items` in `pt-rebuild/docs/DEV_NOTES.md` as the single source of truth for active TODOs/outstanding work.
-- For each `Open Items` entry, include both `priority` and `risk` using the enums defined in `DEV_NOTES.md`.
-- Preserve prose context under each `Open Items` item (`Context` and `Constraints/Caveats`) so both terse and prose-oriented agents can act safely.
-- Apply close-loop behavior: when an item is resolved, remove it from `Open Items` and reference the resolution in the dated entry.
+- Use Beads as the active tracker for TODOs, intake, and handoff.
+- Treat `pt-rebuild/docs/dev_notes.json` and `pt-rebuild/docs/DEV_NOTES.md` as legacy history, not the live work queue.
+- If you update the legacy archive itself, regenerate it with `npm run dev-notes:build` and verify with `npm run dev-notes:check`.
 

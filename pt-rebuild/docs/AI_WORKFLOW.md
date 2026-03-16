@@ -1,69 +1,25 @@
-# AI Workflow for Dev Tracking (`pt-rebuild`)
+# Legacy Dev Notes Workflow (`pt-rebuild`)
 
-This workflow defines how agents (Codex/Claude) must track work using:
-- Canonical source: `docs/dev_notes.json` (only hand-edited dev-tracking file)
-- Generated artifact: `docs/DEV_NOTES.md`
+`docs/dev_notes.json` and `docs/DEV_NOTES.md` are now legacy archive material, not the active tracker.
 
-## Tracker Split (Pilot Rule)
+## Active Rule
 
-Until explicitly changed:
+- Use Beads for all active work in `pt-rebuild`.
+- Do not create new `DN-*` items.
+- If historical context from a `DN-*` item matters, reference it from Beads with `--external-ref DN-###`.
 
-- NextJS migration/workstream tasks are tracked in **Beads**.
-- Non-NextJS tasks remain tracked in `docs/dev_notes.json`.
+## Legacy Archive Handling
 
-Do not create duplicate items across both systems for the same task.
-If a task crosses both domains, split it into two linked tasks (one in Beads, one in dev_notes) with explicit cross-reference.
-
-## 1) Intake
-
-### Planned work
-- Locate existing issue ID (`DN-###`) in `open_items`.
-- Confirm status, scope, and constraints before coding.
-
-### Ad-hoc user requests (required rule)
-- If requested work is **not already tracked**, create a new `DN-###` entry first (use the next available ID).
-- Add at minimum: `status`, `priority`, `risk`, `tags`, `file`, and `issue`.
-- Then begin implementation.
-
-### Incident/regression work
-- Open a dedicated `DN-###` item even if related to another task.
-- Include clear context and constraints so follow-up agents can reproduce triage decisions.
-
-## 2) Execute
-
-- Implement changes.
-- Keep `open_items` current with context/options/constraints as new findings appear.
+- `docs/dev_notes.json` remains the canonical source for the legacy archive.
+- `docs/DEV_NOTES.md` remains a generated view of that archive.
+- Only update the legacy archive when preserving history or recording archive-maintenance changes.
 - Do not hand-edit `docs/DEV_NOTES.md`.
 
-## 3) Close-loop
+## Legacy Maintenance Commands
 
-When work is resolved:
-1. Remove/resolve the corresponding `open_items` item.
-2. Add a `dated_entries` record (newest-first when rendered) with exact field order:
-   - `Problem`
-   - `Root cause`
-   - `Change made`
-   - `Files touched`
-   - `Validation`
-   - `Follow-ups`
-   - `Tags`
-3. Run generator/check commands.
-
-## When to update `open_items` vs `dated_entries`
-
-- Use `open_items` for active, blocked, or in-progress work.
-- Use `dated_entries` only for completed/resolved outcomes and shipped decisions.
-- Keep IDs coherent: preserve existing `DN-###` numbering; only allocate new IDs at the next number.
-
-## Required Commands
-
-Run from `/pt-rebuild`:
+Run from `/pt-rebuild` only if the legacy archive itself changes:
 
 ```bash
 npm run dev-notes:build
 npm run dev-notes:check
 ```
-
-Expected behavior:
-- `dev-notes:build` rewrites `docs/DEV_NOTES.md` from JSON.
-- `dev-notes:check` exits non-zero if Markdown and JSON are out of sync.

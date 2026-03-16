@@ -34,7 +34,7 @@ bd update <id> --body-file description.md
 
 ### Useful `bd 0.60.0` commands
 
-These are the new commands and behaviors most likely to help in this workspace:
+These are the `0.60.0` commands and behaviors most likely to help in this workspace:
 
 ```bash
 # Safer troubleshooting context when bd errors
@@ -49,6 +49,7 @@ bd help --doc
 
 # Closure alias
 bd done <id> "Completed"
+
 ```
 
 Practical notes:
@@ -56,6 +57,21 @@ Practical notes:
 - `bd done` is an alias for `bd close`; use either one.
 - `bd search` now includes `external_ref`, so legacy DN refs or external tracker refs are easier to find.
 - `--json` output and error handling are more reliable in `0.60.0`, especially for agent-driven workflows.
+
+### Additional `bd 0.61.0` commands
+
+These are new in `0.61.0` and are available locally now that `bd` has been updated:
+
+```bash
+# Structured issue sections
+bd create "Title" --description="..." --skills "Required skills" --context "Extra context" --json
+```
+
+Practical notes:
+
+- `bd bootstrap` can now auto-detect a Beads database on git origin and clone it when present.
+- `bd init` now warns when the git remote already appears to contain a Beads database.
+- `bd doctor` now auto-starts Dolt more reliably on cold standalone checks.
 
 ---
 
@@ -166,7 +182,7 @@ Work is NOT complete until `git push` succeeds and Beads is synced. Complete ALL
 bd create "..." -p 1 --deps discovered-from:pt-xxx --json
 
 # 2. Run quality gates (only if code changed)
-npm run dev-notes:check
+# Example: run the checks that apply to the code you changed
 
 # 3. Close finished issues
 bd close pt-xxx --reason "Completed" --json
@@ -215,6 +231,12 @@ bd dolt stop
 - pending local changes are auto-committed before pull in more cases
 - metadata merge conflicts during `bd dolt pull` are more likely to auto-resolve
 - ephemeral Dolt ports reduce Windows port-collision issues
+
+`bd 0.61.0` adds a few more startup and recovery improvements:
+
+- `bd bootstrap` auto-detects a Beads database on git origin and clones it when found
+- `bd init` warns when an existing Beads DB is detected on origin
+- `bd doctor` auto-starts Dolt on cold standalone checks
 
 If `bd dolt start` fails after a Windows restart (stale stats cache):
 
