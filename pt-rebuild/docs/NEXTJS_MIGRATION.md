@@ -603,7 +603,7 @@ export default function MyPage() {
 
 To continue migration work from claude.ai:
 1. Reference this file: `pt-rebuild/docs/NEXTJS_MIGRATION.md`
-2. Reference `pt-rebuild/docs/dev_notes.json` (DN-033 and later)
+2. Reference Beads issues for active migration work; use `pt-rebuild/docs/dev_notes.json` only as legacy history when older DN context is needed
 3. Say: "Continue the Next.js migration per NEXTJS_MIGRATION.md — next phase is [Phase 3: pt_editor]"
 
 All context needed for the next phase is in this document.

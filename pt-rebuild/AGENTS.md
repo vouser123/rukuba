@@ -8,11 +8,12 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/docs/DEVELOPMENT.md` - architecture and implementation reference
 - `pt-rebuild/docs/DEV_PRACTICES.md` - day-to-day workflow and troubleshooting
 - `pt-rebuild/docs/vocabularies.md` - canonical field names and data contracts
-- `pt-rebuild/docs/dev_notes.json` - canonical development tracking log (source of truth)
-- `pt-rebuild/docs/AI_WORKFLOW.md` - required intake/execute/close-loop workflow
+- `pt-rebuild/docs/AI_WORKFLOW.md` - legacy dev_notes workflow reference (deprecated; Beads is the active tracker)
 - `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
 - `pt-rebuild/docs/BEADS_WORKFLOW.md` - canonical Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
 - `pt-rebuild/docs/BEADS_QUICKREF.md` - generated quick reference derived from `BEADS_WORKFLOW.md` for agent session startup and recovery
+- `pt-rebuild/docs/dev_notes.json` - legacy tracking archive; no longer the active intake queue
+- `pt-rebuild/docs/DEV_NOTES.md` - generated legacy archive view derived from `dev_notes.json`
 
 ## Local Memory Files (Outside GitHub Repo)
 
@@ -62,70 +63,25 @@ This project is operated by a non-technical user. Agents must not assume technic
 - Include `-webkit-tap-highlight-color: transparent` on buttons.
 - Minimum touch target size: 44px (Apple HIG).
 
-## Session Startup: Deferred Item Check (Required)
+## Active Tracker Policy (Required)
 
-At the start of every session, scan `open_items` in `pt-rebuild/docs/dev_notes.json` for items where `scope === "deferred"`. (Only `open_items` needs checking — `closed_items` contains only `done` items.) For each deferred item, evaluate whether its `reactivate_when.trigger` condition is now met:
-
-- `deployment_scope_change` — check whether the number of active users in the `users` table exceeds 2, or whether there is any indication of a planned expansion. If yes, surface the item to the user before proceeding.
-- `query_volume_sufficient` — check Supabase performance advisor notes or recent traffic context. If real sustained traffic exists, surface the item.
-- `api_capacity_available` — check current Vercel function count against the free-tier limit (12). If capacity has changed, surface the item.
-
-If no trigger conditions are met, proceed without surfacing deferred items. Do not re-open or act on deferred items autonomously — surface them to the user for a decision.
-
-## Dev Notes Workflow (Required)
-
-- Canonical tracking file: `pt-rebuild/docs/dev_notes.json` (the only hand-edited dev-tracking file).
-- Generated artifact: `pt-rebuild/docs/DEV_NOTES.md` (never hand-edit).
-- After any change to dev notes JSON, run `npm run dev-notes:build`.
-- Before finishing, run `npm run dev-notes:check` to ensure no drift.
-
-## Tracker Routing Policy (Required)
-
-Use a split tracker model until explicitly retired:
-
-- `NextJS migration/workstream` items: track in **Beads only**.
-- `Non-NextJS` items (static app, API/security, DB/migrations, infra, docs/process outside NextJS migration): track in **dev_notes.json**.
-
-Hard rules:
-
-- Do not create new NextJS work items in `dev_notes.json` during the Beads pilot.
-- Do not move or delete existing non-NextJS `dev_notes.json` items unless they are actually resolved/closed per current workflow rules.
-- At session start, always check both queues:
-  - Beads for NextJS active work.
-  - `dev_notes.json` for non-NextJS open/deferred work.
+- Use Beads for active work tracking in `pt-rebuild`, including intake, execution, handoff, and closure.
+- Do not create new `DN-*` items in `dev_notes.json`.
+- Treat `pt-rebuild/docs/dev_notes.json` and `pt-rebuild/docs/DEV_NOTES.md` as legacy history only.
+- If a legacy `DN-*` reference matters to current work, link it in Beads with `--external-ref DN-###` instead of reviving dev_notes as an active queue.
+- If you need to review historical deferred items, consult the legacy archive and then create or update a Beads issue rather than reopening `dev_notes`.
 
 ## Validation Preference
 
 - Prefer Vercel deployment checks/logs as the default validation path for routine changes.
 - Run local `npm run build` only when Vercel signal is insufficient, when debugging environment-specific issues, or before especially risky refactors.
 
-### Item arrays and status rules
+### Legacy Dev Notes Archive
 
-- `open_items`: active work queue. Only statuses `open`, `in_progress`, or `blocked` belong here.
-- `closed_items`: completed items. Only status `done` belongs here.
-- **Never** put a `done` item in `open_items`, or a non-`done` item in `closed_items`. The generator enforces this and will fail the build if violated.
-
-| Status | Array | Meaning |
-|---|---|---|
-| `open` | `open_items` | Tracked, not yet started |
-| `in_progress` | `open_items` | Actively being worked on this session |
-| `blocked` | `open_items` | Cannot proceed — blocker documented in `constraints_caveats` |
-| `done` | `closed_items` | Resolved — has `resolved` date and all 6 closure narrative fields on the item |
-
-### Lifecycle enforcement: intake → execute → close-loop
-
-1. **Intake**
-   - For every request, check whether work already exists in `open_items`.
-   - If user asks for ad-hoc work not already tracked, create a new issue ID (`DN-###`, next available number) in `open_items` before execution or at the start of execution.
-   - Every new open item **must** include an `agent` field (array). Use `["codex"]`, `["claude"]`, or `["codex", "claude"]`. Use `["unassigned"]` only if genuinely unclear — but triage it before proceeding.
-- Note: If the current Codex environment does not have access to deployment previews, Vercel logs, or Supabase data needed for the task, assign `["claude"]` for the whole item or explicitly hand off that validation step. Claude can choose to hand off the coding portion to Codex within a session, but ownership stays with Claude for environment-dependent validation.
-2. **Execute**
-   - Set status to `in_progress` in `open_items` while work is active.
-3. **Close-loop**
-   - When resolved: set `status` to `done`, add `resolved` date, move the item from `open_items` to `closed_items`, and fill all 6 closure narrative fields directly on the closed item: `problem`, `root_cause`, `change_made`, `files_touched`, `validation`, `follow_ups`.
-   - Legacy pre-DN entries use `LE-###` IDs and live in `closed_items` alongside `DN-###` items.
-   - `pt-rebuild/docs/HISTORY.md` is a read-only archive for pre-structured notes; agents do not need to read or update it.
-   - Regenerate Markdown after JSON edits.
+- `pt-rebuild/docs/dev_notes.json` is retained for historical reference.
+- `pt-rebuild/docs/DEV_NOTES.md` is generated from the JSON and should never be hand-edited.
+- If the legacy archive is updated for documentation reasons, run `npm run dev-notes:build` and `npm run dev-notes:check`.
+- Do not use the archive for active intake, assignment, or status management.
 
 ## Routine Codex Use: Parity Checking
 
