@@ -1,186 +1,167 @@
-Purpose: define how the Next.js tracker migration should use the static baseline artifacts to achieve parity safely and in a Beads-ready way.
-
 ## Context
 
-This change does not implement tracker parity directly. It establishes the migration design that should sit on top of the static baseline contract.
+This change is not implementing the Next.js tracker yet. It is building the planning package that later migration work will actually rely on.
 
-The current problem is not only missing parity in the Next.js tracker. It is also process drift:
+The current source truth is concentrated in static `public/index.html`, with supporting extraction material already preserved in:
 
-- the static tracker behavior is large and concentrated in `public/index.html`
-- agents have been discovering behavior late by using Playwright or ad hoc code reading
-- migration planning has started before the static baseline was cleanly documented
-- artifact roles blurred together, especially baseline exploration versus migration design
+- `baseline-design.md`
+- `design-extract.md`
+- `index-reconstruction-guide.md`
 
-This design assumes the baseline artifacts now have distinct roles:
-
-- [proposal.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/proposal.md): why this baseline change exists
-- [specs/index-logging-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/index-logging-parity/spec.md): what the static tracker must do
-- [specs/legacy-parity-governance/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/legacy-parity-governance/spec.md): governance rules for source-first parity work
-- [design-extract.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/design-extract.md): source-harvest evidence from static index
-- [index-reconstruction-guide.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/index-reconstruction-guide.md): ordered legacy-baseline reading guide
-
-The design question for this file is: how should later Next.js migration work be structured so those baseline artifacts actually reduce late parity discovery?
+Those files are intentionally kept as evidence and recovery material, but they are too large and too unevenly structured to serve as the primary migration planning surface. This design defines how the canonical OpenSpec artifacts should absorb that evidence so a later migration conversation can plan reconstruction work from the canonical docs first and consult extraction only when deeper proof is needed.
 
 ## Goals / Non-Goals
 
 **Goals:**
-
-- define a clean migration-design role for this change, separate from source harvesting
-- make the static baseline the required input to Next.js parity work instead of a helpful extra
-- define how agents should compare Next.js code against the baseline before runtime testing
-- define a work-slicing approach that later converts cleanly into Beads epics and issues
-- reduce cross-file ambiguity by grouping migration work around user-visible tracker domains
+- Preserve the extraction as a non-lossy evidence layer.
+- Turn the extraction into canonical OpenSpec artifacts that are practical to read during migration planning.
+- Make the capability specs strong enough that later migration agents do not need `index.html` to understand required behavior.
+- Give future task slicing a stable basis for deciding what becomes a migration issue, what becomes an inconsistency review, and what remains supporting evidence only.
+- Prepare the change so it can later be translated into Beads with explicit traceability back to the baseline and without re-discovery.
+- Define a working contract for how this change moves from source evidence to migration-ready planning artifacts.
+- Make the artifact package understandable to a handoff conversation that did not observe the extraction process directly.
 
 **Non-Goals:**
-
-- implement tracker parity in Next.js in this change
-- replace the baseline artifacts with design prose
-- create the final Beads issue set in this document
-- design every non-index migration surface in the app
-- restate every legacy behavior already captured in the specs and extract
+- Designing the final Next.js component architecture.
+- Replacing the extraction files with shorter summaries.
+- Treating every observed static quirk as normative behavior without review.
+- Jumping directly from extraction notes to Beads issue slicing.
+- Writing migration execution tasks before the behavior contract is stable.
 
 ## Decisions
 
-### Decision 1: The specs are the parity contract; design is the migration approach
+### Decision 1: Keep extraction and planning as separate layers
 
-The baseline behavior belongs in the capability specs, not in this file.
-
-Why:
-
-- the spec-driven schema expects specs to define what the system should do
-- the static behavior contract needs normative SHALL/MUST statements and scenarios
-- migration design should explain how to satisfy that contract, not duplicate it
-
-Alternatives considered:
-
-- keep the legacy reconstruction summary in `design.md`
-  - rejected because it confuses baseline capture with migration approach
-- move all behavior into design and keep specs minimal
-  - rejected because it weakens requirement clarity and testability
-
-### Decision 2: Migration work should be sliced by behavior domain, not by current file names
-
-Future Next.js work should be grouped around user-visible tracker domains:
-
-- startup and auth bootstrap
-- role and viewing-context resolution
-- shell composition and navigation ownership
-- logger execution
-- set acceptance and save flow
-- messages
-- history maintenance
-- offline and recovery behavior
-- timing and copy parity
+The preserved extraction files remain in the active change as supporting evidence, while the canonical OpenSpec artifacts are rewritten cleanly from proposal onward.
 
 Why:
-
-- the static tracker concentrates many flows in one HTML file, while Next.js distributes them
-- slicing by current component or hook names risks scattering one user-visible behavior across multiple issues
-- Beads issues are easier to review when they correspond to one parity domain with one verification story
+- The extraction is too valuable to discard.
+- The extraction is too large to be the only thing migration agents rely on.
+- Keeping both layers allows deliberate compression instead of accidental loss.
 
 Alternatives considered:
+- Use the extraction directly as the canonical artifact set.
+  - Rejected because it is too long and too evidence-shaped for downstream planning.
+- Delete or overwrite the extraction after summarizing it once.
+  - Rejected because it would make later gaps hard to recover.
 
-- slice by Next.js file tree only
-  - rejected because one file often spans multiple parity domains
-- slice by API endpoint only
-  - rejected because much of the risk is UX ordering, local state, and shell behavior
+### Decision 2: Make canonical artifacts usable by migration agents, not merely schema-complete
 
-### Decision 3: Source-first review is a required gate before runtime parity testing
-
-Migration work should be reviewed against the baseline artifacts before Playwright or manual testing is used.
+The canonical artifacts must be written as working documents that a migration agent could actually use during implementation planning, rather than as minimal compliance documents that only satisfy OpenSpec headings.
 
 Why:
-
-- the governance spec explicitly aims to stop runtime from being the first discovery step
-- source-first review is where missing timing rules, copy, side behavior, and save ordering are caught earliest
-- runtime should validate implementation, not define baseline truth
+- The extraction is too large to be the primary working surface.
+- Migration agents need operational guidance, not just formal completeness.
+- A short but vague artifact chain would recreate the same rediscovery problem in a different format.
 
 Alternatives considered:
+- Keep artifacts as minimal schema placeholders and rely on the extraction for detail.
+  - Rejected because it would keep the real planning burden on the extraction.
 
-- continue relying on browser walkthroughs as the main parity tool
-  - rejected because it repeatedly finds issues too late
+### Decision 3: Write for handoff readers, not for the current conversation's memory
 
-### Decision 4: Legacy source evidence should stay preserved in companion docs
-
-The source harvest should remain available, but outside the migration design file.
+The canonical artifacts should assume the next conversation did not see the extraction work happen and does not have this chat history.
 
 Why:
-
-- agents still need traceability back to the static file
-- the design artifact should stay readable and architecture-shaped
-- preserving the extract avoids losing the large amount of work already done
+- Handoff safety is the real test of whether the artifact chain works.
+- If an artifact only makes sense to the conversation that wrote it, it will fail during migration planning.
+- Beads translation will be cleaner if artifact readers do not need hidden context.
 
 Alternatives considered:
+- Leave unstated assumptions in the artifacts and rely on extraction familiarity.
+  - Rejected because it recreates the same late-discovery problem in another form.
 
-- delete the extract once specs exist
-  - rejected because traceability still matters
-- fold the extract into design
-  - rejected because it makes the design artifact unreadable
+### Decision 4: Treat proposal as the boundary-setting artifact
 
-### Decision 5: Beads planning should begin only after semantic artifact cleanup
-
-This change should feed Beads only after the proposal, specs, design, and tasks each match their intended OpenSpec role.
+The proposal defines what this change is actually doing: building a static parity baseline and governance layer, not yet designing the final Next.js implementation.
 
 Why:
-
-- planning from semantically mixed artifacts creates poor issue boundaries
-- if design is still baseline exploration, tasks become cleanup tasks instead of migration work
-- Beads works best when each issue can point to a stable contract and a stable approach
+- The artifact chain depends on scope clarity.
+- If proposal scope drifts, every downstream artifact has to be rewritten.
+- The user has explicitly asked for a stepwise process where each layer is the foundation for the next.
 
 Alternatives considered:
+- Let specs implicitly redefine the scope later.
+  - Rejected because that weakens the contract between proposal and specs.
 
-- create Beads immediately from the current mixed artifact set
-  - rejected because it would encode artifact confusion into the implementation queue
+### Decision 5: Use specs as the main behavior-carrying compression layer
+
+The specs are where the detailed static behavior must become normative and implementation-usable.
+
+Why:
+- Migration conversations may see the extraction, but they cannot depend on reading all of it.
+- Beads should be created from a stable contract, not from raw evidence.
+- Specs are the right place to carry forward user-visible behavior, ordering, timing, auth, API interaction, offline rules, and edge cases.
+
+Alternatives considered:
+- Put most behavior detail into design instead of specs.
+  - Rejected because design should explain approach, not serve as the primary behavioral contract.
+
+### Decision 6: Keep design focused on planning architecture, not tracker re-description
+
+This design should explain how the artifact chain supports migration planning, what each layer is responsible for, and what must be true before the work moves into Beads.
+
+Why:
+- Re-explaining tracker behavior here would duplicate the spec layer.
+- Migration planning needs a clear operating model for how to use the artifacts together.
+- Keeping design at the planning-architecture level makes later task and Beads creation cleaner.
+
+Alternatives considered:
+- Use design as a second behavior catalog parallel to specs.
+  - Rejected because it would blur artifact roles and create another place for behavior drift.
+
+### Decision 7: Record observed inconsistencies without blindly canonizing them
+
+Observed static behaviors that appear buggy or internally inconsistent should be preserved in the evidence layer and called out explicitly during spec/design work, rather than silently normalized or automatically treated as intentional requirements.
+
+Why:
+- Some static behavior may be accidental.
+- Migration should preserve intentional behavior, not blindly copy defects.
+- Explicitly surfacing inconsistencies creates cleaner Beads decisions later.
+
+Alternatives considered:
+- Preserve every observed behavior as mandatory parity.
+  - Rejected because known or likely defects need product review.
+- Smooth over inconsistencies without documenting them.
+  - Rejected because that loses important source truth.
+
+### Decision 8: Use Beads as the execution layer, not the discovery layer
+
+Beads should be created only after proposal, specs, design, and tasks have absorbed the relevant static behavior from the extraction.
+
+Why:
+- Beads are best at coordinating execution, dependency order, and ownership.
+- Beads are not the right place to perform first-pass behavior discovery.
+- Waiting until the OpenSpec layers are stable reduces the risk that migration work items are based on incomplete or distorted parity knowledge.
+
+Alternatives considered:
+- Create Beads directly from the extraction.
+  - Rejected because too much important behavior would be implicit or easy to miss.
+- Create Beads before specs and design are stable, then revise them later.
+  - Rejected because that shifts avoidable compression errors into the execution tracker.
 
 ## Risks / Trade-offs
 
-- [Risk] Specs may still miss legacy details even after major harvesting
-  - Mitigation: keep using `design-extract.md` as the audit source and close remaining gaps before Beads slicing
-
-- [Risk] Agents may still read the extract first and ignore the design/spec split
-  - Mitigation: keep the migration design separate and point to supporting artifacts explicitly
-
-- [Risk] Behavioral workstreams still overlap in Next.js implementation
-  - Mitigation: slice Beads by dominant user-visible domain and call out cross-domain dependencies explicitly
-
-- [Risk] The baseline may keep evolving while migration planning starts
-  - Mitigation: finish semantic cleanup first, then treat the specs as the stable parity gate for issue creation
-
-- [Risk] Copy and timing details may be dismissed as non-essential during implementation
-  - Mitigation: keep them as normative spec scenarios so they remain part of review and verification
+- [Compression loss between artifacts] -> Keep the extraction files active and require that important behavior be carried forward explicitly into canonical artifacts.
+- [Specs become too summary-shaped] -> Keep revisiting the source-backed extraction when a flow is still vague or runtime-only.
+- [Design drifts into migration implementation too early] -> Keep this design focused on artifact flow, planning architecture, and Beads handoff readiness, not component-level Next.js structure.
+- [Potential static bugs get mistaken for required parity] -> Record them as observed inconsistencies and defer final treatment until migration design or issue slicing.
+- [Beads get created from unstable docs] -> Do not move to Beads slicing until proposal, specs, design, and tasks are semantically aligned.
 
 ## Migration Plan
 
-1. normalize the artifact roles
-   - proposal stays about baseline purpose and scope
-   - specs stay about static behavior requirements
-   - baseline design stays in `design.md`
-   - migration approach stays in `migration-design.md`
-   - tasks become the Beads-preparation plan
-
-2. finish the static baseline contract
-   - close remaining gaps in `index-logging-parity/spec.md`
-   - use `design-extract.md` and `index-reconstruction-guide.md` as supporting references
-
-3. perform a source-first readiness pass
-   - confirm that an agent can explain the tracker without opening `index.html`
-   - confirm that runtime testing is no longer required to learn baseline behavior
-
-4. translate the stabilized parity domains into Beads-ready workstreams
-   - one workstream per dominant user-visible parity domain
-   - include dependency order and verification expectations
-
-5. only then create or revise implementation tasks and Beads issues
-   - issues should point back to the finalized specs and this design
+1. Stabilize the proposal so the migration goal, capability boundaries, and role of Beads are explicit.
+2. Recreate fresh specs from that proposal, using the extraction files as evidence and carrying forward the full extracted behavior, copy, timing, risk notes, oddities, and migration-relevant observations that later work could need.
+3. Keep this design focused on how the artifact chain should be used during migration planning and issue slicing.
+4. Recreate tasks after proposal/spec/design are stable, with the task list written as a clean bridge into Beads.
+5. Translate the resulting task plan into Beads as the migration execution graph, with each work item traceable back to the canonical OpenSpec artifacts and, when needed, to the preserved extraction.
 
 Rollback strategy:
-
-- if the semantic split becomes confusing, keep `design-extract.md` and `index-reconstruction-guide.md` as stable references and rewrite migration design without losing source evidence
-- no application-code rollback is required because this change is documentation and planning only
+- If a canonical planning artifact drifts or compresses behavior incorrectly, restore the needed detail from the preserved extraction files and rewrite the affected artifact without deleting the evidence layer.
 
 ## Open Questions
 
-- when should this change stop being “baseline cleanup” and start being “migration design complete” for Beads translation?
-- should future tracker work get one Beads epic per parity domain, or one epic for index parity with domain-specific child issues?
-- should copy- and timing-heavy parity checks live in the same future issues as UI structure, or in dedicated verification issues?
-- after index parity is stabilized, which non-index surface should become the next baseline change?
+- Which observed static inconsistencies should be treated as true parity requirements versus bugs to fix during migration?
+- How much copy must be carried verbatim into specs versus summarized behaviorally?
+- Should the eventual Beads slicing map directly to user-visible subflows, to technical domains, or to a hybrid of both?
+- What is the cleanest unit of Beads slicing for this tracker: shell domain, user flow, or a mixed model that preserves both UX and technical dependencies?

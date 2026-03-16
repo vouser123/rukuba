@@ -8,7 +8,11 @@ Use it when you need one clear reading order for rebuilding static `index.html` 
 
 - [proposal.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/proposal.md)
 - [design.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/design.md)
-- [spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/index-logging-parity/spec.md)
+- [legacy-parity-governance/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/legacy-parity-governance/spec.md)
+- [tracker-shell-and-context-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/tracker-shell-and-context-parity/spec.md)
+- [tracker-logging-and-pocket-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/tracker-logging-and-pocket-parity/spec.md)
+- [tracker-messages-and-history-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/tracker-messages-and-history-parity/spec.md)
+- [tracker-offline-and-timing-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/tracker-offline-and-timing-parity/spec.md)
 
 Read this guide top to bottom if `public/index.html` is unavailable. It is organized in the order an implementation agent would need to reconstruct the page.
 
@@ -42,7 +46,7 @@ Read this guide top to bottom if `public/index.html` is unavailable. It is organ
 
 ### Auth surfaces
 
-- sign-in modal title: `PT Tracker Sign In`
+- sign-in is a titleless auth card rather than a titled modal
 - forgot-password modal title: `Reset Password`
 - new-password modal title: `Set New Password`
 - forgot-password submit text changes to `Sending...` while pending
@@ -440,7 +444,7 @@ Save toast copy:
 
 Blocked states:
 
-- no signed-in user => `Please sign in to view messages`
+- no signed-in user trying to send => `Please sign in to send messages`
 - blank message => `Please enter a message`
 - missing recipient => `No therapist assigned. Cannot send message.`
 - self-send block => `Cannot send a message to yourself.`

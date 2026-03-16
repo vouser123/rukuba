@@ -178,6 +178,29 @@ This section is the intended reading order for rebuild work. The detailed harves
 - sections `0e` through `0j` are cross-cutting inventories used during rebuild and delta review
 - sections `1` through `8` are supporting analysis and late-discovery risk notes
 
+### 4. Extraction coverage ledger
+
+To avoid compressing this extraction from memory, the extraction itself should be tracked in contiguous markdown chunks the same way the static source was tracked.
+
+Current extraction length in this checkout: `1032` lines.
+
+| Lines | Markdown shape | What this chunk establishes |
+|---|---|---|
+| 1-173 | purpose, revision notes, ordered reconstruction guide, ordered behavior summary | establishes the intended reader, the reconstruction-grade standard, the recommended reading order, and the first-pass behavioral sequence for startup, context, shell, loading, picker/history, logger entry, execution, Pocket Mode, set acceptance, finalization, messages, offline behavior, timing, invariants, and blocked states |
+| 174-280 | usage notes, source-ordered evidence intro, static source map, source harvest rules | establishes how the extraction should be used, which static domains are anchored to which source areas, why the file was decomposed the way it was, and the rule that uncovered source bands must remain visibly uncovered |
+| 281-419 | shell, markup, auth, copy, event-binding, delegated-action, and direct-event inventories | establishes the reconstructable surfaces, static markup composition, auth-surface composition, critical copy inventory, and the full interaction-binding model that later canonical artifacts must absorb |
+| 420-525 | core state inventory, user action inventory, API inventory, docs-only review checklist, reconstruction standard | establishes the state model, action-to-effect model, API surface, and the explicit “if `index.html` disappeared tomorrow” acceptance questions the canonical artifacts must answer |
+| 526-677 | supporting analysis for tracker scope, source-mapping need, role-aware shell, state-machine framing, shell surface list, auth walkthrough | establishes that tracker parity is larger than logging, why source-to-target mapping matters, how role/viewing context changes ownership, and how the shell behaves as a state machine with explicit UX checkpoints |
+| 678-847 | API sequence/timing notes, canonical logger walkthroughs, modal contracts, session-writing rules, parameter behavior, state invariants, shell invariants | establishes the main runtime walkthroughs for reps/hold/duration, the difference between `Next Set` and `Log Set`, the accepted-set model, parameter-default rules, and the non-negotiable shell/session invariants |
+| 848-994 | logging execution rules, Pocket Mode contract, sound/announcement domain, UX feedback domain, session-oriented save model, time semantics | establishes behavior-first logger rules, the full Pocket Mode contract, feedback and spoken-cue expectations, the session-oriented save model, and the exact time/backdate semantics that materially affect parity |
+| 995-1032 | late-discovery risk zones, concrete edge cases, source-review-before-runtime rule | establishes which parity domains have historically escaped into late runtime discovery, which edge cases must be named directly in canonical artifacts, and the required review order where source-grounded comparison happens before browser rediscovery |
+
+This extraction ledger should be used the same way the `index.html` ledger is used:
+
+- later artifact work should say which extraction chunk is being absorbed
+- if a later artifact reflects chunk 7, earlier chunks must already be absorbed or explicitly still pending
+- nothing important should survive only as “something remembered from the extract”
+
 ## Current Exploration Findings
 
 The sections below are grouped into three jobs:

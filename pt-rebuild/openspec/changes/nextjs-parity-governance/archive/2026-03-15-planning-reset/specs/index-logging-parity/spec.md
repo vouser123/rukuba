@@ -78,6 +78,14 @@ The tracker index parity contract SHALL describe the auth-state transitions, sta
 - **WHEN** the user signs in, requests a reset email, or submits a new password
 - **THEN** the parity contract records the inline error or success regions, pending button-text changes such as `Sending...` and `Updating...`, and the successful password-update toast because those states are part of the lived auth flow
 
+#### Scenario: Auth modal copy and transitions stay explicit
+- **WHEN** an implementation agent rebuilds the auth shell from the parity contract
+- **THEN** the contract preserves the static labels and transitions for `Sign In`, `Forgot password?`, `Reset Password`, `Enter your email and we'll send you a reset link.`, `Send Reset Link`, `Back to sign in`, `Set New Password`, and `Update Password`, including the fact that forgot-password hides sign-in first and `Back to sign in` reopens it
+
+#### Scenario: Password reset success and mismatch remain inline behaviors
+- **WHEN** the user requests a reset email or submits mismatched new-password fields
+- **THEN** the parity contract records that static index shows inline `Check your email for the reset link.` on reset success and inline `Passwords do not match.` on mismatch before any password-update call is made
+
 #### Scenario: Authenticated startup order is preserved
 - **WHEN** the tracker boots with an existing auth session
 - **THEN** the parity contract records the startup order used by static index: offline-manager init, connectivity listener setup, auth session check, authenticated state assignment, auth-surface hide, editor-link update, tracker data bootstrap, first message check, recurring polling, offline-queue load, and event binding
@@ -113,6 +121,10 @@ The tracker index parity contract SHALL describe the user-visible interaction pr
 - **WHEN** an implementation agent reconstructs the tracker interaction model
 - **THEN** the parity contract records not only delegated `data-action` interactions but also direct form-submit, input, and change handlers whose timing affects auth, search, notes save, backdate warnings, parameter custom-entry, and email-notification behavior
 
+#### Scenario: Hamburger-owned actions stay outside the document dispatcher
+- **WHEN** an implementation agent reconstructs shell action handling
+- **THEN** the parity contract records that `show-messages`, `manual-sync`, `show-debug`, `toggle-hamburger`, `sign-out`, and `reload` are owned by hamburger-menu handlers and do not travel through the document-level `data-action` dispatcher
+
 ### Requirement: Index parity must cover major subflows as separate behavioral domains
 The tracker index parity contract SHALL capture the main tracker experience as coordinated subflows, including exercise browsing and selection, timer or counter execution, manual log-set entry, next-set confirmation, history filtering and editing, offline queue behavior, notes and backdate handling, tracker-owned messages access, and user feedback behaviors such as toasts or spoken progress cues when those originate from the index surface.
 
@@ -135,6 +147,10 @@ The tracker index parity contract SHALL capture the main tracker experience as c
 #### Scenario: Exercise-details flow stays behaviorally distinct from logging
 - **WHEN** the user opens exercise details from an exercise card
 - **THEN** the parity contract records that static index opens a read-only details modal rather than starting logging, and that closing the details modal returns the user to the picker without mutating `currentSession`
+
+#### Scenario: Exercise-details content is reconstructable from docs alone
+- **WHEN** the user opens exercise details for an exercise
+- **THEN** the parity contract records that static index can show `Description`, a `Pattern` pill with sided-versus-bilateral wording, `Primary Muscles`, `Secondary Muscles`, `Equipment Required`, `Optional Equipment`, `External Cues`, `Motor Cues`, `Compensation Warnings`, and `Safety Flags`, and falls back to `No additional details available for this exercise.` when none of those sections exist
 
 ### Requirement: Index parity must capture tracker shell context and role-sensitive behavior
 The tracker index parity contract SHALL describe how the static page resolves user role, viewing context, and message target context before the user starts logging, because those decisions affect what the tracker shows, whose data is being edited, and who receives index-owned messages.
@@ -256,9 +272,61 @@ The tracker index parity contract SHALL describe how active logging behaves in c
 - **WHEN** the user opens `Next Set`
 - **THEN** the parity contract records that static index summarizes the currently captured logger value against the configured target and lets the user either confirm it as app-recorded or route into manual editing
 
+#### Scenario: Next Set writes a normalized app-recorded set payload
+- **WHEN** the user confirms `Next Set`
+- **THEN** the parity contract records that static index appends a set with `set_number`, normalized `reps` and `seconds`, `distance_feet: null`, the active main-tracker side, optional normalized `form_data`, `manual_log: false`, `partial_rep: false`, and a fresh `performed_at` timestamp
+
+#### Scenario: Next Set value selection depends on execution mode
+- **WHEN** static index builds the `Next Set` payload
+- **THEN** the parity contract records that counter mode uses the visible counter as `reps`, duration timer mode writes `reps: 1` plus elapsed whole seconds, and hold timer mode writes the live hold-rep count plus target seconds-per-rep
+
+#### Scenario: Next Set rejects empty live progress
+- **WHEN** the user confirms `Next Set` with `0` reps and no captured seconds
+- **THEN** the parity contract records that static index closes the modal and shows `Please perform at least one rep` instead of appending an empty set
+
 #### Scenario: Manual Log Set uses target defaults instead of live logger value
 - **WHEN** the user opens `Log Set`
 - **THEN** the parity contract records that static index pre-fills the modal from the exercise target dose and required form-parameter defaults rather than copying whatever live counter value is currently shown
+
+#### Scenario: Manual Log Set defaults differ by exercise type
+- **WHEN** the user opens `Log Set`
+- **THEN** the parity contract records that static index pre-fills duration exercises from target seconds and labels the field `Seconds performed`, pre-fills hold exercises from target reps plus target seconds-per-rep with both inputs visible, and pre-fills reps exercises from target reps with the extra seconds input hidden
+
+#### Scenario: Manual Log Set writes normalized payload flags
+- **WHEN** the user saves from `Log Set`
+- **THEN** the parity contract records that static index appends a set with `set_number`, normalized `reps` and `seconds`, `distance_feet: null`, side from modal-local side selection or current tracker side, optional normalized `form_data`, `partial_rep: false`, a fresh `performed_at`, and `manual_log` set according to how the modal was reached
+
+#### Scenario: Manual Log Set flagging differs between direct manual entry and timer completion
+- **WHEN** static index saves a set from `Log Set`
+- **THEN** the parity contract records that direct reps-style manual entry and hold-manual entry mark `manual_log: true`, while timer-driven save paths using the same modal keep `manual_log: false`
+
+#### Scenario: Hold Log Set is split between partial progress and full set creation
+- **WHEN** the logger is in hold-timer mode and the user saves through `Log Set`
+- **THEN** the parity contract records that static index increments the live rep counter first, returns early with `Rep N complete` while more timed reps remain, and only appends a completed set after the live rep counter exceeds the target rep count
+
+#### Scenario: Hold manual entry requires both reps and seconds
+- **WHEN** the user uses `Log Set` for a hold exercise through the fully manual path
+- **THEN** the parity contract records that static index blocks save when `Seconds/rep` is `0` and shows `Please enter seconds per rep`
+
+#### Scenario: Manual Log Set blocks zero values
+- **WHEN** the user saves `Log Set` with a main value of `0`
+- **THEN** the parity contract records that static index blocks the save with `Please enter a value greater than 0`
+
+#### Scenario: Form-parameter defaults merge session-local, exercise-local, and global history
+- **WHEN** static index renders form-parameter controls for `Log Set` or `Next Set`
+- **THEN** the parity contract records that it prefers the most recent value from the current in-progress session first, then exercise-local saved history, then global history for the same parameter name, with side-scoped filtering when the flow is side-specific
+
+#### Scenario: Weight and distance parameters stay unit-aware while other parameters use smart selects
+- **WHEN** static index renders required form parameters
+- **THEN** the parity contract records that `weight` and form-parameter `distance` render as number-plus-unit controls with remembered units, while other parameters render smart dropdowns with historical options and an `Other...` branch that reveals a custom text field
+
+#### Scenario: Collected form data is normalized before set write
+- **WHEN** static index collects form parameters from `Log Set` or `Next Set`
+- **THEN** the parity contract records that saved parameter entries use normalized objects shaped as `parameter_name`, `parameter_value`, and `parameter_unit`, omitting empty fields rather than storing placeholders
+
+#### Scenario: Distance is present in the data model but not actively written by logger set creation
+- **WHEN** an implementation agent rebuilds logger-side set creation
+- **THEN** the parity contract records that static index currently preserves `distance_feet` in dosage, history rendering, queue sync, and edit-session maintenance, but active `Next Set` and `Log Set` creation still write `distance_feet: null` rather than capturing a logger-entered distance value
 
 ### Requirement: Index parity must capture Pocket Mode behavior as part of the logger contract
 The tracker index parity contract SHALL describe Pocket Mode in user-facing terms, including how it is entered, what it shows for timer versus counter exercises, what tap and long-press do, how it exits, and how it relates to ongoing session progress.
@@ -310,9 +378,17 @@ The tracker index parity contract SHALL treat messages opened from the tracker s
 - **WHEN** the tracker-owned messages modal opens successfully
 - **THEN** the parity contract records that the unread badge is cleared as part of the shell-visible result, not as a later unrelated refresh
 
+#### Scenario: Message badge count uses locally tracked last-read time
+- **WHEN** the shell checks for new messages outside the modal
+- **THEN** the parity contract records that static index compares incoming message timestamps against locally stored `lastReadMessageTime`, counts only messages from the other participant, and shows or hides the badge based on that unread count
+
 #### Scenario: Messages modal preserves empty, failed, and sent-state copy
 - **WHEN** the messages flow is rebuilt from the parity contract
 - **THEN** the contract preserves the static empty-state copy, failed-load state, sent-message `Delivered` state, later `Read ...` state, and the `Hide` and `Undo Send` affordances that shape the user experience
+
+#### Scenario: Message rows preserve sender labels and undo window
+- **WHEN** the tracker renders a message thread
+- **THEN** the parity contract records that static index labels messages as `You → PT` or `PT → You`, timestamps each row, and shows `Undo Send` only for the sender's own messages within the one-hour undo window
 
 #### Scenario: Message delete confirmation is explicit
 - **WHEN** the user chooses `Undo Send`
@@ -325,6 +401,10 @@ The tracker index parity contract SHALL treat messages opened from the tracker s
 #### Scenario: Email-notification toggle preserves its own state contract
 - **WHEN** the user changes the email-notification checkbox inside the messages flow
 - **THEN** the parity contract records that static index PATCHes the user preference, keeps the checkbox in sync with the saved preference on success, and reverts the checkbox plus shows a failure toast on error
+
+#### Scenario: Message send guards remain explicit
+- **WHEN** the user sends from the tracker-owned messages flow
+- **THEN** the parity contract records that static index blocks empty-body sends, unauthenticated sends, missing-recipient sends with `No therapist assigned. Cannot send message.`, and self-send attempts with `Cannot send a message to yourself.`
 
 ### Requirement: Index parity must capture UX feedback as behavior
 The tracker index parity contract SHALL treat feedback cues as functional behavior when they tell the user what happened, what remains, or whether an action succeeded, including adherence badges, empty states, toasts, inline save feedback, and spoken progress announcements.
@@ -454,6 +534,14 @@ The tracker index parity contract SHALL describe the session-history actions ava
 - **WHEN** the user saves from index-owned history maintenance
 - **THEN** the parity contract records that static index patches the session timestamp, notes, and edited set collection together as one save action rather than treating those as separate maintenance workflows
 
+#### Scenario: Edit-session field set depends on exercise type
+- **WHEN** the edit-session modal renders a session
+- **THEN** the parity contract records that static index shows `Reps` for all sessions, `Seconds` or `Seconds/rep` for hold or duration sessions, `Distance (ft)` for distance sessions, `Side` only for sided sessions, and editable form-parameter inputs only when set-level `form_data` exists
+
+#### Scenario: Added and deleted edit-session sets preserve static defaults
+- **WHEN** the user adds or deletes sets inside the edit-session modal
+- **THEN** the parity contract records that static index seeds new sets from exercise defaults, defaults sided added sets to right, stamps a fresh `performed_at`, and renumbers `set_number` values after delete before rerendering
+
 #### Scenario: History cards expose enough preview data to choose the right session
 - **WHEN** the history view renders saved sessions
 - **THEN** the parity contract records that static index shows date, exercise name, set summary, optional inline form-parameter summary, and optional notes preview on the card before the user opens edit mode
@@ -492,6 +580,10 @@ The tracker index parity contract SHALL name the blocked, empty, and failure sta
 #### Scenario: Password confirmation mismatch blocks reset completion
 - **WHEN** the user enters different values in new-password and confirm-password fields
 - **THEN** the parity contract records that static index blocks submission and shows an inline mismatch error before any password-update call is made
+
+#### Scenario: Missing message auth or recipient blocks the messages flow explicitly
+- **WHEN** the user tries to open or send from tracker-owned messages without the required auth or recipient context
+- **THEN** the parity contract records the visible blocked states `Please sign in to view messages`, `Please sign in to send messages`, and `No therapist assigned. Cannot send message.` instead of leaving those branches implicit
 
 ### Requirement: Index parity review must happen before runtime parity testing
 The tracker index parity contract SHALL be specific enough that an agent can perform a source-first parity review before opening a browser, especially for flows that have historically been discovered late.
