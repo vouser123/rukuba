@@ -1,6 +1,7 @@
 // components/ExercisePicker.js — exercise list/search/select UI with dosage and adherence summary
 import { useMemo, useState } from 'react';
 import styles from './ExercisePicker.module.css';
+import NativeSelect from './NativeSelect';
 
 function formatDosageSummary(exercise, program) {
     const source = program || exercise || {};
@@ -116,18 +117,18 @@ export default function ExercisePicker({
                     placeholder="Search exercises"
                     aria-label="Search exercises"
                 />
-                <select
+                <NativeSelect
                     value={sortMode}
-                    onChange={(event) => onSortChange?.(event.target.value)}
+                    onChange={(val) => onSortChange?.(val)}
+                    options={[
+                        { value: 'pt_order',  label: 'PT order' },
+                        { value: 'manual',    label: 'Manual' },
+                        { value: 'body_area', label: 'Body area' },
+                        { value: 'recent',    label: 'Recent activity' },
+                        { value: 'alpha',     label: 'A to Z' },
+                    ]}
                     className={styles.sortSelect}
-                    aria-label="Sort mode"
-                >
-                    <option value="pt_order">PT order</option>
-                    <option value="manual">Manual</option>
-                    <option value="body_area">Body area</option>
-                    <option value="recent">Recent activity</option>
-                    <option value="alpha">A to Z</option>
-                </select>
+                />
             </div>
 
             {visibleExercises.length === 0 && (
