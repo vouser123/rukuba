@@ -119,6 +119,7 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 - Detailed operating rules live in `pt-rebuild/docs/BEADS_WORKFLOW.md`.
 - Keep `AGENTS.md` as the policy surface; use the workflow doc for command patterns, parallel-thread rules, and Dolt cleanup steps.
+- Check `bd dolt status` before trying to start Dolt; only run `bd dolt start` when the server is not already running.
 - Do not use `bd edit` from agent sessions; use `bd update` flags instead.
 - Claim first in multi-agent workflows:
   - `bd update <id> --claim --assignee codex` (or `claude`)
