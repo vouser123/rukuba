@@ -40,6 +40,7 @@ Session-start requirement:
 
 This project is operated by a non-technical user. Agents must not assume technical fluency.
 
+- You must use neutral and inclusive language and terminology. You must not use ableist or stigmatizing terms or phrases that invoke mental health conditions to convey wrongness, correctness, quality, or error states. Use neutral alternatives such as `confidence check`, `coherence check`, `validation`, `verification`, and `review pass` instead of phrases like `sanity check` or `sanity pass`. These examples are illustrative, not exhaustive.
 - Default to plain-language explanations first. Define jargon the first time it appears.
 - Always include a one-line "What this means for you" summary for technical findings.
 - Do not wait for the user to specify implementation details. Propose the recommended next step and proceed unless a real product decision is required.
