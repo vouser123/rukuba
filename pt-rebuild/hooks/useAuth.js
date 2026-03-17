@@ -17,20 +17,49 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+// Supabase stores the session under this localStorage key
+const SUPABASE_SESSION_KEY = 'sb-zvgoaxdpkgfxklotqwpz-auth-token';
+
+/**
+ * Read a stored Supabase session from localStorage.
+ * Used as an offline fallback when getSession() can't reach the network.
+ * @returns {object|null}
+ */
+function getStoredSession() {
+    try {
+        const raw = typeof window !== 'undefined' && localStorage.getItem(SUPABASE_SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
 export function useAuth() {
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check for an existing session on mount (handles page reload + return from OAuth)
+        // Check for an existing session on mount (handles page reload + return from OAuth).
+        // If offline and getSession() returns null, fall back to the stored session so the
+        // app stays usable without a network connection.
         supabase.auth.getSession().then(({ data: { session: sess } }) => {
-            setSession(sess);
+            if (!sess && typeof navigator !== 'undefined' && !navigator.onLine) {
+                setSession(getStoredSession());
+            } else {
+                setSession(sess);
+            }
             setLoading(false);
         });
 
-        // Keep session state in sync with Supabase auth events
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
-            setSession(sess);
+        // Keep session state in sync with Supabase auth events.
+        // Only clear session on an explicit SIGNED_OUT event — not on transient null
+        // values that can occur during token refresh cycles.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
+            if (event === 'SIGNED_OUT') {
+                setSession(null);
+            } else if (sess) {
+                setSession(sess);
+            }
         });
 
         return () => subscription.unsubscribe();
