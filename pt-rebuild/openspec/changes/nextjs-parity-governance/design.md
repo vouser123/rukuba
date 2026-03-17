@@ -4,7 +4,6 @@ This change is not implementing the Next.js tracker yet. It is building the plan
 
 The current source truth is concentrated in static `public/index.html`, with supporting extraction material already preserved in:
 
-- `baseline-design.md`
 - `design-extract.md`
 - `index-reconstruction-guide.md`
 
@@ -92,10 +91,70 @@ Why:
 - Migration conversations may see the extraction, but they cannot depend on reading all of it.
 - Beads should be created from a stable contract, not from raw evidence.
 - Specs are the right place to carry forward user-visible behavior, ordering, timing, auth, API interaction, offline rules, and edge cases.
+- Agents implementing or slicing work should assume they will not reopen `design-extract.md`, so the specs must preserve extraction-level specifics that change behavior instead of collapsing them into intent-only summaries.
+- This includes smaller UX rules that later become bug sources when compressed away, such as layout-affecting shell behavior, auth-surface sequencing, edit-session details, form-parameter and dropdown behavior, `Other...` reveal rules, and other interaction details that influence what the user can do.
 
 Alternatives considered:
 - Put most behavior detail into design instead of specs.
   - Rejected because design should explain approach, not serve as the primary behavioral contract.
+
+Specification standard for this change:
+- Preserve named values verbatim when they affect parity, including copy strings, field names, helper names, storage keys, mutation identifiers, and exact clear/reset targets.
+- Preserve ordered walkthroughs as ordered requirements when the extraction shows a behavior sequence that changes user-visible outcomes.
+- Turn extraction inventories into explicit spec coverage, rather than assuming later agents will infer omitted items from context.
+- Treat `design-extract.md` as the active evidence and recovery material; archived baseline companions should not be required for migration Beads or implementation planning once the canonical spec package is complete.
+
+### Decision 5a: Readiness must be provable chunk by chunk, not inferred from later detail
+
+The planning package must preserve enough source-coverage structure that later detailed sections do not create the false impression that earlier extraction chunks were already absorbed.
+
+Why:
+- The extract is source-ordered and contiguous, while the split specs are domain-organized.
+- It is easy to over-credit a later detailed spec and miss an earlier uncovered source band.
+- Beads readiness should be judged from explicit carry-forward proof, not optimism.
+
+Alternatives considered:
+- Treat any sufficiently detailed later spec as indirect proof that nearby earlier source areas were handled.
+  - Rejected because this is how behavior gaps survive into execution planning.
+
+### Decision 5b: The package must pass a docs-only reconstruction test before Beads slicing
+
+Before migration work is distilled into Beads, the canonical package must support a reconstruction-grade review without reopening static source or relying on runtime rediscovery.
+
+Why:
+- The user expectation is that implementation agents can proceed from docs and Beads, not by rediscovering `index.html`.
+- If docs-only review fails, Beads will encode a lossy or distorted contract.
+- Runtime testing should validate the contract, not become the place where missing flow truth is rediscovered.
+
+Alternatives considered:
+- Allow Beads creation once the package feels directionally complete, then rely on runtime testing to fill gaps.
+  - Rejected because it shifts avoidable compression errors into the execution layer.
+
+### Decision 5c: The planning package must stay decomposable into stable review units
+
+The canonical package must stay organized around stable review units such as shell, state, actions, APIs, timing, copy, and edge cases so later audits and Beads slicing can trace missing behavior to a clear home.
+
+Why:
+- The extract already surfaces these review units explicitly.
+- Small UX details are easiest to lose when they are buried inside broad prose.
+- Beads slicing is cleaner when each issue can point to a stable requirement family instead of one giant narrative.
+
+Alternatives considered:
+- Keep the package at a high enough level that later issue authors infer the right decomposition.
+  - Rejected because issue authors will compress differently and produce inconsistent Beads.
+
+### Decision 5d: Source review must precede code and runtime review
+
+Parity review should happen in a fixed order: source-grounded package review first, implementation/code comparison second, and runtime validation last.
+
+Why:
+- The static source and extracted baseline still contain the authoritative answers.
+- Code review without a stable source-grounded contract turns missing behavior into taste or guesswork.
+- Runtime-first review is how subtle flow, copy, and timing rules get discovered too late.
+
+Alternatives considered:
+- Use runtime testing or code inspection as the primary discovery tool once a Next.js slice exists.
+  - Rejected because this recreates the same late parity misses that prompted the extract.
 
 ### Decision 6: Keep design focused on planning architecture, not tracker re-description
 
@@ -143,18 +202,21 @@ Alternatives considered:
 ## Risks / Trade-offs
 
 - [Compression loss between artifacts] -> Keep the extraction files active and require that important behavior be carried forward explicitly into canonical artifacts.
+- [Earlier source bands appear “covered” because later domains are detailed] -> Keep coverage provable chunk by chunk and state uncovered or partially absorbed source bands explicitly until they are closed.
 - [Specs become too summary-shaped] -> Keep revisiting the source-backed extraction when a flow is still vague or runtime-only.
 - [Design drifts into migration implementation too early] -> Keep this design focused on artifact flow, planning architecture, and Beads handoff readiness, not component-level Next.js structure.
 - [Potential static bugs get mistaken for required parity] -> Record them as observed inconsistencies and defer final treatment until migration design or issue slicing.
 - [Beads get created from unstable docs] -> Do not move to Beads slicing until proposal, specs, design, and tasks are semantically aligned.
+- [Runtime review becomes discovery instead of validation] -> Require source-grounded package review before code comparison and runtime testing.
 
 ## Migration Plan
 
 1. Stabilize the proposal so the migration goal, capability boundaries, and role of Beads are explicit.
-2. Recreate fresh specs from that proposal, using the extraction files as evidence and carrying forward the full extracted behavior, copy, timing, risk notes, oddities, and migration-relevant observations that later work could need.
+2. Recreate fresh specs from that proposal, using the extraction files as evidence and carrying forward the full extracted behavior, named values, copy, timing, ordering, risk notes, oddities, and migration-relevant observations that later work could need.
 3. Keep this design focused on how the artifact chain should be used during migration planning and issue slicing.
-4. Recreate tasks after proposal/spec/design are stable, with the task list written as a clean bridge into Beads.
-5. Translate the resulting task plan into Beads as the migration execution graph, with each work item traceable back to the canonical OpenSpec artifacts and, when needed, to the preserved extraction.
+4. Recreate tasks after proposal/spec/design are stable, with the task list written as a clean bridge into Beads and assuming Beads authors will slice from specs, not by rediscovering details in the extraction.
+5. Prove readiness with a docs-only reconstruction check that confirms the package is decomposable into stable review units and that no uncovered source bands are being silently treated as absorbed.
+6. Translate the resulting task plan into Beads as the migration execution graph, with each work item traceable back to the canonical OpenSpec artifacts and, when needed, to the preserved extraction.
 
 Rollback strategy:
 - If a canonical planning artifact drifts or compresses behavior incorrectly, restore the needed detail from the preserved extraction files and rewrite the affected artifact without deleting the evidence layer.
@@ -162,6 +224,5 @@ Rollback strategy:
 ## Open Questions
 
 - Which observed static inconsistencies should be treated as true parity requirements versus bugs to fix during migration?
-- How much copy must be carried verbatim into specs versus summarized behaviorally?
-- Should the eventual Beads slicing map directly to user-visible subflows, to technical domains, or to a hybrid of both?
-- What is the cleanest unit of Beads slicing for this tracker: shell domain, user flow, or a mixed model that preserves both UX and technical dependencies?
+- Are there any source bands or review units still only partially absorbed into the split specs and therefore not safe for Beads slicing yet?
+- Which package areas still fail the docs-only reconstruction test for auth, layout, edits, offline flow, or smaller UX rules such as dropdown and form-parameter behavior?

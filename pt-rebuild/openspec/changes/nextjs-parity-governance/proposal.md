@@ -18,6 +18,8 @@ The intended reader is a later migration conversation that did not participate i
   - API calls and timing rules
   - blocked states, inconsistencies, and edge cases
 - Preserve the extraction files as supporting evidence, while moving the migration-critical truths into canonical OpenSpec artifacts that are short enough to use and detailed enough to trust.
+- Treat the split spec package as the lossless implementation contract: if a named value, copy string, storage key, field name, helper name, clear/reset target, sequence, or API outcome from the extraction would matter during reconstruction, it must appear explicitly in the canonical specs rather than being left only in `design-extract.md` or implied by a summary.
+- Keep an explicit carry-forward proof artifact that shows where source-ordered extract coverage landed in the live canonical package, so Beads authors do not have to infer coverage from confidence.
 - Produce a spec and design package that can later be translated into Beads as dependency-ordered migration work, without reopening `index.html` to rediscover missing behavior.
 - Treat observed static inconsistencies separately from intentional parity rules so later migration tasks can decide whether to preserve, fix, or flag them.
 - Produce a planning chain with clear roles:

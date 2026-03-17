@@ -344,6 +344,16 @@ Confirm behavior:
 - timer hold => reps equal current hold progress and seconds equal target seconds
 - counter => reps from current visible counter
 - writes a new set into `currentSession.sets`
+- accepted-set payload keeps:
+  - `set_number`
+  - normalized `reps`
+  - normalized `seconds`
+  - `distance_feet: null`
+  - side from modal-local choice or active tracker side when sided
+  - optional normalized `form_data`
+  - `partial_rep: false`
+  - fresh `performed_at`
+  - `manual_log` set according to whether the write came from live confirmation versus manual entry
 - resets timer or counter live state for the next set
 - updates progress immediately
 - may schedule delayed comparison speech against prior history
@@ -481,6 +491,7 @@ Blocked states:
 ### Edit-session persistence
 
 - save uses PATCH `/api/logs?id=...`
+- save success feedback: `Session updated`
 - delete uses DELETE `/api/logs?id=...`
 - delete requires confirmation:
   - `Are you sure you want to delete this entire session? This cannot be undone.`
@@ -582,6 +593,7 @@ Current source length used for this companion guide:
 
 - `public/index.html`: `4590` lines
 
-For contiguous source-chunk evidence, see the source coverage ledger in:
+For contiguous source-chunk evidence and live carry-forward mapping, see:
 
-- [design.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/design.md)
+- [design-extract.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/design-extract.md)
+- [coverage-matrix.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/coverage-matrix.md)

@@ -2,8 +2,9 @@
 
 - [ ] 1.1 Create the parent Beads issue for `legacy-parity-governance`.
 - [ ] 1.2 Create a child Beads issue for source-precedence and chunk-coverage rules so later migration work starts from canonical docs before runtime rediscovery.
-- [ ] 1.3 Create a child Beads issue for source-to-target parity mapping across the high-risk domains called out in governance.
-- [ ] 1.4 Create a child Beads issue for named-specifics carry-forward rules so later migration work preserves exact copy strings, field names, helper names, storage keys, mutation identifiers, and exact clear/reset targets instead of paraphrasing them away.
+- [ ] 1.2a Keep `coverage-matrix.md` current so source-ordered extract chunks and review units map to exact homes in the live split specs before Beads slicing.
+- [ ] 1.3 Create a child Beads issue for source-to-target parity mapping across the high-risk domains called out in governance, with the mapping authored from the split spec package rather than from ad hoc rereads of `design-extract.md`.
+- [ ] 1.4 Create a child Beads issue for named-specifics carry-forward rules so later migration work preserves exact copy strings, field names, helper names, storage keys, mutation identifiers, ordered sequences, API outcomes, and exact clear/reset targets instead of paraphrasing them away.
 - [ ] 1.5 Create a child Beads issue for handoff and verification rules, including how runtime testing, Playwright, and later review work must use the canonical package.
 
 ## 2. Create Shell And Context Beads Issues

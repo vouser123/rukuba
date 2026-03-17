@@ -72,16 +72,16 @@ Status values:
 
 ## Thread B Audit
 
-Note: `baseline-design.md` is authoritative source material and is not to be edited in this pass. Findings against it are used to correct the split specs, not rewrite the baseline. `index-reconstruction-guide.md` remains the editable helper guide.
+Note: the archived baseline companion now lives at `archive/source-baseline-reference.md` and is retained only as historical source context. Findings against it are used to correct the split specs, not to restore it as part of the active planning package. `index-reconstruction-guide.md` remains the editable helper guide.
 
 | ID | Finding | Target | Status | Exact Home |
 |---|---|---|---|---|
 | TB-1 | stale deleted spec link in `index-reconstruction-guide.md` | `index-reconstruction-guide.md` | patched-needs-verify | canonical spec list at top of guide |
-| TB-2 | stale deleted spec link in `baseline-design.md` | source authority only | non-canonical-reference-only | baseline retained unchanged by instruction |
+| TB-2 | stale deleted spec link in archived baseline companion | `archive/source-baseline-reference.md` | patched-needs-verify | canonical spec list at top of archived baseline |
 | TB-3 | guide says `PT Tracker Sign In` instead of titleless sign-in card | `index-reconstruction-guide.md` | patched-needs-verify | auth surfaces section in guide |
 | TB-4 | baseline compresses queue restore + handler binding order | split specs only | patched-needs-verify | shell startup requirements already updated from design-extract/baseline |
 | TB-5 | baseline modal inventory omits auth modals | split specs only | patched-needs-verify | shell full surface inventory requirement |
-| TB-6 | guide abstracts away exact accepted-set payload fields | `index-reconstruction-guide.md` | open | pending helper-guide sync to canonical payload requirements |
+| TB-6 | guide abstracts away exact accepted-set payload fields | `index-reconstruction-guide.md` | closed | `Next Set` confirm behavior now names accepted-set payload fields and `manual_log` semantics |
 | TB-7 | baseline abstracts accepted-set payload fields | split specs only | patched-needs-verify | logging payload requirements |
 | TB-8 | guide says `Please sign in to view messages` | `index-reconstruction-guide.md` | patched-needs-verify | messages blocked-state line in guide |
 | TB-9 | baseline compresses final save order | split specs only | patched-needs-verify | final save order requirements in canon |

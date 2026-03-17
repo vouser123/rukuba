@@ -54,7 +54,7 @@ Authenticated tracker bootstrap SHALL preserve the static startup ordering that 
 
 #### Scenario: Existing auth session is present at startup
 - **WHEN** the tracker boots with an existing authenticated session
-- **THEN** it MUST initialize offline support, install connectivity listeners, inspect the auth session, set authenticated state, hide auth UI, update `pt_editor.html` auth propagation, run the authenticated bootstrap owner `loadData()`, perform the first message check, start 30-second polling, restore offline queue state, and only then bind interactive handlers in that order
+- **THEN** it MUST initialize offline support, install connectivity listeners, inspect the auth session, set `currentUser`, `authToken`, and `refreshToken`, hide auth UI, update `pt_editor.html` auth propagation, run the authenticated bootstrap owner `loadData()`, restore offline queue state, perform the first message check, start 30-second polling, and only then bind interactive handlers in that order
 
 ### Requirement: Bootstrap prerequisites MUST preserve static env and queue setup
 The tracker SHALL preserve the static startup prerequisites that happen before normal authenticated use can be trusted.
@@ -259,6 +259,14 @@ The shell contract SHALL preserve that the tracker exposes a debug-oriented shel
 - **WHEN** the user triggers the debug shell action
 - **THEN** the migrated shell MUST preserve a distinct diagnostic/debug surface intent instead of silently dropping that capability from the tracker shell
 
+### Requirement: Debug surface MUST preserve static info-surface ownership
+The shell contract SHALL preserve that the debug action opens a tracker-owned debug information surface rather than a meaningless placeholder action.
+
+#### Scenario: User activates the debug shell flow
+- **WHEN** the user triggers `show-debug`
+- **THEN** the tracker MUST preserve a distinct debug info surface owned by the shell, intended to expose current tracker diagnostic state, without turning the action into a route change, browser-level devtool shortcut, or meaningless placeholder that provides no tracker-visible diagnostic surface
+- **AND** that surface MUST remain specific enough to show tracker-visible runtime context such as current auth or patient-context state, queue or connectivity state, and other tracker diagnostics the static shell exposes instead of collapsing the action into a token stub
+
 ### Requirement: Editor-link auth propagation MUST preserve static startup behavior
 The shell SHALL preserve the static rule that tracker auth state is propagated to the linked editor surface during startup and auth changes.
 
@@ -334,7 +342,15 @@ The shell contract SHALL preserve that the static tracker intentionally styles i
 
 #### Scenario: Later migration work recreates the tracker look and feel
 - **WHEN** the shell is rebuilt in Next.js
-- **THEN** the parity package MUST preserve the intent of explicit shell styling for the header, tabs, cards, modals, badges, and alternate theme behavior instead of treating those surfaces as generic framework defaults
+- **THEN** the parity package MUST preserve explicit shell styling for the auth shell, header, tabs, exercise cards, shared modal shell, badges, and alternate dark-mode behavior instead of treating those surfaces as generic framework defaults or leaving them to browser-native presentation
+
+### Requirement: Shell layout MUST preserve static app-shell posture
+The shell contract SHALL preserve the concrete layout obligations that make the tracker read as one touch-first app shell rather than as loosely arranged page sections.
+
+#### Scenario: Later migration work reconstructs shell layout
+- **WHEN** the shell, header, cards, modals, and overlays are rebuilt
+- **THEN** the package MUST preserve the sticky top header posture, patient-banner placement under the main shell chrome, exactly two top-level tabs, exercise cards with top-right details affordance, shared modal overlay shell, and Pocket Mode as a full-screen overlay with its own close control instead of reducing these to generic layout freedom
+- **AND** the package MUST preserve that dark mode is an explicitly styled alternate shell posture, not an incidental browser default
 
 ### Requirement: View switching MUST preserve single-shell tracker behavior
 The shell contract SHALL preserve that picker, logger, and history are view changes inside one tracker shell rather than separate page navigations.
@@ -348,7 +364,15 @@ The shell contract SHALL preserve that the original tracker was authored to beha
 
 #### Scenario: Tracker is used on touch-first mobile devices
 - **WHEN** the top-level shell is rebuilt for mobile and PWA use
-- **THEN** the parity package MUST preserve the static intent around touch-first viewport behavior, reduced surprise zoom behavior, and app-like interaction posture
+- **THEN** the parity package MUST preserve the static intent around touch-first viewport behavior, reduced surprise zoom behavior, and app-like interaction posture, including the document-level expectation that the tracker is not authored as a zoom-heavy generic page
+
+### Requirement: Head-level app-shell metadata MUST preserve static PWA intent
+The shell contract SHALL preserve the head-level metadata choices that make the tracker behave like a touch-first installed web app rather than a generic document.
+
+#### Scenario: Later migration work reconstructs shell metadata and viewport behavior
+- **WHEN** the top-level tracker shell is rebuilt for browser and PWA use
+- **THEN** the canonical package MUST preserve that the original document head establishes a PWA-style app shell with explicit mobile viewport control, including viewport behavior that suppresses surprise zooming, mobile-web-app style posture, and toast-capable root shell behavior rather than treating those concerns as optional browser defaults or leaving them implicit
+- **AND** Beads or implementation work derived from this requirement MUST be able to name head or root-shell obligations concretely instead of collapsing them into a generic “metadata” placeholder
 
 ### Requirement: Shell API contract MUST preserve static startup and history endpoint signatures
 The shell contract SHALL keep the exact startup and history request surfaces readable to later migration work.
@@ -362,7 +386,7 @@ The shell contract SHALL preserve the exact runtime fields cleared by unauthenti
 
 #### Scenario: Tracker loses authenticated state
 - **WHEN** startup finds no session or auth later emits `SIGNED_OUT`
-- **THEN** the canonical package MUST preserve that editor-link auth is cleared on no-session startup and that signed-out handling clears user, tokens, role state, profile state, therapist fallback, viewing context, and `threadRecipientId`
+- **THEN** the canonical package MUST preserve that editor-link auth is cleared on no-session startup and that signed-out handling clears `currentUser`, `authToken`, `refreshToken`, `currentUserRole`, `currentUserProfileId`, `therapistId`, `viewingPatientId`, and `threadRecipientId`
 
 ### Requirement: Bootstrap ordering MUST preserve hamburger and interaction binding placement
 The shell contract SHALL preserve where global interaction wiring happens relative to authenticated data bootstrap.
@@ -377,6 +401,13 @@ The shell contract SHALL preserve the exact presentation details used by static 
 #### Scenario: Tracker renders picker adherence and history timestamps
 - **WHEN** the shell shows `Done today`, `Never done`, or day-ago history and renders `performed_at`
 - **THEN** the canonical package MUST preserve the static color buckets `1-3 days` green, `4-7 days` orange warning, and `8+ days` red warning, and MUST keep the named history formatting path `formatDateTimeWithZone(...)` visible in the readable contract
+
+### Requirement: History and shell-feedback source anchors MUST remain visible for verification
+The shell contract SHALL preserve the key static helper names that own history loading, adherence computation, view switching, and toast feedback.
+
+#### Scenario: Later parity review cross-checks shell ownership against static source
+- **WHEN** a later conversation needs to trace history, adherence, view, or feedback behavior back to the static source
+- **THEN** the canonical package MUST keep the source-anchor names `loadHistory()`, `getDaysDiff()`, `getAdherenceInfo()`, `showView()`, and `showToast()` visible as verification anchors rather than reducing those behaviors to unnamed intent only
 
 ### Requirement: Picker search MUST preserve static live-input behavior and distinct empty conditions
 The picker contract SHALL preserve that search filtering is immediate and that the two empty states are not the same condition.

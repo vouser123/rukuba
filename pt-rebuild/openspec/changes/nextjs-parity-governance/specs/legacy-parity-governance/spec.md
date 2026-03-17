@@ -186,7 +186,7 @@ The canonical parity workflow SHALL treat browser testing as confirmation of the
 The parity package SHALL surface disagreements between preserved baseline documents instead of silently choosing one and hiding the mismatch.
 
 #### Scenario: Preserved docs disagree about a shell or auth detail
-- **WHEN** `design-extract.md`, `index-reconstruction-guide.md`, or `baseline-design.md` disagree on a detail such as auth-surface wording or shell labeling
+- **WHEN** `design-extract.md`, `index-reconstruction-guide.md`, or archived source companions disagree on a detail such as auth-surface wording or shell labeling
 - **THEN** the canonical package MUST either resolve the difference from source-backed evidence or preserve it as an explicit documentation inconsistency for later migration review
 
 ### Requirement: Named specifics MUST survive extraction-to-spec carry-forward

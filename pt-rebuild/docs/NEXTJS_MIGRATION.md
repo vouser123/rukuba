@@ -245,6 +245,15 @@ Correct use of `onClick`/`onChange`/`onKeyDown`:
 - `onChange` on form inputs (`<input>`, `<select>`, `<textarea>`) — these are not touch targets
 - `onKeyDown` for keyboard shortcuts like Enter-to-send
 
+### Native Select Reuse Rule
+
+For dropdown/select behavior, reuse a proven native-select pattern instead of recreating it per page.
+
+- Prefer native `<select>` controls, styled conservatively for iOS Safari.
+- If a field needs free-text fallback, use the same pattern as the Next.js index form-parameter flow: native select plus an `Other...` option that reveals a text input.
+- Treat this as a shared pattern/component opportunity, not a page-local workaround.
+- Do not introduce a custom dropdown widget unless native selects cannot be made reliable on iPhone.
+
 ### What NOT To Do
 
 - Do not add `window.*` globals. Everything through props, hooks, or module-level constants.
@@ -423,6 +432,9 @@ Split into sub-phases because pt_editor has 4 distinct feature areas, each indep
 - Reusable: same component used from future tracker page migration (Phase 4)
 - API calls in `lib/pt-editor.js`: `addRole`, `deleteRole`, `fetchPrograms`, `createProgram`, `updateProgram`
 - No new API routes
+
+**Ongoing iOS follow-up:** `/program` has a tracked iPhone select/dropdown bug in `pt-ant`.
+When fixing it, reuse the working Next.js index dropdown pattern rather than creating another page-specific select implementation. The intended shared pattern covers both plain native selects and native selects with an `Other...` fallback path.
 
 #### Phase 3c: Vocabulary Editor
 - Section 4: controlled vocab CRUD (`/api/vocab` POST/PUT/DELETE)

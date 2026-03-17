@@ -166,7 +166,7 @@ The edit-session flow SHALL preserve the static patch model that saves whole-ses
 
 #### Scenario: User saves from edit-session maintenance
 - **WHEN** the user saves an edited session
-- **THEN** the tracker MUST PATCH `/api/logs?id=...`, save the session timestamp, notes, and edited sets together as one save action, preserve `Session updated` success behavior, and reload history afterward
+- **THEN** the tracker MUST PATCH `/api/logs?id=...`, save the session timestamp, notes, and edited sets together as one save action, show the success feedback `Session updated`, and reload history afterward
 
 ### Requirement: Edit-session delete MUST preserve explicit destructive confirmation
 The history maintenance flow SHALL preserve the static destructive delete guard for full-session removal.

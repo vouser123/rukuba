@@ -1,3 +1,10 @@
+> Archived reference
+>
+> This file is retained only as historical source-derived companion material.
+> It is not part of the active canonical planning package and should not be used
+> for Beads creation when the live split specs, `tasks.md`, and
+> `coverage-matrix.md` are available.
+
 Purpose: define the reconstruction design for static `public/index.html` so migration work can be checked against one ordered, behavior-first contract.
 
 ## Design Goal
@@ -8,7 +15,11 @@ It is intentionally shorter and more ordered than the source harvest. The source
 
 - [design-extract.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/design-extract.md)
 - [index-reconstruction-guide.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/index-reconstruction-guide.md)
-- [spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/index-logging-parity/spec.md)
+- [legacy-parity-governance/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/legacy-parity-governance/spec.md)
+- [tracker-shell-and-context-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/tracker-shell-and-context-parity/spec.md)
+- [tracker-logging-and-pocket-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/tracker-logging-and-pocket-parity/spec.md)
+- [tracker-messages-and-history-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/tracker-messages-and-history-parity/spec.md)
+- [tracker-offline-and-timing-parity/spec.md](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/openspec/changes/nextjs-parity-governance/specs/tracker-offline-and-timing-parity/spec.md)
 
 This file preserves the earlier baseline-focused design surface. `design-extract.md` is the large harvest record.
 

@@ -140,6 +140,13 @@ The logger SHALL preserve the static feedback that happens after a set is accept
 - **WHEN** `Next Set` or `Log Set` appends a set into `currentSession`
 - **THEN** the tracker MUST preserve immediate progress updates, log feedback, and any static comparison-style cue to prior session performance that occurs after accepted-set writes
 
+### Requirement: Accepted-set feedback flash MUST preserve static transient confirmation behavior
+The logger SHALL preserve the brief visual flash feedback that confirms a set was recorded before the user continues logging.
+
+#### Scenario: User records a set and remains in the logger flow
+- **WHEN** `Next Set` or `Log Set` successfully writes an accepted set into the active session
+- **THEN** the tracker MUST preserve the static brief log-feedback flash timing immediately after the accepted-set write as a distinct transient confirmation surface, rather than collapsing that confirmation into only a toast, only a silent progress update, or delayed session-save feedback
+
 ### Requirement: `Next Set` MUST reject empty live progress
 The tracker SHALL preserve the static guard against confirming an empty live logger state.
 
@@ -222,7 +229,7 @@ Pocket Mode SHALL preserve static `index.html` behavior as an alternate control 
 
 #### Scenario: User enters and exits Pocket Mode
 - **WHEN** the user opens and closes Pocket Mode
-- **THEN** the tracker MUST preserve that the static owners `togglePocketMode()`, `updatePocketOverlay()`, `handlePocketTap()`, and `setupPocketLongPress()` require an active exercise session before entry, mirror the same `currentExercise` and `currentSession` while open, and return to the same logger session on close without finishing or cancelling it
+- **THEN** the tracker MUST preserve that the static owners `togglePocketMode()`, `updatePocketOverlay()`, `handlePocketTap()`, and `setupPocketLongPress()` require an active exercise session before entry, open as a full-screen overlay rather than a route change or separate page, mirror the same `currentExercise` and `currentSession` while open, and return to the same logger session on close without finishing or cancelling it
 
 ### Requirement: Pocket Mode hints and labels MUST preserve static workflow guidance
 Pocket Mode SHALL preserve the static hint text and mode labels that tell the user what tapping will do.
@@ -313,7 +320,7 @@ The tracker SHALL preserve the static difference between abandonment and finaliz
 
 #### Scenario: User leaves the logger without saving
 - **WHEN** the user goes back to picker from the logger or cancels from the notes modal
-- **THEN** logger back MUST immediately abandon the in-progress session, while notes cancel MUST ask for confirmation before discarding the in-progress session and returning to picker
+- **THEN** logger back MUST immediately abandon the in-progress session by clearing `currentSession` and `currentExercise`, while notes cancel MUST ask for confirmation before discarding the in-progress session, and confirmed discard MUST also clear `currentSession` and `currentExercise` before returning to picker
 
 ### Requirement: Final save MUST preserve static queue-first ordering
 The tracker SHALL preserve the static save order used by the logger finalization flow.
@@ -377,6 +384,13 @@ The logger SHALL preserve that timer-mode spoken feedback is not one undifferent
 #### Scenario: User starts or pauses a timer-based exercise
 - **WHEN** the tracker decides whether to speak start or pause feedback for a timer interaction
 - **THEN** the readable parity package MUST preserve the static nuance that spoken start or pause feedback is tied to longer-timer behavior rather than assumed for every timer interaction
+
+### Requirement: Speech queue handling MUST preserve static announcement sequencing
+The logger SHALL preserve the static rule that queued spoken feedback is actively managed so stale announcements do not survive state changes.
+
+#### Scenario: Side or progress announcements change while speech is already queued
+- **WHEN** side-switch, reps-left, set-complete, or similar spoken cues are triggered while older logger speech is still pending
+- **THEN** the tracker MUST preserve the static speech-queue-clearing intent so the spoken output reflects the current logger state rather than playing stale queued announcements after the state has already changed
 
 ### Requirement: Countdown warning thresholds MUST preserve static near-zero behavior
 The logger SHALL preserve that timer countdown warnings occur at specific near-zero thresholds rather than as a vague generic effect.
