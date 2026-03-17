@@ -1,0 +1,35 @@
+/* components/NativeSelect.module.css — styles for NativeSelect iOS-safe select and text input */
+
+.select,
+.input {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+/* Native select: remove default arrow on iOS and normalize appearance */
+.select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+    cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+    .select,
+    .input {
+        border-color: var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+}
