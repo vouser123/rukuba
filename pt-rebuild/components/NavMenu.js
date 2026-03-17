@@ -65,6 +65,11 @@ export default function NavMenu({ user, isAdmin, onSignOut, currentPage, actions
         if (onAction) onAction(action);
     }
 
+    function handleRefresh() {
+        close();
+        window.location.reload();
+    }
+
     // Exclude the current page from nav links; hide admin-only links for patients
     const navLinks = NAV_PAGES.filter(p =>
         p.id !== currentPage && (!p.adminOnly || isAdmin)
@@ -127,6 +132,12 @@ export default function NavMenu({ user, isAdmin, onSignOut, currentPage, actions
                         {item.label}
                     </button>
                 ))}
+
+                {/* Refresh — always present; reloads the page to re-fetch latest data */}
+                <button className={styles['hamburger-item']} onPointerUp={handleRefresh}>
+                    <span className={styles['hamburger-icon']}>🔄</span>
+                    Refresh
+                </button>
 
                 {/* Nav links to other pages */}
                 {navLinks.map(page => (
