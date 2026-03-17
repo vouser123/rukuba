@@ -214,11 +214,20 @@ bd ready --json
 
 ---
 
-Dolt server stops between sessions — always restart at the beginning of each session:
+Dolt server check at session start:
 
 ```bash
-cd pt-rebuild && bd dolt start
+cd pt-rebuild
+bd dolt status
 ```
+
+If `bd dolt status` reports `Dolt server: not running`, then start it:
+
+```bash
+bd dolt start
+```
+
+Do not run `bd dolt start` blindly if the server is already running.
 
 To stop the server (end of session or before restart):
 
