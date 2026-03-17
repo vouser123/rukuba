@@ -148,6 +148,23 @@ Place inside your `header-actions` div. NavMenu renders the ☰ button + overlay
 
 **CSS note:** Hamburger styles are in `rehab-coverage.css` for now. When more pages are migrated, move the hamburger CSS block to `main.css` so all pages share it without loading `rehab-coverage.css`.
 
+### `components/NativeSelect.js` — iOS-safe dropdown
+See the [Native Select](#native-select-componentsnativeselectjs) rule below for full usage. Quick summary: use for every `<select>` in the app. Supports optional `allowOther` free-text path. Pass `formatValue` from `lib/text-format` to normalize typed values on blur.
+
+### `lib/text-format.js` — case formatting helpers
+Pure functions for normalizing user-entered text. Import where needed in pages/hooks (not inside components — pass as props instead).
+
+```js
+import { toLower, toSentenceCase, toTitleCase, toUpperCase } from '../lib/text-format';
+
+toLower('Black')          // → 'black'       — use for resistance band values, clinical shorthand
+toSentenceCase('NOTES')   // → 'Notes'       — use for free-text descriptions
+toTitleCase('hello world')// → 'Hello World' — use for names, labels
+toUpperCase('lbs')        // → 'LBS'         — use for abbreviations, codes
+```
+
+Pass these as `formatValue` to `NativeSelect` so typing is normalized on blur, not mid-word.
+
 ### `NAV_PAGES` in `components/NavMenu.js`
 Update hrefs here as pages are migrated:
 ```js
@@ -245,14 +262,45 @@ Correct use of `onClick`/`onChange`/`onKeyDown`:
 - `onChange` on form inputs (`<input>`, `<select>`, `<textarea>`) — these are not touch targets
 - `onKeyDown` for keyboard shortcuts like Enter-to-send
 
-### Native Select Reuse Rule
+### Native Select (`components/NativeSelect.js`)
 
-For dropdown/select behavior, reuse a proven native-select pattern instead of recreating it per page.
+Use `NativeSelect` for every dropdown in the app. It handles iOS Safari quirks and the "Other..." free-text fallback in one place.
 
-- Prefer native `<select>` controls, styled conservatively for iOS Safari.
-- If a field needs free-text fallback, use the same pattern as the Next.js index form-parameter flow: native select plus an `Other...` option that reveals a text input.
-- Treat this as a shared pattern/component opportunity, not a page-local workaround.
-- Do not introduce a custom dropdown widget unless native selects cannot be made reliable on iPhone.
+```jsx
+import NativeSelect from '../components/NativeSelect';
+import { toLower } from '../lib/text-format';
+
+// Plain dropdown (no free-text)
+<NativeSelect
+    value={side}
+    onChange={setSide}
+    options={['left', 'right']}
+    placeholder="Select side..."
+/>
+
+// With Other... free-text option + case normalization on blur
+<NativeSelect
+    value={bandColor}
+    onChange={setBandColor}
+    options={['black', 'blue', 'green', 'red']}
+    allowOther
+    placeholder="Select resistance band..."
+    formatValue={toLower}
+/>
+```
+
+**Props:**
+- `value` / `onChange` — controlled, as usual
+- `options` — array of strings or `{ value, label }` objects
+- `allowOther` (bool, default false) — adds "Other..." option at bottom; selecting it reveals a text input
+- `placeholder` — shown as empty first option when no value is selected
+- `formatValue` — function called on blur to normalize typed text (import from `lib/text-format`)
+- `className` — pass-through CSS class
+
+**Rules:**
+- Do not recreate a native select inline on any page — use this component.
+- Do not introduce a custom dropdown widget; native selects work correctly on iPhone when wired with `onChange`.
+- `formatValue` comes from `lib/text-format` (passed as a prop — NativeSelect does not import lib directly).
 
 ### What NOT To Do
 
