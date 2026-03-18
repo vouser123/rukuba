@@ -9,65 +9,105 @@ import {
     getTargetReps,
     getTargetSeconds,
 } from '../lib/timer-panel';
+import {
+    applyLoggerTimerEvent,
+    createLoggerTimerState,
+    getCanApply,
+} from '../lib/logger-timer-machine';
 import { useExerciseTimer } from './useExerciseTimer';
 import { useTimerAudio } from './useTimerAudio';
 
-export function useTimerSpeech(exercise, isOpen = false, resetToken = 0) {
+export function useTimerSpeech(exercise, isOpen = false, resetToken = 0, sessionProgress = null) {
     const mode = useMemo(() => getExerciseMode(exercise), [exercise]);
     const isSided = exercise?.pattern === 'side';
     const targetReps = useMemo(() => getTargetReps(exercise), [exercise]);
     const targetSeconds = useMemo(() => getTargetSeconds(exercise, mode), [exercise, mode]);
-    const [counterValue, setCounterValue] = useState(0);
-    const [selectedSide, setSelectedSide] = useState(isSided ? 'right' : null);
-
     const audio = useTimerAudio();
+    const [executionState, setExecutionState] = useState(() => createLoggerTimerState({
+        mode,
+        targetReps,
+        targetSeconds,
+        isSided,
+        selectedSide: isSided ? 'right' : null,
+    }));
+    const getDurationCompletionSpeech = useCallback(() => {
+        const targetSets = Number(sessionProgress?.targetSets ?? 0) || 0;
+        if (targetSets <= 0) return 'Set complete';
+
+        if (isSided && executionState.selectedSide) {
+            const currentSideCount = executionState.selectedSide === 'left'
+                ? Number(sessionProgress?.leftCount ?? 0) || 0
+                : Number(sessionProgress?.rightCount ?? 0) || 0;
+            const completedSetNumber = Math.min(currentSideCount + 1, targetSets);
+            return `Set ${completedSetNumber} of ${targetSets} complete for ${executionState.selectedSide} side`;
+        }
+
+        const currentTotal = Number(sessionProgress?.totalLogged ?? 0) || 0;
+        const completedSetNumber = Math.min(currentTotal + 1, targetSets);
+        return `Set ${completedSetNumber} of ${targetSets} complete`;
+    }, [
+        executionState.selectedSide,
+        isSided,
+        sessionProgress?.leftCount,
+        sessionProgress?.rightCount,
+        sessionProgress?.targetSets,
+        sessionProgress?.totalLogged,
+    ]);
     const timer = useExerciseTimer({
         mode,
         targetReps,
         targetSeconds,
         isOpen,
         audio,
+        getDurationCompletionSpeech,
     });
 
     useEffect(() => {
-        setCounterValue(0);
-        setSelectedSide(isSided ? 'right' : null);
-    }, [exercise, isOpen, isSided, resetToken]);
+        setExecutionState(createLoggerTimerState({
+            mode,
+            targetReps,
+            targetSeconds,
+            isSided,
+            selectedSide: isSided ? 'right' : null,
+        }));
+    }, [exercise, isOpen, isSided, mode, resetToken, targetReps, targetSeconds]);
+
+    const dispatchExecutionEvent = useCallback((event) => {
+        setExecutionState((prev) => {
+            const { state, effects } = applyLoggerTimerEvent(prev, event);
+            audio.executeEffects(effects);
+            return state;
+        });
+    }, [audio]);
 
     const incrementCounter = useCallback(() => {
-        setCounterValue((prev) => {
-            const next = prev + 1;
-            audio.playBeep(440, 80, 0.25);
-            if (targetReps > 0) {
-                const repsLeft = targetReps - next;
-                if (repsLeft === 5) audio.speakText('5 reps left');
-                else if (repsLeft === 3) audio.speakText('3 reps left');
-                else if (repsLeft === 1) audio.speakText('Last rep');
-                else if (repsLeft === 0) {
-                    audio.playCompletionSound();
-                    audio.speakText('Set complete');
-                }
-            }
-            return next;
-        });
-    }, [audio, targetReps]);
+        dispatchExecutionEvent({ type: 'INCREMENT_COUNTER' });
+    }, [dispatchExecutionEvent]);
 
     const decrementCounter = useCallback(() => {
-        setCounterValue((prev) => Math.max(0, prev - 1));
-    }, []);
+        dispatchExecutionEvent({ type: 'DECREMENT_COUNTER' });
+    }, [dispatchExecutionEvent]);
 
     const resetCounter = useCallback(() => {
-        setCounterValue(0);
+        setExecutionState((prev) => ({
+            ...prev,
+            counterValue: 0,
+            partialRep: false,
+        }));
     }, []);
+
+    const handleSetSelectedSide = useCallback((side) => {
+        dispatchExecutionEvent({ type: 'SELECT_SIDE', side });
+    }, [dispatchExecutionEvent]);
 
     const repInfoText = useMemo(() => getRepInfoText({
         mode,
-        counterValue,
+        counterValue: executionState.counterValue,
         targetReps,
         completedReps: timer.completedReps,
         currentRep: timer.currentRep,
         totalReps: timer.totalReps,
-    }), [counterValue, mode, targetReps, timer.completedReps, timer.currentRep, timer.totalReps]);
+    }), [executionState.counterValue, mode, targetReps, timer.completedReps, timer.currentRep, timer.totalReps]);
 
     const targetDoseText = useMemo(
         () => getTargetDoseText(exercise, mode, targetReps, targetSeconds),
@@ -76,43 +116,52 @@ export function useTimerSpeech(exercise, isOpen = false, resetToken = 0) {
 
     const buildSetPatch = useCallback(() => buildCurrentSetPatch({
         mode,
-        counterValue,
+        counterValue: executionState.counterValue,
         elapsedSeconds: timer.elapsedSeconds,
         targetSeconds,
         targetReps,
         completedReps: timer.completedReps,
         totalReps: timer.totalReps,
-        selectedSide,
+        selectedSide: executionState.selectedSide,
         distanceFeet: exercise?.distance_feet,
         partialRep: false,
     }), [
-        counterValue,
+        executionState.counterValue,
+        executionState.selectedSide,
         exercise?.distance_feet,
         mode,
-        selectedSide,
         targetReps,
         targetSeconds,
         timer.completedReps,
         timer.elapsedSeconds,
         timer.totalReps,
     ]);
-
-    const canApplyReps = counterValue > 0;
-    const canApplyDuration = mode === 'duration' && timer.elapsedSeconds > 0;
-    const canApplyHold = mode === 'hold' && timer.completedReps > 0;
-    const canApplyDistance = mode === 'distance' && Number(exercise?.distance_feet ?? 0) > 0;
+    const canApply = useMemo(() => getCanApply({
+        ...executionState,
+        elapsedMs: timer.elapsedSeconds * 1000,
+        completedReps: timer.completedReps,
+        currentRep: timer.currentRep,
+        totalReps: timer.totalReps,
+    }, exercise?.distance_feet), [
+        executionState,
+        exercise?.distance_feet,
+        timer.completedReps,
+        timer.currentRep,
+        timer.elapsedSeconds,
+        timer.totalReps,
+    ]);
 
     return {
         mode,
         isSided,
-        selectedSide,
-        setSelectedSide,
-        counterValue,
+        selectedSide: executionState.selectedSide,
+        setSelectedSide: handleSetSelectedSide,
+        counterValue: executionState.counterValue,
         targetReps,
         targetSeconds,
         targetDoseText,
         repInfoText,
-        canApply: canApplyReps || canApplyDuration || canApplyHold || canApplyDistance,
+        canApply,
         incrementCounter,
         decrementCounter,
         resetCounter,

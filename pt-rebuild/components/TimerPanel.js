@@ -1,6 +1,6 @@
 // components/TimerPanel.js — in-panel exercise execution UI for reps/timer flows
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import PocketModeOverlay from './PocketModeOverlay';
 import styles from './TimerPanel.module.css';
 import { useTimerSpeech } from '../hooks/useTimerSpeech';
@@ -14,8 +14,17 @@ export default function TimerPanel({
     onApplySet,
     onOpenManual,
 }) {
-    const timer = useTimerSpeech(exercise, isOpen, resetToken);
+    const timer = useTimerSpeech(exercise, isOpen, resetToken, sessionProgress);
     const [isPocketOpen, setIsPocketOpen] = useState(false);
+    const syncPocketOpen = timer.setPocketOpen;
+
+    useEffect(() => {
+        syncPocketOpen?.(isPocketOpen);
+    }, [isPocketOpen, syncPocketOpen]);
+
+    useEffect(() => {
+        if (!isOpen) setIsPocketOpen(false);
+    }, [isOpen]);
 
     if (!isOpen || !exercise) return null;
 
@@ -25,6 +34,7 @@ export default function TimerPanel({
     const leftCount = sessionProgress?.leftCount ?? 0;
     const rightCount = sessionProgress?.rightCount ?? 0;
     const setsLeft = Math.max(0, targetSets - totalLogged);
+    const sideLabel = timer.selectedSide === 'left' ? 'Working left side' : 'Working right side';
     const pocketMeta = isTimerMode
         ? `Rep ${timer.currentRep} of ${timer.totalReps} · Sets left: ${setsLeft} · ${timer.isRunning ? 'Running' : 'Paused'}`
         : `Sets left: ${setsLeft} · Reps left: ${Math.max(0, timer.targetReps - timer.counterValue)}`;
@@ -45,7 +55,7 @@ export default function TimerPanel({
 
                 {timer.isSided && (
                     <div className={styles.sideRow}>
-                        <span className={styles.sideLabel}>Working side</span>
+                        <span className={styles.sideLabel}>{sideLabel}</span>
                         <div className={styles.sideButtons}>
                             <button
                                 type="button"

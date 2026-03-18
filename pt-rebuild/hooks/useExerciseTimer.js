@@ -1,6 +1,11 @@
 // hooks/useExerciseTimer.js — timer state machine for hold and duration execution flows
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createInitialTimerState, formatTimerDisplay } from '../lib/timer-panel';
+import { formatTimerDisplay } from '../lib/timer-panel';
+import {
+    applyLoggerTimerEvent,
+    createLoggerTimerState,
+    getRemainingSeconds,
+} from '../lib/logger-timer-machine';
 
 export function useExerciseTimer({
     mode,
@@ -8,9 +13,15 @@ export function useExerciseTimer({
     targetSeconds,
     isOpen,
     audio,
+    getDurationCompletionSpeech,
 }) {
-    const [timer, setTimer] = useState(() => createInitialTimerState(targetReps));
-    const [partialRep, setPartialRep] = useState(false);
+    const [timer, setTimer] = useState(() => createLoggerTimerState({
+        mode,
+        targetReps,
+        targetSeconds,
+        isSided: false,
+        selectedSide: null,
+    }));
     const timerRef = useRef(timer);
     const intervalRef = useRef(null);
 
@@ -28,85 +39,68 @@ export function useExerciseTimer({
 
     useEffect(() => {
         clearTimerInterval();
-        setPartialRep(false);
-        setTimer(createInitialTimerState(targetReps));
-    }, [clearTimerInterval, isOpen, targetReps]);
+        setTimer(createLoggerTimerState({
+            mode,
+            targetReps,
+            targetSeconds,
+            isSided: false,
+            selectedSide: null,
+        }));
+    }, [clearTimerInterval, isOpen, mode, targetReps, targetSeconds]);
+
+    const dispatchTimerEvent = useCallback((event) => {
+        setTimer((prev) => {
+            const { state, effects } = applyLoggerTimerEvent(prev, event);
+            audio.executeEffects(effects);
+            return state;
+        });
+    }, [audio]);
 
     const pauseTimer = useCallback((announce = true) => {
         clearTimerInterval();
-        setTimer((prev) => ({ ...prev, isRunning: false }));
-        if (announce && targetSeconds > 10) audio.speakText('Pause');
-    }, [audio, clearTimerInterval, targetSeconds]);
+        dispatchTimerEvent({ type: 'PAUSE_TIMER', announce });
+    }, [clearTimerInterval, dispatchTimerEvent]);
 
     const resetTimer = useCallback(() => {
-        pauseTimer(false);
-        setPartialRep(false);
-        setTimer(createInitialTimerState(targetReps));
-    }, [pauseTimer, targetReps]);
+        clearTimerInterval();
+        dispatchTimerEvent({ type: 'RESET_TIMER' });
+    }, [clearTimerInterval, dispatchTimerEvent]);
+
     const startTimer = useCallback(() => {
         if (intervalRef.current) return;
-        audio.ensureAudioReady();
-        if (targetSeconds > 10) {
-            audio.speakText('Start');
-        }
-
+        dispatchTimerEvent({ type: 'START_TIMER' });
         const startFrom = Date.now() - timerRef.current.elapsedMs;
-        setPartialRep(false);
-        setTimer((prev) => ({ ...prev, isRunning: true }));
 
         intervalRef.current = setInterval(() => {
-            const snapshot = timerRef.current;
             const elapsedMs = Date.now() - startFrom;
-            const elapsedSeconds = Math.floor(elapsedMs / 1000);
-            const remaining = Math.max(0, targetSeconds - elapsedSeconds);
-            const previousRemaining = snapshot.lastAnnouncedSecond;
-
-            if (remaining !== previousRemaining) {
-                if (remaining <= 3 && remaining > 0) audio.playBeep(600, 100, 0.35);
-
-                if (remaining === 0) {
-                    audio.playCompletionSound();
-                    clearTimerInterval();
-
-                    if (mode === 'hold') {
-                        const nextCompletedReps = Math.min(snapshot.completedReps + 1, snapshot.totalReps);
-                        const repsLeft = snapshot.totalReps - nextCompletedReps;
-
-                        if (repsLeft <= 0) audio.speakText('Set complete');
-                        else if (repsLeft === 1) audio.speakText('Last rep');
-                        else if (repsLeft === 3) audio.speakText('3 reps left');
-                        else if (repsLeft === 5) audio.speakText('5 reps left');
-
-                        setPartialRep(false);
-                        setTimer((prev) => ({
-                            ...prev,
-                            isRunning: false,
-                            elapsedMs: 0,
-                            lastAnnouncedSecond: null,
-                            completedReps: nextCompletedReps,
-                            currentRep: Math.min(nextCompletedReps + 1, prev.totalReps),
-                        }));
-                        return;
+            setTimer((prev) => {
+                const { state, effects } = applyLoggerTimerEvent(prev, {
+                    type: 'TIMER_TICK',
+                    elapsedMs,
+                });
+                const resolvedEffects = effects.map((effect) => {
+                    if (
+                        mode === 'duration'
+                        && effect.type === 'speak_text'
+                        && effect.text === 'Set complete'
+                        && typeof getDurationCompletionSpeech === 'function'
+                    ) {
+                        return {
+                            ...effect,
+                            text: getDurationCompletionSpeech(),
+                        };
                     }
-
-                    audio.speakText('Set complete');
-                    setTimer((prev) => ({
-                        ...prev,
-                        isRunning: false,
-                        elapsedMs: targetSeconds * 1000,
-                        lastAnnouncedSecond: 0,
-                    }));
-                    return;
+                    return effect;
+                });
+                audio.executeEffects(resolvedEffects);
+                if (!state.isRunning && intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
                 }
-            }
-
-            setTimer((prev) => ({
-                ...prev,
-                elapsedMs,
-                lastAnnouncedSecond: remaining,
-            }));
+                return state;
+            });
         }, 100);
-    }, [audio, clearTimerInterval, mode, targetSeconds]);
+    }, [audio, clearTimerInterval, dispatchTimerEvent, getDurationCompletionSpeech, mode]);
 
     const toggleTimer = useCallback(() => {
         if (timerRef.current.isRunning) pauseTimer();
@@ -115,21 +109,15 @@ export function useExerciseTimer({
 
     const recordPartialRep = useCallback(() => {
         if (mode !== 'hold') return;
-        pauseTimer(false);
-        setPartialRep(true);
-        setTimer((prev) => {
-            const nextCompletedReps = Math.min(prev.completedReps + 1, prev.totalReps);
-            return {
-                ...prev,
-                elapsedMs: 0,
-                lastAnnouncedSecond: null,
-                completedReps: nextCompletedReps,
-                currentRep: Math.min(nextCompletedReps + 1, prev.totalReps),
-            };
-        });
-    }, [mode, pauseTimer]);
+        clearTimerInterval();
+        dispatchTimerEvent({ type: 'POCKET_LONG_PRESS' });
+    }, [clearTimerInterval, dispatchTimerEvent, mode]);
 
-    const remainingSeconds = useMemo(() => Math.max(0, targetSeconds - Math.floor(timer.elapsedMs / 1000)), [targetSeconds, timer.elapsedMs]);
+    const setPocketOpen = useCallback((isPocketOpen) => {
+        dispatchTimerEvent({ type: isPocketOpen ? 'POCKET_OPEN' : 'POCKET_CLOSE' });
+    }, [dispatchTimerEvent]);
+
+    const remainingSeconds = useMemo(() => getRemainingSeconds(timer), [timer]);
     const elapsedSeconds = useMemo(() => Math.floor(timer.elapsedMs / 1000), [timer.elapsedMs]);
 
     return {
@@ -140,11 +128,12 @@ export function useExerciseTimer({
         elapsedSeconds,
         remainingSeconds,
         timerDisplay: formatTimerDisplay(remainingSeconds),
-        partialRep,
+        partialRep: timer.partialRep,
         startTimer,
         pauseTimer,
         resetTimer,
         toggleTimer,
         recordPartialRep,
+        setPocketOpen,
     };
 }

@@ -62,10 +62,55 @@ export function useTimerAudio() {
         }
     }, []);
 
+    const clearSpeechQueue = useCallback(() => {
+        try {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        } catch {
+            // Speech availability is best-effort only.
+        }
+    }, []);
+
+    const executeEffects = useCallback((effects = []) => {
+        effects.forEach((effect) => {
+            switch (effect.type) {
+            case 'ensure_audio_ready':
+                ensureAudioReady();
+                break;
+            case 'play_soft_tick':
+                playBeep(440, 80, 0.25);
+                break;
+            case 'play_start_confirm':
+                playBeep(520, 90, 0.3);
+                break;
+            case 'play_countdown_warning':
+                playBeep(600, 100, 0.35);
+                break;
+            case 'play_completion_triple':
+                playCompletionSound();
+                break;
+            case 'play_partial_confirm':
+                playBeep(500, 150, 0.4);
+                break;
+            case 'clear_speech_queue':
+                clearSpeechQueue();
+                break;
+            case 'speak_text':
+                if (effect.text) speakText(effect.text);
+                break;
+            default:
+                break;
+            }
+        });
+    }, [clearSpeechQueue, ensureAudioReady, playBeep, playCompletionSound, speakText]);
+
     return {
         ensureAudioReady,
         playBeep,
         playCompletionSound,
         speakText,
+        clearSpeechQueue,
+        executeEffects,
     };
 }

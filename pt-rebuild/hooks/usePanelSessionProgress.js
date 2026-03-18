@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export function usePanelSessionProgress(selectedExercise) {
     const [loggedSets, setLoggedSets] = useState([]);
+    const [sessionStartedAt, setSessionStartedAt] = useState(() => new Date().toISOString());
 
     useEffect(() => {
         setLoggedSets([]);
+        setSessionStartedAt(new Date().toISOString());
     }, [selectedExercise?.id]);
 
     const appendLoggedSet = useCallback((setPatch) => {
@@ -15,6 +17,7 @@ export function usePanelSessionProgress(selectedExercise) {
 
     const resetLoggedSets = useCallback(() => {
         setLoggedSets([]);
+        setSessionStartedAt(new Date().toISOString());
     }, []);
 
     const sessionProgress = useMemo(() => {
@@ -30,6 +33,8 @@ export function usePanelSessionProgress(selectedExercise) {
     }, [loggedSets, selectedExercise?.current_sets]);
 
     return {
+        loggedSets,
+        sessionStartedAt,
         sessionProgress,
         appendLoggedSet,
         resetLoggedSets,

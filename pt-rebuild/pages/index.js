@@ -18,6 +18,7 @@ import { useSessionLogging } from '../hooks/useSessionLogging';
 import { usePanelSessionProgress } from '../hooks/usePanelSessionProgress';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
+import { getProgressComparison } from '../lib/logger-progress-comparison';
 import styles from './index.module.css';
 
 export default function IndexPage() {
@@ -37,7 +38,7 @@ export default function IndexPage() {
     const [isTimerOpen, setIsTimerOpen] = useState(false);
     const [panelResetToken, setPanelResetToken] = useState(0);
     const [pendingSetPatch, setPendingSetPatch] = useState(null);
-    const { sessionProgress, appendLoggedSet, resetLoggedSets } = usePanelSessionProgress(selectedExercise);
+    const { loggedSets, sessionStartedAt, sessionProgress, appendLoggedSet, resetLoggedSets } = usePanelSessionProgress(selectedExercise);
 
     /**
      * Currently open exercise (set by SessionLoggerModal in Phase 4c).
@@ -134,10 +135,35 @@ export default function IndexPage() {
         if (!selectedExercise || !pendingSetPatch) return;
         const didSave = await logger.submitSeedSet(selectedExercise, pendingSetPatch);
         if (!didSave) return;
+        const comparison = getProgressComparison(
+            logs,
+            selectedExercise,
+            [...loggedSets, pendingSetPatch],
+            selectedExercise.pattern === 'side' ? pendingSetPatch.side : null,
+            sessionStartedAt
+        );
         appendLoggedSet(pendingSetPatch);
         setPendingSetPatch(null);
         setPanelResetToken((value) => value + 1);
-    }, [appendLoggedSet, logger, pendingSetPatch, selectedExercise]);
+        if (
+            comparison?.text
+            && typeof window !== 'undefined'
+            && 'speechSynthesis' in window
+        ) {
+            window.setTimeout(() => {
+                try {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(comparison.text);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                } catch {
+                    // Speech availability is best-effort only.
+                }
+            }, 1500);
+        }
+    }, [appendLoggedSet, loggedSets, logger, logs, pendingSetPatch, selectedExercise, sessionStartedAt]);
 
     const handleEditNextSet = useCallback(() => {
         if (!selectedExercise || !pendingSetPatch) return;
