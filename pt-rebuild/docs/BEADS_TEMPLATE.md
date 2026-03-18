@@ -76,6 +76,21 @@ Follow-ups:
 - Use Beads IDs as primary references.
 - Legacy DN references are optional during transition (`--external-ref DN-###` only when needed).
 
+### Assignment Rules for Discovered Work
+
+When you discover a new issue while doing other work, follow these rules — do NOT just assign it to yourself by default:
+
+1. **Clearly fits you** → assign to yourself + appropriate `agent:` label
+2. **Clearly fits the other agent** → assign to them + appropriate `agent:` label
+3. **Either agent could do it** → leave **unassigned** + label `agent:shared`
+
+`agent:shared` unassigned issues appear in `bd ready` for both agents. When you pick one up, explicitly claim it first:
+```bash
+bd update <id> --claim
+```
+
+**Why this matters:** Auto-assigning discovered issues to yourself hides work from the other agent. An issue assigned to Codex that Claude could handle — or vice versa — may sit invisible until explicitly reassigned.
+
 ## Create Example
 
 ```bash
