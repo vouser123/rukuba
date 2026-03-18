@@ -16,6 +16,7 @@ import SessionLoggerModal from '../components/SessionLoggerModal';
 import TimerPanel from '../components/TimerPanel';
 import { useSessionLogging } from '../hooks/useSessionLogging';
 import { usePanelSessionProgress } from '../hooks/usePanelSessionProgress';
+import { useLoggerFeedback } from '../hooks/useLoggerFeedback';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
 import { getProgressComparison } from '../lib/logger-progress-comparison';
@@ -39,6 +40,12 @@ export default function IndexPage() {
     const [panelResetToken, setPanelResetToken] = useState(0);
     const [pendingSetPatch, setPendingSetPatch] = useState(null);
     const { loggedSets, sessionStartedAt, sessionProgress, appendLoggedSet, resetLoggedSets } = usePanelSessionProgress(selectedExercise);
+    const {
+        successMessage,
+        maybeAnnounceAllSetsComplete,
+        showSaveSuccess,
+        speakText,
+    } = useLoggerFeedback(selectedExercise, sessionStartedAt);
 
     /**
      * Currently open exercise (set by SessionLoggerModal in Phase 4c).
@@ -135,35 +142,23 @@ export default function IndexPage() {
         if (!selectedExercise || !pendingSetPatch) return;
         const didSave = await logger.submitSeedSet(selectedExercise, pendingSetPatch);
         if (!didSave) return;
+        showSaveSuccess('');
+        const nextLoggedSets = [...loggedSets, pendingSetPatch];
         const comparison = getProgressComparison(
             logs,
             selectedExercise,
-            [...loggedSets, pendingSetPatch],
+            nextLoggedSets,
             selectedExercise.pattern === 'side' ? pendingSetPatch.side : null,
             sessionStartedAt
         );
         appendLoggedSet(pendingSetPatch);
+        maybeAnnounceAllSetsComplete(selectedExercise, nextLoggedSets);
         setPendingSetPatch(null);
         setPanelResetToken((value) => value + 1);
-        if (
-            comparison?.text
-            && typeof window !== 'undefined'
-            && 'speechSynthesis' in window
-        ) {
-            window.setTimeout(() => {
-                try {
-                    window.speechSynthesis.cancel();
-                    const utterance = new SpeechSynthesisUtterance(comparison.text);
-                    utterance.rate = 1.0;
-                    utterance.pitch = 1.0;
-                    utterance.volume = 1.0;
-                    window.speechSynthesis.speak(utterance);
-                } catch {
-                    // Speech availability is best-effort only.
-                }
-            }, 1500);
+        if (comparison?.text) {
+            speakText(comparison.text, 1500);
         }
-    }, [appendLoggedSet, loggedSets, logger, logs, pendingSetPatch, selectedExercise, sessionStartedAt]);
+    }, [appendLoggedSet, loggedSets, logger, logs, maybeAnnounceAllSetsComplete, pendingSetPatch, selectedExercise, sessionStartedAt, showSaveSuccess, speakText]);
 
     const handleEditNextSet = useCallback(() => {
         if (!selectedExercise || !pendingSetPatch) return;
@@ -171,6 +166,26 @@ export default function IndexPage() {
         setPendingSetPatch(null);
         setIsTimerOpen(false);
     }, [logger, pendingSetPatch, selectedExercise]);
+
+    const handleModalSubmit = useCallback(async () => {
+        const notesValue = logger.notes;
+        const savedSets = logger.sets;
+        const loggerExercise = logger.exercise;
+        const wasEdit = logger.isEdit;
+        const didSave = await logger.submit();
+        if (!didSave || wasEdit) return;
+        showSaveSuccess(notesValue);
+        if (
+            selectedExercise
+            && loggerExercise?.id === selectedExercise.id
+            && Array.isArray(savedSets)
+            && savedSets.length > 0
+        ) {
+            const nextLoggedSets = [...loggedSets, ...savedSets];
+            savedSets.forEach((set) => appendLoggedSet(set));
+            maybeAnnounceAllSetsComplete(selectedExercise, nextLoggedSets);
+        }
+    }, [appendLoggedSet, loggedSets, logger, maybeAnnounceAllSetsComplete, selectedExercise, showSaveSuccess]);
 
     const handleEditLog = useCallback((log) => {
         const byId = pickerExercises.find((exercise) => exercise.id === log.exercise_id);
@@ -250,6 +265,10 @@ export default function IndexPage() {
                     <div className={styles.errorBanner} role="alert">{error}</div>
                 )}
 
+                {successMessage && (
+                    <div className={styles.successBanner} role="status" aria-live="polite">{successMessage}</div>
+                )}
+
                 <main className={styles.main}>
                     {/* ── Exercises tab ── */}
                     {activeTab === 'exercises' && (
@@ -300,7 +319,7 @@ export default function IndexPage() {
                     onRemoveSet={logger.removeSet}
                     onSetChange={logger.updateSet}
                     onFormParamChange={logger.updateFormParam}
-                    onSubmit={logger.submit}
+                    onSubmit={handleModalSubmit}
                     historicalFormParams={historicalFormParams}
                 />
 

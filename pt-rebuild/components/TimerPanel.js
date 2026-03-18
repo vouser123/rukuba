@@ -1,6 +1,6 @@
 // components/TimerPanel.js — in-panel exercise execution UI for reps/timer flows
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PocketModeOverlay from './PocketModeOverlay';
 import styles from './TimerPanel.module.css';
 import { useTimerSpeech } from '../hooks/useTimerSpeech';
@@ -16,7 +16,9 @@ export default function TimerPanel({
 }) {
     const timer = useTimerSpeech(exercise, isOpen, resetToken, sessionProgress);
     const [isPocketOpen, setIsPocketOpen] = useState(false);
+    const [statusMessage, setStatusMessage] = useState('');
     const syncPocketOpen = timer.setPocketOpen;
+    const previousCompletedRepsRef = useRef(timer.completedReps);
 
     useEffect(() => {
         syncPocketOpen?.(isPocketOpen);
@@ -25,6 +27,36 @@ export default function TimerPanel({
     useEffect(() => {
         if (!isOpen) setIsPocketOpen(false);
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setStatusMessage('');
+            previousCompletedRepsRef.current = timer.completedReps;
+            return;
+        }
+
+        const previousCompletedReps = previousCompletedRepsRef.current;
+        previousCompletedRepsRef.current = timer.completedReps;
+
+        if (
+            timer.mode === 'hold'
+            && timer.completedReps > previousCompletedReps
+            && timer.completedReps < timer.totalReps
+        ) {
+            setStatusMessage(`Rep ${timer.completedReps} complete`);
+            return;
+        }
+
+        if (timer.mode !== 'hold') {
+            setStatusMessage('');
+        }
+    }, [isOpen, timer.completedReps, timer.mode, timer.totalReps]);
+
+    useEffect(() => {
+        if (!statusMessage) return undefined;
+        const timeoutId = window.setTimeout(() => setStatusMessage(''), 2000);
+        return () => window.clearTimeout(timeoutId);
+    }, [statusMessage]);
 
     if (!isOpen || !exercise) return null;
 
@@ -90,6 +122,7 @@ export default function TimerPanel({
                 {isTimerMode && (
                     <div className={styles.modeBlock}>
                         <p className={styles.repInfo}>{timer.repInfoText}</p>
+                        {statusMessage && <p className={styles.statusMessage}>{statusMessage}</p>}
                         <div className={styles.timerDisplay}>{timer.timerDisplay}</div>
                         <p className={styles.targetText}>Target: {timer.targetSeconds} seconds</p>
                         <div className={styles.controlRow}>

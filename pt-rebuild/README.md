@@ -88,6 +88,7 @@ This is the current tracker execution stack for timer, audio, and speech behavio
 - [`hooks/useTimerSpeech.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerSpeech.js): The panel-facing execution hook. It combines exercise metadata, selected-side state, timer state, set-patch shaping, and cue dispatch for `TimerPanel`.
 - [`hooks/useExerciseTimer.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useExerciseTimer.js): Thin timer adapter around the machine. It owns the running interval and dispatches timer events into the machine.
 - [`hooks/useTimerAudio.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerAudio.js): Executes emitted effects such as beeps, countdown warnings, speech, and queue clearing. Use it for side effects, not business rules.
+- [`hooks/useLoggerFeedback.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useLoggerFeedback.js): Tracker feedback hook for session-complete speech, exact save-success copy, and delayed comparison speech. Use it for tracker-wide feedback timing and spoken completion behavior that sits above the timer machine.
 - [`lib/logger-timer-machine.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/logger-timer-machine.js): Pure timer/cue transition core. This is the rule layer for state transitions and emitted effects.
 - [`lib/timer-panel.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/timer-panel.js): Pure helpers for exercise mode detection, target values, display formatting, rep labels, and set-patch construction.
 
@@ -97,6 +98,7 @@ If Claude is wiring the tracker page:
 - `TimerPanel` should stay UI-thin and call the hook API rather than hard-coding cue rules.
 - `useTimerSpeech` is the current integration surface for the panel.
 - `useExerciseTimer` and `useTimerAudio` are adapters/executors below that surface.
+- `useLoggerFeedback` owns tracker-wide completion/save/comparison feedback above the timer stack.
 - `logger-timer-machine.js` is the place for transition and cue logic, not the UI.
 
 Current cue rules that matter for tracker work:
@@ -151,6 +153,7 @@ Use these from `hooks/` to keep page files thin and consistent with the current 
 - [`hooks/useIndexOfflineQueue.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useIndexOfflineQueue.js): Manages the tracker offline queue, queue persistence, sync, and sign-out cleanup.
 - [`hooks/useSessionLogging.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useSessionLogging.js): Owns manual create/edit logging state and submit behavior for the session logger modal.
 - [`hooks/usePanelSessionProgress.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/usePanelSessionProgress.js): Tracks per-exercise progress during the open tracker session so the panel and history filter stay aligned.
+- [`hooks/useLoggerFeedback.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useLoggerFeedback.js): Owns tracker-wide spoken/text feedback such as `All sets complete`, delayed comparison speech, and exact `Saved (with notes)` / `Saved (no notes)` success copy.
 - [`hooks/useExerciseTimer.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useExerciseTimer.js): Timer adapter for hold/duration flows built on the logger timer machine.
 - [`hooks/useTimerAudio.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerAudio.js): Audio and speech side-effect executor for timer feedback.
 - [`hooks/useTimerSpeech.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerSpeech.js): Panel-facing execution hook for the tracker timer flow.
