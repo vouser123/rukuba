@@ -138,7 +138,8 @@ Use these `lib/` files from Next.js pages and hooks when you need shared logic. 
 - [`lib/timer-panel.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/timer-panel.js): Pure timer/counter helpers used by the tracker execution stack.
 - [`lib/logger-timer-machine.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/logger-timer-machine.js): Pure timer/cue transition machine used by the current tracker execution stack.
 - [`lib/logger-progress-comparison.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/logger-progress-comparison.js): Pure helpers for delayed progress-comparison speech after set logging.
-- [`lib/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/pt-view.js): Page-domain helpers and fetch logic for the history dashboard.
+- [`lib/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/users.js): Shared API helpers for user data and email notification preferences (`fetchUsers`, `patchEmailNotifications`). Use it on any Next.js page that needs to look up user records or the current user's recipient ID for messaging. Extracted from `lib/pt-view.js` so it can be shared across `pages/index.js` and `pages/pt-view.js`.
+- [`lib/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/pt-view.js): Page-domain helpers and fetch logic for the history dashboard. User/email helpers have moved to `lib/users.js`.
 - [`lib/pt-editor.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/pt-editor.js): Page-domain helpers and fetch logic for the exercise editor.
 
 Legacy API layer in `lib/`:
