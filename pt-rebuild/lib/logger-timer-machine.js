@@ -41,7 +41,14 @@ export function getCanApply(state, distanceFeet = 0) {
     return state.counterValue > 0;
 }
 
-function milestoneSpeechFromRepsLeft(repsLeft) {
+function milestoneSpeechFromRepsLeft(repsLeft, targetReps) {
+    if (targetReps > 0 && targetReps < 5) {
+        if (repsLeft === 1) return 'Last rep';
+        if (repsLeft > 1) return `${repsLeft} reps left`;
+        if (repsLeft <= 0) return 'Set complete';
+        return null;
+    }
+
     if (repsLeft === 5) return '5 reps left';
     if (repsLeft === 3) return '3 reps left';
     if (repsLeft === 1) return 'Last rep';
@@ -85,7 +92,7 @@ export function applyLoggerTimerEvent(state, event) {
     case 'INCREMENT_COUNTER': {
         const nextCounterValue = state.counterValue + 1;
         const repsLeft = state.targetReps - nextCounterValue;
-        const milestone = milestoneSpeechFromRepsLeft(repsLeft);
+        const milestone = milestoneSpeechFromRepsLeft(repsLeft, state.targetReps);
         const effects = [
             { type: 'play_soft_tick' },
         ];
@@ -184,7 +191,7 @@ export function applyLoggerTimerEvent(state, event) {
         if (state.mode === 'hold') {
             const nextCompletedReps = Math.min(state.completedReps + 1, state.totalReps);
             const repsLeft = state.totalReps - nextCompletedReps;
-            const milestone = milestoneSpeechFromRepsLeft(repsLeft);
+            const milestone = milestoneSpeechFromRepsLeft(repsLeft, state.totalReps);
             if (milestone) effects.push({ type: 'speak_text', text: milestone });
             return {
                 state: {
