@@ -11,6 +11,8 @@ export default function TimerPanel({
     resetToken = 0,
     sessionProgress,
     onClose,
+    onFinish,
+    onBack,
     onApplySet,
     onOpenManual,
 }) {
@@ -82,7 +84,7 @@ export default function TimerPanel({
                         <h2 className={styles.title}>{exercise.canonical_name}</h2>
                         <p className={styles.subtitle}>{timer.targetDoseText}</p>
                     </div>
-                    <button className={styles.closeBtn} type="button" onPointerUp={onClose}>Done</button>
+                    <button className={styles.closeBtn} type="button" onPointerUp={onFinish ?? onClose}>Done</button>
                 </header>
 
                 {timer.isSided && (
@@ -183,9 +185,9 @@ export default function TimerPanel({
                         Next Set
                     </button>
                 </footer>
-                <button type="button" className={styles.finishBtn} onPointerUp={onClose}>Done</button>
+                <button type="button" className={styles.finishBtn} onPointerUp={onFinish ?? onClose}>Done</button>
                 <button type="button" className={styles.pocketBtn} onPointerUp={() => setIsPocketOpen(true)}>Pocket Mode</button>
-                <button type="button" className={styles.backBtn} onPointerUp={onClose}>← Back to Exercises</button>
+                <button type="button" className={styles.backBtn} onPointerUp={onBack ?? onClose}>← Back to Exercises</button>
             </section>
             <PocketModeOverlay
                 isOpen={isPocketOpen}

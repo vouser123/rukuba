@@ -46,6 +46,10 @@ export default function SessionLoggerModal({
     isOpen,
     isEdit,
     exercise,
+    title = null,
+    submitLabel = null,
+    showPerformedAt = true,
+    showNotes = true,
     performedAt,
     notes,
     sets,
@@ -85,7 +89,7 @@ export default function SessionLoggerModal({
             <section className={styles.modal} aria-label="Session logger">
                 <header className={styles.header}>
                     <div>
-                        <h2 className={styles.title}>{isEdit ? 'Edit Session' : 'Log Session'}</h2>
+                        <h2 className={styles.title}>{title ?? (isEdit ? 'Edit Session' : 'Log Session')}</h2>
                         <p className={styles.subtitle}>{exercise.canonical_name}</p>
                     </div>
                     <button className={styles.closeBtn} onPointerUp={onClose} type="button" aria-label="Close">
@@ -95,20 +99,22 @@ export default function SessionLoggerModal({
 
                 {error && <div className={styles.error}>{error}</div>}
 
-                <div className={styles.metaRow}>
-                    <label className={styles.fieldLabel}>
-                        Performed At
-                        <input
-                            className={styles.input}
-                            type="datetime-local"
-                            value={toLocalDateTimeInputValue(performedAt)}
-                            onChange={(event) => {
-                                if (!event.target.value) return;
-                                onPerformedAtChange(new Date(event.target.value).toISOString());
-                            }}
-                        />
-                    </label>
-                </div>
+                {showPerformedAt && (
+                    <div className={styles.metaRow}>
+                        <label className={styles.fieldLabel}>
+                            Performed At
+                            <input
+                                className={styles.input}
+                                type="datetime-local"
+                                value={toLocalDateTimeInputValue(performedAt)}
+                                onChange={(event) => {
+                                    if (!event.target.value) return;
+                                    onPerformedAtChange(new Date(event.target.value).toISOString());
+                                }}
+                            />
+                        </label>
+                    </div>
+                )}
 
                 <div className={styles.setList}>
                     {sets.map((set, index) => (
@@ -254,23 +260,25 @@ export default function SessionLoggerModal({
                     ))}
                 </div>
 
-                <label className={styles.fieldLabel}>
-                    Notes
-                    <textarea
-                        className={styles.textarea}
-                        rows={3}
-                        value={notes}
-                        onChange={(event) => onNotesChange(event.target.value)}
-                        placeholder="Optional notes"
-                    />
-                </label>
+                {showNotes && (
+                    <label className={styles.fieldLabel}>
+                        Notes
+                        <textarea
+                            className={styles.textarea}
+                            rows={3}
+                            value={notes}
+                            onChange={(event) => onNotesChange(event.target.value)}
+                            placeholder="Optional notes"
+                        />
+                    </label>
+                )}
 
                 <footer className={styles.footer}>
                     <button className={styles.secondaryBtn} onPointerUp={onAddSet} type="button">
                         Add Set
                     </button>
                     <button className={styles.primaryBtn} onPointerUp={onSubmit} type="button" disabled={submitting}>
-                        {submitting ? 'Saving...' : (isEdit ? 'Save Changes' : 'Finish Session')}
+                        {submitting ? 'Saving...' : (submitLabel ?? (isEdit ? 'Save Changes' : 'Finish Session'))}
                     </button>
                 </footer>
             </section>

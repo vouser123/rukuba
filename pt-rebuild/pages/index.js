@@ -13,33 +13,47 @@ import BottomNav from '../components/BottomNav';
 import ExercisePicker from '../components/ExercisePicker';
 import NextSetConfirmModal from '../components/NextSetConfirmModal';
 import SessionLoggerModal from '../components/SessionLoggerModal';
+import SessionNotesModal from '../components/SessionNotesModal';
 import TimerPanel from '../components/TimerPanel';
 import { useSessionLogging } from '../hooks/useSessionLogging';
-import { usePanelSessionProgress } from '../hooks/usePanelSessionProgress';
 import { useLoggerFeedback } from '../hooks/useLoggerFeedback';
 import { getAdherenceBadgeState } from '../lib/index-history';
+import { buildOptimisticLogEntry, buildSessionProgress, createDraftSession, toLocalDateTimeInputValue } from '../lib/index-tracker-session';
 import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
 import { getProgressComparison } from '../lib/logger-progress-comparison';
+import { buildCreatePayload, createDefaultSet, inferActivityType, normalizeSet } from '../lib/session-logging';
 import styles from './index.module.css';
+
+function emptyManualLogState() {
+    return { isOpen: false, exercise: null, sets: [], error: null };
+}
 
 export default function IndexPage() {
     const { session, loading: authLoading, signIn } = useAuth();
 
     const userId = session?.user?.id ?? null;
-    const token  = session?.access_token ?? null;
+    const token = session?.access_token ?? null;
 
     const { exercises, programs, logs, loading, error, reload } = useIndexData(token, userId);
     const { pendingCount, enqueue, sync, clearQueue } = useIndexOfflineQueue(userId, token);
 
-    // 'exercises' | 'history'
     const [activeTab, setActiveTab] = useState('exercises');
     const [sortMode, setSortMode] = useState('pt_order');
     const [selectedExerciseId, setSelectedExerciseId] = useState(null);
     const [selectedExercise, setSelectedExercise] = useState(null);
+    const [draftSession, setDraftSession] = useState(null);
     const [isTimerOpen, setIsTimerOpen] = useState(false);
     const [panelResetToken, setPanelResetToken] = useState(0);
     const [pendingSetPatch, setPendingSetPatch] = useState(null);
-    const { loggedSets, sessionStartedAt, sessionProgress, appendLoggedSet, resetLoggedSets } = usePanelSessionProgress(selectedExercise);
+    const [manualLogState, setManualLogState] = useState(emptyManualLogState);
+    const [notesModalOpen, setNotesModalOpen] = useState(false);
+    const [backdateEnabled, setBackdateEnabled] = useState(false);
+    const [backdateValue, setBackdateValue] = useState('');
+    const [pageMessage, setPageMessage] = useState('');
+    const [optimisticLogs, setOptimisticLogs] = useState([]);
+    const [activeExercise, setActiveExercise] = useState(null);
+    const sessionStartedAt = draftSession?.date ?? new Date().toISOString();
+
     const {
         successMessage,
         maybeAnnounceAllSetsComplete,
@@ -47,13 +61,7 @@ export default function IndexPage() {
         speakText,
     } = useLoggerFeedback(selectedExercise, sessionStartedAt);
 
-    /**
-     * Currently open exercise (set by SessionLoggerModal in Phase 4c).
-     * Drives the HistoryPanel exercise-filter (DN-014 behavior):
-     *   null  → show all history
-     *   { id, name } → show only that exercise's history
-     */
-    const [activeExercise, setActiveExercise] = useState(null);
+    const allLogs = useMemo(() => [...optimisticLogs, ...logs], [logs, optimisticLogs]);
 
     const pickerExercises = useMemo(() => {
         if (programs.length > 0) {
@@ -76,12 +84,13 @@ export default function IndexPage() {
         return exercises;
     }, [exercises, programs]);
 
-    const historicalFormParams = useMemo(() => collectGlobalParameterValues(logs), [logs]);
+    const historicalFormParams = useMemo(() => collectGlobalParameterValues(allLogs), [allLogs]);
+
     const pickerPrograms = useMemo(() => {
         if (programs.length > 0) {
             return programs.map((program) => {
                 const exerciseName = program?.exercises?.canonical_name ?? null;
-                const adherence = getAdherenceBadgeState(logs, program.exercise_id, exerciseName);
+                const adherence = getAdherenceBadgeState(allLogs, program.exercise_id, exerciseName);
                 return {
                     ...program,
                     ...adherence,
@@ -91,34 +100,87 @@ export default function IndexPage() {
 
         return exercises.map((exercise) => ({
             exercise_id: exercise.id,
-            ...getAdherenceBadgeState(logs, exercise.id, exercise.canonical_name ?? null),
+            ...getAdherenceBadgeState(allLogs, exercise.id, exercise.canonical_name ?? null),
         }));
-    }, [exercises, logs, programs]);
+    }, [allLogs, exercises, programs]);
 
-    // logger must be declared before handleExerciseSelect so it is initialized
-    // when useCallback evaluates the dependency array (avoids TDZ crash on SSR).
+    const sessionProgress = useMemo(
+        () => buildSessionProgress(selectedExercise, draftSession?.sets ?? []),
+        [draftSession?.sets, selectedExercise]
+    );
+
     const logger = useSessionLogging(token, userId, reload, enqueue);
+
+    const abandonDraftSession = useCallback(() => {
+        setDraftSession(null);
+        setSelectedExerciseId(null);
+        setSelectedExercise(null);
+        setIsTimerOpen(false);
+        setPendingSetPatch(null);
+        setManualLogState(emptyManualLogState());
+        setNotesModalOpen(false);
+        setBackdateEnabled(false);
+        setBackdateValue('');
+        setPageMessage('');
+    }, []);
 
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
         const enrichedSelected = selected ? {
             ...selected,
-            default_form_data: selected.default_form_data ?? buildDefaultFormDataForExercise(selected, logs),
+            default_form_data: selected.default_form_data ?? buildDefaultFormDataForExercise(selected, allLogs),
         } : null;
         setSelectedExercise(enrichedSelected);
         if (enrichedSelected) {
+            setDraftSession(createDraftSession(enrichedSelected, inferActivityType(enrichedSelected)));
             setPendingSetPatch(null);
+            setPageMessage('');
             setActiveExercise({ id: enrichedSelected.id, name: enrichedSelected.canonical_name || '' });
             setIsTimerOpen(true);
         }
-    }, [logs, pickerExercises]);
+    }, [allLogs, pickerExercises]);
 
-    const handleTimerClose = useCallback(() => {
-        setIsTimerOpen(false);
-        setPendingSetPatch(null);
-        resetLoggedSets();
-    }, [resetLoggedSets]);
+    const handleTimerBack = useCallback(() => {
+        abandonDraftSession();
+        setActiveExercise(null);
+    }, [abandonDraftSession]);
+
+    const handleFinishSession = useCallback(() => {
+        if (!draftSession || draftSession.sets.length === 0) {
+            setPageMessage('Please log at least one set before finishing');
+            return;
+        }
+        setPageMessage('');
+        setNotesModalOpen(true);
+    }, [draftSession]);
+
+    const handleNotesModalClose = useCallback(() => {
+        setNotesModalOpen(false);
+        setBackdateEnabled(false);
+        setBackdateValue('');
+    }, []);
+
+    const handleCancelSession = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            const confirmed = window.confirm('Cancel this session? Your in-progress session will be discarded.');
+            if (!confirmed) return;
+        }
+        handleNotesModalClose();
+        handleTimerBack();
+    }, [handleNotesModalClose, handleTimerBack]);
+
+    const handleToggleBackdate = useCallback(() => {
+        if (!draftSession) return;
+        setBackdateEnabled((previous) => {
+            if (!previous) {
+                setBackdateValue(toLocalDateTimeInputValue(draftSession.date));
+            } else {
+                setBackdateValue('');
+            }
+            return !previous;
+        });
+    }, [draftSession]);
 
     const handleTimerApplySet = useCallback((setPatch) => {
         if (!selectedExercise) return;
@@ -129,63 +191,181 @@ export default function IndexPage() {
     }, [selectedExercise]);
 
     const handleTimerOpenManual = useCallback((options = {}) => {
-        if (!selectedExercise) return;
-        logger.openCreateWithSeedSet(selectedExercise, {
-            side: selectedExercise.pattern === 'side' ? (options.side ?? 'right') : null,
-            manual_log: true,
-            form_data: selectedExercise.default_form_data ?? null,
+        if (!selectedExercise || !draftSession) return;
+        setManualLogState({
+            isOpen: true,
+            exercise: selectedExercise,
+            sets: [{
+                ...createDefaultSet(selectedExercise, 1),
+                ...(options.seedSet ?? {}),
+                side: selectedExercise.pattern === 'side' ? (options.side ?? 'right') : null,
+                manual_log: true,
+                form_data: options.seedSet?.form_data ?? selectedExercise.default_form_data ?? null,
+                performed_at: draftSession.date,
+            }],
+            error: null,
         });
         setIsTimerOpen(false);
-    }, [logger, selectedExercise]);
+    }, [draftSession, selectedExercise]);
 
-    const handleConfirmNextSet = useCallback(async () => {
-        if (!selectedExercise || !pendingSetPatch) return;
-        const didSave = await logger.submitSeedSet(selectedExercise, pendingSetPatch);
-        if (!didSave) return;
+    const handleConfirmNextSet = useCallback(() => {
+        if (!selectedExercise || !pendingSetPatch || !draftSession) return;
         showSaveSuccess('');
-        const nextLoggedSets = [...loggedSets, pendingSetPatch];
+        const normalizedSet = normalizeSet({
+            ...pendingSetPatch,
+            set_number: draftSession.sets.length + 1,
+            performed_at: draftSession.date,
+        }, draftSession.sets.length, draftSession.activityType);
+        const nextLoggedSets = [...draftSession.sets, normalizedSet];
         const comparison = getProgressComparison(
-            logs,
+            allLogs,
             selectedExercise,
             nextLoggedSets,
-            selectedExercise.pattern === 'side' ? pendingSetPatch.side : null,
+            selectedExercise.pattern === 'side' ? normalizedSet.side : null,
             sessionStartedAt
         );
-        appendLoggedSet(pendingSetPatch);
+        setDraftSession((previous) => previous ? { ...previous, sets: nextLoggedSets } : previous);
         maybeAnnounceAllSetsComplete(selectedExercise, nextLoggedSets);
         setPendingSetPatch(null);
         setPanelResetToken((value) => value + 1);
         if (comparison?.text) {
             speakText(comparison.text, 1500);
         }
-    }, [appendLoggedSet, loggedSets, logger, logs, maybeAnnounceAllSetsComplete, pendingSetPatch, selectedExercise, sessionStartedAt, showSaveSuccess, speakText]);
+    }, [allLogs, draftSession, maybeAnnounceAllSetsComplete, pendingSetPatch, selectedExercise, sessionStartedAt, showSaveSuccess, speakText]);
 
     const handleEditNextSet = useCallback(() => {
         if (!selectedExercise || !pendingSetPatch) return;
-        logger.openCreateWithSeedSet(selectedExercise, pendingSetPatch);
+        handleTimerOpenManual({
+            side: pendingSetPatch.side,
+            seedSet: pendingSetPatch,
+        });
         setPendingSetPatch(null);
-        setIsTimerOpen(false);
-    }, [logger, pendingSetPatch, selectedExercise]);
+    }, [handleTimerOpenManual, pendingSetPatch, selectedExercise]);
 
-    const handleModalSubmit = useCallback(async () => {
-        const notesValue = logger.notes;
-        const savedSets = logger.sets;
-        const loggerExercise = logger.exercise;
-        const wasEdit = logger.isEdit;
+    const handleHistoryModalSubmit = useCallback(async () => {
         const didSave = await logger.submit();
-        if (!didSave || wasEdit) return;
-        showSaveSuccess(notesValue);
-        if (
-            selectedExercise
-            && loggerExercise?.id === selectedExercise.id
-            && Array.isArray(savedSets)
-            && savedSets.length > 0
-        ) {
-            const nextLoggedSets = [...loggedSets, ...savedSets];
-            savedSets.forEach((set) => appendLoggedSet(set));
-            maybeAnnounceAllSetsComplete(selectedExercise, nextLoggedSets);
+        if (!didSave) return;
+        showSaveSuccess(logger.notes);
+    }, [logger, showSaveSuccess]);
+
+    const handleManualAddSet = useCallback(() => {
+        setManualLogState((previous) => ({
+            ...previous,
+            sets: [...previous.sets, createDefaultSet(previous.exercise, previous.sets.length + 1)],
+        }));
+    }, []);
+
+    const handleManualRemoveSet = useCallback((index) => {
+        setManualLogState((previous) => {
+            const nextSets = previous.sets
+                .filter((_, setIndex) => setIndex !== index)
+                .map((set, setIndex) => ({ ...set, set_number: setIndex + 1 }));
+            return { ...previous, sets: nextSets };
+        });
+    }, []);
+
+    const updateManualSet = useCallback((index, patch) => {
+        setManualLogState((previous) => ({
+            ...previous,
+            sets: previous.sets.map((set, setIndex) => (setIndex === index ? { ...set, ...patch } : set)),
+        }));
+    }, []);
+
+    const updateManualFormParam = useCallback((index, paramName, paramValue, paramUnit = null) => {
+        setManualLogState((previous) => ({
+            ...previous,
+            sets: previous.sets.map((set, setIndex) => {
+                if (setIndex !== index) return set;
+                const existing = Array.isArray(set.form_data) ? [...set.form_data] : [];
+                const matchIndex = existing.findIndex((item) => item.parameter_name === paramName);
+                if (!paramValue) {
+                    const filtered = existing.filter((item) => item.parameter_name !== paramName);
+                    return { ...set, form_data: filtered.length > 0 ? filtered : null };
+                }
+                const nextParam = {
+                    parameter_name: paramName,
+                    parameter_value: paramValue,
+                    parameter_unit: paramUnit,
+                };
+                if (matchIndex >= 0) existing[matchIndex] = nextParam;
+                else existing.push(nextParam);
+                return { ...set, form_data: existing };
+            }),
+        }));
+    }, []);
+
+    const handleManualModalSubmit = useCallback(() => {
+        if (!manualLogState.exercise || !draftSession) return;
+        if (manualLogState.sets.length === 0) {
+            setManualLogState((previous) => ({ ...previous, error: 'Add at least one set before saving.' }));
+            return;
         }
-    }, [appendLoggedSet, loggedSets, logger, maybeAnnounceAllSetsComplete, selectedExercise, showSaveSuccess]);
+
+        const normalizedSets = manualLogState.sets.map((set, index) => normalizeSet({
+            ...set,
+            set_number: draftSession.sets.length + index + 1,
+            performed_at: draftSession.date,
+            manual_log: true,
+        }, draftSession.sets.length + index, draftSession.activityType));
+        const nextLoggedSets = [...draftSession.sets, ...normalizedSets];
+
+        setDraftSession((previous) => previous ? { ...previous, sets: nextLoggedSets } : previous);
+        setManualLogState(emptyManualLogState());
+        setIsTimerOpen(true);
+        showSaveSuccess('');
+        maybeAnnounceAllSetsComplete(selectedExercise, nextLoggedSets);
+        setPanelResetToken((value) => value + 1);
+    }, [draftSession, manualLogState.exercise, manualLogState.sets, maybeAnnounceAllSetsComplete, selectedExercise, showSaveSuccess]);
+
+    const handleManualModalClose = useCallback(() => {
+        setManualLogState(emptyManualLogState());
+        if (selectedExercise) {
+            setIsTimerOpen(true);
+        }
+    }, [selectedExercise]);
+
+    const handleSaveFinishedSession = useCallback(async () => {
+        if (!draftSession || !selectedExercise) return;
+
+        const trimmedNotes = draftSession.notes ? draftSession.notes.trim() : '';
+        const finalPerformedAt = backdateEnabled && backdateValue
+            ? new Date(backdateValue).toISOString()
+            : draftSession.date;
+        const finalSession = {
+            ...draftSession,
+            date: finalPerformedAt,
+            notes: trimmedNotes || null,
+            sets: draftSession.sets.map((set, index) => normalizeSet({
+                ...set,
+                set_number: index + 1,
+                performed_at: finalPerformedAt,
+            }, index, draftSession.activityType)),
+        };
+
+        const payload = buildCreatePayload(selectedExercise, finalSession.date, finalSession.notes, finalSession.sets);
+        payload.client_mutation_id = finalSession.sessionId;
+
+        enqueue(payload);
+
+        let syncResult = { succeeded: 0, failed: 0 };
+        try {
+            syncResult = await sync();
+        } catch {
+            // Queue-first flow treats sync failure as non-blocking.
+        }
+
+        setOptimisticLogs((previous) => [buildOptimisticLogEntry(finalSession), ...previous]);
+        handleNotesModalClose();
+        abandonDraftSession();
+        setActiveExercise(null);
+        setActiveTab('history');
+        showSaveSuccess(trimmedNotes);
+
+        if (syncResult.failed === 0) {
+            await reload();
+            setOptimisticLogs((previous) => previous.filter((log) => log.client_mutation_id !== finalSession.sessionId));
+        }
+    }, [abandonDraftSession, backdateEnabled, backdateValue, draftSession, enqueue, handleNotesModalClose, reload, selectedExercise, showSaveSuccess, sync]);
 
     const handleEditLog = useCallback((log) => {
         const byId = pickerExercises.find((exercise) => exercise.id === log.exercise_id);
@@ -208,10 +388,6 @@ export default function IndexPage() {
         }
     }, [logger.isOpen]);
 
-    /**
-     * Sign out — clear the offline queue first to prevent cross-user data leakage (DN-022 fix),
-     * then end the Supabase session.
-     */
     const handleSignOut = useCallback(async () => {
         clearQueue();
         const { supabase } = await import('../lib/supabase');
@@ -223,6 +399,13 @@ export default function IndexPage() {
     if (!session) {
         return <AuthForm title="PT Tracker Sign In" onSignIn={signIn} />;
     }
+
+    const backdateWarningVisible = Boolean(
+        draftSession
+        && backdateEnabled
+        && backdateValue
+        && Math.abs(new Date(backdateValue).getTime() - new Date(draftSession.date).getTime()) > 120000
+    );
 
     return (
         <>
@@ -265,29 +448,29 @@ export default function IndexPage() {
                     <div className={styles.errorBanner} role="alert">{error}</div>
                 )}
 
+                {pageMessage && (
+                    <div className={styles.errorBanner} role="alert">{pageMessage}</div>
+                )}
+
                 {successMessage && (
                     <div className={styles.successBanner} role="status" aria-live="polite">{successMessage}</div>
                 )}
 
                 <main className={styles.main}>
-                    {/* ── Exercises tab ── */}
                     {activeTab === 'exercises' && (
-                        <>
-                            <ExercisePicker
-                                exercises={pickerExercises}
-                                programs={pickerPrograms}
-                                selectedId={selectedExerciseId}
-                                onSelect={handleExerciseSelect}
-                                sortMode={sortMode}
-                                onSortChange={setSortMode}
-                            />
-                        </>
+                        <ExercisePicker
+                            exercises={pickerExercises}
+                            programs={pickerPrograms}
+                            selectedId={selectedExerciseId}
+                            onSelect={handleExerciseSelect}
+                            sortMode={sortMode}
+                            onSortChange={setSortMode}
+                        />
                     )}
 
-                    {/* ── History tab (DN-014 filter behavior) ── */}
                     {activeTab === 'history' && (
                         <HistoryPanel
-                            logs={logs}
+                            logs={allLogs}
                             activeExerciseId={activeExercise?.id ?? null}
                             activeExerciseName={activeExercise?.name ?? null}
                             onClearFilter={() => setActiveExercise(null)}
@@ -296,7 +479,6 @@ export default function IndexPage() {
                     )}
                 </main>
 
-                {/* ── Bottom navigation ── */}
                 <BottomNav
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
@@ -304,22 +486,26 @@ export default function IndexPage() {
                 />
 
                 <SessionLoggerModal
-                    isOpen={logger.isOpen}
-                    isEdit={logger.isEdit}
-                    exercise={logger.exercise}
-                    performedAt={logger.performedAt}
-                    notes={logger.notes}
-                    sets={logger.sets}
-                    submitting={logger.submitting}
-                    error={logger.error}
-                    onClose={logger.close}
-                    onPerformedAtChange={logger.setPerformedAt}
-                    onNotesChange={logger.setNotes}
-                    onAddSet={logger.addSet}
-                    onRemoveSet={logger.removeSet}
-                    onSetChange={logger.updateSet}
-                    onFormParamChange={logger.updateFormParam}
-                    onSubmit={handleModalSubmit}
+                    isOpen={manualLogState.isOpen || logger.isOpen}
+                    isEdit={manualLogState.isOpen ? false : logger.isEdit}
+                    exercise={manualLogState.isOpen ? manualLogState.exercise : logger.exercise}
+                    title={manualLogState.isOpen ? 'Log Set' : null}
+                    submitLabel={manualLogState.isOpen ? 'Save Set' : null}
+                    showPerformedAt={!manualLogState.isOpen}
+                    showNotes={!manualLogState.isOpen}
+                    performedAt={manualLogState.isOpen ? draftSession?.date ?? new Date().toISOString() : logger.performedAt}
+                    notes={manualLogState.isOpen ? '' : logger.notes}
+                    sets={manualLogState.isOpen ? manualLogState.sets : logger.sets}
+                    submitting={manualLogState.isOpen ? false : logger.submitting}
+                    error={manualLogState.isOpen ? manualLogState.error : logger.error}
+                    onClose={manualLogState.isOpen ? handleManualModalClose : logger.close}
+                    onPerformedAtChange={manualLogState.isOpen ? (() => {}) : logger.setPerformedAt}
+                    onNotesChange={manualLogState.isOpen ? (() => {}) : logger.setNotes}
+                    onAddSet={manualLogState.isOpen ? handleManualAddSet : logger.addSet}
+                    onRemoveSet={manualLogState.isOpen ? handleManualRemoveSet : logger.removeSet}
+                    onSetChange={manualLogState.isOpen ? updateManualSet : logger.updateSet}
+                    onFormParamChange={manualLogState.isOpen ? updateManualFormParam : logger.updateFormParam}
+                    onSubmit={manualLogState.isOpen ? handleManualModalSubmit : handleHistoryModalSubmit}
                     historicalFormParams={historicalFormParams}
                 />
 
@@ -328,7 +514,9 @@ export default function IndexPage() {
                     exercise={selectedExercise}
                     resetToken={panelResetToken}
                     sessionProgress={sessionProgress}
-                    onClose={handleTimerClose}
+                    onClose={handleTimerBack}
+                    onFinish={handleFinishSession}
+                    onBack={handleTimerBack}
                     onApplySet={handleTimerApplySet}
                     onOpenManual={handleTimerOpenManual}
                 />
@@ -337,11 +525,27 @@ export default function IndexPage() {
                     isOpen={Boolean(pendingSetPatch)}
                     exercise={selectedExercise}
                     setPatch={pendingSetPatch}
-                    submitting={logger.submitting}
-                    error={logger.error}
+                    submitting={false}
+                    error={null}
                     onClose={() => setPendingSetPatch(null)}
                     onEdit={handleEditNextSet}
                     onConfirm={handleConfirmNextSet}
+                />
+
+                <SessionNotesModal
+                    isOpen={notesModalOpen && Boolean(draftSession)}
+                    notes={draftSession?.notes ?? ''}
+                    backdateEnabled={backdateEnabled}
+                    backdateValue={backdateValue}
+                    warningVisible={backdateWarningVisible}
+                    onClose={handleNotesModalClose}
+                    onCancel={handleCancelSession}
+                    onNotesChange={(value) => {
+                        setDraftSession((previous) => previous ? { ...previous, notes: value } : previous);
+                    }}
+                    onToggleBackdate={handleToggleBackdate}
+                    onBackdateChange={setBackdateValue}
+                    onSave={handleSaveFinishedSession}
                 />
             </div>
         </>
