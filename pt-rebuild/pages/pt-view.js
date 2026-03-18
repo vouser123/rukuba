@@ -20,10 +20,11 @@ import PatientNotes from '../components/PatientNotes';
 import HistoryList from '../components/HistoryList';
 import NativeSelect from '../components/NativeSelect';
 import {
-    fetchLogs, fetchPrograms, fetchUsers, patchEmailNotifications,
+    fetchLogs, fetchPrograms,
     groupLogsByDate, findNeedsAttention, needsAttentionUrgency,
     computeSummaryStats, detectKeywords, applyFilters,
 } from '../lib/pt-view';
+import { fetchUsers, patchEmailNotifications } from '../lib/users';
 import styles from './pt-view.module.css';
 
 // ── Local sub-components ────────────────────────────────────────────────────

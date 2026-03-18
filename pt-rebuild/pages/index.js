@@ -17,6 +17,9 @@ import SessionNotesModal from '../components/SessionNotesModal';
 import TimerPanel from '../components/TimerPanel';
 import { useSessionLogging } from '../hooks/useSessionLogging';
 import { useLoggerFeedback } from '../hooks/useLoggerFeedback';
+import { useMessages } from '../hooks/useMessages';
+import MessagesModal from '../components/MessagesModal';
+import { fetchUsers } from '../lib/users';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildOptimisticLogEntry, buildSessionProgress, createDraftSession, toLocalDateTimeInputValue } from '../lib/index-tracker-session';
 import { buildDefaultFormDataForExercise, collectGlobalParameterValues } from '../lib/session-form-params';
@@ -52,6 +55,12 @@ export default function IndexPage() {
     const [pageMessage, setPageMessage] = useState('');
     const [optimisticLogs, setOptimisticLogs] = useState([]);
     const [activeExercise, setActiveExercise] = useState(null);
+    const [isMessagesOpen, setIsMessagesOpen] = useState(false);
+    const [recipientId, setRecipientId] = useState(null);
+    const [emailEnabled, setEmailEnabled] = useState(true);
+    // DB user id (users.id, not auth id) — needed for message sender comparisons
+    const [currentDbId, setCurrentDbId] = useState(null);
+
     const sessionStartedAt = draftSession?.date ?? new Date().toISOString();
 
     const {
@@ -60,6 +69,9 @@ export default function IndexPage() {
         showSaveSuccess,
         speakText,
     } = useLoggerFeedback(selectedExercise, sessionStartedAt);
+
+    // Messages polling — currentDbId is null until user data loads; hook no-ops until set
+    const msgs = useMessages(token, currentDbId);
 
     const allLogs = useMemo(() => [...optimisticLogs, ...logs], [logs, optimisticLogs]);
 
@@ -388,11 +400,40 @@ export default function IndexPage() {
         }
     }, [logger.isOpen]);
 
+    // Fetch DB user id and recipient id for messages (runs once after sign-in)
+    useEffect(() => {
+        if (!session) return;
+        fetchUsers(token).then((users) => {
+            const current = users.find((u) => u.auth_id === session.user.id);
+            if (!current) return;
+            setCurrentDbId(current.id);
+            setEmailEnabled(current.email_notifications_enabled ?? true);
+            // Recipient: therapist for patient, or first patient for therapist
+            if (current.role === 'therapist') {
+                const patient = users.find((u) => u.therapist_id === current.id);
+                setRecipientId(patient?.id ?? null);
+            } else {
+                setRecipientId(current.therapist_id ?? null);
+            }
+        }).catch((err) => console.error('index fetchUsers:', err));
+    }, [session, token]);
+
     const handleSignOut = useCallback(async () => {
         clearQueue();
         const { supabase } = await import('../lib/supabase');
         await supabase.auth.signOut();
     }, [clearQueue]);
+
+    async function handleEmailToggle(enabled) {
+        setEmailEnabled(enabled);
+        try {
+            const { patchEmailNotifications } = await import('../lib/users');
+            await patchEmailNotifications(token, enabled);
+        } catch (err) {
+            console.error('emailToggle:', err);
+            setEmailEnabled(!enabled); // revert on error
+        }
+    }
 
     if (authLoading) return null;
 
@@ -428,6 +469,19 @@ export default function IndexPage() {
                         >
                             {loading ? 'Loading…' : 'Refresh'}
                         </button>
+                        {/* Messages button with unread badge */}
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                className={styles.refreshButton}
+                                onPointerUp={() => { setIsMessagesOpen(true); msgs.markModalOpened(); }}
+                                aria-label="Open messages"
+                            >
+                                ✉️
+                                {msgs.unreadCount > 0 && (
+                                    <span className={styles.messagesBadge}>{msgs.unreadCount}</span>
+                                )}
+                            </button>
+                        </div>
                         <NavMenu
                             user={session.user}
                             isAdmin={true}
@@ -546,6 +600,20 @@ export default function IndexPage() {
                     onToggleBackdate={handleToggleBackdate}
                     onBackdateChange={setBackdateValue}
                     onSave={handleSaveFinishedSession}
+                />
+
+                <MessagesModal
+                    isOpen={isMessagesOpen}
+                    onClose={() => setIsMessagesOpen(false)}
+                    messages={msgs.messages}
+                    viewerId={currentDbId}
+                    recipientId={recipientId}
+                    emailEnabled={emailEnabled}
+                    onSend={msgs.send}
+                    onArchive={msgs.archive}
+                    onMarkRead={msgs.markRead}
+                    onEmailToggle={handleEmailToggle}
+                    onOpened={msgs.markModalOpened}
                 />
             </div>
         </>

@@ -49,19 +49,6 @@ export async function fetchPrograms(token, patientId) {
     return data.programs ?? [];
 }
 
-/**
- * Fetch all users (for role resolution and messaging).
- * @param {string} token
- * @returns {Promise<Array>} users array
- */
-export async function fetchUsers(token) {
-    const res = await fetch('/api/users', {
-        headers: authHeaders(token),
-    });
-    if (!res.ok) throw new Error(`fetchUsers failed: ${res.status}`);
-    const data = await res.json();
-    return data.users ?? [];
-}
 
 /**
  * Fetch all messages for the current user.
@@ -124,19 +111,6 @@ export async function deleteMessage(token, messageId) {
     if (!res.ok) throw new Error(`deleteMessage failed: ${res.status}`);
 }
 
-/**
- * Update email notification preference for the current user.
- * @param {string} token
- * @param {boolean} enabled
- */
-export async function patchEmailNotifications(token, enabled) {
-    const res = await fetch('/api/users', {
-        method: 'PATCH',
-        headers: authHeaders(token),
-        body: JSON.stringify({ email_notifications_enabled: enabled }),
-    });
-    if (!res.ok) throw new Error(`patchEmailNotifications failed: ${res.status}`);
-}
 
 // ---------------------------------------------------------------------------
 // Data transforms
