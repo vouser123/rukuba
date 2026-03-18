@@ -99,6 +99,26 @@ If Claude is wiring the tracker page:
 - `useExerciseTimer` and `useTimerAudio` are adapters/executors below that surface.
 - `logger-timer-machine.js` is the place for transition and cue logic, not the UI.
 
+Current cue rules that matter for tracker work:
+
+- Rep counter uses a soft tick on every tap.
+- Standard rep milestone speech is `5 reps left`, `3 reps left`, `Last rep`, then `Set complete`.
+- Low-rep activities under `5` reps announce every remaining rep after progress changes:
+  - example for a `3`-rep activity: `2 reps left`, `Last rep`, `Set complete`
+- Hold timers use countdown warning beeps at `3/2/1`, a completion triple-beep at each timed rep end, and rep milestone speech after each completed timed rep.
+- Duration timers use countdown warning beeps at `3/2/1`, a completion triple-beep at timer end, and richer completion speech in the form `Set X of Y complete`, including side when relevant.
+- Timer start uses a confirmation beep for targets `>= 5` seconds and does not speak `Start`.
+- Timer pause speaks `Pause` when the target is `> 5` seconds or when Pocket Mode is open.
+- Pocket Mode inherits the normal timer/counter cues and adds a partial-confirm beep for hold long-press.
+- Delayed progress-comparison speech runs after successful `Next Set` confirmation, not during live counting/timing. The current model compares against the most recent comparable prior session before the panel opened, using:
+  - best-set improvement first
+  - then total-volume drop
+  - then total-volume improvement
+
+Known follow-up:
+
+- Initial sided logger open still needs the spoken `Working left side` / `Working right side` cue. This is tracked in Beads as `pt-ryf.1`.
+
 ## Shared Utilities
 
 Use these `lib/` files from Next.js pages and hooks when you need shared logic. These are the current Next.js-layer utility files.
@@ -159,6 +179,25 @@ How to update it:
 - For shared files, keep each entry to: what it does, when to use it, and any important boundary such as “UI only” or “pure helper”.
 - Keep legacy API-layer files clearly separated from Next.js shared utilities.
 - If the architecture changes substantially and this file would be overwritten rather than edited, create a backup first.
+
+Recommended entry template for shared files:
+
+```md
+### `path/to/file.js`
+
+- What it is: short ownership statement
+- Use it when: the situations where an agent should reach for this file
+- Do not use it for: nearby concerns that belong in a different file/layer
+- Depends on: lower-level helpers/components/hooks it relies on when that matters
+- Used by: main callers, pages, or shared surfaces that wire it in
+- Notes: behavior rules or caveats that affect integration
+```
+
+Minimum bar for an entry:
+
+- what the file owns
+- when to use it
+- where not to put adjacent logic if that boundary is important
 
 ## Deployment
 
