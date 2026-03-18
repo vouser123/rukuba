@@ -4,6 +4,8 @@ Authoritative rules for `pt-rebuild/` code organization during the Next.js migra
 
 **Loaded by:** `AGENTS.md`, `NEXTJS_MIGRATION.md`
 
+**Companion reference:** `pt-rebuild/README.md` is the maintained map of the live codebase shape. Use this file for rules; use the README for what currently exists and where shared files belong.
+
 ---
 
 ## Size Limits
@@ -115,6 +117,24 @@ pt-rebuild/
 - New data function → `lib/[domain].js`
 - New state + effects logic reused ≥2 pages → `hooks/use[Name].js`; otherwise inline in page if ≤20L
 - New styles → CSS Module next to the JS file it belongs to; CSS variables → `styles/globals.css` only
+
+## README Maintenance (Required)
+
+`pt-rebuild/README.md` is the landing reference for the current architecture. Keep it aligned with the live codebase.
+
+Update `pt-rebuild/README.md` in the same change when any of the following happen:
+
+- A shared Next.js file is added, removed, renamed, or repurposed in `pages/`, `components/`, `hooks/`, or the Next.js-layer files in `lib/`
+- A page-to-legacy mapping changes, including cutover, retirement of an old HTML page, or a new redirect path
+- Cleanup or refactor work changes which file owns a concern that other agents need to locate quickly
+- Timer/audio/logger wiring changes enough that the ownership map in the README would become misleading
+
+Minimum maintenance expectations:
+
+- Update the relevant section entry rather than leaving the old file listed
+- Keep “when to use it” guidance factual and brief
+- Distinguish Next.js shared utilities from legacy API-layer files
+- If the README would need a major rewrite because the architecture has changed substantially, back it up first before overwriting it
 
 ---
 
@@ -241,6 +261,8 @@ Every file in `pages/`, `components/`, `hooks/`, and `lib/` must start with a 1-
 ```
 
 Commas listing same-domain operations are fine. The comment is a domain contract — it must accurately describe the file's actual contents. Scan the first line to determine a file's domain without loading the full file.
+
+When a new shared file is created and added to the README, make sure the file header and the README entry agree about what the file owns.
 
 ---
 

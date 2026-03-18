@@ -143,6 +143,23 @@ Use these from `hooks/` to keep page files thin and consistent with the current 
 - [`AGENTS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/AGENTS.md): Workflow and operating rules for agents in `pt-rebuild`.
 - [`docs/BEADS_TEMPLATE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/BEADS_TEMPLATE.md): Required Beads issue template.
 
+## Maintaining This Document
+
+Update this README in the same change when any of these happen:
+
+- A shared Next.js file is added, removed, renamed, or given a different responsibility
+- A legacy HTML page is replaced, retired, redirected, or mapped to a different Next.js route
+- Cleanup or refactor work changes which file owns a concern that another agent would need to find
+- Timer/audio/logger wiring changes enough that the ownership notes would become outdated
+
+How to update it:
+
+- Keep it factual. Document what exists now, not planned future structure.
+- Update the relevant section entry instead of leaving stale file names behind.
+- For shared files, keep each entry to: what it does, when to use it, and any important boundary such as “UI only” or “pure helper”.
+- Keep legacy API-layer files clearly separated from Next.js shared utilities.
+- If the architecture changes substantially and this file would be overwritten rather than edited, create a backup first.
+
 ## Deployment
 
 - Vercel project: `pt-rehab`
