@@ -1,6 +1,8 @@
 // ExerciseFormLifecycle.js — exercise form section 6: lifecycle, status, and supersedes relationship
 
 import styles from './ExerciseForm.module.css';
+import NativeSelect from './NativeSelect';
+import { toTitleCase } from '../lib/text-format';
 
 const LIFECYCLE_STATUSES = ['active', 'archived', 'deprecated'];
 
@@ -39,14 +41,16 @@ export default function ExerciseFormLifecycle({
         {/* Status */}
         <div className={styles.formGroup}>
           <label className={styles.fieldLabel}>Status</label>
-          <select
+          <NativeSelect
             className={styles.select}
             value={lifecycle.status ?? ''}
-            onChange={e => onLifecycleChange({ ...lifecycle, status: e.target.value || null })}
-          >
-            <option value="">None</option>
-            {LIFECYCLE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+            onChange={(value) => onLifecycleChange({ ...lifecycle, status: value || null })}
+            placeholder="None"
+            options={LIFECYCLE_STATUSES.map((status) => ({
+              value: status,
+              label: toTitleCase(status),
+            }))}
+          />
           <span className={styles.hint}>
             <strong>active</strong> — in use.&nbsp;
             <strong>archived</strong> — temporarily set aside; appears when "Show archived" is on.&nbsp;
@@ -79,16 +83,16 @@ export default function ExerciseFormLifecycle({
         {/* Supersedes: this exercise replaces another */}
         <div className={styles.formGroup}>
           <label className={styles.fieldLabel}>Supersedes</label>
-          <select
+          <NativeSelect
             className={styles.select}
             value={supersedes ?? ''}
-            onChange={e => onSupersedingChange(e.target.value || null)}
-          >
-            <option value="">None</option>
-            {supersedableExercises.map(ex => (
-              <option key={ex.id} value={ex.id}>{ex.canonical_name}</option>
-            ))}
-          </select>
+            onChange={(value) => onSupersedingChange(value || null)}
+            placeholder="None"
+            options={supersedableExercises.map((ex) => ({
+              value: ex.id,
+              label: ex.canonical_name,
+            }))}
+          />
           <span className={styles.hint}>This exercise replaces the selected exercise. Saving updates the superseded exercise automatically.</span>
         </div>
 

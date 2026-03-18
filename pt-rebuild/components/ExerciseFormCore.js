@@ -2,9 +2,23 @@
 
 import { useState } from 'react';
 import styles from './ExerciseForm.module.css';
+import NativeSelect from './NativeSelect';
+import { toTitleCase } from '../lib/text-format';
 
-const PT_CATEGORIES = ['back_sij', 'knee', 'ankle', 'hip', 'vestibular', 'foot', 'shoulder', 'other'];
-const PATTERNS = ['side', 'both'];
+const PT_CATEGORIES = [
+  { value: 'back_sij', label: 'Back SIJ' },
+  { value: 'knee', label: 'Knee' },
+  { value: 'ankle', label: 'Ankle' },
+  { value: 'hip', label: 'Hip' },
+  { value: 'vestibular', label: 'Vestibular' },
+  { value: 'foot', label: 'Foot' },
+  { value: 'shoulder', label: 'Shoulder' },
+  { value: 'other', label: 'Other' },
+];
+const PATTERNS = [
+  { value: 'side', label: 'Side' },
+  { value: 'both', label: 'Both' },
+];
 const MODIFIERS = ['duration_seconds', 'hold_seconds', 'distance_feet'];
 
 /**
@@ -130,17 +144,21 @@ export default function ExerciseFormCore({
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label className={styles.fieldLabel}>Category *</label>
-              <select className={styles.select} {...field('pt_category')}>
-                <option value="">Select…</option>
-                {PT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <NativeSelect
+                className={styles.select}
+                {...field('pt_category')}
+                placeholder="Select..."
+                options={PT_CATEGORIES}
+              />
             </div>
             <div className={styles.formGroup}>
               <label className={styles.fieldLabel}>Pattern *</label>
-              <select className={styles.select} {...field('pattern')}>
-                <option value="">Select…</option>
-                {PATTERNS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <NativeSelect
+                className={styles.select}
+                {...field('pattern')}
+                placeholder="Select..."
+                options={PATTERNS}
+              />
             </div>
           </div>
           <div className={styles.formGroup}>
@@ -153,7 +171,7 @@ export default function ExerciseFormCore({
                     checked={patternModifiers.includes(mod)}
                     onChange={() => toggleModifier(mod)}
                   />
-                  {mod}
+                  {toTitleCase(mod.replace(/_/g, ' '))}
                 </label>
               ))}
             </div>

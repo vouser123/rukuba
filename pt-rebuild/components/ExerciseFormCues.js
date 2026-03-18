@@ -3,8 +3,13 @@
 
 import { useState } from 'react';
 import styles from './ExerciseForm.module.css';
+import NativeSelect from './NativeSelect';
+import { toTitleCase } from '../lib/text-format';
 
-const CONTRIBUTION_OPTIONS = ['high', 'medium', 'low'];
+const CONTRIBUTION_OPTIONS = ['high', 'medium', 'low'].map((value) => ({
+  value,
+  label: toTitleCase(value),
+}));
 
 /**
  * Local helper: ordered text-entry list with add + remove.
@@ -180,53 +185,58 @@ export default function ExerciseFormCues({
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.fieldLabel}>Region *</label>
-                  <select
+                  <NativeSelect
                     className={styles.select}
                     value={newRegion}
-                    onChange={e => setNewRegion(e.target.value)}
+                    onChange={setNewRegion}
                     disabled={rolesLoading}
-                  >
-                    <option value="">Select…</option>
-                    {regionOptions.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                    placeholder="Select..."
+                    options={regionOptions.map((option) => ({
+                      value: option,
+                      label: toTitleCase(option.replace(/_/g, ' ')),
+                    }))}
+                  />
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.fieldLabel}>Capacity *</label>
-                  <select
+                  <NativeSelect
                     className={styles.select}
                     value={newCapacity}
-                    onChange={e => setNewCapacity(e.target.value)}
+                    onChange={setNewCapacity}
                     disabled={rolesLoading}
-                  >
-                    <option value="">Select…</option>
-                    {capacityOptions.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                    placeholder="Select..."
+                    options={capacityOptions.map((option) => ({
+                      value: option,
+                      label: toTitleCase(option.replace(/_/g, ' ')),
+                    }))}
+                  />
                 </div>
               </div>
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.fieldLabel}>Focus</label>
-                  <select
+                  <NativeSelect
                     className={styles.select}
                     value={newFocus}
-                    onChange={e => setNewFocus(e.target.value)}
+                    onChange={setNewFocus}
                     disabled={rolesLoading}
-                  >
-                    <option value="">None</option>
-                    {focusOptions.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                    placeholder="None"
+                    options={focusOptions.map((option) => ({
+                      value: option,
+                      label: toTitleCase(option.replace(/_/g, ' ')),
+                    }))}
+                  />
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.fieldLabel}>Contribution *</label>
-                  <select
+                  <NativeSelect
                     className={styles.select}
                     value={newContribution}
-                    onChange={e => setNewContribution(e.target.value)}
+                    onChange={setNewContribution}
                     disabled={rolesLoading}
-                  >
-                    <option value="">Select…</option>
-                    {CONTRIBUTION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                    placeholder="Select..."
+                    options={CONTRIBUTION_OPTIONS}
+                  />
                 </div>
               </div>
               <button

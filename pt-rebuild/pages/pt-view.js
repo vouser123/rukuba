@@ -18,6 +18,7 @@ import MessagesModal from '../components/MessagesModal';
 import ExerciseHistoryModal from '../components/ExerciseHistoryModal';
 import PatientNotes from '../components/PatientNotes';
 import HistoryList from '../components/HistoryList';
+import NativeSelect from '../components/NativeSelect';
 import {
     fetchLogs, fetchPrograms, fetchUsers, patchEmailNotifications,
     groupLogsByDate, findNeedsAttention, needsAttentionUrgency,
@@ -85,12 +86,15 @@ function FiltersPanel({ filters, programs, expanded, onToggle, onChange }) {
                 <div className={styles['filters-content']}>
                     <div className={styles['filter-group']}>
                         <label>Exercise</label>
-                        <select value={filters.exercise} onChange={e => onChange({ ...filters, exercise: e.target.value })}>
-                            <option value="">All exercises</option>
-                            {programs.map(p => (
-                                <option key={p.exercise_id} value={p.exercise_id}>{p.exercise_name}</option>
-                            ))}
-                        </select>
+                        <NativeSelect
+                            value={filters.exercise}
+                            onChange={(value) => onChange({ ...filters, exercise: value })}
+                            placeholder="All exercises"
+                            options={programs.map((p) => ({
+                                value: p.exercise_id,
+                                label: p.exercise_name,
+                            }))}
+                        />
                     </div>
                     <div className={styles['filter-group']}>
                         <label>Date range</label>

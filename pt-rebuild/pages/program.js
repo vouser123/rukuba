@@ -8,6 +8,7 @@ import AuthForm from '../components/AuthForm';
 import NavMenu from '../components/NavMenu';
 import ExerciseForm from '../components/ExerciseForm';
 import DosageModal from '../components/DosageModal';
+import NativeSelect from '../components/NativeSelect';
 import {
   fetchExercises, fetchVocabularies, fetchReferenceData,
   fetchPrograms, createProgram, updateProgram,
@@ -105,8 +106,8 @@ export default function ProgramPage() {
     setActiveExercise(null);
   }
 
-  function handleSelectExercise(e) {
-    const ex = exercises.find(x => x.id === e.target.value);
+  function handleSelectExercise(exerciseId) {
+    const ex = exercises.find(x => x.id === exerciseId);
     setActiveExercise(ex ?? null);
   }
 
@@ -210,18 +211,16 @@ export default function ProgramPage() {
             />
             Show archived
           </label>
-          <select
+          <NativeSelect
             className={styles.exerciseSelect}
             value={activeExercise?.id ?? ''}
             onChange={handleSelectExercise}
-          >
-            <option value="" disabled>Select an exercise to edit…</option>
-            {filtered.map(ex => (
-              <option key={ex.id} value={ex.id}>
-                {ex.archived ? '[archived] ' : ''}{ex.canonical_name}
-              </option>
-            ))}
-          </select>
+            placeholder="Select an exercise to edit..."
+            options={filtered.map((ex) => ({
+              value: ex.id,
+              label: `${ex.archived ? '[archived] ' : ''}${ex.canonical_name}`,
+            }))}
+          />
 
           {/* Dosage button — visible when a saved exercise is selected */}
           {selectedExercise && (

@@ -7,7 +7,7 @@
  * - API calls: network-only (no caching, offline.js manages IndexedDB)
  */
 
-const CACHE_NAME = 'pt-tracker-v10';
+const CACHE_NAME = 'pt-tracker-v11';
 const STATIC_ASSETS = [
   '/index.html',
   '/pt_editor.html',

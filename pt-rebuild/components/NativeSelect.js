@@ -23,6 +23,8 @@ export default function NativeSelect({
     placeholder = '',
     formatValue = null,
     className = '',
+    disabled = false,
+    ...rest
 }) {
     // Normalize options to { value, label } shape
     const normalized = options.map((o) =>
@@ -74,6 +76,8 @@ export default function NativeSelect({
                 onChange={handleTextChange}
                 onBlur={handleTextBlur}
                 autoFocus
+                disabled={disabled}
+                {...rest}
             />
         );
     }
@@ -83,6 +87,8 @@ export default function NativeSelect({
             className={`${styles.select} ${className}`.trim()}
             value={value || ''}
             onChange={handleSelectChange}
+            disabled={disabled}
+            {...rest}
         >
             {placeholder && !value && (
                 <option value="">{placeholder}</option>

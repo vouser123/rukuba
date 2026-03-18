@@ -1,6 +1,8 @@
 // components/SessionLoggerModal.js — modal UI for create/update session logs with per-set fields
 import { useEffect, useState } from 'react';
 import styles from './SessionLoggerModal.module.css';
+import NativeSelect from './NativeSelect';
+import { toLower, toTitleCase } from '../lib/text-format';
 
 function shouldShowSeconds(exercise) {
     const modifiers = exercise?.pattern_modifiers ?? [];
@@ -26,6 +28,10 @@ function parameterOptions(paramName) {
     if (paramName === 'weight') return ['lb', 'kg'];
     if (paramName === 'distance') return ['ft', 'in', 'cm', 'deg'];
     return [];
+}
+
+function formatFieldLabel(value) {
+    return toTitleCase(String(value).replace(/_/g, ' '));
 }
 
 function toLocalDateTimeInputValue(isoValue) {
@@ -159,14 +165,15 @@ export default function SessionLoggerModal({
                                 {isSided && (
                                     <label className={styles.fieldLabel}>
                                         Side
-                                        <select
+                                        <NativeSelect
                                             className={styles.select}
                                             value={set.side ?? 'right'}
-                                            onChange={(event) => onSetChange(index, { side: event.target.value })}
-                                        >
-                                            <option value="left">Left</option>
-                                            <option value="right">Right</option>
-                                        </select>
+                                            onChange={(value) => onSetChange(index, { side: value })}
+                                            options={[
+                                                { value: 'left', label: 'Left' },
+                                                { value: 'right', label: 'Right' },
+                                            ]}
+                                        />
                                     </label>
                                 )}
                             </div>
@@ -190,7 +197,7 @@ export default function SessionLoggerModal({
                                         const hasSelectedValue = Boolean(selectedValue && selectedValue !== '__custom__');
                                         return (
                                             <label key={paramName} className={styles.fieldLabel}>
-                                                {paramName.replace(/_/g, ' ')}
+                                                {formatFieldLabel(paramName)}
                                                 {hasUnit ? (
                                                     <div className={styles.withUnit}>
                                                         <input
@@ -201,41 +208,32 @@ export default function SessionLoggerModal({
                                                             value={existing?.parameter_value ?? ''}
                                                             onChange={(event) => onFormParamChange(index, paramName, event.target.value.trim(), currentUnit)}
                                                         />
-                                                        <select
+                                                        <NativeSelect
                                                             className={styles.select}
                                                             value={currentUnit}
-                                                            onChange={(event) => onFormParamChange(index, paramName, existing?.parameter_value ?? '', event.target.value)}
-                                                        >
-                                                            {options.map((unit) => (
-                                                                <option key={unit} value={unit}>{unit}</option>
-                                                            ))}
-                                                        </select>
+                                                            onChange={(value) => onFormParamChange(index, paramName, existing?.parameter_value ?? '', value)}
+                                                            options={options.map((unit) => ({
+                                                                value: unit,
+                                                                label: unit,
+                                                            }))}
+                                                        />
                                                     </div>
                                                 ) : (
                                                     <>
                                                         {historicalValues.length > 0 && (
-                                                            <select
+                                                            <NativeSelect
                                                                 className={styles.select}
-                                                                value={selectedValue}
-                                                                onChange={(event) => {
-                                                                    const value = event.target.value;
-                                                                    if (value === '__custom__') {
-                                                                        setCustomMode(index, paramName, true);
-                                                                        if (!existingValue) onFormParamChange(index, paramName, '', null);
-                                                                        return;
-                                                                    }
-                                                                    setCustomMode(index, paramName, false);
+                                                                value={isCustom ? existingValue : selectedValue}
+                                                                onChange={(value) => {
+                                                                    const nextIsCustom = Boolean(value) && !historicalValues.includes(value);
+                                                                    setCustomMode(index, paramName, nextIsCustom);
                                                                     onFormParamChange(index, paramName, value, null);
                                                                 }}
-                                                            >
-                                                                {!hasSelectedValue && (
-                                                                    <option value="">Select {paramName.replace(/_/g, ' ')}</option>
-                                                                )}
-                                                                {historicalValues.map((value) => (
-                                                                    <option key={value} value={value}>{value}</option>
-                                                                ))}
-                                                                <option value="__custom__">Other...</option>
-                                                            </select>
+                                                                options={historicalValues}
+                                                                allowOther
+                                                                placeholder={`Select ${formatFieldLabel(paramName)}`}
+                                                                formatValue={toLower}
+                                                            />
                                                         )}
                                                         {(historicalValues.length === 0 || isCustom) && (
                                                             <input
