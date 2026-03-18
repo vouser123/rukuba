@@ -32,7 +32,8 @@ Session-start requirement:
 ## Core Rules
 
 - Use a docs-first workflow: check the canonical references before editing code.
-- Treat `pt-rebuild/README.md` as the first-stop map for what currently exists in the old and new app structures.
+- Review `pt-rebuild/README.md` at session start as the first-stop map for what currently exists in the old and new app structures.
+- Use `pt-rebuild/README.md` as the practical guide for what shared files own, when to use them, where they fit in the stack, and where adjacent logic should not go.
 - Do not invent new field names when existing vocabulary/schema terms are available.
 - Prefer plain JavaScript and browser APIs unless explicitly instructed otherwise.
 - Preserve offline/PWA behavior and iOS-safe interaction patterns (`pointerup`, touch-safe UI behavior).
@@ -106,9 +107,9 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 ## Change Hygiene
 
 - Keep instructions concise and avoid duplicating detailed architecture from docs.
-- When adding, removing, or rewiring shared Next.js files in `pages/`, `components/`, `hooks/`, or Next.js-layer `lib/`, update `pt-rebuild/README.md` in the same change if the user-facing architecture map has changed.
+- Update `pt-rebuild/README.md` in the same change whenever you create, remove, rename, repurpose, or materially change a file in a way that another agent would need to know to find it, understand what it owns, or wire it in correctly.
 - When a legacy HTML page is replaced, retired, redirected, or re-mapped, update the page mapping in `pt-rebuild/README.md` in the same change.
-- When cleanup work changes where a concern lives, which shared file owns it, or which file should be used by other agents, update `pt-rebuild/README.md` so future sessions do not rely on stale structure notes.
+- Update `pt-rebuild/README.md` in the same change whenever a behavior change alters how a file should be used, what layer owns a concern, or which file another agent should touch for future work.
 - If guidance conflicts within `pt-rebuild/`, `AGENTS.md` is the operational source of truth.
 
 ## Agent Ops Friction Logging
