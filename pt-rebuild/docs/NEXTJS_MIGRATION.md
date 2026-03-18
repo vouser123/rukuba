@@ -595,9 +595,10 @@ export default function MyPage() {
 **Important:** Codex from the website clones `main`. After Phase 1 is merged to main, everything is visible.
 
 To continue migration work from claude.ai:
-1. Reference this file: `pt-rebuild/docs/NEXTJS_MIGRATION.md`
-2. Reference Beads issues for active migration work; use `pt-rebuild/docs/dev_notes.json` only as legacy history when older DN context is needed
-3. Say: "Continue the Next.js migration per NEXTJS_MIGRATION.md — next phase is [Phase 3: pt_editor]"
+1. Reference `pt-rebuild/README.md` for the current file map, shared components/hooks/utilities, and page mappings
+2. Reference this file: `pt-rebuild/docs/NEXTJS_MIGRATION.md` for phase status and migration decisions
+3. Reference Beads issues for active migration work; use `pt-rebuild/docs/dev_notes.json` only as legacy history when older DN context is needed
+4. Say: "Continue the Next.js migration per NEXTJS_MIGRATION.md — next phase is [Phase 3: pt_editor]"
 
 All context needed for the next phase is in this document.
 
@@ -612,4 +613,5 @@ All context needed for the next phase is in this document.
 5. Retire old HTML file
 6. Add redirect in `vercel.json`
 7. Update NAV_PAGES hrefs in `components/NavMenu.js`
-8. Close dev note, open next phase dev note
+8. Update `pt-rebuild/README.md` page mappings and any changed shared-file ownership notes
+9. Close the active Bead and open the next Bead if follow-up work is needed

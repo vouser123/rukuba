@@ -4,6 +4,7 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 
 ## Canonical References
 
+- `pt-rebuild/README.md` - landing reference for the live codebase shape, shared components/hooks/utilities, timer/audio wiring, and legacy-to-Next.js page mapping
 - `pt-rebuild/docs/NEXTJS_STRUCTURE.md` - file size limits, split rules, cohesion checks, folder structure, naming conventions
 - `pt-rebuild/docs/DEVELOPMENT.md` - architecture and implementation reference
 - `pt-rebuild/docs/DEV_PRACTICES.md` - day-to-day workflow and troubleshooting
@@ -31,6 +32,7 @@ Session-start requirement:
 ## Core Rules
 
 - Use a docs-first workflow: check the canonical references before editing code.
+- Treat `pt-rebuild/README.md` as the first-stop map for what currently exists in the old and new app structures.
 - Do not invent new field names when existing vocabulary/schema terms are available.
 - Prefer plain JavaScript and browser APIs unless explicitly instructed otherwise.
 - Preserve offline/PWA behavior and iOS-safe interaction patterns (`pointerup`, touch-safe UI behavior).
@@ -104,6 +106,9 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 ## Change Hygiene
 
 - Keep instructions concise and avoid duplicating detailed architecture from docs.
+- When adding, removing, or rewiring shared Next.js files in `pages/`, `components/`, `hooks/`, or Next.js-layer `lib/`, update `pt-rebuild/README.md` in the same change if the user-facing architecture map has changed.
+- When a legacy HTML page is replaced, retired, redirected, or re-mapped, update the page mapping in `pt-rebuild/README.md` in the same change.
+- When cleanup work changes where a concern lives, which shared file owns it, or which file should be used by other agents, update `pt-rebuild/README.md` so future sessions do not rely on stale structure notes.
 - If guidance conflicts within `pt-rebuild/`, `AGENTS.md` is the operational source of truth.
 
 ## Agent Ops Friction Logging
@@ -241,7 +246,7 @@ bd automatically syncs via Dolt:
 - ❌ Do NOT use external issue trackers
 - ❌ Do NOT duplicate tracking systems
 
-For more details, see README.md and docs/QUICKSTART.md.
+For repo structure and shared-file guidance, see `pt-rebuild/README.md`. For tracker workflow details, see `pt-rebuild/docs/BEADS_WORKFLOW.md` and `pt-rebuild/docs/BEADS_QUICKREF.md`.
 
 ### PT-Rebuild Beads Template (Required)
 
