@@ -127,7 +127,8 @@ export default function IndexPage() {
     manualOpenRef.current = manualLog.openManualLog;
 
     const logger = useSessionLogging(token, userId, reload, enqueue);
-    const msgs = useMessages(token, currentDbId);
+    // Pass userId (auth_id) not currentDbId (users table PK) — sender_id in messages is auth_id
+    const msgs = useMessages(token, userId);
     const historicalFormParams = useMemo(() => collectGlobalParameterValues(allLogs), [allLogs]);
     const pickerPrograms = useMemo(() => {
         if (programs.length > 0) {
