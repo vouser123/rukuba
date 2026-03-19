@@ -126,7 +126,7 @@ export function useTrackerSession({
         enqueue(payload);
 
         let syncResult = { failed: 0 };
-        try { syncResult = await sync(); } catch { /* queue-first */ }
+        try { syncResult = await sync([payload]); } catch { /* queue-first */ }
         setOptimisticLogs((previous) => [buildOptimisticLogEntry(finalSession), ...previous]);
         handleNotesModalClose();
         abandonDraftSession();

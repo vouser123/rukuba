@@ -6,6 +6,7 @@
  *
  * Same pattern as lib/rehab-coverage.js.
  */
+import { daysBetween } from './date-utils.js';
 
 // ---------------------------------------------------------------------------
 // API helpers
@@ -163,7 +164,7 @@ export function findNeedsAttention(logs, programs) {
         }
     }
 
-    const now = Date.now();
+    const now = new Date();
     const overdue = [];
 
     for (const program of programs) {
@@ -175,7 +176,7 @@ export function findNeedsAttention(logs, programs) {
         if (!lastDone) {
             overdue.push({ exerciseId: id, exerciseName: name, daysSince: Infinity, neverDone: true });
         } else {
-            const daysSince = Math.floor((now - lastDone) / (1000 * 60 * 60 * 24));
+            const daysSince = daysBetween(lastDone, now);
             if (daysSince >= 7) {
                 overdue.push({ exerciseId: id, exerciseName: name, daysSince, neverDone: false });
             }

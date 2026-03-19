@@ -104,18 +104,6 @@ export function weightedAverage(values, weights) {
     return sum / totalWeight;
 }
 
-/**
- * Days between two dates (ignoring time-of-day).
- * @returns {number} integer days, positive if date2 is later
- */
-export function daysBetween(date1, date2) {
-    const d1 = new Date(date1);
-    const d2 = new Date(date2);
-    d1.setHours(0, 0, 0, 0);
-    d2.setHours(0, 0, 0, 0);
-    return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
-}
-
 // ============================================================================
 // INTERNAL HELPERS (not exported — used by the three main signal functions)
 // ============================================================================
@@ -593,3 +581,4 @@ export function buildCoverageData(logs, roles) {
         },
     };
 }
+import { daysBetween } from './date-utils.js';

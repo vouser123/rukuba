@@ -61,10 +61,10 @@ export function useIndexOfflineQueue(userId, accessToken) {
      *
      * @returns {Promise<{ succeeded: number, failed: number }>}
      */
-    const sync = useCallback(async () => {
+    const sync = useCallback(async (sessionsOverride = null) => {
         if (!userId || !accessToken || syncing) return { succeeded: 0, failed: 0 };
 
-        const currentQueue = queueRef.current;
+        const currentQueue = Array.isArray(sessionsOverride) ? sessionsOverride : queueRef.current;
         if (currentQueue.length === 0) return { succeeded: 0, failed: 0 };
 
         setSyncing(true);

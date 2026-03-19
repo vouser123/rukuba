@@ -129,6 +129,7 @@ Use these `lib/` files from Next.js pages and hooks when you need shared logic. 
 
 - [`lib/supabase.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/supabase.js): Shared Supabase client for the Next.js app. Import `supabase` from here; do not create a new client elsewhere in Next.js pages/hooks.
 - [`lib/text-format.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/text-format.js): Pure string-formatting helpers for typed values and labels. Commonly paired with `NativeSelect`.
+- [`lib/date-utils.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/date-utils.js): Shared calendar-day date helpers. Use it when recency, `Done today`, or overdue timing must follow local-midnight semantics instead of rolling 24-hour math.
 - [`lib/rehab-coverage.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/rehab-coverage.js): Pure coverage calculations and constants for the rehab page. Use it for data shaping, not UI rendering.
 - [`lib/index-data.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/index-data.js): Fetch adapters for tracker exercises, programs, and history logs.
 - [`lib/index-history.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/index-history.js): Tracker history/adherence helpers such as badge state and filtering.

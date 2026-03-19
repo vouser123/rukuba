@@ -8,6 +8,7 @@
  */
 
 export { groupLogsByDate } from './pt-view.js';
+import { daysBetween } from './date-utils.js';
 
 /**
  * Filter logs to a single exercise when a session is active.
@@ -44,13 +45,11 @@ export function getAdherenceInfo(logs, exerciseId, exerciseName = null) {
     const mostRecent = exerciseLogs.reduce((latest, log) =>
         new Date(log.performed_at) > new Date(latest.performed_at) ? log : latest
     );
-    const daysSince = Math.floor(
-        (Date.now() - new Date(mostRecent.performed_at)) / (1000 * 60 * 60 * 24)
-    );
+    const daysSince = daysBetween(mostRecent.performed_at, new Date());
 
-    let colorClass = 'good';     // 0-3 days — green
-    if (daysSince >= 14) colorClass = 'overdue';  // 14+ days — red
-    else if (daysSince >= 7) colorClass = 'due';  // 7-13 days — orange
+    let colorClass = 'good';
+    if (daysSince >= 8) colorClass = 'overdue';
+    else if (daysSince >= 4) colorClass = 'due';
 
     return { daysSince, totalSessions, colorClass };
 }
