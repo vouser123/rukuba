@@ -38,6 +38,7 @@ Session-start requirement:
 - Prefer plain JavaScript and browser APIs unless explicitly instructed otherwise.
 - Preserve offline/PWA behavior and iOS-safe interaction patterns (`pointerup`, touch-safe UI behavior).
 - Respect Vercel/serverless limits: avoid endpoint sprawl and prefer extending existing handlers.
+- **No hardcoded option lists without explicit sign-off.** Do not introduce or expand a hardcoded option list, enum, allowed-values array, or validation list without explicit user sign-off. Existing hardcoded values are not precedent. Before hardcoding, determine whether the values are behavior logic or domain data. Values that represent user/admin-managed domain data, vocab terms, reference data, or other extendable content must be loaded dynamically. Values that drive fixed application behavior may remain hardcoded only after explicit approval. When approval is given, add a short code comment at the hardcoded definition noting that it is intentionally hardcoded, why, and that future expansion also requires explicit sign-off. Example: `// Intentionally hardcoded behavior enum; approved by user on 2026-03-19. // Do not extend without explicit sign-off. These values drive timer behavior.`
 
 ## Operator Support Contract (Required)
 
