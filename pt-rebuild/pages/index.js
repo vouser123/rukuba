@@ -144,9 +144,9 @@ export default function IndexPage() {
         if (didSave) showSaveSuccess(logger.notes);
     }, [logger, showSaveSuccess]);
 
-    const handleSaveAndShowHistory = useCallback(async () => {
-        const didSave = await handleSaveFinishedSession();
-        if (didSave) setActiveTab('history');
+    const handleSaveAndShowHistory = useCallback(() => {
+        const didSave = handleSaveFinishedSession();
+        if (didSave) setActiveTab('exercises');
     }, [handleSaveFinishedSession]);
 
     const handleEditLog = useCallback((log) => {
@@ -229,9 +229,6 @@ export default function IndexPage() {
                 <header className={styles.header}>
                     <h1 className={styles.title}>PT Tracker</h1>
                     <div className={styles.headerActions}>
-                        <button className={styles.refreshButton} onPointerUp={reload} disabled={loading} aria-label="Refresh tracker data">
-                            {loading ? 'Loading…' : 'Refresh'}
-                        </button>
                         <div style={{ position: 'relative' }}>
                             <button className={styles.refreshButton} onPointerUp={() => { setIsMessagesOpen(true); msgs.markModalOpened(); }} aria-label="Open messages">
                                 ✉️

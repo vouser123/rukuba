@@ -116,26 +116,32 @@ export function useTrackerSession({
         setPendingSetPatch(null);
     }, [handleTimerOpenManual, pendingSetPatch, selectedExercise]);
 
-    const handleSaveFinishedSession = useCallback(async () => {
+    const handleSaveFinishedSession = useCallback(() => {
         if (!draftSession || !selectedExercise) return false;
         const trimmedNotes = draftSession.notes ? draftSession.notes.trim() : '';
         const finalPerformedAt = backdateEnabled && backdateValue ? new Date(backdateValue).toISOString() : draftSession.date;
         const finalSession = { ...draftSession, date: finalPerformedAt, notes: trimmedNotes || null, sets: draftSession.sets.map((set, index) => normalizeSet({ ...set, set_number: index + 1, performed_at: finalPerformedAt }, index, draftSession.activityType)) };
         const payload = buildCreatePayload(selectedExercise, finalSession.date, finalSession.notes, finalSession.sets);
         payload.client_mutation_id = finalSession.sessionId;
+
+        // Queue-first: push immediately so save is durable before any network attempt
         enqueue(payload);
 
-        let syncResult = { failed: 0 };
-        try { syncResult = await sync([payload]); } catch { /* queue-first */ }
+        // UX updates happen immediately — user sees feedback before sync outcome
         setOptimisticLogs((previous) => [buildOptimisticLogEntry(finalSession), ...previous]);
         handleNotesModalClose();
         abandonDraftSession();
         setActiveExercise(null);
         showSaveSuccess(trimmedNotes);
-        if (syncResult.failed === 0) {
-            await reload();
-            setOptimisticLogs((previous) => previous.filter((log) => log.client_mutation_id !== finalSession.sessionId));
-        }
+
+        // Fire-and-forget sync: clears optimistic entry and reloads on success
+        sync([payload]).then(async (syncResult) => {
+            if (syncResult?.failed === 0) {
+                await reload();
+                setOptimisticLogs((previous) => previous.filter((log) => log.client_mutation_id !== finalSession.sessionId));
+            }
+        }).catch(() => { /* network failure — session stays in queue for later sync */ });
+
         return true;
     }, [abandonDraftSession, backdateEnabled, backdateValue, draftSession, enqueue, handleNotesModalClose, reload, selectedExercise, showSaveSuccess, sync]);
 
