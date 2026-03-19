@@ -116,6 +116,7 @@ async function getExercises(req, res) {
       guidance: groupGuidance(guidanceByExercise[ex.id] || []),
 
       roles: (rolesByExercise[ex.id] || []).map(r => ({
+        id: r.id,
         region: r.region,
         capacity: r.capacity,
         focus: r.focus,

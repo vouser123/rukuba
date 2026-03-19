@@ -3,13 +3,6 @@
 
 import { useState } from 'react';
 import styles from './ExerciseForm.module.css';
-import NativeSelect from './NativeSelect';
-import { toTitleCase } from '../lib/text-format';
-
-const CONTRIBUTION_OPTIONS = ['high', 'medium', 'low'].map((value) => ({
-  value,
-  label: toTitleCase(value),
-}));
 
 /**
  * Local helper: ordered text-entry list with add + remove.
@@ -67,24 +60,12 @@ function GuidanceSection({ label, items, onAdd, onRemove }) {
  *
  * @param {Object} guidance             - { motor_cues, compensation_warnings, safety_flags, external_cues }
  * @param {Function} onGuidanceChange   - (updatedGuidance) => void
- * @param {Array} roles                 - current role assignments for this exercise
- * @param {Function} onAddRole          - ({ region, capacity, focus, contribution }) => Promise<void>
- * @param {Function} onDeleteRole       - (roleId) => Promise<void>
- * @param {boolean} rolesLoading        - true while an add/delete API call is in flight
- * @param {boolean} rolesDisabled       - true for new unsaved exercises (no ID yet)
  * @param {Object} vocabularies         - keyed by category; values are { code, definition }[]
  */
 export default function ExerciseFormCues({
   guidance, onGuidanceChange,
-  roles, onAddRole, onDeleteRole, rolesLoading, rolesDisabled,
   vocabularies,
 }) {
-  const [newRegion, setNewRegion] = useState('');
-  const [newCapacity, setNewCapacity] = useState('');
-  const [newFocus, setNewFocus] = useState('');
-  const [newContribution, setNewContribution] = useState('');
-  const [addRoleError, setAddRoleError] = useState(null);
-
   function guidanceSetter(section) {
     const items = guidance[section] ?? [];
     return {
@@ -92,34 +73,6 @@ export default function ExerciseFormCues({
       onAdd: item => onGuidanceChange({ ...guidance, [section]: [...items, item] }),
       onRemove: i => onGuidanceChange({ ...guidance, [section]: items.filter((_, idx) => idx !== i) }),
     };
-  }
-
-  // Vocab terms for role dropdowns — fall back to empty if category not present
-  const regionOptions = (vocabularies?.region ?? []).map(t => t.code);
-  const capacityOptions = (vocabularies?.capacity ?? []).map(t => t.code);
-  const focusOptions = (vocabularies?.focus ?? []).map(t => t.code);
-
-  async function handleAddRole() {
-    setAddRoleError(null);
-    if (!newRegion || !newCapacity || !newContribution) {
-      setAddRoleError('Region, Capacity, and Contribution are required.');
-      return;
-    }
-    try {
-      await onAddRole({
-        region: newRegion,
-        capacity: newCapacity,
-        focus: newFocus || null,
-        contribution: newContribution,
-      });
-      // Reset add form on success
-      setNewRegion('');
-      setNewCapacity('');
-      setNewFocus('');
-      setNewContribution('');
-    } catch (err) {
-      setAddRoleError(err.message);
-    }
   }
 
   return (
@@ -132,123 +85,6 @@ export default function ExerciseFormCues({
           <GuidanceSection label="Compensation Warnings" {...guidanceSetter('compensation_warnings')} />
           <GuidanceSection label="Safety Flags" {...guidanceSetter('safety_flags')} />
           <GuidanceSection label="External Cues" {...guidanceSetter('external_cues')} />
-        </div>
-      </details>
-
-      {/* Section 7: Roles */}
-      <details className={styles.section}>
-        <summary className={styles.sectionHeader}>Roles</summary>
-        <div className={styles.sectionContent}>
-          {rolesDisabled && (
-            <p className={styles.hint}>Save this exercise first before assigning roles.</p>
-          )}
-
-          {/* Existing roles table */}
-          {roles && roles.length > 0 ? (
-            <table className={styles.rolesTable}>
-              <thead>
-                <tr>
-                  <th>Region</th><th>Capacity</th><th>Focus</th><th>Contribution</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {roles.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.region}</td>
-                    <td>{r.capacity}</td>
-                    <td>{r.focus ?? '—'}</td>
-                    <td>{r.contribution}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className={styles.roleRemoveBtn}
-                        onPointerUp={() => onDeleteRole(r.id)}
-                        disabled={rolesLoading || rolesDisabled}
-                        aria-label="Remove role"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            !rolesDisabled && <p className={styles.emptyNote}>No roles assigned.</p>
-          )}
-
-          {/* Add role form — hidden for unsaved exercises */}
-          {!rolesDisabled && (
-            <div className={styles.addRoleForm}>
-              <p className={styles.fieldLabel}>Add Role</p>
-              {addRoleError && <p className={styles.roleError}>{addRoleError}</p>}
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.fieldLabel}>Region *</label>
-                  <NativeSelect
-                    className={styles.select}
-                    value={newRegion}
-                    onChange={setNewRegion}
-                    disabled={rolesLoading}
-                    placeholder="Select..."
-                    options={regionOptions.map((option) => ({
-                      value: option,
-                      label: toTitleCase(option.replace(/_/g, ' ')),
-                    }))}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.fieldLabel}>Capacity *</label>
-                  <NativeSelect
-                    className={styles.select}
-                    value={newCapacity}
-                    onChange={setNewCapacity}
-                    disabled={rolesLoading}
-                    placeholder="Select..."
-                    options={capacityOptions.map((option) => ({
-                      value: option,
-                      label: toTitleCase(option.replace(/_/g, ' ')),
-                    }))}
-                  />
-                </div>
-              </div>
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.fieldLabel}>Focus</label>
-                  <NativeSelect
-                    className={styles.select}
-                    value={newFocus}
-                    onChange={setNewFocus}
-                    disabled={rolesLoading}
-                    placeholder="None"
-                    options={focusOptions.map((option) => ({
-                      value: option,
-                      label: toTitleCase(option.replace(/_/g, ' ')),
-                    }))}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.fieldLabel}>Contribution *</label>
-                  <NativeSelect
-                    className={styles.select}
-                    value={newContribution}
-                    onChange={setNewContribution}
-                    disabled={rolesLoading}
-                    placeholder="Select..."
-                    options={CONTRIBUTION_OPTIONS}
-                  />
-                </div>
-              </div>
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onPointerUp={handleAddRole}
-                disabled={rolesLoading}
-              >
-                {rolesLoading ? 'Saving…' : '+ Add Role'}
-              </button>
-            </div>
-          )}
         </div>
       </details>
 

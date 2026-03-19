@@ -9,9 +9,10 @@ import NavMenu from '../components/NavMenu';
 import ExerciseForm from '../components/ExerciseForm';
 import DosageModal from '../components/DosageModal';
 import NativeSelect from '../components/NativeSelect';
+import ProgramRolesSection from '../components/ProgramRolesSection';
 import {
   fetchExercises, fetchVocabularies, fetchReferenceData,
-  fetchPrograms, createProgram, updateProgram,
+  fetchPrograms, createProgram, updateProgram, addRole, deleteRole,
 } from '../lib/pt-editor';
 import styles from './program.module.css';
 
@@ -58,6 +59,7 @@ export default function ProgramPage() {
   const [dosageTarget, setDosageTarget] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   /** Load all exercises, vocabularies, reference data, and patient programs. */
   const loadData = useCallback(async (accessToken, userId) => {
@@ -73,8 +75,10 @@ export default function ProgramPage() {
       setReferenceData(refData);
       setPrograms(progMap);
       setLoadError(null);
+      return { exercises: exList, vocabularies: vocab, referenceData: refData, programs: progMap };
     } catch (err) {
       setLoadError(err.message);
+      return null;
     }
   }, []);
 
@@ -95,11 +99,24 @@ export default function ProgramPage() {
   }
 
   /** Called by ExerciseForm after a successful create or update. Re-fetches exercises. */
-  async function handleSaved(wasNew) {
+  function patchActiveExercise(exerciseId, updater) {
+    setExercises((prev) => prev.map((exercise) => (
+      exercise.id === exerciseId ? updater(exercise) : exercise
+    )));
+    setActiveExercise((prev) => {
+      if (!prev || prev === 'new' || prev.id !== exerciseId) return prev;
+      return updater(prev);
+    });
+  }
+
+  async function handleSaved(wasNew, savedExerciseId) {
     showToast(wasNew ? 'Exercise created.' : 'Exercise saved.');
-    setActiveExercise(null);
     // Re-fetch to get full normalized data (POST/PUT returns only raw DB row)
-    if (session) await loadData(session.access_token, session.user.id);
+    if (session) {
+      const refreshed = await loadData(session.access_token, session.user.id);
+      const nextExercise = refreshed?.exercises?.find((exercise) => exercise.id === savedExerciseId) ?? null;
+      setActiveExercise(nextExercise);
+    }
   }
 
   function handleCancel() {
@@ -145,11 +162,44 @@ export default function ProgramPage() {
   const selectedProgram = selectedExercise ? (programs[selectedExercise.id] ?? null) : null;
   const dosageSummary = formatDosageSummary(selectedProgram);
 
+  async function handleAddRole(roleData) {
+    if (!session || !selectedExercise?.id) return;
+    setRolesLoading(true);
+    try {
+      const result = await addRole(session.access_token, {
+        ...roleData,
+        exercise_id: selectedExercise.id,
+      });
+      patchActiveExercise(selectedExercise.id, (exercise) => ({
+        ...exercise,
+        roles: [...(exercise.roles ?? []), result.role],
+      }));
+      showToast('Role added.');
+    } finally {
+      setRolesLoading(false);
+    }
+  }
+
+  async function handleDeleteRole(roleId) {
+    if (!session || !selectedExercise?.id || !roleId) return;
+    setRolesLoading(true);
+    try {
+      await deleteRole(session.access_token, roleId);
+      patchActiveExercise(selectedExercise.id, (exercise) => ({
+        ...exercise,
+        roles: (exercise.roles ?? []).filter((role) => role.id !== roleId),
+      }));
+      showToast('Role removed.');
+    } finally {
+      setRolesLoading(false);
+    }
+  }
+
   if (!session && !authLoading) {
     return (
       <>
         <Head>
-          <title>Exercise Editor — PT Tracker</title>
+          <title>PT Editor - Exercise Library Manager</title>
           <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
           <link rel="manifest" href="/manifest.json" />
         </Head>
@@ -161,7 +211,7 @@ export default function ProgramPage() {
   return (
     <>
       <Head>
-        <title>Exercise Editor — PT Tracker</title>
+        <title>PT Editor - Exercise Library Manager</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="manifest" href="/manifest.json" />
       </Head>
@@ -186,16 +236,17 @@ export default function ProgramPage() {
         )}
 
         <div className={styles.header}>
-          <h1 className={styles.title}>Exercise Editor</h1>
+          <h1 className={styles.title}>PT Editor</h1>
           <button
             className={styles.btnPrimary}
             onPointerUp={() => setActiveExercise('new')}
           >
-            + New
+            ➕ New
           </button>
         </div>
 
         <div className={styles.selectorPanel}>
+          <h2 className={styles.sectionTitle}>Select Exercise to Edit</h2>
           <input
             className={styles.searchInput}
             type="search"
@@ -215,22 +266,12 @@ export default function ProgramPage() {
             className={styles.exerciseSelect}
             value={activeExercise?.id ?? ''}
             onChange={handleSelectExercise}
-            placeholder="Select an exercise to edit..."
+            placeholder="-- Add New Exercise (leave blank) --"
             options={filtered.map((ex) => ({
               value: ex.id,
               label: `${ex.archived ? '[archived] ' : ''}${ex.canonical_name}`,
             }))}
           />
-
-          {/* Dosage button — visible when a saved exercise is selected */}
-          {selectedExercise && (
-            <button
-              className={styles.btnDosage}
-              onPointerUp={() => setDosageTarget({ exercise: selectedExercise, program: selectedProgram })}
-            >
-              {dosageSummary ? `Dosage: ${dosageSummary}` : 'Set Dosage'}
-            </button>
-          )}
         </div>
 
         {activeExercise !== null && (
@@ -244,6 +285,44 @@ export default function ProgramPage() {
             onCancel={handleCancel}
           />
         )}
+
+        <section className={styles.workspaceSection}>
+          <h2 className={styles.sectionTitle}>Assign Roles to Exercises</h2>
+          <p className={styles.sectionDescription}>
+            <strong>Roles</strong> define how an exercise contributes to different movement capacities in different body regions.
+          </p>
+          <ProgramRolesSection
+            exercise={selectedExercise}
+            roles={selectedExercise?.roles ?? []}
+            rolesLoading={rolesLoading}
+            vocabularies={vocabularies}
+            onAddRole={handleAddRole}
+            onDeleteRole={handleDeleteRole}
+          />
+        </section>
+
+        <section className={styles.workspaceSection}>
+          <h2 className={styles.sectionTitle}>Manage Patient Dosages</h2>
+          <p className={styles.sectionDescription}>
+            <strong>Dosages</strong> are the prescribed sets, reps, and parameters for each exercise.
+          </p>
+          {selectedExercise ? (
+            <div className={styles.dosageCard}>
+              <p className={styles.dosageName}>{selectedExercise.canonical_name}</p>
+              <p className={styles.dosageSummary}>
+                {dosageSummary ? `Current dosage: ${dosageSummary}` : 'No dosage assigned yet.'}
+              </p>
+              <button
+                className={styles.btnDosage}
+                onPointerUp={() => setDosageTarget({ exercise: selectedExercise, program: selectedProgram })}
+              >
+                {dosageSummary ? 'Edit dosage' : 'Set dosage'}
+              </button>
+            </div>
+          ) : (
+            <p className={styles.emptyState}>Select or save an exercise above to manage dosage.</p>
+          )}
+        </section>
 
         {/* DosageModal — rendered outside ExerciseForm to keep it reusable */}
         {dosageTarget && (

@@ -3,22 +3,7 @@
 import { useState } from 'react';
 import styles from './ExerciseForm.module.css';
 import NativeSelect from './NativeSelect';
-import { toTitleCase } from '../lib/text-format';
-
-const PT_CATEGORIES = [
-  { value: 'back_sij', label: 'Back SIJ' },
-  { value: 'knee', label: 'Knee' },
-  { value: 'ankle', label: 'Ankle' },
-  { value: 'hip', label: 'Hip' },
-  { value: 'vestibular', label: 'Vestibular' },
-  { value: 'foot', label: 'Foot' },
-  { value: 'shoulder', label: 'Shoulder' },
-  { value: 'other', label: 'Other' },
-];
-const PATTERNS = [
-  { value: 'side', label: 'Side' },
-  { value: 'both', label: 'Both' },
-];
+import { mapVocabTermsToOptions } from '../lib/vocab-options';
 const MODIFIERS = ['duration_seconds', 'hold_seconds', 'distance_feet'];
 
 /**
@@ -93,6 +78,7 @@ function TagSection({ label, items, options, onAdd, onRemove }) {
  * @param {Array} formParameters
  * @param {Function} onFormParametersChange - (updatedArray) => void
  * @param {Object} referenceData  - { equipment: [], muscles: [], formParameters: [] }
+ * @param {Object} vocabularies   - keyed by category; values are { code, definition }[]
  * @param {boolean} isNew         - controls whether ID field is editable
  */
 export default function ExerciseFormCore({
@@ -102,6 +88,7 @@ export default function ExerciseFormCore({
   muscles, onMusclesChange,
   formParameters, onFormParametersChange,
   referenceData,
+  vocabularies,
   isNew,
 }) {
   function field(name) {
@@ -148,7 +135,7 @@ export default function ExerciseFormCore({
                 className={styles.select}
                 {...field('pt_category')}
                 placeholder="Select..."
-                options={PT_CATEGORIES}
+                options={mapVocabTermsToOptions(vocabularies?.pt_category ?? [])}
               />
             </div>
             <div className={styles.formGroup}>
@@ -157,7 +144,7 @@ export default function ExerciseFormCore({
                 className={styles.select}
                 {...field('pattern')}
                 placeholder="Select..."
-                options={PATTERNS}
+                options={mapVocabTermsToOptions(vocabularies?.pattern ?? [])}
               />
             </div>
           </div>
@@ -171,7 +158,7 @@ export default function ExerciseFormCore({
                     checked={patternModifiers.includes(mod)}
                     onChange={() => toggleModifier(mod)}
                   />
-                  {toTitleCase(mod.replace(/_/g, ' '))}
+                  {mod}
                 </label>
               ))}
             </div>
