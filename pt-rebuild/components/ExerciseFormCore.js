@@ -4,17 +4,19 @@ import { useState } from 'react';
 import styles from './ExerciseForm.module.css';
 import NativeSelect from './NativeSelect';
 import { mapVocabTermsToOptions } from '../lib/vocab-options';
+import { toLower, toSentenceCase } from '../lib/text-format';
 const MODIFIERS = ['duration_seconds', 'hold_seconds', 'distance_feet'];
 
 /**
  * Local helper: tag entry (datalist select or free text) + remove chip list.
  * Not exported — used only within this file.
  */
-function TagSection({ label, items, options, onAdd, onRemove }) {
+function TagSection({ label, items, options, onAdd, onRemove, normalizeInput = null }) {
   const [input, setInput] = useState('');
 
   function handleAdd() {
-    const val = input.trim();
+    const raw = input.trim();
+    const val = normalizeInput ? normalizeInput(raw) : raw;
     if (val && !items.includes(val)) {
       onAdd(val);
       setInput('');
@@ -174,6 +176,7 @@ export default function ExerciseFormCore({
             label="Required Equipment"
             items={equipment.required}
             options={referenceData.equipment}
+            normalizeInput={toSentenceCase}
             onAdd={item => onEquipmentChange('required', [...equipment.required, item])}
             onRemove={i => onEquipmentChange('required', equipment.required.filter((_, idx) => idx !== i))}
           />
@@ -181,6 +184,7 @@ export default function ExerciseFormCore({
             label="Optional Equipment"
             items={equipment.optional}
             options={referenceData.equipment}
+            normalizeInput={toSentenceCase}
             onAdd={item => onEquipmentChange('optional', [...equipment.optional, item])}
             onRemove={i => onEquipmentChange('optional', equipment.optional.filter((_, idx) => idx !== i))}
           />
@@ -195,6 +199,7 @@ export default function ExerciseFormCore({
             label="Primary Muscles"
             items={muscles.primary}
             options={referenceData.muscles}
+            normalizeInput={toSentenceCase}
             onAdd={item => onMusclesChange('primary', [...muscles.primary, item])}
             onRemove={i => onMusclesChange('primary', muscles.primary.filter((_, idx) => idx !== i))}
           />
@@ -202,6 +207,7 @@ export default function ExerciseFormCore({
             label="Secondary Muscles"
             items={muscles.secondary}
             options={referenceData.muscles}
+            normalizeInput={toSentenceCase}
             onAdd={item => onMusclesChange('secondary', [...muscles.secondary, item])}
             onRemove={i => onMusclesChange('secondary', muscles.secondary.filter((_, idx) => idx !== i))}
           />
@@ -216,6 +222,7 @@ export default function ExerciseFormCore({
             label="Required Form Parameters"
             items={formParameters}
             options={referenceData.formParameters}
+            normalizeInput={toLower}
             onAdd={item => onFormParametersChange([...formParameters, item])}
             onRemove={i => onFormParametersChange(formParameters.filter((_, idx) => idx !== i))}
           />
