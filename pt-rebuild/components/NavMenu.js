@@ -42,7 +42,7 @@ import styles from './NavMenu.module.css';
  * Update hrefs here as pages are migrated (e.g., pt_view.html → /pt-view).
  */
 const NAV_PAGES = [
-    { id: 'index',          href: '/index.html',          label: '📱 PT Tracker',       adminOnly: false },
+    { id: 'index',          href: '/',                    label: '📱 PT Tracker',       adminOnly: false },
     { id: 'pt_view',        href: '/pt-view',              label: '📊 View History',      adminOnly: false },
     { id: 'pt_editor',      href: '/program',             label: '📋 Program Editor',    adminOnly: true  },
     { id: 'rehab_coverage', href: '/rehab',               label: '📈 Coverage Analysis', adminOnly: false },

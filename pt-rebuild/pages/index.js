@@ -216,8 +216,13 @@ export default function IndexPage() {
             <Head>
                 <title>PT Tracker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-                <link rel="manifest" href="/manifest.json" />
+                <link rel="manifest" href="/manifest-tracker.json" />
                 <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+                <link rel="apple-touch-icon" href="/icons/icon.svg" />
+                <meta name="mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+                <meta name="apple-mobile-web-app-title" content="PT Tracker" />
             </Head>
 
             <div className={styles.page}>
