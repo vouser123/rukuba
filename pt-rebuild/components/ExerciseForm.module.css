@@ -221,22 +221,60 @@
 
 /* ── Vocabulary reference ── */
 
-.vocabCategory {
-  margin-bottom: 0.75rem;
-}
-
-.vocabCategoryTitle {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem;
-  text-transform: capitalize;
+.vocabManager {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
 }
 
 .vocabList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vocabTermRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+}
+
+.vocabTermMeta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vocabCode,
+.vocabDefinition {
   margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.8rem;
+}
+
+.vocabCode {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.vocabDefinition {
+  font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+.inlineActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 /* ── Buttons ── */
@@ -326,5 +364,9 @@
 @media (max-width: 600px) {
   .formRow {
     grid-template-columns: 1fr;
+  }
+
+  .vocabTermRow {
+    flex-direction: column;
   }
 }

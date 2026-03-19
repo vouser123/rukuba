@@ -10,9 +10,11 @@ import ExerciseForm from '../components/ExerciseForm';
 import DosageModal from '../components/DosageModal';
 import NativeSelect from '../components/NativeSelect';
 import ProgramRolesSection from '../components/ProgramRolesSection';
+import ProgramVocabEditor from '../components/ProgramVocabEditor';
 import {
   fetchExercises, fetchVocabularies, fetchReferenceData,
   fetchPrograms, createProgram, updateProgram, addRole, deleteRole,
+  createVocabularyTerm, updateVocabularyTerm, deleteVocabularyTerm,
 } from '../lib/pt-editor';
 import styles from './program.module.css';
 
@@ -60,6 +62,7 @@ export default function ProgramPage() {
   const [loadError, setLoadError] = useState(null);
   const [toast, setToast] = useState(null);
   const [rolesLoading, setRolesLoading] = useState(false);
+  const [vocabSaving, setVocabSaving] = useState(false);
 
   /** Load all exercises, vocabularies, reference data, and patient programs. */
   const loadData = useCallback(async (accessToken, userId) => {
@@ -96,6 +99,12 @@ export default function ProgramPage() {
   function showToast(message, type = 'success') {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  }
+
+  async function refreshVocabularies(accessToken) {
+    const nextVocabularies = await fetchVocabularies(accessToken);
+    setVocabularies(nextVocabularies);
+    return nextVocabularies;
   }
 
   /** Called by ExerciseForm after a successful create or update. Re-fetches exercises. */
@@ -192,6 +201,42 @@ export default function ProgramPage() {
       showToast('Role removed.');
     } finally {
       setRolesLoading(false);
+    }
+  }
+
+  async function handleAddVocabTerm(payload) {
+    if (!session) return;
+    setVocabSaving(true);
+    try {
+      await createVocabularyTerm(session.access_token, payload);
+      await refreshVocabularies(session.access_token);
+      showToast('Vocabulary term added.');
+    } finally {
+      setVocabSaving(false);
+    }
+  }
+
+  async function handleUpdateVocabTerm(payload) {
+    if (!session) return;
+    setVocabSaving(true);
+    try {
+      await updateVocabularyTerm(session.access_token, payload);
+      await refreshVocabularies(session.access_token);
+      showToast('Vocabulary term updated.');
+    } finally {
+      setVocabSaving(false);
+    }
+  }
+
+  async function handleDeleteVocabTerm(payload) {
+    if (!session) return;
+    setVocabSaving(true);
+    try {
+      await deleteVocabularyTerm(session.access_token, payload);
+      await refreshVocabularies(session.access_token);
+      showToast('Vocabulary term deleted.');
+    } finally {
+      setVocabSaving(false);
     }
   }
 
@@ -322,6 +367,20 @@ export default function ProgramPage() {
           ) : (
             <p className={styles.emptyState}>Select or save an exercise above to manage dosage.</p>
           )}
+        </section>
+
+        <section className={styles.workspaceSection}>
+          <h2 className={styles.sectionTitle}>Manage Vocabulary</h2>
+          <p className={styles.sectionDescription}>
+            Controlled vocabularies define the valid codes used by the editor and shared role selectors.
+          </p>
+          <ProgramVocabEditor
+            vocabularies={vocabularies}
+            onAddTerm={handleAddVocabTerm}
+            onUpdateTerm={handleUpdateVocabTerm}
+            onDeleteTerm={handleDeleteVocabTerm}
+            saving={vocabSaving}
+          />
         </section>
 
         {/* DosageModal — rendered outside ExerciseForm to keep it reusable */}

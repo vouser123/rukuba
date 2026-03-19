@@ -147,7 +147,6 @@ export default function ExerciseForm({ exercise, exercises, referenceData, vocab
       <ExerciseFormCues
         guidance={guidance}
         onGuidanceChange={setGuidance}
-        vocabularies={vocabularies}
       />
 
       <ExerciseFormLifecycle

@@ -30,6 +30,69 @@ export async function fetchVocabularies(accessToken) {
 }
 
 /**
+ * Add a new controlled vocabulary term.
+ * @param {string} accessToken
+ * @param {{ table: string, code: string, definition: string, sort_order?: number }} payload
+ * @returns {Promise<Object>} { item }
+ */
+export async function createVocabularyTerm(accessToken, payload) {
+  const res = await fetch('/api/vocab', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to add vocabulary term: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Update an existing controlled vocabulary term.
+ * @param {string} accessToken
+ * @param {{ table: string, code: string, definition?: string, sort_order?: number, active?: boolean }} payload
+ * @returns {Promise<Object>} { item }
+ */
+export async function updateVocabularyTerm(accessToken, payload) {
+  const res = await fetch('/api/vocab', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to update vocabulary term: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
+ * Soft-delete a controlled vocabulary term.
+ * @param {string} accessToken
+ * @param {{ table: string, code: string }} payload
+ * @returns {Promise<Object>}
+ */
+export async function deleteVocabularyTerm(accessToken, { table, code }) {
+  const query = new URLSearchParams({ table, code });
+  const res = await fetch(`/api/vocab?${query.toString()}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to delete vocabulary term: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
  * Fetch reference data: distinct equipment, muscle, and form parameter names in use.
  * Returns { equipment: [], muscles: [], formParameters: [] }
  * @param {string} accessToken

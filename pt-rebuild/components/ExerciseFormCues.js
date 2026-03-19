@@ -1,4 +1,4 @@
-// ExerciseFormCues.js — exercise form sections 5, 7, 8: guidance & cues, roles editing, vocab reference
+// ExerciseFormCues.js — exercise form section 5: guidance & cues
 // Section 6 (Lifecycle & Status) is handled by ExerciseFormLifecycle.js
 
 import { useState } from 'react';
@@ -55,16 +55,14 @@ function GuidanceSection({ label, items, onAdd, onRemove }) {
 }
 
 /**
- * Renders exercise form sections 5, 7, 8.
+ * Renders exercise form section 5.
  * Section 6 (Lifecycle & Status) is rendered by ExerciseFormLifecycle.
  *
  * @param {Object} guidance             - { motor_cues, compensation_warnings, safety_flags, external_cues }
  * @param {Function} onGuidanceChange   - (updatedGuidance) => void
- * @param {Object} vocabularies         - keyed by category; values are { code, definition }[]
  */
 export default function ExerciseFormCues({
   guidance, onGuidanceChange,
-  vocabularies,
 }) {
   function guidanceSetter(section) {
     const items = guidance[section] ?? [];
@@ -88,22 +86,6 @@ export default function ExerciseFormCues({
         </div>
       </details>
 
-      {/* Section 8: Vocabulary Reference (read-only) */}
-      <details className={styles.section}>
-        <summary className={styles.sectionHeader}>Vocabulary Reference</summary>
-        <div className={styles.sectionContent}>
-          {vocabularies && Object.entries(vocabularies).map(([cat, terms]) => (
-            <div key={cat} className={styles.vocabCategory}>
-              <h4 className={styles.vocabCategoryTitle}>{cat}</h4>
-              <ul className={styles.vocabList}>
-                {(terms ?? []).map(t => (
-                  <li key={t.code}>{t.code}{t.definition ? ` — ${t.definition}` : ''}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </details>
     </>
   );
 }
