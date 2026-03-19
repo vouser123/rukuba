@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# README reminder hook for pt-rebuild shared-file changes.
+# This is intentionally non-interactive so automated commits do not hang.
+
+if [ "$SKIP_README_REMINDER" = "1" ]; then
+  exit 0
+fi
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$repo_root" || exit 0
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged_files" ]; then
+  exit 0
+fi
+
+if echo "$staged_files" | grep -Eq '^pt-rebuild/README\.md$'; then
+  exit 0
+fi
+
+if echo "$staged_files" | grep -Eq '^pt-rebuild/(components|hooks|lib|pages)/|^pt-rebuild/public/manifest.*\.json$|^pt-rebuild/vercel\.json$|^pt-rebuild/next\.config\.mjs$'; then
+  echo >&2
+  echo "README reminder: staged changes touch shared pt-rebuild files." >&2
+  echo "Review pt-rebuild/README.md and stage it if ownership, routing, or shared-file docs changed." >&2
+  echo "If no README update is needed for this commit, rerun with:" >&2
+  echo "  SKIP_README_REMINDER=1 git commit ..." >&2
+  echo >&2
+  exit 1
+fi
+
+exit 0
