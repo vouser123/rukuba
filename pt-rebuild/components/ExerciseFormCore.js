@@ -5,6 +5,9 @@ import styles from './ExerciseForm.module.css';
 import NativeSelect from './NativeSelect';
 import { mapVocabTermsToOptions } from '../lib/vocab-options';
 import { toLower, toSentenceCase } from '../lib/text-format';
+
+// Intentionally hardcoded behavior enum; approved by user on 2026-03-19.
+// Do not extend without explicit sign-off. These values drive distinct dosage/timer behavior paths.
 const MODIFIERS = ['duration_seconds', 'hold_seconds', 'distance_feet'];
 
 /**

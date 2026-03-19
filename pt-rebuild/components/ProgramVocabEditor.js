@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import NativeSelect from './NativeSelect';
 import styles from './ExerciseForm.module.css';
 
+// Intentionally hardcoded supported vocab tables; approved by user on 2026-03-19.
+// Do not extend without explicit sign-off. These map to the controlled vocab surfaces the static editor manages.
 const CATEGORY_METADATA = [
   { key: 'region', label: 'Regions' },
   { key: 'capacity', label: 'Capacities' },
