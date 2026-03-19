@@ -20,11 +20,24 @@
 import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../db.js';
 import { requireAuth } from '../auth.js';
 
-// Valid enum values from schema
+// TODO: VALID_PT_CATEGORIES should be validated against the vocab table (pt_categories), not hardcoded.
+// These are admin-managed domain values. Tracked in Beads for dynamic validation.
 const VALID_PT_CATEGORIES = ['back_sij', 'knee', 'ankle', 'hip', 'vestibular', 'foot', 'shoulder', 'other'];
+
+// Intentionally hardcoded behavior enums; approved by user on 2026-03-19.
+// Do not extend without explicit sign-off. These values drive fixed application behavior (exercise pattern logic).
 const VALID_PATTERNS = ['side', 'both'];
+
+// Intentionally hardcoded behavior enums; approved by user on 2026-03-19.
+// Do not extend without explicit sign-off. These values drive timer/dosage behavior paths.
 const VALID_MODIFIERS = ['duration_seconds', 'hold_seconds', 'distance_feet'];
+
+// Intentionally hardcoded schema-mirror enums; approved by user on 2026-03-19.
+// Do not extend without explicit sign-off. These mirror DB schema structure and drive API validation.
 const VALID_GUIDANCE_SECTIONS = ['motor_cues', 'compensation_warnings', 'safety_flags', 'external_cues'];
+
+// Intentionally hardcoded schema-mirror enum; approved by user on 2026-03-19.
+// Do not extend without explicit sign-off. These mirror DB lifecycle_status constraints.
 const VALID_LIFECYCLE_STATUSES = ['active', 'deprecated', 'archived'];
 
 // Validation limits
