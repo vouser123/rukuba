@@ -15,6 +15,7 @@ export function useTrackerSession({
     logs,
     openManualLog,
     showSaveSuccess,
+    showToast,
     speakText,
     maybeAnnounceAllSetsComplete,
     enqueue,
@@ -25,7 +26,7 @@ export function useTrackerSession({
     const [draftSession, setDraftSession] = useState(null), [isTimerOpen, setIsTimerOpen] = useState(false);
     const [panelResetToken, setPanelResetToken] = useState(0), [pendingSetPatch, setPendingSetPatch] = useState(null);
     const [notesModalOpen, setNotesModalOpen] = useState(false), [backdateEnabled, setBackdateEnabled] = useState(false);
-    const [backdateValue, setBackdateValue] = useState(''), [pageMessage, setPageMessage] = useState('');
+    const [backdateValue, setBackdateValue] = useState('');
     const [optimisticLogs, setOptimisticLogs] = useState([]), [activeExercise, setActiveExercise] = useState(null);
     const sessionStartedAt = useMemo(() => draftSession?.date ?? new Date().toISOString(), [draftSession?.date]);
     const allLogs = useMemo(() => [...optimisticLogs, ...logs], [logs, optimisticLogs]);
@@ -39,7 +40,6 @@ export function useTrackerSession({
         setNotesModalOpen(false);
         setBackdateEnabled(false);
         setBackdateValue('');
-        setPageMessage('');
     }, []);
 
     const handleExerciseSelect = useCallback((exerciseId) => {
@@ -50,7 +50,6 @@ export function useTrackerSession({
         if (!enrichedSelected) return;
         setDraftSession(createDraftSession(enrichedSelected, inferActivityType(enrichedSelected)));
         setPendingSetPatch(null);
-        setPageMessage('');
         setActiveExercise({ id: enrichedSelected.id, name: enrichedSelected.canonical_name || '' });
         setIsTimerOpen(true);
     }, [allLogs, pickerExercises]);
@@ -62,13 +61,12 @@ export function useTrackerSession({
 
     const handleFinishSession = useCallback(() => {
         if (!draftSession || draftSession.sets.length === 0) {
-            setPageMessage('Please log at least one set before finishing');
+            showToast('Please log at least one set before finishing', 'error');
             return false;
         }
-        setPageMessage('');
         setNotesModalOpen(true);
         return true;
-    }, [draftSession]);
+    }, [draftSession, showToast]);
 
     const handleNotesModalClose = useCallback(() => {
         setNotesModalOpen(false);
@@ -147,7 +145,7 @@ export function useTrackerSession({
 
     return {
         selectedExerciseId, selectedExercise, draftSession, isTimerOpen, panelResetToken, pendingSetPatch, notesModalOpen,
-        backdateEnabled, backdateValue, pageMessage, optimisticLogs, allLogs, activeExercise, sessionStartedAt,
+        backdateEnabled, backdateValue, optimisticLogs, allLogs, activeExercise, sessionStartedAt,
         setDraftSession, setPendingSetPatch, setBackdateValue, setActiveExercise, setIsTimerOpen, setPanelResetToken,
         handleExerciseSelect, handleTimerBack, handleFinishSession, handleNotesModalClose, handleCancelSession,
         handleToggleBackdate, handleTimerApplySet, handleTimerOpenManual, handleConfirmNextSet, handleEditNextSet,

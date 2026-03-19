@@ -9,6 +9,7 @@ import { useManualLog } from '../hooks/useManualLog';
 import { useTrackerSession } from '../hooks/useTrackerSession';
 import { useSessionLogging } from '../hooks/useSessionLogging';
 import { useLoggerFeedback } from '../hooks/useLoggerFeedback';
+import { useToast } from '../hooks/useToast';
 import { useMessages } from '../hooks/useMessages';
 import AuthForm from '../components/AuthForm';
 import NavMenu from '../components/NavMenu';
@@ -20,6 +21,7 @@ import SessionLoggerModal from '../components/SessionLoggerModal';
 import SessionNotesModal from '../components/SessionNotesModal';
 import TimerPanel from '../components/TimerPanel';
 import MessagesModal from '../components/MessagesModal';
+import Toast from '../components/Toast';
 import { fetchUsers } from '../lib/users';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildSessionProgress } from '../lib/index-tracker-session';
@@ -59,6 +61,8 @@ export default function IndexPage() {
             .filter((exercise) => Boolean(exercise.id));
     }, [exercises, programs]);
 
+    const { showToast, toastMessage, toastType, toastVisible } = useToast();
+
     const manualOpenRef = useRef(() => {});
     const feedbackRef = useRef({
         showSaveSuccess: () => {},
@@ -70,6 +74,7 @@ export default function IndexPage() {
         logs,
         openManualLog: (options) => manualOpenRef.current(options),
         showSaveSuccess: (...args) => feedbackRef.current.showSaveSuccess(...args),
+        showToast,
         speakText: (...args) => feedbackRef.current.speakText(...args),
         maybeAnnounceAllSetsComplete: (...args) => feedbackRef.current.maybeAnnounceAllSetsComplete(...args),
         enqueue,
@@ -86,7 +91,6 @@ export default function IndexPage() {
         notesModalOpen,
         backdateEnabled,
         backdateValue,
-        pageMessage,
         allLogs,
         activeExercise,
         sessionStartedAt,
@@ -109,7 +113,7 @@ export default function IndexPage() {
         handleSaveFinishedSession,
     } = trackerSession;
 
-    const { successMessage, maybeAnnounceAllSetsComplete, showSaveSuccess, speakText } = useLoggerFeedback(selectedExercise, sessionStartedAt);
+    const { maybeAnnounceAllSetsComplete, showSaveSuccess, speakText } = useLoggerFeedback(selectedExercise, sessionStartedAt, showToast);
     feedbackRef.current = { showSaveSuccess, speakText, maybeAnnounceAllSetsComplete };
     const manualLog = useManualLog({
         draftSession,
@@ -250,8 +254,7 @@ export default function IndexPage() {
                 </header>
 
                 {error && <div className={styles.errorBanner} role="alert">{error}</div>}
-                {pageMessage && <div className={styles.errorBanner} role="alert">{pageMessage}</div>}
-                {successMessage && <div className={styles.successBanner} role="status" aria-live="polite">{successMessage}</div>}
+                <Toast message={toastMessage} type={toastType} visible={toastVisible} />
 
                 <main className={styles.main}>
                     {activeTab === 'exercises' && (

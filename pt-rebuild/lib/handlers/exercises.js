@@ -20,9 +20,6 @@
 import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../db.js';
 import { requireAuth } from '../auth.js';
 
-// TODO: VALID_PT_CATEGORIES should be validated against the vocab table (pt_categories), not hardcoded.
-// These are admin-managed domain values. Tracked in Beads for dynamic validation.
-const VALID_PT_CATEGORIES = ['back_sij', 'knee', 'ankle', 'hip', 'vestibular', 'foot', 'shoulder', 'other'];
 
 // Intentionally hardcoded behavior enums; approved by user on 2026-03-19.
 // Do not extend without explicit sign-off. These values drive fixed application behavior (exercise pattern logic).
@@ -179,9 +176,27 @@ function groupGuidance(guidanceArray) {
 }
 
 /**
- * Validate exercise data
+ * Fetch valid PT category codes from vocab_pt_category table.
+ * Throws if the table is unavailable — no hardcoded fallback.
+ * @param {object} supabase
+ * @returns {Promise<string[]>}
  */
-function validateExerciseData(data, isUpdate = false) {
+async function fetchValidPtCategories(supabase) {
+  const { data, error } = await supabase
+    .from('vocab_pt_category')
+    .select('code')
+    .eq('active', true);
+  if (error) throw new Error(`Failed to load pt_category vocab: ${error.message}`);
+  return (data ?? []).map((row) => row.code);
+}
+
+/**
+ * Validate exercise data
+ * @param {object} data
+ * @param {boolean} isUpdate
+ * @param {string[]} validPtCategories - live list from vocab_pt_category table
+ */
+function validateExerciseData(data, isUpdate = false, validPtCategories = []) {
   const errors = [];
 
   // Required fields (only for create)
@@ -212,8 +227,8 @@ function validateExerciseData(data, isUpdate = false) {
   }
 
   // Enum validation
-  if (data.pt_category && !VALID_PT_CATEGORIES.includes(data.pt_category)) {
-    errors.push(`pt_category must be one of: ${VALID_PT_CATEGORIES.join(', ')}`);
+  if (data.pt_category && !validPtCategories.includes(data.pt_category)) {
+    errors.push(`pt_category must be one of: ${validPtCategories.join(', ')}`);
   }
   if (data.pattern && !VALID_PATTERNS.includes(data.pattern)) {
     errors.push(`pattern must be one of: ${VALID_PATTERNS.join(', ')}`);
@@ -341,8 +356,16 @@ async function createExercise(req, res) {
     supersedes_exercise_id = null
   } = payload;
 
-  // Validate input
-  const validationErrors = validateExerciseData(payload, false);
+  // Load valid PT categories from vocab table — required for validation; no hardcoded fallback
+  let validPtCategories;
+  try {
+    validPtCategories = await fetchValidPtCategories(supabase);
+  } catch (vocabError) {
+    return res.status(500).json({ error: 'Failed to load validation data', details: process.env.NODE_ENV === 'development' ? vocabError.message : undefined });
+  }
+
+  // Validate input — pt_category checked against live vocab table, others use fixed enums
+  const validationErrors = validateExerciseData(payload, false, validPtCategories);
   if (validationErrors.length > 0) {
     return res.status(400).json({
       error: 'Validation failed',
@@ -520,8 +543,16 @@ async function updateExercise(req, res, exerciseId) {
     return res.status(400).json({ error: 'An exercise cannot supersede itself.' });
   }
 
-  // Validate input
-  const validationErrors = validateExerciseData(payload, true);
+  // Load valid PT categories from vocab table — required for validation; no hardcoded fallback
+  let validPtCategories;
+  try {
+    validPtCategories = await fetchValidPtCategories(supabase);
+  } catch (vocabError) {
+    return res.status(500).json({ error: 'Failed to load validation data', details: process.env.NODE_ENV === 'development' ? vocabError.message : undefined });
+  }
+
+  // Validate input — pt_category checked against live vocab table, others use fixed enums
+  const validationErrors = validateExerciseData(payload, true, validPtCategories);
   if (validationErrors.length > 0) {
     return res.status(400).json({
       error: 'Validation failed',

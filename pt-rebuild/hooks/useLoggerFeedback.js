@@ -1,5 +1,6 @@
 // hooks/useLoggerFeedback.js — tracker save/speech feedback for session completion, comparisons, and success copy
 import { useCallback, useEffect, useState } from 'react';
+// Note: useState kept for allSetsAnnounced only; successMessage removed in favour of useToast
 
 function buildSessionProgressFromSets(exercise, sets) {
     const targetSets = Number(exercise?.current_sets ?? 0) || 0;
@@ -19,9 +20,11 @@ function buildSessionProgressFromSets(exercise, sets) {
     };
 }
 
-export function useLoggerFeedback(selectedExercise, sessionStartedAt) {
+/**
+ * @param {Function} showToast - from useToast; used for save-success feedback
+ */
+export function useLoggerFeedback(selectedExercise, sessionStartedAt, showToast) {
     const [allSetsAnnounced, setAllSetsAnnounced] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
 
     const speakText = useCallback((text, delayMs = 0) => {
         if (!text || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -57,21 +60,14 @@ export function useLoggerFeedback(selectedExercise, sessionStartedAt) {
 
     const showSaveSuccess = useCallback((notesText = '') => {
         const notesStatus = String(notesText).trim() ? 'with notes' : 'no notes';
-        setSuccessMessage(`Saved (${notesStatus})`);
-    }, []);
+        showToast(`Saved (${notesStatus})`, 'success');
+    }, [showToast]);
 
     useEffect(() => {
         setAllSetsAnnounced(false);
     }, [selectedExercise?.id, sessionStartedAt]);
 
-    useEffect(() => {
-        if (!successMessage) return undefined;
-        const timeoutId = window.setTimeout(() => setSuccessMessage(''), 3000);
-        return () => window.clearTimeout(timeoutId);
-    }, [successMessage]);
-
     return {
-        successMessage,
         maybeAnnounceAllSetsComplete,
         showSaveSuccess,
         speakText,

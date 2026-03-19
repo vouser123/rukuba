@@ -73,6 +73,7 @@ Use these from `components/` when building or wiring Next.js pages. Prefer exist
 - [`components/HistoryPanel.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/HistoryPanel.js): Tracker history tab panel. Use it on the tracker page instead of duplicating history-tab rendering.
 - [`components/BottomNav.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/BottomNav.js): Fixed bottom tab bar for tracker page navigation between exercise and history views.
 - [`components/HistoryList.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/HistoryList.js): Session history list grouped by date with expandable detail. Use it where the page needs read-only history rendering.
+- [`components/Toast.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/Toast.js): Floating toast notification overlay. Use it with `useToast` for transient user feedback (save success, errors, sync status). Matches static app `#toastContainer` mechanics: `position:fixed`, slide-up from bottom, success/error variants.
 - [`components/MessagesModal.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/MessagesModal.js): Messaging modal used by migrated pages that surface conversation threads.
 - [`components/ExerciseHistoryModal.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/ExerciseHistoryModal.js): Exercise-specific history modal used by the history dashboard.
 - [`components/PatientNotes.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/PatientNotes.js): Patient notes panel with keyword highlighting and dismiss behavior.
@@ -167,6 +168,7 @@ Use these from `hooks/` to keep page files thin and consistent with the current 
 - [`hooks/useExerciseTimer.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useExerciseTimer.js): Timer adapter for hold/duration flows built on the logger timer machine.
 - [`hooks/useTimerAudio.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerAudio.js): Audio and speech side-effect executor for timer feedback.
 - [`hooks/useTimerSpeech.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerSpeech.js): Panel-facing execution hook for the tracker timer flow.
+- [`hooks/useToast.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useToast.js): Floating toast state hook. Use it with `Toast` component for transient feedback. Provides `showToast(message, type, duration)` and props for `<Toast />`.
 - [`hooks/useMessages.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useMessages.js): Shared messaging hook used by migrated pages that open the messages modal.
 
 ## Key Docs

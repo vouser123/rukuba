@@ -1,0 +1,35 @@
+/* Floating toast — matches static app toast mechanics (position:fixed, slide-up, fade). */
+
+.toast {
+    position: fixed;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--toast-bg, #333);
+    color: var(--toast-text, white);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    max-width: 90vw;
+    text-align: center;
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.success {
+    background: var(--toast-success-bg, #28a745);
+    color: #fff;
+}
+
+.error {
+    background: var(--toast-error-bg, #dc3545);
+    color: #fff;
+}
