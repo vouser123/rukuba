@@ -8,6 +8,7 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/README.md` - landing reference for the live codebase shape, shared components/hooks/utilities, timer/audio wiring, and legacy-to-Next.js page mapping
 - `pt-rebuild/docs/NEXTJS_CODE_STRUCTURE.md` - file size limits, split rules, cohesion checks, folder structure, naming conventions
 - `pt-rebuild/docs/SYSTEM_ARCHITECTURE.md` - current hybrid architecture and implementation guardrails
+- `pt-rebuild/docs/IMPLEMENTATION_PATTERNS.md` - approved shared helpers, components, and do-this-not-that implementation guidance
 - `pt-rebuild/docs/DATA_VOCABULARIES.md` - canonical field names and data contracts
 - `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
 - `pt-rebuild/docs/BEADS_OPERATIONS.md` - canonical Beads operating rules, parallel-thread guidance, and Dolt troubleshooting

@@ -16,6 +16,9 @@ Use this file to decide which doc to open next.
 - [`SYSTEM_ARCHITECTURE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/SYSTEM_ARCHITECTURE.md)
   - Open when: you need the current hybrid architecture, data flow, offline/storage model, or deployment guardrails.
   - Answers: "How does the live system fit together?"
+- [`IMPLEMENTATION_PATTERNS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/IMPLEMENTATION_PATTERNS.md)
+  - Open when: you need the approved shared helper, component, or do-this-not-that implementation pattern.
+  - Answers: "Which shared thing should I use here?"
 - [`TESTING_CHECKLISTS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/TESTING_CHECKLISTS.md)
   - Open when: you are validating a behavior change or regression fix.
   - Answers: "How do I verify this safely?"

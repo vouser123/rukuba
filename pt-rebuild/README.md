@@ -181,6 +181,7 @@ For timer execution hook boundaries, see `Tracker Execution Stack` above.
 - [`docs/README.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/README.md): Docs index explaining which project doc to open and when.
 - [`docs/NEXTJS_CODE_STRUCTURE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_CODE_STRUCTURE.md): Authoring rules for file structure, split decisions, and size guidance.
 - [`docs/NEXTJS_MIGRATION_STATUS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION_STATUS.md): Migration-status context and broader rollout history. Do not treat it as the primary file-ownership map.
+- [`docs/IMPLEMENTATION_PATTERNS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/IMPLEMENTATION_PATTERNS.md): Approved shared helpers, components, and do-this-not-that implementation guidance.
 - [`docs/BEADS_ISSUE_TEMPLATE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/BEADS_ISSUE_TEMPLATE.md): Required Beads issue template.
 
 ## README Maintenance Rules
