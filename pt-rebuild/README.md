@@ -9,7 +9,7 @@ This folder contains two active code surfaces that agents must distinguish befor
 - Legacy surface: [`public/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public) and [`api/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api). Some HTML pages in `public/` still define live or parity-relevant behavior.
 - Next.js surface: [`pages/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages), [`components/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components), [`hooks/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks), and the Next.js-layer files in [`lib/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib).
 
-Use [`docs/NEXTJS_MIGRATION.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION.md) only for migration-status context. Use this README for the current file-ownership map.
+Use [`docs/NEXTJS_MIGRATION_STATUS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION_STATUS.md) only for migration-status context. Use this README for the current file-ownership map.
 
 ## Current Route And Legacy Surface Map
 
@@ -144,6 +144,8 @@ Use these `lib/` files from Next.js pages and hooks when you need shared logic. 
 - [`lib/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/users.js): Shared API helpers for user data and email notification preferences (`fetchUsers`, `patchEmailNotifications`). Use it on any Next.js page that needs user records or the current user's recipient ID for messaging.
 - [`lib/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/pt-view.js): Page-domain helpers and fetch logic for the history dashboard. Use [`lib/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/users.js) for user/email helpers shared with other routes.
 - [`lib/pt-editor.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/pt-editor.js): Page-domain fetch and mutation helpers for the exercise editor, including controlled-vocab CRUD wrappers used by `/program`. `/program` now owns the network-or-cache bootstrap flow and uses `offlineCache` for read fallback rather than embedding cache logic here.
+- [`lib/program-offline.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/program-offline.js): Pure `/program` offline mutation queue helpers. Use it for queue persistence keys, mutation merging, local temporary IDs, and replay execution rules for exercise, role, dosage, and vocabulary writes.
+- [`lib/program-optimistic.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/program-optimistic.js): Pure optimistic-state helpers for `/program` mutations. Use it when editor writes need local exercise/reference-data/dosage updates before queued sync completes.
 - [`lib/vocab-options.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/vocab-options.js): Shared helper for turning vocabulary rows into `NativeSelect` option objects with consistent labels. Use it for vocab-backed editor controls instead of repeating mapping logic in components.
 
 Legacy API layer in `lib/`:
@@ -158,6 +160,8 @@ Use these from `hooks/` to keep page files thin and consistent with the current 
 - [`hooks/useAuth.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useAuth.js): Shared authentication hook. Use it on any Next.js page that needs session, sign-in, or sign-out.
 - [`hooks/useIndexData.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useIndexData.js): Loads tracker bootstrap data for exercises, programs, and logs.
 - [`hooks/useIndexOfflineQueue.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useIndexOfflineQueue.js): Manages the tracker offline queue, async IndexedDB hydration/persistence, sync, and sign-out cleanup.
+- [`hooks/useProgramOfflineQueue.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useProgramOfflineQueue.js): Manages the `/program` offline mutation queue lifecycle, including IndexedDB hydration, online replay, and queue-status reporting.
+- [`hooks/useProgramMutationActions.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useProgramMutationActions.js): Owns optimistic `/program` mutation handlers for exercise saves, roles, dosages, and controlled vocab changes while delegating queue lifecycle to `useProgramOfflineQueue`.
 - [`hooks/useManualLog.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useManualLog.js): Owns in-progress manual set logging state on the tracker page, including add/remove/edit handlers and modal submit/close behavior while a draft session is open.
 - [`hooks/useTrackerSession.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTrackerSession.js): Owns the active tracker-session lifecycle for the index page, including selected exercise state, draft session state, timer/modal flow, optimistic history insertion, and finish-session save behavior.
 - [`hooks/useSessionLogging.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useSessionLogging.js): Owns manual create/edit logging state and submit behavior for the session logger modal.
@@ -174,9 +178,10 @@ For timer execution hook boundaries, see `Tracker Execution Stack` above.
 ## Canonical Docs
 
 - [`AGENTS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/AGENTS.md): Workflow and operating rules for agents in `pt-rebuild`.
-- [`docs/NEXTJS_STRUCTURE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_STRUCTURE.md): Authoring rules for file structure, split decisions, and size guidance.
-- [`docs/NEXTJS_MIGRATION.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION.md): Migration-status context and broader rollout history. Do not treat it as the primary file-ownership map.
-- [`docs/BEADS_TEMPLATE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/BEADS_TEMPLATE.md): Required Beads issue template.
+- [`docs/README.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/README.md): Docs index explaining which project doc to open and when.
+- [`docs/NEXTJS_CODE_STRUCTURE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_CODE_STRUCTURE.md): Authoring rules for file structure, split decisions, and size guidance.
+- [`docs/NEXTJS_MIGRATION_STATUS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION_STATUS.md): Migration-status context and broader rollout history. Do not treat it as the primary file-ownership map.
+- [`docs/BEADS_ISSUE_TEMPLATE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/BEADS_ISSUE_TEMPLATE.md): Required Beads issue template.
 
 ## README Maintenance Rules
 

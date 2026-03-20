@@ -29,7 +29,7 @@ Canonical checklist reference for `pt-rebuild/`. Loaded by `AGENTS.md`. New chec
 
 ### Log path variables
 - Online, direct POST to `/api/logs` (`createActivityLog`). The primary path.
-- Offline: log queued to localStorage, then synced via `syncOfflineQueue` → POST `/api/logs`. Same endpoint as online, different entry point — verifies queue serialization and sync correctness.
+- Offline: log queued to the IndexedDB-backed offline queue, then synced via `syncOfflineQueue` → POST `/api/logs`. Same endpoint as online, different entry point — verifies queue serialization and sync correctness.
 - Edit/update via PATCH to `/api/logs/:id` (`updateActivityLog`). Verifies existing log data is correctly overwritten without duplication.
 - Sync path via POST to `/api/sync` (`processActivityLog`). Reachable endpoint; tests separately from the primary log path.
 

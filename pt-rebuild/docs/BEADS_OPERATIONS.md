@@ -1,4 +1,4 @@
-# Beads Workflow for PT Rebuild
+# Beads Operations for PT Rebuild
 
 Operational guide for using Beads in `pt-rebuild/`.
 
@@ -188,7 +188,7 @@ Quick decision guide:
 
 ## PT-Rebuild Issue Template
 
-Canonical template: `pt-rebuild/docs/BEADS_TEMPLATE.md`
+Canonical template: `pt-rebuild/docs/BEADS_ISSUE_TEMPLATE.md`
 
 All new Beads issues in this repo should include:
 

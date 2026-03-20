@@ -3,9 +3,10 @@ import path from 'node:path';
 import process from 'node:process';
 
 const rootDir = path.resolve(process.cwd());
-const jsonPath = path.join(rootDir, 'docs', 'dev_notes.json');
-const schemaPath = path.join(rootDir, 'docs', 'dev_notes.schema.json');
-const markdownPath = path.join(rootDir, 'docs', 'DEV_NOTES.md');
+const archiveDir = path.join(rootDir, 'docs', 'archive', 'dev-notes');
+const jsonPath = path.join(archiveDir, 'dev_notes.json');
+const schemaPath = path.join(archiveDir, 'dev_notes.schema.json');
+const markdownPath = path.join(archiveDir, 'DEV_NOTES.md');
 const checkMode = process.argv.includes('--check');
 
 const REQUIRED_ENUM_KEYS = ['priority_levels', 'risk_levels', 'status_values', 'tag_vocabulary'];
@@ -85,7 +86,7 @@ function validateAgainstSchema(data, schema) {
   if (Array.isArray(schemaTagCatalog) && schemaTagCatalog.length > 0) {
     const dataTagValues = (data?.enums?.tag_vocabulary ?? []).map((entry) => entry?.value);
     if (schemaTagCatalog.length !== dataTagValues.length) {
-      fail('Schema drift: tag_vocabulary length differs between docs/dev_notes.schema.json and docs/dev_notes.json.');
+      fail('Schema drift: tag_vocabulary length differs between docs/archive/dev-notes/dev_notes.schema.json and docs/archive/dev-notes/dev_notes.json.');
     }
     for (let i = 0; i < schemaTagCatalog.length; i += 1) {
       if (schemaTagCatalog[i] !== dataTagValues[i]) {
@@ -239,7 +240,7 @@ function sortClosedItemsByResolvedDesc(items) {
 function buildMarkdown(data) {
   return `# PT Tracker Rebuild - Public Dev Notes
 
-This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markdown.
+This file is generated from \`docs/archive/dev-notes/dev_notes.json\`. Do not hand-edit this Markdown.
 
 > Legacy archive: Beads is the active tracker for current work. Use this file for historical reference only.
 
@@ -255,7 +256,7 @@ This file is generated from \`docs/dev_notes.json\`. Do not hand-edit this Markd
 - [Closed Items](#closed-items)
 
 ## How to Use This File
-- Canonical source of truth for the legacy archive: \`docs/dev_notes.json\`.
+- Canonical source of truth for the legacy archive: \`docs/archive/dev-notes/dev_notes.json\`.
 - Active work now lives in Beads, not in \`open_items\`.
 - Run \`npm run dev-notes:build\` after legacy archive updates.
 - \`open_items\`: legacy active queue from before the Beads migration; should normally be empty.
@@ -302,11 +303,11 @@ const markdown = buildMarkdown(data);
 if (checkMode) {
   const existing = fs.existsSync(markdownPath) ? fs.readFileSync(markdownPath, 'utf8') : '';
   if (existing !== markdown) {
-    fail('docs/DEV_NOTES.md is out of sync with docs/dev_notes.json. Run npm run dev-notes:build.');
+    fail('docs/archive/dev-notes/DEV_NOTES.md is out of sync with docs/archive/dev-notes/dev_notes.json. Run npm run dev-notes:build.');
   }
-  console.log('[dev-notes] OK: docs/DEV_NOTES.md is in sync.');
+  console.log('[dev-notes] OK: docs/archive/dev-notes/DEV_NOTES.md is in sync.');
   process.exit(0);
 }
 
 fs.writeFileSync(markdownPath, markdown);
-console.log(`[dev-notes] Generated ${path.relative(rootDir, markdownPath)} from docs/dev_notes.json`);
+console.log(`[dev-notes] Generated ${path.relative(rootDir, markdownPath)} from docs/archive/dev-notes/dev_notes.json`);

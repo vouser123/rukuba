@@ -1,6 +1,6 @@
 # PT Tracker Rebuild - Public Dev Notes
 
-This file is generated from `docs/dev_notes.json`. Do not hand-edit this Markdown.
+This file is generated from `docs/archive/dev-notes/dev_notes.json`. Do not hand-edit this Markdown.
 
 > Legacy archive: Beads is the active tracker for current work. Use this file for historical reference only.
 
@@ -16,7 +16,7 @@ This file is generated from `docs/dev_notes.json`. Do not hand-edit this Markdow
 - [Closed Items](#closed-items)
 
 ## How to Use This File
-- Canonical source of truth for the legacy archive: `docs/dev_notes.json`.
+- Canonical source of truth for the legacy archive: `docs/archive/dev-notes/dev_notes.json`.
 - Active work now lives in Beads, not in `open_items`.
 - Run `npm run dev-notes:build` after legacy archive updates.
 - `open_items`: legacy active queue from before the Beads migration; should normally be empty.

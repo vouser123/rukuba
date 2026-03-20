@@ -2,11 +2,11 @@
 # sync-migration-doc.sh
 #
 # Syncs these files from the current branch (nextjs) to main so both
-# branches always have identical docs/dev tracking:
+# branches always have identical migration-status and legacy-archive docs:
 #
-#   pt-rebuild/docs/NEXTJS_MIGRATION.md
-#   pt-rebuild/docs/dev_notes.json
-#   pt-rebuild/docs/DEV_NOTES.md
+#   pt-rebuild/docs/NEXTJS_MIGRATION_STATUS.md
+#   pt-rebuild/docs/archive/dev-notes/dev_notes.json
+#   pt-rebuild/docs/archive/dev-notes/DEV_NOTES.md
 #
 # This is a CLAUDE task — Claude runs this automatically after every
 # commit that touches any of the above files on the nextjs branch.
@@ -24,9 +24,9 @@ REPO_ROOT="$(pwd)"
 CURRENT="$(git rev-parse --abbrev-ref HEAD)"
 
 FILES=(
-    "pt-rebuild/docs/NEXTJS_MIGRATION.md"
-    "pt-rebuild/docs/dev_notes.json"
-    "pt-rebuild/docs/DEV_NOTES.md"
+    "pt-rebuild/docs/NEXTJS_MIGRATION_STATUS.md"
+    "pt-rebuild/docs/archive/dev-notes/dev_notes.json"
+    "pt-rebuild/docs/archive/dev-notes/DEV_NOTES.md"
 )
 
 # Guard: must be on a non-main branch.

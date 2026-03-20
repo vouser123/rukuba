@@ -1,4 +1,4 @@
-# PT Tracker Rebuild - Vocabularies
+# PT Tracker Rebuild - Data Vocabularies
 
 This document lists the controlled vocabularies used by the rebuild APIs.
 

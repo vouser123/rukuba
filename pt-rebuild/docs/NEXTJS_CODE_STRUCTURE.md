@@ -1,8 +1,8 @@
-# Next.js Migration Structure Guidelines
+# Next.js Code Structure Guidelines
 
 Authoritative rules for `pt-rebuild/` code organization during the Next.js migration. Apply to all Next.js pages. Do not re-evaluate these decisions per session.
 
-**Loaded by:** `AGENTS.md`, `NEXTJS_MIGRATION.md`
+**Loaded by:** `AGENTS.md`, `NEXTJS_MIGRATION_STATUS.md`
 
 **Companion reference:** `pt-rebuild/README.md` is the maintained map of the live codebase shape. Use this file for rules; use the README for what currently exists and where shared files belong.
 

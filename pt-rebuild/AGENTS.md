@@ -4,17 +4,16 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 
 ## Canonical References
 
+- `pt-rebuild/docs/README.md` - docs index that explains which doc to open and when
 - `pt-rebuild/README.md` - landing reference for the live codebase shape, shared components/hooks/utilities, timer/audio wiring, and legacy-to-Next.js page mapping
-- `pt-rebuild/docs/NEXTJS_STRUCTURE.md` - file size limits, split rules, cohesion checks, folder structure, naming conventions
-- `pt-rebuild/docs/DEVELOPMENT.md` - architecture and implementation reference
-- `pt-rebuild/docs/DEV_PRACTICES.md` - day-to-day workflow and troubleshooting
-- `pt-rebuild/docs/vocabularies.md` - canonical field names and data contracts
-- `pt-rebuild/docs/AI_WORKFLOW.md` - legacy dev_notes workflow reference (deprecated; Beads is the active tracker)
+- `pt-rebuild/docs/NEXTJS_CODE_STRUCTURE.md` - file size limits, split rules, cohesion checks, folder structure, naming conventions
+- `pt-rebuild/docs/SYSTEM_ARCHITECTURE.md` - current hybrid architecture and implementation guardrails
+- `pt-rebuild/docs/DATA_VOCABULARIES.md` - canonical field names and data contracts
 - `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
-- `pt-rebuild/docs/BEADS_WORKFLOW.md` - canonical Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
-- `pt-rebuild/docs/BEADS_QUICKREF.md` - generated quick reference derived from `BEADS_WORKFLOW.md` for agent session startup and recovery
-- `pt-rebuild/docs/dev_notes.json` - legacy tracking archive; no longer the active intake queue
-- `pt-rebuild/docs/DEV_NOTES.md` - generated legacy archive view derived from `dev_notes.json`
+- `pt-rebuild/docs/BEADS_OPERATIONS.md` - canonical Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
+- `pt-rebuild/docs/BEADS_QUICKREF.md` - generated quick reference derived from `BEADS_OPERATIONS.md` for agent session startup and recovery
+- `pt-rebuild/docs/archive/dev-notes/dev_notes.json` - legacy tracking archive; no longer the active intake queue
+- `pt-rebuild/docs/archive/dev-notes/DEV_NOTES.md` - generated legacy archive view derived from `dev_notes.json`
 
 ## Local Memory Files (Outside GitHub Repo)
 
@@ -72,7 +71,7 @@ This project is operated by a non-technical user. Agents must not assume technic
 
 - Use Beads for active work tracking in `pt-rebuild`, including intake, execution, handoff, and closure.
 - Do not create new `DN-*` items in `dev_notes.json`.
-- Treat `pt-rebuild/docs/dev_notes.json` and `pt-rebuild/docs/DEV_NOTES.md` as legacy history only.
+- Treat `pt-rebuild/docs/archive/dev-notes/dev_notes.json` and `pt-rebuild/docs/archive/dev-notes/DEV_NOTES.md` as legacy history only.
 - If a legacy `DN-*` reference matters to current work, link it in Beads with `--external-ref DN-###` instead of reviving dev_notes as an active queue.
 - If you need to review historical deferred items, consult the legacy archive and then create or update a Beads issue rather than reopening `dev_notes`.
 
@@ -83,8 +82,8 @@ This project is operated by a non-technical user. Agents must not assume technic
 
 ### Legacy Dev Notes Archive
 
-- `pt-rebuild/docs/dev_notes.json` is retained for historical reference.
-- `pt-rebuild/docs/DEV_NOTES.md` is generated from the JSON and should never be hand-edited.
+- `pt-rebuild/docs/archive/dev-notes/dev_notes.json` is retained for historical reference.
+- `pt-rebuild/docs/archive/dev-notes/DEV_NOTES.md` is generated from the JSON and should never be hand-edited.
 - If the legacy archive is updated for documentation reasons, run `npm run dev-notes:build` and `npm run dev-notes:check`.
 - Do not use the archive for active intake, assignment, or status management.
 
@@ -125,7 +124,7 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 ## Beads Agent Discipline (Required)
 
-- Detailed operating rules live in `pt-rebuild/docs/BEADS_WORKFLOW.md`.
+- Detailed operating rules live in `pt-rebuild/docs/BEADS_OPERATIONS.md`.
 - Keep `AGENTS.md` as the policy surface; use the workflow doc for command patterns, parallel-thread rules, and Dolt cleanup steps.
 - Check `bd dolt status` before trying to start Dolt; only run `bd dolt start` when the server is not already running.
 - Do not use `bd edit` from agent sessions; use `bd update` flags instead.
@@ -240,7 +239,7 @@ bd automatically syncs via Dolt:
 - Each write auto-commits to Dolt history
 - Use `bd dolt push`/`bd dolt pull` for remote sync
 - No manual export/import needed
-- If sync fails on Windows, see `pt-rebuild/docs/BEADS_WORKFLOW.md` for metadata / working-set cleanup
+- If sync fails on Windows, see `pt-rebuild/docs/BEADS_OPERATIONS.md` for metadata / working-set cleanup
 
 ### Important Rules
 
@@ -252,7 +251,7 @@ bd automatically syncs via Dolt:
 - ❌ Do NOT use external issue trackers
 - ❌ Do NOT duplicate tracking systems
 
-For repo structure and shared-file guidance, see `pt-rebuild/README.md`. For tracker workflow details, see `pt-rebuild/docs/BEADS_WORKFLOW.md` and `pt-rebuild/docs/BEADS_QUICKREF.md`.
+For repo structure and shared-file guidance, see `pt-rebuild/README.md`. For tracker workflow details, see `pt-rebuild/docs/BEADS_OPERATIONS.md` and `pt-rebuild/docs/BEADS_QUICKREF.md`.
 
 ### PT-Rebuild Beads Template (Required)
 
@@ -294,9 +293,9 @@ Execution caveat for this environment:
 
 - In this workspace, `bd` commands may require elevated execution from Codex sessions even when local VS Code terminal commands work.
 
-Canonical template: `pt-rebuild/docs/BEADS_TEMPLATE.md`.
+Canonical template: `pt-rebuild/docs/BEADS_ISSUE_TEMPLATE.md`.
 
-Detailed workflow and troubleshooting: `pt-rebuild/docs/BEADS_WORKFLOW.md`.
+Detailed workflow and troubleshooting: `pt-rebuild/docs/BEADS_OPERATIONS.md`.
 
 ## Landing the Plane (Session Completion)
 

@@ -1,6 +1,6 @@
 # Legacy Dev Notes Workflow (`pt-rebuild`)
 
-`docs/dev_notes.json` and `docs/DEV_NOTES.md` are now legacy archive material, not the active tracker.
+`docs/archive/dev-notes/dev_notes.json` and `docs/archive/dev-notes/DEV_NOTES.md` are now legacy archive material, not the active tracker.
 
 ## Active Rule
 
@@ -10,10 +10,10 @@
 
 ## Legacy Archive Handling
 
-- `docs/dev_notes.json` remains the canonical source for the legacy archive.
-- `docs/DEV_NOTES.md` remains a generated view of that archive.
+- `docs/archive/dev-notes/dev_notes.json` remains the canonical source for the legacy archive.
+- `docs/archive/dev-notes/DEV_NOTES.md` remains a generated view of that archive.
 - Only update the legacy archive when preserving history or recording archive-maintenance changes.
-- Do not hand-edit `docs/DEV_NOTES.md`.
+- Do not hand-edit `docs/archive/dev-notes/DEV_NOTES.md`.
 
 ## Legacy Maintenance Commands
 
