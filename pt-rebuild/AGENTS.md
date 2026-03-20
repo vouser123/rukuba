@@ -111,6 +111,7 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 - Update `pt-rebuild/README.md` in the same change whenever you create, remove, rename, repurpose, or materially change a file in a way that another agent would need to know to find it, understand what it owns, or wire it in correctly.
 - When a legacy HTML page is replaced, retired, redirected, or re-mapped, update the page mapping in `pt-rebuild/README.md` in the same change.
 - Update `pt-rebuild/README.md` in the same change whenever a behavior change alters how a file should be used, what layer owns a concern, or which file another agent should touch for future work.
+- Do not bypass the README pre-commit guard unless the staged changes leave `pt-rebuild/README.md` fully accurate as written.
 - If guidance conflicts within `pt-rebuild/`, `AGENTS.md` is the operational source of truth.
 
 ## Agent Ops Friction Logging
@@ -132,8 +133,11 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   - `bd update <id> --claim --assignee codex` (or `claude`)
 - Search before create to reduce duplicate issues:
   - `bd list --json` then title/label search before `bd create`
-- Install the repo-local commit message guard when setting up a clone:
+- Install the repo-local commit hooks when setting up a clone:
   - `npm run beads:install-commit-hook`
+- The hook install writes both `.beads/hooks/commit-msg` and `.beads/hooks/pre-commit`.
+- When the pre-commit hook flags shared ownership or route-shape changes, either stage `pt-rebuild/README.md` in the same commit or use the explicit bypass only if the README remains accurate:
+  - PowerShell: `$env:PT_README_OK="1"; git commit ...`
 - Use dependency types correctly:
   - Only `blocks` should gate readiness
   - Use `related`, `parent-child`, and `discovered-from` for context/structure
