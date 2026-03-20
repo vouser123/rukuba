@@ -1,7 +1,7 @@
-// offline-cache.js — shared IndexedDB cache helpers for offline-capable Next.js routes
+// lib/offline-cache.js — shared IndexedDB cache helpers and storage adapters for offline-capable Next.js routes
 
 const DB_NAME = 'pt_rebuild_offline';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 class OfflineCache {
   constructor() {
@@ -48,6 +48,10 @@ class OfflineCache {
 
         if (!db.objectStoreNames.contains('auth_state')) {
           db.createObjectStore('auth_state', { keyPath: 'key' });
+        }
+
+        if (!db.objectStoreNames.contains('queue_state')) {
+          db.createObjectStore('queue_state', { keyPath: 'key' });
         }
       };
     });
@@ -144,6 +148,16 @@ class OfflineCache {
     return this.getAll('activity_logs');
   }
 
+  /** Cache the full roles API response { user_role, roles } for rehab offline fallback. */
+  cacheRolesData(data) {
+    return this.setUiState('rehab_roles_data', data);
+  }
+
+  /** Retrieve cached roles API response, or null if not yet cached. */
+  getCachedRolesData() {
+    return this.getUiState('rehab_roles_data', null);
+  }
+
   async setAuthState(key, value) {
     await this.init();
 
@@ -182,6 +196,49 @@ class OfflineCache {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(new Error('Transaction aborted for auth_state'));
+
+      store.delete(key);
+    });
+  }
+
+  async setQueueState(key, value) {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['queue_state'], 'readwrite');
+      const store = tx.objectStore('queue_state');
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(new Error('Transaction aborted for queue_state'));
+
+      store.put({ key, value });
+    });
+  }
+
+  async getQueueState(key) {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['queue_state'], 'readonly');
+      const store = tx.objectStore('queue_state');
+      const request = store.get(key);
+
+      request.onsuccess = () => resolve(request.result?.value ?? []);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async removeQueueState(key) {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['queue_state'], 'readwrite');
+      const store = tx.objectStore('queue_state');
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(new Error('Transaction aborted for queue_state'));
 
       store.delete(key);
     });

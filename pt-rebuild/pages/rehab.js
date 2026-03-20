@@ -22,6 +22,7 @@ import AuthForm from '../components/AuthForm';
 import CoverageSummary from '../components/CoverageSummary';
 import CoverageMatrix from '../components/CoverageMatrix';
 import { buildCoverageData, colorScoreToRGB, COVERAGE_CONSTANTS } from '../lib/rehab-coverage';
+import { offlineCache } from '../lib/offline-cache';
 import styles from './rehab.module.css';
 
 export default function RehabCoverage() {
@@ -36,6 +37,7 @@ export default function RehabCoverage() {
 
     // Coverage data returned by buildCoverageData()
     const [coverageResult, setCoverageResult] = useState(null); // { coverageData, summary }
+    const [offlineNotice, setOfflineNotice] = useState(null);
 
     // UI interaction state — accordion open/close
     const [collapsedRegions, setCollapsedRegions] = useState(new Set());
@@ -43,26 +45,14 @@ export default function RehabCoverage() {
     const [legendExpanded, setLegendExpanded] = useState(false);
 
     // =========================================================================
-    // Service worker registration (done here instead of a Script tag)
-    // =========================================================================
-    useEffect(() => {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js');
-            let refreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing) { refreshing = true; window.location.reload(); }
-            });
-        }
-    }, []);
-
-    // =========================================================================
     // Data loading
     // =========================================================================
 
-    /** Fetch logs + roles in parallel, compute coverage data. */
+    /** Fetch logs + roles in parallel, compute coverage data. Caches to IndexedDB. */
     const loadData = useCallback(async (accessToken) => {
         setLoading(true);
         setError(null);
+        setOfflineNotice(null);
         try {
             const headers = { Authorization: `Bearer ${accessToken}` };
             const [logsRes, rolesRes] = await Promise.all([
@@ -77,12 +67,27 @@ export default function RehabCoverage() {
                 rolesRes.json(),
             ]);
 
+            // Cache for offline fallback — fire and forget
+            void offlineCache.cacheLogs(logsData.logs || []);
+            void offlineCache.cacheRolesData(rolesData);
+
             setUserRole(rolesData.user_role || 'patient');
-            const result = buildCoverageData(logsData.logs || [], rolesData.roles || []);
-            setCoverageResult(result);
+            setCoverageResult(buildCoverageData(logsData.logs || [], rolesData.roles || []));
         } catch (err) {
             console.error('loadData failed:', err);
-            setError(err.message || 'Failed to load coverage data.');
+            // Network failed — try IndexedDB cache
+            try {
+                const [cachedLogs, cachedRoles] = await Promise.all([
+                    offlineCache.getCachedLogs(),
+                    offlineCache.getCachedRolesData(),
+                ]);
+                if (!cachedRoles) throw new Error('No cached coverage data available offline.');
+                setUserRole(cachedRoles.user_role || 'patient');
+                setCoverageResult(buildCoverageData(cachedLogs || [], cachedRoles.roles || []));
+                setOfflineNotice('Offline — showing cached data.');
+            } catch {
+                setError(err.message || 'Failed to load coverage data.');
+            }
         } finally {
             setLoading(false);
         }
@@ -171,6 +176,10 @@ export default function RehabCoverage() {
                             />
                         </div>
                     </div>
+
+                    {offlineNotice && (
+                        <p className={styles['offline-notice']}>{offlineNotice}</p>
+                    )}
 
                     {/* Summary card */}
                     {coverageResult && <CoverageSummary summary={coverageResult.summary} />}
