@@ -276,7 +276,7 @@ When a new shared file is created and added to the README, make sure the file he
 - `PatientNotes` section in `pt-view.js`: 60L JSX with own expand/collapse state → ✗ not inline-eligible (has state + over 40L) → extract to `components/PatientNotes.js` + `PatientNotes.module.css`
 
 **When NOT to split:**
-- `MessagesModal.js` (183L) contains list, compose, and archive undo — ✗ do not split into three files; they are always loaded together; one file is correct
+- `MessagesModal.js` (~272L) contains list, compose, roll-up/restore, and undo-send — ✗ do not split; they are always loaded together; one file is correct
 - Apply Split Decision Rule 3: would split pieces always be loaded together? Yes → keep as one file
 
 **Reuse trigger:**
