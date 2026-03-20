@@ -353,6 +353,8 @@ export default function IndexPage() {
                     emailEnabled={emailEnabled}
                     onSend={msgs.send}
                     onArchive={msgs.archive}
+                    onUnarchive={msgs.unarchive}
+                    onRemove={msgs.remove}
                     onMarkRead={msgs.markRead}
                     onEmailToggle={handleEmailToggle}
                     onOpened={msgs.markModalOpened}

@@ -265,16 +265,15 @@ export function applyFilters(logs, { exercise, dateFrom, dateTo, query }) {
 }
 
 /**
- * Count unread messages (from others, newer than lastReadTime).
- * @param {Array} messages
- * @param {string} viewerId - current user's auth_id or id
- * @param {string} lastReadTime - ISO string
+ * Count unread received messages using DB read_by_recipient field.
+ * Excludes archived messages — those are rolled up visually, not unread.
+ * @param {Array} messages - normalized messages with is_archived flag
+ * @param {string} viewerId - current user's auth_id
  * @returns {number}
  */
-export function countUnreadMessages(messages, viewerId, lastReadTime) {
-    const since = new Date(lastReadTime ?? 0);
+export function countUnreadMessages(messages, viewerId) {
     return messages.filter(m =>
-        m.sender_id !== viewerId && new Date(m.created_at) > since
+        m.sender_id !== viewerId && !m.read_by_recipient && !m.is_archived
     ).length;
 }
 

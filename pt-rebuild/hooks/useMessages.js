@@ -14,7 +14,6 @@ import {
     patchMessage,
     deleteMessage,
     countUnreadMessages,
-    countRecentSent,
 } from '../lib/pt-view';
 
 const POLL_INTERVAL_MS = 30_000;
@@ -22,21 +21,15 @@ const POLL_INTERVAL_MS = 30_000;
 export function useMessages(token, viewerId) {
     const [messages, setMessages]       = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [sentCount, setSentCount]     = useState(0);
     const intervalRef                   = useRef(null);
 
-    // localStorage timestamps — persisted across sessions
-    const getLastReadTime  = () => localStorage.getItem('lastReadMessageTime')  ?? new Date(0).toISOString();
-    const getLastSentTime  = () => localStorage.getItem('lastSentMessageTime')  ?? new Date(0).toISOString();
-
-    /** Load messages and recompute badge counts. */
+    /** Load messages and recompute badge count using DB read_by_recipient field. */
     const refresh = useCallback(async () => {
         if (!token) return;
         try {
             const msgs = await fetchMessages(token);
             setMessages(msgs);
-            setUnreadCount(countUnreadMessages(msgs, viewerId, getLastReadTime()));
-            setSentCount(countRecentSent(msgs, viewerId, getLastSentTime()));
+            setUnreadCount(countUnreadMessages(msgs, viewerId));
         } catch (err) {
             console.error('useMessages refresh:', err);
         }
@@ -50,16 +43,9 @@ export function useMessages(token, viewerId) {
         return () => clearInterval(intervalRef.current);
     }, [token, refresh]);
 
-    /** Call when the messages modal opens — marks messages as "read". */
+    /** Call when the messages modal opens — clears badge optimistically. */
     function markModalOpened() {
-        localStorage.setItem('lastReadMessageTime', new Date().toISOString());
         setUnreadCount(0);
-    }
-
-    /** Call when the user views their own sent messages. */
-    function markSentViewed() {
-        localStorage.setItem('lastSentMessageTime', new Date().toISOString());
-        setSentCount(0);
     }
 
     /** Send a new message to recipientId. */
@@ -68,9 +54,15 @@ export function useMessages(token, viewerId) {
         await refresh();
     }
 
-    /** Archive a message. */
+    /** Archive a message (rolls it up visually). */
     async function archive(messageId) {
         await patchMessage(token, messageId, { archived: true });
+        await refresh();
+    }
+
+    /** Unarchive a message (restores from rolled-up state). */
+    async function unarchive(messageId) {
+        await patchMessage(token, messageId, { archived: false });
         await refresh();
     }
 
@@ -80,7 +72,7 @@ export function useMessages(token, viewerId) {
         await refresh();
     }
 
-    /** Permanently delete a message. */
+    /** Permanently delete a message (undo-send, within 1-hour window). */
     async function remove(messageId) {
         await deleteMessage(token, messageId);
         await refresh();
@@ -89,12 +81,11 @@ export function useMessages(token, viewerId) {
     return {
         messages,
         unreadCount,
-        sentCount,
         refresh,
         markModalOpened,
-        markSentViewed,
         send,
         archive,
+        unarchive,
         markRead,
         remove,
     };

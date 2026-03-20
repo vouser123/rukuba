@@ -1,24 +1,32 @@
 /**
- * MessagesModal — slide-up messages panel for pt-view.
+ * MessagesModal — slide-up messages panel for pt-view and index.
  *
  * Receives messages and actions from the useMessages() hook in the parent page.
  * Does NOT fetch or poll — that's the hook's job.
  *
+ * Archived messages are rolled up (collapsed one-liner) rather than hidden.
+ * Clicking "Show" expands them locally; clicking "Hide" collapses again.
+ * "Unarchive" restores a rolled-up message to full display permanently.
+ *
  * Props:
  *   isOpen        boolean — show/hide the modal
  *   onClose       () => void
- *   messages      array from useMessages
+ *   messages      array from useMessages (includes is_archived flag)
  *   viewerId      string — current user's auth_id (to distinguish sent vs received)
  *   recipientId   string — the other user's id (for sending)
  *   emailEnabled  boolean — current email notification preference
- *   onSend        (body: string) => Promise<void>
+ *   onSend        (recipientId: string, body: string) => Promise<void>
  *   onArchive     (messageId: string) => Promise<void>
+ *   onUnarchive   (messageId: string) => Promise<void>
+ *   onRemove      (messageId: string) => Promise<void> — permanent delete (undo-send)
  *   onMarkRead    (messageId: string) => Promise<void>
  *   onEmailToggle (enabled: boolean) => void
  *   onOpened      () => void — called when modal opens (clears unread badge)
  */
 import { useState, useEffect, useRef } from 'react';
 import styles from './MessagesModal.module.css';
+
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
 export default function MessagesModal({
     isOpen,
@@ -29,13 +37,16 @@ export default function MessagesModal({
     emailEnabled,
     onSend,
     onArchive,
+    onUnarchive,
+    onRemove,
     onMarkRead,
     onEmailToggle,
     onOpened,
 }) {
     const [draft, setDraft]           = useState('');
     const [sending, setSending]       = useState(false);
-    const [undoTarget, setUndoTarget] = useState(null); // { messageId, body } for undo
+    // Set of message IDs that are archived but locally expanded (peek without unarchiving)
+    const [expandedIds, setExpandedIds] = useState(new Set());
     const listRef                     = useRef(null);
 
     // Notify parent that modal opened (clears unread count)
@@ -50,10 +61,12 @@ export default function MessagesModal({
         }
     }, [isOpen, messages]);
 
-    if (!isOpen) return null;
+    // Reset expanded set when modal closes
+    useEffect(() => {
+        if (!isOpen) setExpandedIds(new Set());
+    }, [isOpen]);
 
-    // Filter out archived messages for display
-    const visible = messages.filter(m => !m.archived);
+    if (!isOpen) return null;
 
     function resolveReplyRecipientId() {
         const participant = messages.find(msg =>
@@ -85,24 +98,40 @@ export default function MessagesModal({
         }
     }
 
-    async function handleArchive(msg) {
-        setUndoTarget({ messageId: msg.id, body: msg.body });
-        await onArchive(msg.id);
-        // Auto-clear undo after 5s
-        setTimeout(() => setUndoTarget(null), 5000);
+    /** Expand an archived message locally (peek without restoring). */
+    function handleExpand(messageId) {
+        setExpandedIds(prev => new Set([...prev, messageId]));
     }
 
-    // Undo archive = unarchive isn't directly supported in API,
-    // so undo just dismisses the banner (the message is already archived)
-    function handleUndo() {
-        setUndoTarget(null);
+    /** Collapse an expanded archived message back to rolled-up state. */
+    function handleCollapse(messageId) {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            next.delete(messageId);
+            return next;
+        });
+    }
+
+    /** Permanently restore an archived message (unarchive via API). */
+    async function handleUnarchive(messageId) {
+        handleCollapse(messageId);
+        await onUnarchive(messageId);
+    }
+
+    /**
+     * Undo send — permanently deletes a message within the 1-hour window.
+     * Matches static pt_view.html undoSendNoteView behavior.
+     */
+    async function handleUndoSend(msg) {
+        if (!window.confirm('Delete this message? It will be removed for both you and the recipient.')) return;
+        await onRemove(msg.id);
     }
 
     /**
      * Format a message timestamp as "sent: Mon 3/2/26 8:18 PM EST"
      * Matches the static pt_view.html formatMessageDateTime format.
      * @param {string} isoString - ISO date string
-     * @param {string} [prefix='sent:'] - Label prefix (e.g. 'sent:' or 'read at:')
+     * @param {string} [prefix='sent:'] - Label prefix
      */
     function formatMsgDateTime(isoString, prefix = 'sent:') {
         const date = new Date(isoString);
@@ -136,14 +165,31 @@ export default function MessagesModal({
 
                 {/* Message list */}
                 <div className={styles['message-list']} ref={listRef}>
-                    {visible.length === 0 && (
+                    {messages.length === 0 && (
                         <p style={{ textAlign: 'center', color: '#999', padding: '2rem' }}>No messages yet.</p>
                     )}
-                    {visible.map(msg => {
+                    {messages.map(msg => {
                         const isSent = msg.sender_id === viewerId;
+                        const canUndoSend = isSent && (Date.now() - new Date(msg.created_at).getTime() < ONE_HOUR_MS);
+
+                        // Rolled-up (archived) — show compact one-liner unless locally expanded
+                        if (msg.is_archived && !expandedIds.has(msg.id)) {
+                            return (
+                                <div key={msg.id} className={`${styles['rolled-up']} ${isSent ? styles['rolled-up-sent'] : styles['rolled-up-received']}`}>
+                                    <span className={styles['rolled-up-preview']}>
+                                        {msg.body.length > 50 ? msg.body.slice(0, 50) + '…' : msg.body}
+                                    </span>
+                                    <span className={styles['rolled-up-label']}>(hidden)</span>
+                                    <button className={styles['action-btn']} onPointerUp={() => handleExpand(msg.id)}>Show</button>
+                                    <button className={styles['action-btn']} onPointerUp={() => handleUnarchive(msg.id)}>Restore</button>
+                                </div>
+                            );
+                        }
+
+                        // Full bubble — normal or locally expanded archived
                         return (
                             <div key={msg.id}>
-                                <div className={`${styles['message-bubble']} ${isSent ? styles.sent : styles.received}`}>
+                                <div className={`${styles['message-bubble']} ${isSent ? styles.sent : styles.received} ${msg.is_archived ? styles.archived : ''}`}>
                                     {msg.body}
                                     <div className={styles['message-meta']}>
                                         <span>{formatMsgDateTime(msg.created_at, 'sent:')}</span>
@@ -162,26 +208,34 @@ export default function MessagesModal({
                                                 Mark read
                                             </button>
                                         )}
-                                        <button
-                                            className={styles['action-btn']}
-                                            onPointerUp={() => handleArchive(msg)}
-                                        >
-                                            Archive
-                                        </button>
+                                        {/* Undo Send — only for sender within 1 hour, matches static pt_view.html */}
+                                        {canUndoSend && (
+                                            <button
+                                                className={styles['action-btn']}
+                                                onPointerUp={() => handleUndoSend(msg)}
+                                            >
+                                                Undo Send
+                                            </button>
+                                        )}
+                                        {msg.is_archived ? (
+                                            <>
+                                                <button className={styles['action-btn']} onPointerUp={() => handleCollapse(msg.id)}>Hide</button>
+                                                <button className={styles['action-btn']} onPointerUp={() => handleUnarchive(msg.id)}>Restore</button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                className={styles['action-btn']}
+                                                onPointerUp={() => onArchive(msg.id)}
+                                            >
+                                                Hide
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         );
                     })}
                 </div>
-
-                {/* Undo banner */}
-                {undoTarget && (
-                    <div className={styles['undo-banner']}>
-                        <span>Message archived</span>
-                        <button className={styles['undo-btn']} onPointerUp={handleUndo}>Undo</button>
-                    </div>
-                )}
 
                 {/* Email toggle */}
                 <div className={styles['email-toggle']}>

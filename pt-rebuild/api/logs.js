@@ -562,19 +562,17 @@ async function getMessages(req, res) {
 
     if (error) throw error;
 
-    const visibleMessages = (messages || []).filter(message => {
-      if (message.sender_id === req.user.id) {
-        return !message.archived_by_sender;
-      }
-      if (message.recipient_id === req.user.id) {
-        return !message.archived_by_recipient;
-      }
-      return false;
+    // Normalize is_archived per viewer — keep all non-deleted messages so client can
+    // roll up archived ones inline rather than losing them from the list entirely.
+    const normalizedMessages = (messages || []).map(message => {
+      const isSender = message.sender_id === req.user.id;
+      const is_archived = isSender ? message.archived_by_sender : message.archived_by_recipient;
+      return { ...message, is_archived: Boolean(is_archived) };
     });
 
     return res.status(200).json({
-      messages: visibleMessages,
-      count: visibleMessages.length
+      messages: normalizedMessages,
+      count: normalizedMessages.length
     });
 
   } catch (error) {
