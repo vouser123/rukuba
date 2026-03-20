@@ -11,6 +11,7 @@ import DosageModal from '../components/DosageModal';
 import NativeSelect from '../components/NativeSelect';
 import ProgramRolesSection from '../components/ProgramRolesSection';
 import ProgramVocabEditor from '../components/ProgramVocabEditor';
+import { offlineCache } from '../lib/offline-cache';
 import {
   fetchExercises, fetchVocabularies, fetchReferenceData,
   fetchPrograms, createProgram, updateProgram, addRole, deleteRole,
@@ -60,41 +61,83 @@ export default function ProgramPage() {
   // null = modal closed; { exercise, program } = modal open
   const [dosageTarget, setDosageTarget] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [offlineNotice, setOfflineNotice] = useState(null);
   const [toast, setToast] = useState(null);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [vocabSaving, setVocabSaving] = useState(false);
 
+  function applyBootstrap({ exercises: exList, vocabularies: vocab, referenceData: refData, programs: progMap }, notice = null) {
+    setExercises(exList);
+    setVocabularies(vocab);
+    setReferenceData(refData);
+    setPrograms(progMap);
+    setLoadError(null);
+    setOfflineNotice(notice);
+  }
+
   /** Load all exercises, vocabularies, reference data, and patient programs. */
   const loadData = useCallback(async (accessToken, userId) => {
     try {
+      await offlineCache.init();
       const [exList, vocab, refData, progMap] = await Promise.all([
         fetchExercises(accessToken),
         fetchVocabularies(accessToken),
         fetchReferenceData(accessToken),
         fetchPrograms(accessToken, userId),
       ]);
-      setExercises(exList);
-      setVocabularies(vocab);
-      setReferenceData(refData);
-      setPrograms(progMap);
-      setLoadError(null);
-      return { exercises: exList, vocabularies: vocab, referenceData: refData, programs: progMap };
+
+      await Promise.all([
+        offlineCache.cacheExercises(exList),
+        offlineCache.cacheProgramVocabularies(vocab),
+        offlineCache.cacheProgramReferenceData(refData),
+        offlineCache.cachePrograms(Object.values(progMap ?? {})),
+      ]);
+
+      const nextData = { exercises: exList, vocabularies: vocab, referenceData: refData, programs: progMap };
+      applyBootstrap(nextData, null);
+      return nextData;
     } catch (err) {
-      setLoadError(err.message);
-      return null;
+      try {
+        await offlineCache.init();
+        const [cachedExercises, cachedVocabularies, cachedReferenceData, cachedPrograms] = await Promise.all([
+          offlineCache.getCachedExercises(),
+          offlineCache.getCachedProgramVocabularies(),
+          offlineCache.getCachedProgramReferenceData(),
+          offlineCache.getCachedPrograms(),
+        ]);
+
+        const cachedProgramMap = Object.fromEntries((cachedPrograms ?? []).map((program) => [program.exercise_id, program]));
+        const hasCachedBootstrap =
+          (cachedExercises?.length ?? 0) > 0 ||
+          Object.keys(cachedVocabularies ?? {}).length > 0 ||
+          (cachedReferenceData?.equipment?.length ?? 0) > 0 ||
+          (cachedReferenceData?.muscles?.length ?? 0) > 0 ||
+          (cachedReferenceData?.formParameters?.length ?? 0) > 0 ||
+          Object.keys(cachedProgramMap).length > 0;
+
+        if (!hasCachedBootstrap) {
+          throw err;
+        }
+
+        const nextData = {
+          exercises: cachedExercises ?? [],
+          vocabularies: cachedVocabularies ?? {},
+          referenceData: cachedReferenceData ?? { equipment: [], muscles: [], formParameters: [] },
+          programs: cachedProgramMap,
+        };
+        applyBootstrap(nextData, 'Offline - showing cached editor data.');
+        return nextData;
+      } catch {
+        setOfflineNotice(null);
+        setLoadError(err.message);
+        return null;
+      }
     }
   }, []);
 
   useEffect(() => {
     if (session) loadData(session.access_token, session.user.id);
   }, [session, loadData]);
-
-  // Service worker registration
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
-  }, []);
 
   function showToast(message, type = 'success') {
     setToast({ message, type });
@@ -274,6 +317,7 @@ export default function ProgramPage() {
 
       <main className={styles.main}>
         {loadError && <p className={styles.errorBanner}>{loadError}</p>}
+        {offlineNotice && <p className={styles.offlineNotice}>{offlineNotice}</p>}
         {toast && (
           <div className={`${styles.toast} ${styles[toast.type]}`}>
             {toast.message}

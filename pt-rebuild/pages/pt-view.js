@@ -140,6 +140,7 @@ export default function PtViewPage() {
     const [notesCollapsed, setNotesCollapsed] = useState(false);
     const [filtersExpanded, setFiltersExpanded] = useState(false);
     const [dismissedNotes, setDismissedNotes] = useState([]);
+    const [uiStateLoaded, setUiStateLoaded] = useState(false);
 
     // Modal state
     const [messagesOpen, setMessagesOpen] = useState(false);
@@ -160,8 +161,10 @@ export default function PtViewPage() {
                 setNotesCollapsed(Boolean(nextNotesCollapsed));
                 setFiltersExpanded(Boolean(nextFiltersExpanded));
                 setDismissedNotes(Array.isArray(nextDismissedNotes) ? nextDismissedNotes : []);
+                setUiStateLoaded(true);
             } catch {
                 // Keep default UI state if IndexedDB is unavailable.
+                if (!cancelled) setUiStateLoaded(true);
             }
         }
 
@@ -356,24 +359,32 @@ export default function PtViewPage() {
                 <p className={styles['offline-notice']}>{offlineNotice}</p>
             )}
 
-            <PatientNotes
-                notes={processedNotes}
-                collapsed={notesCollapsed}
-                onToggle={toggleNotesCollapsed}
-                onDismiss={dismissNote}
-            />
+            {uiStateLoaded ? (
+                <PatientNotes
+                    notes={processedNotes}
+                    collapsed={notesCollapsed}
+                    onToggle={toggleNotesCollapsed}
+                    onDismiss={dismissNote}
+                />
+            ) : (
+                <div className={styles['ui-state-placeholder']} />
+            )}
 
             <NeedsAttention items={needsAttention} onCardClick={openExerciseHistory} />
 
             <SummaryStats stats={stats} />
 
-            <FiltersPanel
-                filters={filters}
-                programs={programs}
-                expanded={filtersExpanded}
-                onToggle={toggleFilters}
-                onChange={setFilters}
-            />
+            {uiStateLoaded ? (
+                <FiltersPanel
+                    filters={filters}
+                    programs={programs}
+                    expanded={filtersExpanded}
+                    onToggle={toggleFilters}
+                    onChange={setFilters}
+                />
+            ) : (
+                <div className={styles['ui-state-placeholder']} />
+            )}
 
             <HistoryList
                 groups={dateGroups}

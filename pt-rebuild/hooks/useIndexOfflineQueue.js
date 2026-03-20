@@ -1,7 +1,7 @@
 /**
  * useIndexOfflineQueue — manages the offline session queue for the index page.
  *
- * Queue is stored under a user-scoped localStorage key (pt_offline_queue_${userId})
+ * Queue is stored under a user-scoped IndexedDB key (pt_offline_queue_${userId})
  * to prevent cross-account data carryover on shared devices (DN-022 fix).
  *
  * Responsibilities:
@@ -26,17 +26,39 @@ import {
 export function useIndexOfflineQueue(userId, accessToken) {
     const [queue, setQueue] = useState([]);
     const [syncing, setSyncing] = useState(false);
+    const [queueLoaded, setQueueLoaded] = useState(false);
 
     // Ref so sync callback always sees the latest queue without re-registering
     const queueRef = useRef(queue);
     useEffect(() => { queueRef.current = queue; }, [queue]);
 
-    // Load queue from localStorage when userId becomes available
+    // Load queue from IndexedDB when userId becomes available
     useEffect(() => {
-        if (!userId) return;
-        const stored = loadQueue(userId);
-        setQueue(stored);
+        let cancelled = false;
+
+        async function hydrateQueue() {
+            if (!userId) {
+                setQueue([]);
+                setQueueLoaded(false);
+                return;
+            }
+            const stored = await loadQueue(userId);
+            if (cancelled) return;
+            setQueue(stored);
+            setQueueLoaded(true);
+        }
+
+        hydrateQueue();
+
+        return () => {
+            cancelled = true;
+        };
     }, [userId]);
+
+    useEffect(() => {
+        if (!userId || !queueLoaded) return;
+        void saveQueue(userId, queue);
+    }, [userId, queue, queueLoaded]);
 
     /**
      * Add a session to the offline queue and persist immediately.
@@ -47,11 +69,7 @@ export function useIndexOfflineQueue(userId, accessToken) {
      */
     const enqueue = useCallback((session) => {
         if (!userId) return;
-        setQueue(prev => {
-            const next = [...prev, session];
-            saveQueue(userId, next);
-            return next;
-        });
+        setQueue(prev => [...prev, session]);
     }, [userId]);
 
     /**
@@ -84,11 +102,7 @@ export function useIndexOfflineQueue(userId, accessToken) {
 
                 // 200 success or 409 duplicate — either way, remove from queue
                 if (res.ok || res.status === 409) {
-                    setQueue(prev => {
-                        const next = removeFromQueue(prev, session.client_mutation_id);
-                        saveQueue(userId, next);
-                        return next;
-                    });
+                    setQueue(prev => removeFromQueue(prev, session.client_mutation_id));
                     succeeded++;
                 } else {
                     failed++;
@@ -109,7 +123,7 @@ export function useIndexOfflineQueue(userId, accessToken) {
      */
     const clearQueue = useCallback(() => {
         if (!userId) return;
-        clearQueueHelper(userId);
+        void clearQueueHelper(userId);
         setQueue([]);
     }, [userId]);
 

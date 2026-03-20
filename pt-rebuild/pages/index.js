@@ -40,7 +40,6 @@ export default function IndexPage() {
     const [isMessagesOpen, setIsMessagesOpen] = useState(false);
     const [recipientId, setRecipientId] = useState(null);
     const [emailEnabled, setEmailEnabled] = useState(true);
-    const [currentDbId, setCurrentDbId] = useState(null);
 
     const pickerExercises = useMemo(() => {
         if (programs.length === 0) return exercises;
@@ -178,7 +177,6 @@ export default function IndexPage() {
         fetchUsers(token).then((users) => {
             const current = users.find((user) => user.auth_id === session.user.id);
             if (!current) return;
-            setCurrentDbId(current.id);
             setEmailEnabled(current.email_notifications_enabled ?? true);
             if (current.role === 'therapist') {
                 const patient = users.find((user) => user.therapist_id === current.id);
@@ -348,7 +346,7 @@ export default function IndexPage() {
                     isOpen={isMessagesOpen}
                     onClose={() => setIsMessagesOpen(false)}
                     messages={msgs.messages}
-                    viewerId={currentDbId}
+                    viewerId={userId}
                     recipientId={recipientId}
                     emailEnabled={emailEnabled}
                     onSend={msgs.send}

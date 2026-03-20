@@ -1,11 +1,12 @@
 /**
  * index-offline.js — pure helpers for the offline session queue.
  *
- * Queue is stored in localStorage under a user-scoped key to prevent
+ * Queue is stored in IndexedDB under a user-scoped key to prevent
  * cross-account data carryover on shared devices (addresses DN-022 concern).
  *
  * No React, no side effects. Callers manage state; these are pure read/write helpers.
  */
+import { offlineCache } from './offline-cache';
 
 /** @param {string} userId - Supabase user ID */
 export function queueKey(userId) {
@@ -13,34 +14,33 @@ export function queueKey(userId) {
 }
 
 /**
- * Load the offline queue from localStorage.
+ * Load the offline queue from IndexedDB.
  * @param {string} userId
  * @returns {Array} queue (empty array if nothing stored or parse fails)
  */
-export function loadQueue(userId) {
+export async function loadQueue(userId) {
     try {
-        const raw = localStorage.getItem(queueKey(userId));
-        return raw ? JSON.parse(raw) : [];
+        return await offlineCache.getQueueState(queueKey(userId));
     } catch {
         return [];
     }
 }
 
 /**
- * Persist the offline queue to localStorage.
+ * Persist the offline queue to IndexedDB.
  * @param {string} userId
  * @param {Array}  queue
  */
-export function saveQueue(userId, queue) {
-    localStorage.setItem(queueKey(userId), JSON.stringify(queue));
+export async function saveQueue(userId, queue) {
+    await offlineCache.setQueueState(queueKey(userId), queue);
 }
 
 /**
  * Clear the offline queue (called on sign-out to prevent cross-user leakage).
  * @param {string} userId
  */
-export function clearQueue(userId) {
-    localStorage.removeItem(queueKey(userId));
+export async function clearQueue(userId) {
+    await offlineCache.removeQueueState(queueKey(userId));
 }
 
 /**

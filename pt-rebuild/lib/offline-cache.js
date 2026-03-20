@@ -1,7 +1,7 @@
 // lib/offline-cache.js — shared IndexedDB cache helpers and storage adapters for offline-capable Next.js routes
 
 const DB_NAME = 'pt_rebuild_offline';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 class OfflineCache {
   constructor() {
@@ -36,6 +36,10 @@ class OfflineCache {
 
         if (!db.objectStoreNames.contains('programs')) {
           db.createObjectStore('programs', { keyPath: 'id' });
+        }
+
+        if (!db.objectStoreNames.contains('exercises')) {
+          db.createObjectStore('exercises', { keyPath: 'id' });
         }
 
         if (!db.objectStoreNames.contains('activity_logs')) {
@@ -140,6 +144,14 @@ class OfflineCache {
     return this.getAll('programs');
   }
 
+  cacheExercises(exercises) {
+    return this.replaceAll('exercises', exercises ?? []);
+  }
+
+  getCachedExercises() {
+    return this.getAll('exercises');
+  }
+
   cacheLogs(logs) {
     return this.replaceAll('activity_logs', logs ?? []);
   }
@@ -156,6 +168,26 @@ class OfflineCache {
   /** Retrieve cached roles API response, or null if not yet cached. */
   getCachedRolesData() {
     return this.getUiState('rehab_roles_data', null);
+  }
+
+  /** Cache editor vocabularies for /program offline bootstrap. */
+  cacheProgramVocabularies(data) {
+    return this.setUiState('program_vocabularies', data ?? {});
+  }
+
+  /** Retrieve cached editor vocabularies, or {} if not yet cached. */
+  getCachedProgramVocabularies() {
+    return this.getUiState('program_vocabularies', {});
+  }
+
+  /** Cache reference-data lists used by /program selector fields. */
+  cacheProgramReferenceData(data) {
+    return this.setUiState('program_reference_data', data ?? { equipment: [], muscles: [], formParameters: [] });
+  }
+
+  /** Retrieve cached /program reference data, or empty lists if not yet cached. */
+  getCachedProgramReferenceData() {
+    return this.getUiState('program_reference_data', { equipment: [], muscles: [], formParameters: [] });
   }
 
   async setAuthState(key, value) {
