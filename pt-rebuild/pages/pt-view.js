@@ -22,9 +22,10 @@ import NativeSelect from '../components/NativeSelect';
 import {
     fetchLogs, fetchPrograms,
     groupLogsByDate, findNeedsAttention, needsAttentionUrgency,
-    computeSummaryStats, detectKeywords, applyFilters,
+    computeSummaryStats, detectKeywords, applyFilters, resolvePtViewUsers,
 } from '../lib/pt-view';
 import { fetchUsers, patchEmailNotifications } from '../lib/users';
+import { offlineCache } from '../lib/offline-cache';
 import styles from './pt-view.module.css';
 
 // ── Local sub-components ────────────────────────────────────────────────────
@@ -128,76 +129,111 @@ export default function PtViewPage() {
     const [emailEnabled, setEmailEnabled] = useState(true);
     const [userRole, setUserRole] = useState('patient');
     const [dataError, setDataError] = useState(null);
-    // DB user id (users table `id`) — needed because messages use DB ids, not Supabase auth ids
-    const [currentDbId, setCurrentDbId] = useState(null);
+    const [offlineNotice, setOfflineNotice] = useState(null);
 
-    // Messages via hook — viewerId is DB user id (set after data loads, null until then)
-    const msgs = useMessages(session?.access_token ?? null, currentDbId);
+    // Messages compare against sender_id / recipient_id, which use auth_id values.
+    const msgs = useMessages(session?.access_token ?? null, session?.user?.id ?? null);
 
     // UI state
     const [filters, setFilters] = useState({ exercise: '', dateFrom: '', dateTo: '', query: '' });
     const [expandedSessions, setExpandedSessions] = useState(new Set());
-    const [notesCollapsed, setNotesCollapsed] = useState(
-        // typeof window guard: localStorage is not available during Next.js SSR
-        () => typeof window !== 'undefined' && localStorage.getItem('notesCollapsed') === 'true'
-    );
-    const [filtersExpanded, setFiltersExpanded] = useState(
-        () => typeof window !== 'undefined' && localStorage.getItem('filtersExpanded') === 'true'
-    );
-    const [dismissedNotes, setDismissedNotes] = useState(
-        () => typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('dismissedNotes') ?? '[]') : []
-    );
+    const [notesCollapsed, setNotesCollapsed] = useState(false);
+    const [filtersExpanded, setFiltersExpanded] = useState(false);
+    const [dismissedNotes, setDismissedNotes] = useState([]);
 
     // Modal state
     const [messagesOpen, setMessagesOpen] = useState(false);
     const [historyTarget, setHistoryTarget] = useState(null); // { name, logs }
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadUiState() {
+            try {
+                await offlineCache.init();
+                const [nextNotesCollapsed, nextFiltersExpanded, nextDismissedNotes] = await Promise.all([
+                    offlineCache.getUiState('pt_view_notes_collapsed', false),
+                    offlineCache.getUiState('pt_view_filters_expanded', false),
+                    offlineCache.getUiState('pt_view_dismissed_notes', []),
+                ]);
+                if (cancelled) return;
+                setNotesCollapsed(Boolean(nextNotesCollapsed));
+                setFiltersExpanded(Boolean(nextFiltersExpanded));
+                setDismissedNotes(Array.isArray(nextDismissedNotes) ? nextDismissedNotes : []);
+            } catch {
+                // Keep default UI state if IndexedDB is unavailable.
+            }
+        }
+
+        loadUiState();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     // Load all data after sign-in
     useEffect(() => {
         if (!session) return;
         const token = session.access_token;
 
+        async function applyBootstrap(usersData, logsArr, programsArr, notice = null) {
+            const { currentUser, patientUser, fallbackRecipientId } = resolvePtViewUsers(usersData, session.user.id);
+            const pid = patientUser.id;
+
+            setPatientId(pid);
+            setUserRole(currentUser?.role ?? 'patient');
+            setEmailEnabled(currentUser?.email_notifications_enabled ?? true);
+            setRecipientId(fallbackRecipientId);
+            setLogs(logsArr ?? []);
+            setPrograms((programsArr ?? []).filter((program) => !program.exercises?.archived));
+            setOfflineNotice(notice);
+            setDataError(null);
+        }
+
+        async function loadFromCache(fallbackMessage) {
+            await offlineCache.init();
+            const [usersData, logsArr, programsArr] = await Promise.all([
+                offlineCache.getCachedUsers(),
+                offlineCache.getCachedLogs(),
+                offlineCache.getCachedPrograms(),
+            ]);
+
+            if (!usersData.length) {
+                throw new Error('No cached pt-view data available offline.');
+            }
+
+            await applyBootstrap(usersData, logsArr, programsArr, fallbackMessage);
+        }
+
         async function load() {
             try {
-                const [usersData] = await Promise.all([
-                    fetchUsers(token),
-                    // We need patientId first — fetch users then logs
-                ]);
-                const currentUser = usersData.find(u => u.auth_id === session.user.id);
-                if (!currentUser) throw new Error('Current user profile not found');
+                await offlineCache.init();
+                const usersData = await fetchUsers(token);
+                await offlineCache.cacheUsers(usersData);
 
-                let patientUser = null;
-                let fallbackRecipientId = null;
-
-                if (currentUser.role === 'therapist') {
-                    const patients = usersData.filter(u => u.therapist_id === currentUser.id);
-                    patientUser = patients[0] ?? null;
-                    fallbackRecipientId = patientUser?.id ?? null;
-                } else {
-                    patientUser = currentUser;
-                    fallbackRecipientId = currentUser.therapist_id ?? null;
-                }
-
-                if (!patientUser) throw new Error('No patient found');
-
+                const { patientUser } = resolvePtViewUsers(usersData, session.user.id);
                 const pid = patientUser.id;
-                setPatientId(pid);
-                setCurrentDbId(currentUser?.id ?? null); // DB user id for message sender comparisons
-                setUserRole(currentUser?.role ?? 'patient');
-                setEmailEnabled(currentUser?.email_notifications_enabled ?? true);
-
-                // Fallback recipient for first outbound message (before a thread exists).
-                setRecipientId(fallbackRecipientId);
-
                 const [logsArr, programsArr] = await Promise.all([
                     fetchLogs(token, pid),
                     fetchPrograms(token, pid),
                 ]);
-                setLogs(logsArr);
-                setPrograms(programsArr.filter(p => !p.exercises?.archived));
+
+                await Promise.all([
+                    offlineCache.cacheLogs(logsArr),
+                    offlineCache.cachePrograms(programsArr),
+                ]);
+
+                await applyBootstrap(usersData, logsArr, programsArr, null);
             } catch (err) {
                 console.error('pt-view load:', err);
-                setDataError(err.message);
+                try {
+                    await loadFromCache('Offline - showing cached data.');
+                } catch (cacheError) {
+                    console.error('pt-view cache fallback:', cacheError);
+                    setOfflineNotice(null);
+                    setDataError(err.message);
+                }
             }
         }
         load();
@@ -232,19 +268,19 @@ export default function PtViewPage() {
     function dismissNote(logId) {
         const next = [...dismissedNotes, logId];
         setDismissedNotes(next);
-        localStorage.setItem('dismissedNotes', JSON.stringify(next));
+        void offlineCache.setUiState('pt_view_dismissed_notes', next);
     }
 
     function toggleNotesCollapsed() {
         const next = !notesCollapsed;
         setNotesCollapsed(next);
-        localStorage.setItem('notesCollapsed', String(next));
+        void offlineCache.setUiState('pt_view_notes_collapsed', next);
     }
 
     function toggleFilters() {
         const next = !filtersExpanded;
         setFiltersExpanded(next);
-        localStorage.setItem('filtersExpanded', String(next));
+        void offlineCache.setUiState('pt_view_filters_expanded', next);
     }
 
     function toggleSession(id) {
@@ -316,6 +352,9 @@ export default function PtViewPage() {
             {dataError && (
                 <p style={{ color: 'red', padding: '1rem' }}>Error loading data: {dataError}</p>
             )}
+            {offlineNotice && (
+                <p className={styles['offline-notice']}>{offlineNotice}</p>
+            )}
 
             <PatientNotes
                 notes={processedNotes}
@@ -347,11 +386,13 @@ export default function PtViewPage() {
                 isOpen={messagesOpen}
                 onClose={() => setMessagesOpen(false)}
                 messages={msgs.messages}
-                viewerId={currentDbId}
+                viewerId={session?.user?.id ?? null}
                 recipientId={recipientId}
                 emailEnabled={emailEnabled}
                 onSend={msgs.send}
                 onArchive={msgs.archive}
+                onUnarchive={msgs.unarchive}
+                onRemove={msgs.remove}
                 onMarkRead={msgs.markRead}
                 onEmailToggle={handleEmailToggle}
                 onOpened={msgs.markModalOpened}

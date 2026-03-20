@@ -7,8 +7,12 @@
  * - API calls: network-only (no caching, offline.js manages IndexedDB)
  */
 
-const CACHE_NAME = 'pt-tracker-v11';
+const CACHE_NAME = 'pt-tracker-v12';
 const STATIC_ASSETS = [
+  '/',
+  '/program',
+  '/pt-view',
+  '/rehab',
   '/index.html',
   '/pt_editor.html',
   '/pt_view.html',
@@ -21,8 +25,28 @@ const STATIC_ASSETS = [
   '/css/main.css',
   '/css/hamburger-menu.css',
   '/icons/icon.svg',
-  '/manifest.json'
+  '/manifest.json',
+  '/manifest-tracker.json'
 ];
+
+function normalizePathname(pathname) {
+  if (!pathname || pathname === '/') return '/';
+  return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+}
+
+function getNavigationFallback(pathname) {
+  const normalized = normalizePathname(pathname);
+
+  if (normalized === '/' || normalized === '/program' || normalized === '/pt-view' || normalized === '/rehab') {
+    return normalized;
+  }
+
+  if (normalized === '/index.html' || normalized === '/pt_editor.html' || normalized === '/pt_view.html' || normalized === '/rehab_coverage.html') {
+    return normalized;
+  }
+
+  return '/';
+}
 
 /**
  * Install - pre-cache static assets for offline use
@@ -92,11 +116,12 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) {
             return cachedResponse;
           }
-          // No cache available for this URL — for navigation, try /index.html
-          // as a fallback (browsers navigate to / but pre-cache stores /index.html)
+          // No cache available for this URL — use a route-aware navigation fallback
+          // so migrated Next.js routes do not drop into the legacy /index.html shell.
           if (request.mode === 'navigate') {
-            return caches.match('/index.html').then((indexResponse) => {
-              return indexResponse || new Response('Offline - no cached version available', {
+            const fallbackPath = getNavigationFallback(url.pathname);
+            return caches.match(fallbackPath).then((fallbackResponse) => {
+              return fallbackResponse || new Response('Offline - no cached version available', {
                 status: 503,
                 headers: { 'Content-Type': 'text/plain' }
               });

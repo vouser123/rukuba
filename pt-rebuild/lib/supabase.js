@@ -8,8 +8,14 @@
  * SUPABASE_URL and SUPABASE_ANON_KEY by next.config.mjs — no extra Vercel vars needed.
  */
 import { createClient } from '@supabase/supabase-js';
+import { authStorage } from './offline-cache';
 
 export const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+        auth: {
+            storage: authStorage,
+        },
+    }
 );

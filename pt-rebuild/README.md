@@ -55,7 +55,7 @@ Important sub-areas:
 - [`public/manifest.json`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/manifest.json) remains the shared legacy/static-site manifest, while [`public/manifest-tracker.json`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/manifest-tracker.json) is the dedicated manifest for the Next.js tracker route at `/`.
 - [`public/js/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/js) and [`public/shared/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/shared) hold legacy browser-side logic that still matters until each page is fully retired.
 - [`api/logs.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api/logs.js), [`api/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api/users.js), [`api/roles.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api/roles.js), [`api/reference-data.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api/reference-data.js), and the `api/exercises/` and `api/programs/` folders are the existing server-side surface.
-- [`styles/globals.css`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/styles/globals.css) is loaded by [`pages/_app.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/_app.js) and provides app-wide styling variables and resets for Next.js pages.
+- [`styles/globals.css`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/styles/globals.css) is loaded by [`pages/_app.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/_app.js), which also owns shared service-worker registration for the Next.js routes.
 
 ## Shared Components
 
@@ -130,7 +130,8 @@ Known follow-up:
 
 Use these `lib/` files from Next.js pages and hooks when you need shared logic. These are the current Next.js-layer utility files.
 
-- [`lib/supabase.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/supabase.js): Shared Supabase client for the Next.js app. Import `supabase` from here; do not create a new client elsewhere in Next.js pages/hooks.
+- [`lib/supabase.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/supabase.js): Shared Supabase client for the Next.js app. Import `supabase` from here; do not create a new client elsewhere in Next.js pages/hooks. Auth persistence uses the shared IndexedDB-backed storage adapter from `lib/offline-cache.js`.
+- [`lib/offline-cache.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/offline-cache.js): Shared IndexedDB cache and storage adapter for offline-capable Next.js routes. Use it for cached route bootstrap data, lightweight offline UI state, and Supabase auth storage instead of `localStorage`.
 - [`lib/text-format.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/text-format.js): Pure string-formatting helpers for typed values and labels. Commonly paired with `NativeSelect`.
 - [`lib/date-utils.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/date-utils.js): Shared calendar-day date helpers. Use it when recency, `Done today`, or overdue timing must follow local-midnight semantics instead of rolling 24-hour math.
 - [`lib/rehab-coverage.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/rehab-coverage.js): Pure coverage calculations and constants for the rehab page. Use it for data shaping, not UI rendering.
