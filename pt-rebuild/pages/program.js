@@ -268,6 +268,7 @@ export default function ProgramPage() {
   const roleExerciseOptions = session
     ? exercises.filter((ex) => {
       if (ex.lifecycle?.status === 'deprecated') return false;
+      if (ex.archived && ex.id !== roleExerciseId) return false;
       if (roleSearch && !ex.canonical_name.toLowerCase().includes(roleSearch.toLowerCase())) return false;
       return true;
     })
@@ -275,6 +276,7 @@ export default function ProgramPage() {
   const dosageExerciseOptions = session
     ? exercises.filter((ex) => {
       if (ex.lifecycle?.status === 'deprecated') return false;
+      if (ex.archived && ex.id !== dosageExerciseId) return false;
       if (dosageSearch && !ex.canonical_name.toLowerCase().includes(dosageSearch.toLowerCase())) return false;
       return true;
     })
