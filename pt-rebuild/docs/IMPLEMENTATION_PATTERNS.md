@@ -38,9 +38,11 @@ Use this file to answer "which shared thing should I use?" and "what should I av
 
 - Use [`lib/supabase.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/supabase.js) for the shared Next.js Supabase client.
 - Use [`hooks/useAuth.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useAuth.js) for page-level auth/session flow.
-- Use [`lib/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/users.js) for shared user lookup and email-notification preference helpers.
+- Use [`lib/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/users.js) for shared user lookup, email-notification preference helpers, and patient-context resolution.
+- For patient-scoped routes such as `/pt-view` and `/program` dosage, resolve the effective patient with `resolvePatientScopedUserContext(users, session.user.id)` before calling APIs that store `users.id`.
 - Do not create new frontend Supabase clients in pages, components, or hooks.
 - Do not bypass the shared auth flow with page-local token/session logic.
+- Do not pass `session.user.id` directly into patient-program or patient-log APIs when the backend stores `users.id`; resolve the app user row first.
 
 ## Toasts, Messages, And Shared Feedback
 

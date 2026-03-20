@@ -50,6 +50,10 @@ Keep API route count lean. Prefer shared handlers and existing endpoints over en
 - API routes enforce auth and role checks through the shared auth helpers in `lib/auth.js`.
 - Frontend surfaces should use shared client/auth utilities rather than creating ad hoc Supabase clients.
 - Avoid direct frontend-to-database patterns unless an existing shared architecture doc explicitly says otherwise.
+- The app has two user identifiers that must not be mixed:
+  - `auth.users.id` / `session.user.id`: the auth-session identifier used for sign-in and message sender/recipient auth references
+  - `users.id`: the application profile identifier used for patient-scoped data such as programs and logs
+- Patient-scoped routes must resolve an effective patient context from the `users` table before reading or writing patient data. For current Next.js pages, the shared frontend helper is `resolvePatientScopedUserContext(...)` in `lib/users.js`.
 
 Core domains still in active use:
 

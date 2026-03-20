@@ -326,7 +326,6 @@ async function createProgram(req, res) {
         });
       }
     } else if (req.user.role === 'therapist') {
-      // Therapists can only create programs for their assigned patients
       const patientLookup = patientRecord?.id
         ? { data: patientRecord, error: null }
         : await supabase
@@ -426,7 +425,6 @@ async function updateProgram(req, res, programId) {
         });
       }
     } else if (req.user.role === 'therapist') {
-      // Therapists can only update programs for their assigned patients
       const { data: patient, error: patientError } = await supabase
         .from('users')
         .select('therapist_id')

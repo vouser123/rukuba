@@ -43,6 +43,13 @@
   border-radius: 12px;
 }
 
+.selectorStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
 .sectionTitle {
   margin: 0 0 0.5rem;
   font-size: 1.1rem;
@@ -51,6 +58,16 @@
 .sectionDescription {
   margin: 0 0 1rem;
   color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.patientContextBanner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #eef6ff;
+  border: 1px solid #c9defc;
+  color: #144a86;
   font-size: 0.9rem;
 }
 
@@ -139,35 +156,69 @@
   border: 1px solid #ffe69c;
 }
 
+.queueBanner,
+.queueBannerError {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  border: 1px solid;
+}
+
+.queueBanner {
+  background: #e8f1ff;
+  color: #0b4ea2;
+  border-color: #bfd5ff;
+}
+
+.queueBannerError {
+  background: #fff4e5;
+  color: #8a4b00;
+  border-color: #ffd7a8;
+}
+
+.queueBannerText {
+  margin: 0;
+}
+
+.queueRetryButton {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+}
+
 @media (prefers-color-scheme: dark) {
   .offlineNotice {
     background: #5a4b14;
     color: #f7e7a8;
     border-color: #7a6720;
   }
-}
 
-.toast {
-  position: fixed;
-  top: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  z-index: 1000;
-  background: var(--ios-blue, #007AFF);
-  color: white;
-  white-space: nowrap;
-}
+  .queueBanner {
+    background: #17345c;
+    color: #d9e8ff;
+    border-color: #2d568f;
+  }
 
-.toast.success {
-  background: var(--ios-green, #34C759);
-}
+  .queueBannerError {
+    background: #5d3e18;
+    color: #ffe6c2;
+    border-color: #8d6231;
+  }
 
-.toast.error {
-  background: var(--ios-red, #FF3B30);
+  .patientContextBanner {
+    background: #17345c;
+    color: #d9e8ff;
+    border-color: #2d568f;
+  }
 }
 
 .dosageCard {
@@ -196,4 +247,19 @@
   margin: 0;
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.vocabDetails {
+  background: var(--bg-secondary);
+}
+
+.vocabSummary {
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  list-style: none;
+}
+
+.vocabSummary::-webkit-details-marker {
+  display: none;
 }

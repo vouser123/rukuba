@@ -265,34 +265,6 @@ export function applyFilters(logs, { exercise, dateFrom, dateTo, query }) {
 }
 
 /**
- * Resolve the current user, patient user, and default message recipient for pt-view bootstrap.
- *
- * @param {Array} users
- * @param {string} authUserId
- * @returns {{ currentUser: object, patientUser: object, fallbackRecipientId: string|null }}
- */
-export function resolvePtViewUsers(users, authUserId) {
-    const currentUser = (users ?? []).find((user) => user.auth_id === authUserId);
-    if (!currentUser) throw new Error('Current user profile not found');
-
-    let patientUser = null;
-    let fallbackRecipientId = null;
-
-    if (currentUser.role === 'therapist') {
-        const patients = users.filter((user) => user.therapist_id === currentUser.id);
-        patientUser = patients[0] ?? null;
-        fallbackRecipientId = patientUser?.id ?? null;
-    } else {
-        patientUser = currentUser;
-        fallbackRecipientId = currentUser.therapist_id ?? null;
-    }
-
-    if (!patientUser) throw new Error('No patient found');
-
-    return { currentUser, patientUser, fallbackRecipientId };
-}
-
-/**
  * Count unread received messages using DB read_by_recipient field.
  * Excludes archived messages — those are rolled up visually, not unread.
  * @param {Array} messages - normalized messages with is_archived flag
