@@ -26,10 +26,11 @@ const EMPTY_LIFECYCLE = {
  * @param {Object} referenceData      - { equipment: [], muscles: [], formParameters: [] }
  * @param {Object} vocabularies       - keyed by category
  * @param {string} accessToken
+ * @param {Function} onSubmitExercise - optional custom save handler for offline-aware callers
  * @param {Function} onSaved          - (isNew: boolean) => void — called after successful save
  * @param {Function} onCancel
  */
-export default function ExerciseForm({ exercise, exercises, referenceData, vocabularies, accessToken, onSaved, onCancel }) {
+export default function ExerciseForm({ exercise, exercises, referenceData, vocabularies, accessToken, onSubmitExercise, onSaved, onCancel }) {
   const isNew = !exercise;
 
   const [basics, setBasics] = useState(EMPTY_BASICS);
@@ -111,12 +112,17 @@ export default function ExerciseForm({ exercise, exercises, referenceData, vocab
 
     try {
       let result;
-      if (isNew) {
-        result = await createExercise(accessToken, payload);
+      if (typeof onSubmitExercise === 'function') {
+        result = await onSubmitExercise(isNew, basics.id, payload);
+        onSaved?.(isNew, result?.exerciseId ?? basics.id);
       } else {
-        result = await updateExercise(accessToken, basics.id, payload);
+        if (isNew) {
+          result = await createExercise(accessToken, payload);
+        } else {
+          result = await updateExercise(accessToken, basics.id, payload);
+        }
+        onSaved?.(isNew, result?.exercise?.id ?? basics.id);
       }
-      onSaved(isNew, result?.exercise?.id ?? basics.id);
     } catch (err) {
       setError(err.message);
     } finally {
