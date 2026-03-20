@@ -109,6 +109,7 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 - Keep instructions concise and avoid duplicating detailed architecture from docs.
 - Update `pt-rebuild/README.md` in the same change whenever you create, remove, rename, repurpose, or materially change a file in a way that another agent would need to know to find it, understand what it owns, or wire it in correctly.
+- Update `pt-rebuild/docs/IMPLEMENTATION_PATTERNS.md` in the same change whenever you add, replace, or retire an approved shared helper/component/pattern, or whenever a do-this-not-that implementation rule changes.
 - When a legacy HTML page is replaced, retired, redirected, or re-mapped, update the page mapping in `pt-rebuild/README.md` in the same change.
 - Update `pt-rebuild/README.md` in the same change whenever a behavior change alters how a file should be used, what layer owns a concern, or which file another agent should touch for future work.
 - Do not bypass the README pre-commit guard unless the staged changes leave `pt-rebuild/README.md` fully accurate as written.

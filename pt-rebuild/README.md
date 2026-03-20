@@ -192,6 +192,7 @@ Update this README in the same change when any of these happen:
 - A legacy HTML page is replaced, retired, redirected, or mapped to a different Next.js route
 - Cleanup or refactor work changes which file owns a concern that another agent would need to find
 - Timer/audio/logger wiring changes enough that the ownership notes would become outdated
+- Approved shared-helper or do-this-not-that implementation guidance changes; update [`docs/IMPLEMENTATION_PATTERNS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/IMPLEMENTATION_PATTERNS.md) in the same change
 
 ### How To Write Entries
 
