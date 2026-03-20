@@ -1,6 +1,6 @@
 // program.js — exercise editor page (/program route), Phase 3b: roles editing + patient dosage
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
@@ -11,11 +11,14 @@ import DosageModal from '../components/DosageModal';
 import NativeSelect from '../components/NativeSelect';
 import ProgramRolesSection from '../components/ProgramRolesSection';
 import ProgramVocabEditor from '../components/ProgramVocabEditor';
+import { useProgramMutationActions } from '../hooks/useProgramMutationActions';
+import { useProgramOfflineQueue } from '../hooks/useProgramOfflineQueue';
 import { offlineCache } from '../lib/offline-cache';
+import { emptyReferenceData } from '../lib/program-optimistic';
 import {
-  fetchExercises, fetchVocabularies, fetchReferenceData,
-  fetchPrograms, createProgram, updateProgram, addRole, deleteRole,
-  createVocabularyTerm, updateVocabularyTerm, deleteVocabularyTerm,
+} from '../lib/program-offline';
+import {
+  fetchExercises, fetchVocabularies, fetchReferenceData, fetchPrograms,
 } from '../lib/pt-editor';
 import styles from './program.module.css';
 
@@ -50,7 +53,7 @@ export default function ProgramPage() {
   const { session, loading: authLoading, signIn } = useAuth();
 
   const [exercises, setExercises] = useState([]);
-  const [referenceData, setReferenceData] = useState({ equipment: [], muscles: [], formParameters: [] });
+  const [referenceData, setReferenceData] = useState(emptyReferenceData());
   const [vocabularies, setVocabularies] = useState({});
   // programs keyed by exercise_id for O(1) lookup
   const [programs, setPrograms] = useState({});
@@ -65,6 +68,54 @@ export default function ProgramPage() {
   const [toast, setToast] = useState(null);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [vocabSaving, setVocabSaving] = useState(false);
+
+  const exercisesRef = useRef([]);
+  const referenceDataRef = useRef(emptyReferenceData());
+  const vocabulariesRef = useRef({});
+  const programsRef = useRef({});
+  const activeExerciseRef = useRef(null);
+
+  useEffect(() => {
+    exercisesRef.current = exercises;
+    referenceDataRef.current = referenceData;
+    vocabulariesRef.current = vocabularies;
+    programsRef.current = programs;
+    activeExerciseRef.current = activeExercise;
+  }, [exercises, referenceData, vocabularies, programs, activeExercise]);
+
+  useEffect(() => {
+    if (!activeExercise || activeExercise === 'new') return;
+    const refreshedExercise = exercises.find((exercise) => exercise.id === activeExercise.id);
+    if (refreshedExercise && refreshedExercise !== activeExercise) {
+      setActiveExercise(refreshedExercise);
+    }
+  }, [activeExercise, exercises]);
+
+  const persistProgramSnapshot = useCallback(async (snapshot) => {
+    await offlineCache.init();
+    await Promise.all([
+      offlineCache.cacheExercises(snapshot.exercises),
+      offlineCache.cacheProgramVocabularies(snapshot.vocabularies),
+      offlineCache.cacheProgramReferenceData(snapshot.referenceData),
+      offlineCache.cachePrograms(Object.values(snapshot.programs ?? {})),
+    ]);
+  }, []);
+
+  const commitProgramSnapshot = useCallback((snapshot) => {
+    exercisesRef.current = snapshot.exercises;
+    referenceDataRef.current = snapshot.referenceData;
+    vocabulariesRef.current = snapshot.vocabularies;
+    programsRef.current = snapshot.programs;
+    activeExerciseRef.current = snapshot.activeExercise;
+
+    setExercises(snapshot.exercises);
+    setReferenceData(snapshot.referenceData);
+    setVocabularies(snapshot.vocabularies);
+    setPrograms(snapshot.programs);
+    setActiveExercise(snapshot.activeExercise);
+
+    persistProgramSnapshot(snapshot).catch(() => {});
+  }, [persistProgramSnapshot]);
 
   function applyBootstrap({ exercises: exList, vocabularies: vocab, referenceData: refData, programs: progMap }, notice = null) {
     setExercises(exList);
@@ -144,31 +195,29 @@ export default function ProgramPage() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  async function refreshVocabularies(accessToken) {
-    const nextVocabularies = await fetchVocabularies(accessToken);
-    setVocabularies(nextVocabularies);
-    return nextVocabularies;
-  }
+  const {
+    mutationQueue,
+    queueError,
+    queueLoaded,
+    queueSyncing,
+    enqueueMutation,
+    persistQueue,
+    syncProgramMutations,
+  } = useProgramOfflineQueue({
+    session,
+    loadData,
+    showToast,
+    commitSnapshot: commitProgramSnapshot,
+  });
 
-  /** Called by ExerciseForm after a successful create or update. Re-fetches exercises. */
-  function patchActiveExercise(exerciseId, updater) {
-    setExercises((prev) => prev.map((exercise) => (
-      exercise.id === exerciseId ? updater(exercise) : exercise
-    )));
-    setActiveExercise((prev) => {
-      if (!prev || prev === 'new' || prev.id !== exerciseId) return prev;
-      return updater(prev);
-    });
-  }
-
-  async function handleSaved(wasNew, savedExerciseId) {
-    showToast(wasNew ? 'Exercise created.' : 'Exercise saved.');
-    // Re-fetch to get full normalized data (POST/PUT returns only raw DB row)
-    if (session) {
-      const refreshed = await loadData(session.access_token, session.user.id);
-      const nextExercise = refreshed?.exercises?.find((exercise) => exercise.id === savedExerciseId) ?? null;
-      setActiveExercise(nextExercise);
-    }
+  function getCurrentSnapshot() {
+    return {
+      exercises: exercisesRef.current,
+      referenceData: referenceDataRef.current,
+      vocabularies: vocabulariesRef.current,
+      programs: programsRef.current,
+      activeExercise: activeExerciseRef.current,
+    };
   }
 
   function handleCancel() {
@@ -180,31 +229,6 @@ export default function ProgramPage() {
     setActiveExercise(ex ?? null);
   }
 
-  /**
-   * Save dosage from DosageModal. Creates or updates the program record,
-   * then updates programs state and closes the modal.
-   */
-  async function handleDosageSave(formData) {
-    const { exercise, program } = dosageTarget;
-    try {
-      let updated;
-      if (program?.id) {
-        updated = await updateProgram(session.access_token, program.id, formData);
-      } else {
-        updated = await createProgram(session.access_token, {
-          ...formData,
-          exercise_id: exercise.id,
-          patient_id: session.user.id,
-        });
-      }
-      setPrograms(prev => ({ ...prev, [exercise.id]: updated.program }));
-      setDosageTarget(null);
-      showToast('Dosage saved.');
-    } catch (err) {
-      // Propagate to DosageModal's error display
-      throw err;
-    }
-  }
 
   const filtered = session ? applyFilters(exercises, search, showArchived) : [];
   // Pass null to ExerciseForm for new exercise; pass exercise object for edit
@@ -214,70 +238,67 @@ export default function ProgramPage() {
   const selectedProgram = selectedExercise ? (programs[selectedExercise.id] ?? null) : null;
   const dosageSummary = formatDosageSummary(selectedProgram);
 
+  const {
+    handleSaved,
+    handleDosageSave,
+    handleAddRole: handleAddRoleMutation,
+    handleDeleteRole: handleDeleteRoleMutation,
+    handleAddVocabTerm: handleAddVocabTermMutation,
+    handleUpdateVocabTerm: handleUpdateVocabTermMutation,
+    handleDeleteVocabTerm: handleDeleteVocabTermMutation,
+  } = useProgramMutationActions({
+    session,
+    selectedExercise,
+    dosageTarget,
+    mutationQueue,
+    enqueueMutation,
+    persistQueue,
+    commitSnapshot: commitProgramSnapshot,
+    showToast,
+    getSnapshot: getCurrentSnapshot,
+    setDosageTarget,
+  });
+
   async function handleAddRole(roleData) {
-    if (!session || !selectedExercise?.id) return;
     setRolesLoading(true);
     try {
-      const result = await addRole(session.access_token, {
-        ...roleData,
-        exercise_id: selectedExercise.id,
-      });
-      patchActiveExercise(selectedExercise.id, (exercise) => ({
-        ...exercise,
-        roles: [...(exercise.roles ?? []), result.role],
-      }));
-      showToast('Role added.');
+      await handleAddRoleMutation(roleData);
     } finally {
       setRolesLoading(false);
     }
   }
 
   async function handleDeleteRole(roleId) {
-    if (!session || !selectedExercise?.id || !roleId) return;
     setRolesLoading(true);
     try {
-      await deleteRole(session.access_token, roleId);
-      patchActiveExercise(selectedExercise.id, (exercise) => ({
-        ...exercise,
-        roles: (exercise.roles ?? []).filter((role) => role.id !== roleId),
-      }));
-      showToast('Role removed.');
+      await handleDeleteRoleMutation(roleId);
     } finally {
       setRolesLoading(false);
     }
   }
 
   async function handleAddVocabTerm(payload) {
-    if (!session) return;
     setVocabSaving(true);
     try {
-      await createVocabularyTerm(session.access_token, payload);
-      await refreshVocabularies(session.access_token);
-      showToast('Vocabulary term added.');
+      await handleAddVocabTermMutation(payload);
     } finally {
       setVocabSaving(false);
     }
   }
 
   async function handleUpdateVocabTerm(payload) {
-    if (!session) return;
     setVocabSaving(true);
     try {
-      await updateVocabularyTerm(session.access_token, payload);
-      await refreshVocabularies(session.access_token);
-      showToast('Vocabulary term updated.');
+      await handleUpdateVocabTermMutation(payload);
     } finally {
       setVocabSaving(false);
     }
   }
 
   async function handleDeleteVocabTerm(payload) {
-    if (!session) return;
     setVocabSaving(true);
     try {
-      await deleteVocabularyTerm(session.access_token, payload);
-      await refreshVocabularies(session.access_token);
-      showToast('Vocabulary term deleted.');
+      await handleDeleteVocabTermMutation(payload);
     } finally {
       setVocabSaving(false);
     }
@@ -318,6 +339,22 @@ export default function ProgramPage() {
       <main className={styles.main}>
         {loadError && <p className={styles.errorBanner}>{loadError}</p>}
         {offlineNotice && <p className={styles.offlineNotice}>{offlineNotice}</p>}
+        {queueLoaded && mutationQueue.length > 0 && (
+          <div className={queueError ? styles.queueBannerError : styles.queueBanner}>
+            <p className={styles.queueBannerText}>
+              {queueError
+                ? `${mutationQueue.length} program change${mutationQueue.length === 1 ? '' : 's'} waiting to sync. ${queueError}`
+                : queueSyncing
+                  ? `Syncing ${mutationQueue.length} pending program change${mutationQueue.length === 1 ? '' : 's'}…`
+                  : `${mutationQueue.length} program change${mutationQueue.length === 1 ? '' : 's'} queued for sync.`}
+            </p>
+            {!queueSyncing && (
+              <button type="button" className={styles.queueRetryButton} onPointerUp={() => syncProgramMutations()}>
+                Retry sync
+              </button>
+            )}
+          </div>
+        )}
         {toast && (
           <div className={`${styles.toast} ${styles[toast.type]}`}>
             {toast.message}
@@ -370,7 +407,7 @@ export default function ProgramPage() {
             referenceData={referenceData}
             vocabularies={vocabularies}
             accessToken={session?.access_token}
-            onSaved={handleSaved}
+            onSubmitExercise={handleSaved}
             onCancel={handleCancel}
           />
         )}
