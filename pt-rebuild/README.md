@@ -1,32 +1,24 @@
 # PT Rebuild
 
-## What This Is
+## Repo Shape
 
-PT Rebuild is the physical therapy session logging app for `pttracker.app`. It supports two active users in practice: an admin/patient user and a therapist user. The app is deployed on Vercel and uses Supabase for auth and data.
+PT Rebuild is the physical therapy session logging app for `pttracker.app`. It is deployed on Vercel and uses Supabase for auth and data.
 
-## Two Structures in This Folder
+This folder contains two active code surfaces that agents must distinguish before editing:
 
-This folder currently contains two active application structures:
+- Legacy surface: [`public/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public) and [`api/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api). Some HTML pages in `public/` still define live or parity-relevant behavior.
+- Next.js surface: [`pages/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages), [`components/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components), [`hooks/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks), and the Next.js-layer files in [`lib/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib).
 
-- The legacy vanilla JavaScript app lives in [`public/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public) and [`api/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api). The HTML pages in `public/` still exist and some remain live.
-- The in-progress Next.js migration lives in [`pages/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages), [`components/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components), [`hooks/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks), and the Next.js-layer files in [`lib/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib).
+Use [`docs/NEXTJS_MIGRATION.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION.md) only for migration-status context. Use this README for the current file-ownership map.
 
-The migration is incremental. Old HTML pages are retired one at a time after the Next.js replacement is checked and accepted. The working migration branch is `nextjs`. For migration status, see [`docs/NEXTJS_MIGRATION.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION.md).
+## Current Route And Legacy Surface Map
 
 Current visible page mapping:
 
-- [`pages/index.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/index.js) is the Phase 4 tracker page and is the Next.js replacement path for `public/index.html` on cutover.
+- [`pages/index.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/index.js) is the Next.js tracker route. Legacy parity baseline: [`public/index.html`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/index.html).
 - [`pages/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/pt-view.js) replaces `public/pt_view.html`.
 - [`pages/rehab.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/rehab.js) replaces `public/rehab_coverage.html`.
 - [`pages/program.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/program.js) is the exercise editor route; the legacy editor page is `public/pt_editor.html`.
-
-## Running Locally
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
 
 ## Folder Structure
 
@@ -49,13 +41,11 @@ pt-rebuild/
 |- scripts/      Local project scripts
 ```
 
-Important sub-areas:
+Pointers:
 
-- [`public/index.html`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/index.html), [`public/pt_view.html`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/pt_view.html), [`public/pt_editor.html`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/pt_editor.html), and [`public/rehab_coverage.html`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/rehab_coverage.html) are the legacy page baselines used for migration parity checks.
-- [`public/manifest.json`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/manifest.json) remains the shared legacy/static-site manifest, while [`public/manifest-tracker.json`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/manifest-tracker.json) is the dedicated manifest for the Next.js tracker route at `/`.
-- [`public/js/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/js) and [`public/shared/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/shared) hold legacy browser-side logic that still matters until each page is fully retired.
-- [`api/logs.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api/logs.js), [`api/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api/users.js), [`api/roles.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api/roles.js), [`api/reference-data.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api/reference-data.js), and the `api/exercises/` and `api/programs/` folders are the existing server-side surface.
-- [`styles/globals.css`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/styles/globals.css) is loaded by [`pages/_app.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/_app.js), which also owns shared service-worker registration for the Next.js routes.
+- For route-to-legacy ownership, see `Current Route And Legacy Surface Map` above.
+- For shared Next.js file ownership, see `Shared Components`, `Tracker Execution Stack`, `Shared Utilities`, and `Shared Hooks` below.
+- For canonical operating rules, see [`AGENTS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/AGENTS.md).
 
 ## Shared Components
 
@@ -84,20 +74,31 @@ Use these from `components/` when building or wiring Next.js pages. Prefer exist
 - [`components/ExerciseFormCore.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/ExerciseFormCore.js), [`components/ExerciseFormCues.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/ExerciseFormCues.js), and [`components/ExerciseFormLifecycle.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/ExerciseFormLifecycle.js): Split sections of the exercise editor form. These support `ExerciseForm`; the form now owns exercise details, guidance, and lifecycle, while `/program` handles roles, dosage, and vocabulary management as separate workspace sections.
 - [`components/CoverageSummary.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/CoverageSummary.js), [`components/CoverageMatrix.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/CoverageMatrix.js), [`components/CoverageCapacity.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/CoverageCapacity.js), and [`components/CoverageExerciseCard.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/CoverageExerciseCard.js): Shared rehab coverage page renderers. Use them for the rehab page rather than embedding matrix logic in the page file.
 
-### Timer And Sound Wiring
+For tracker-specific timer/audio ownership boundaries, see `Tracker Execution Stack` below.
 
-This is the current tracker execution stack for timer, audio, and speech behavior:
+## Tracker Execution Stack
+
+Use this section when working on tracker execution behavior, timer flow, cue wiring, or Pocket Mode. Keep specialized tracker behavior here rather than scattering it across the generic shared-file sections.
+
+### UI Surfaces
 
 - [`components/TimerPanel.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/TimerPanel.js): Renders the timer/counter UI and dispatches user intents such as side selection, start/pause, reset, and apply/open-manual actions.
 - [`components/PocketModeOverlay.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/PocketModeOverlay.js): Renders the pocket-mode interaction layer and forwards tap/long-press intents.
+- [`components/NextSetConfirmModal.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/NextSetConfirmModal.js): Confirmation step for app-recorded next-set logging after the execution stack has built a set patch.
+
+### Hook Integration Layer
+
 - [`hooks/useTimerSpeech.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerSpeech.js): The panel-facing execution hook. It combines exercise metadata, selected-side state, timer state, set-patch shaping, and cue dispatch for `TimerPanel`.
 - [`hooks/useExerciseTimer.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useExerciseTimer.js): Thin timer adapter around the machine. It owns the running interval and dispatches timer events into the machine.
 - [`hooks/useTimerAudio.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerAudio.js): Executes emitted effects such as beeps, countdown warnings, speech, and queue clearing. Use it for side effects, not business rules.
 - [`hooks/useLoggerFeedback.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useLoggerFeedback.js): Tracker feedback hook for session-complete speech, exact save-success copy, and delayed comparison speech. Use it for tracker-wide feedback timing and spoken completion behavior that sits above the timer machine.
+
+### Pure Rule And Helper Layer
+
 - [`lib/logger-timer-machine.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/logger-timer-machine.js): Pure timer/cue transition core. This is the rule layer for state transitions and emitted effects.
 - [`lib/timer-panel.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/timer-panel.js): Pure helpers for exercise mode detection, target values, display formatting, rep labels, and set-patch construction.
 
-If Claude is wiring the tracker page:
+### Ownership Boundaries
 
 - `pages/index.js` owns the page flow and hands the selected exercise into `TimerPanel`.
 - `TimerPanel` should stay UI-thin and call the hook API rather than hard-coding cue rules.
@@ -106,7 +107,7 @@ If Claude is wiring the tracker page:
 - `useLoggerFeedback` owns tracker-wide completion/save/comparison feedback above the timer stack.
 - `logger-timer-machine.js` is the place for transition and cue logic, not the UI.
 
-Current cue rules that matter for tracker work:
+### Current Cue Rules
 
 - Rep counter uses a soft tick on every tap.
 - Standard rep milestone speech is `5 reps left`, `3 reps left`, `Last rep`, then `Set complete`.
@@ -121,10 +122,6 @@ Current cue rules that matter for tracker work:
   - best-set improvement first
   - then total-volume drop
   - then total-volume improvement
-
-Known follow-up:
-
-- Initial sided logger open still needs the spoken `Working left side` / `Working right side` cue. This is tracked in Beads as `pt-ryf.1`.
 
 ## Shared Utilities
 
@@ -144,8 +141,8 @@ Use these `lib/` files from Next.js pages and hooks when you need shared logic. 
 - [`lib/timer-panel.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/timer-panel.js): Pure timer/counter helpers used by the tracker execution stack.
 - [`lib/logger-timer-machine.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/logger-timer-machine.js): Pure timer/cue transition machine used by the current tracker execution stack.
 - [`lib/logger-progress-comparison.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/logger-progress-comparison.js): Pure helpers for delayed progress-comparison speech after set logging.
-- [`lib/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/users.js): Shared API helpers for user data and email notification preferences (`fetchUsers`, `patchEmailNotifications`). Use it on any Next.js page that needs to look up user records or the current user's recipient ID for messaging. Extracted from `lib/pt-view.js` so it can be shared across `pages/index.js` and `pages/pt-view.js`.
-- [`lib/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/pt-view.js): Page-domain helpers and fetch logic for the history dashboard. User/email helpers have moved to `lib/users.js`.
+- [`lib/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/users.js): Shared API helpers for user data and email notification preferences (`fetchUsers`, `patchEmailNotifications`). Use it on any Next.js page that needs user records or the current user's recipient ID for messaging.
+- [`lib/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/pt-view.js): Page-domain helpers and fetch logic for the history dashboard. Use [`lib/users.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/users.js) for user/email helpers shared with other routes.
 - [`lib/pt-editor.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/pt-editor.js): Page-domain fetch and mutation helpers for the exercise editor, including controlled-vocab CRUD wrappers used by `/program`. `/program` now owns the network-or-cache bootstrap flow and uses `offlineCache` for read fallback rather than embedding cache logic here.
 - [`lib/vocab-options.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/vocab-options.js): Shared helper for turning vocabulary rows into `NativeSelect` option objects with consistent labels. Use it for vocab-backed editor controls instead of repeating mapping logic in components.
 
@@ -172,14 +169,16 @@ Use these from `hooks/` to keep page files thin and consistent with the current 
 - [`hooks/useToast.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useToast.js): Floating toast state hook. Use it with `Toast` component for transient feedback. Provides `showToast(message, type, duration)` and props for `<Toast />`.
 - [`hooks/useMessages.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useMessages.js): Shared messaging hook used by migrated pages that open the messages modal.
 
-## Key Docs
+For timer execution hook boundaries, see `Tracker Execution Stack` above.
 
-- [`docs/NEXTJS_MIGRATION.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION.md): Migration status, decisions, and phase context.
-- [`docs/NEXTJS_STRUCTURE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_STRUCTURE.md): Authoring rules for file structure, split decisions, and size guidance.
+## Canonical Docs
+
 - [`AGENTS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/AGENTS.md): Workflow and operating rules for agents in `pt-rebuild`.
+- [`docs/NEXTJS_STRUCTURE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_STRUCTURE.md): Authoring rules for file structure, split decisions, and size guidance.
+- [`docs/NEXTJS_MIGRATION.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION.md): Migration-status context and broader rollout history. Do not treat it as the primary file-ownership map.
 - [`docs/BEADS_TEMPLATE.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/BEADS_TEMPLATE.md): Required Beads issue template.
 
-## Maintaining This Document
+## README Maintenance Rules
 
 Update this README in the same change when any of these happen:
 
@@ -188,7 +187,7 @@ Update this README in the same change when any of these happen:
 - Cleanup or refactor work changes which file owns a concern that another agent would need to find
 - Timer/audio/logger wiring changes enough that the ownership notes would become outdated
 
-How to update it:
+### How To Write Entries
 
 - Keep it factual. Document what exists now, not planned future structure.
 - Update the relevant section entry instead of leaving stale file names behind.
@@ -196,7 +195,7 @@ How to update it:
 - Keep legacy API-layer files clearly separated from Next.js shared utilities.
 - If the architecture changes substantially and this file would be overwritten rather than edited, create a backup first.
 
-Recommended entry template for shared files:
+### Shared-File Entry Template
 
 ```md
 ### `path/to/file.js`
@@ -215,7 +214,7 @@ Minimum bar for an entry:
 - when to use it
 - where not to put adjacent logic if that boundary is important
 
-## Deployment
+## Deployment References
 
 - Vercel project: `pt-rehab`
 - Production: [https://pttracker.app](https://pttracker.app)
