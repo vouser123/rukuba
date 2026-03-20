@@ -22,9 +22,9 @@ import NativeSelect from '../components/NativeSelect';
 import {
     fetchLogs, fetchPrograms,
     groupLogsByDate, findNeedsAttention, needsAttentionUrgency,
-    computeSummaryStats, detectKeywords, applyFilters, resolvePtViewUsers,
+    computeSummaryStats, detectKeywords, applyFilters,
 } from '../lib/pt-view';
-import { fetchUsers, patchEmailNotifications } from '../lib/users';
+import { fetchUsers, patchEmailNotifications, resolvePatientScopedUserContext } from '../lib/users';
 import { offlineCache } from '../lib/offline-cache';
 import styles from './pt-view.module.css';
 
@@ -181,7 +181,7 @@ export default function PtViewPage() {
         const token = session.access_token;
 
         async function applyBootstrap(usersData, logsArr, programsArr, notice = null) {
-            const { currentUser, patientUser, fallbackRecipientId } = resolvePtViewUsers(usersData, session.user.id);
+            const { currentUser, patientUser, fallbackRecipientId } = resolvePatientScopedUserContext(usersData, session.user.id);
             const pid = patientUser.id;
 
             setPatientId(pid);
@@ -215,7 +215,7 @@ export default function PtViewPage() {
                 const usersData = await fetchUsers(token);
                 await offlineCache.cacheUsers(usersData);
 
-                const { patientUser } = resolvePtViewUsers(usersData, session.user.id);
+                const { patientUser } = resolvePatientScopedUserContext(usersData, session.user.id);
                 const pid = patientUser.id;
                 const [logsArr, programsArr] = await Promise.all([
                     fetchLogs(token, pid),

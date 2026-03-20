@@ -13,6 +13,7 @@ import {
 export function useProgramMutationActions({
   session,
   selectedExercise,
+  programPatientId,
   dosageTarget,
   mutationQueue,
   enqueueMutation,
@@ -48,6 +49,7 @@ export function useProgramMutationActions({
   }, [enqueueMutation, getSnapshot, session?.user?.id]);
 
   const handleDosageSave = useCallback(async (formData) => {
+    if (!programPatientId) return;
     const { exercise, program } = dosageTarget;
     const previousSnapshot = getSnapshot();
 
@@ -55,7 +57,7 @@ export function useProgramMutationActions({
       createProgramMutation('program.upsert', {
         exercise_id: exercise.id,
         programId: program?.id ?? null,
-        payload: { ...formData, exercise_id: exercise.id, patient_id: session.user.id },
+        payload: { ...formData, exercise_id: exercise.id, patient_id: programPatientId },
       }),
       {
         ...previousSnapshot,
@@ -65,7 +67,7 @@ export function useProgramMutationActions({
             ...(program ?? {}),
             id: program?.id ?? `${LOCAL_PROGRAM_ID_PREFIX}${exercise.id}`,
             exercise_id: exercise.id,
-            patient_id: session.user.id,
+            patient_id: programPatientId,
             dosage_type: inferDosageType(formData, exercise),
             ...formData,
           },
@@ -76,7 +78,7 @@ export function useProgramMutationActions({
     );
 
     setDosageTarget(null);
-  }, [dosageTarget, enqueueMutation, getSnapshot, session?.user?.id, setDosageTarget]);
+  }, [dosageTarget, enqueueMutation, getSnapshot, programPatientId, setDosageTarget]);
 
   const handleAddRole = useCallback(async (roleData) => {
     if (!session || !selectedExercise?.id) return;

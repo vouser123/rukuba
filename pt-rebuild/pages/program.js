@@ -11,15 +11,16 @@ import DosageModal from '../components/DosageModal';
 import NativeSelect from '../components/NativeSelect';
 import ProgramRolesSection from '../components/ProgramRolesSection';
 import ProgramVocabEditor from '../components/ProgramVocabEditor';
+import Toast from '../components/Toast';
 import { useProgramMutationActions } from '../hooks/useProgramMutationActions';
 import { useProgramOfflineQueue } from '../hooks/useProgramOfflineQueue';
+import { useToast } from '../hooks/useToast';
 import { offlineCache } from '../lib/offline-cache';
 import { emptyReferenceData } from '../lib/program-optimistic';
 import {
-} from '../lib/program-offline';
-import {
   fetchExercises, fetchVocabularies, fetchReferenceData, fetchPrograms,
 } from '../lib/pt-editor';
+import { fetchUsers, resolvePatientScopedUserContext } from '../lib/users';
 import styles from './program.module.css';
 
 /**
@@ -69,9 +70,16 @@ export default function ProgramPage() {
   const [dosageTarget, setDosageTarget] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [offlineNotice, setOfflineNotice] = useState(null);
-  const [toast, setToast] = useState(null);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [vocabSaving, setVocabSaving] = useState(false);
+  const [programPatientId, setProgramPatientId] = useState(null);
+  const [programPatientName, setProgramPatientName] = useState('');
+  const {
+    showToast,
+    toastMessage,
+    toastType,
+    toastVisible,
+  } = useToast();
 
   const exercisesRef = useRef([]);
   const referenceDataRef = useRef(emptyReferenceData());
@@ -121,24 +129,37 @@ export default function ProgramPage() {
     persistProgramSnapshot(snapshot).catch(() => {});
   }, [persistProgramSnapshot]);
 
-  function applyBootstrap({ exercises: exList, vocabularies: vocab, referenceData: refData, programs: progMap }, notice = null) {
+  function applyBootstrap({
+    exercises: exList,
+    vocabularies: vocab,
+    referenceData: refData,
+    programs: progMap,
+    programPatientId: nextProgramPatientId,
+    programPatientName: nextProgramPatientName,
+  }, notice = null) {
     setExercises(exList);
     setVocabularies(vocab);
     setReferenceData(refData);
     setPrograms(progMap);
+    setProgramPatientId(nextProgramPatientId);
+    setProgramPatientName(nextProgramPatientName);
     setLoadError(null);
     setOfflineNotice(notice);
   }
 
   /** Load all exercises, vocabularies, reference data, and patient programs. */
-  const loadData = useCallback(async (accessToken, userId) => {
+  const loadData = useCallback(async (accessToken, authUserId) => {
     try {
       await offlineCache.init();
+      const usersData = await fetchUsers(accessToken);
+      await offlineCache.cacheUsers(usersData);
+
+      const { patientUser, patientDisplayName } = resolvePatientScopedUserContext(usersData, authUserId);
       const [exList, vocab, refData, progMap] = await Promise.all([
         fetchExercises(accessToken),
         fetchVocabularies(accessToken),
         fetchReferenceData(accessToken),
-        fetchPrograms(accessToken, userId),
+        fetchPrograms(accessToken, patientUser.id),
       ]);
 
       await Promise.all([
@@ -148,18 +169,27 @@ export default function ProgramPage() {
         offlineCache.cachePrograms(Object.values(progMap ?? {})),
       ]);
 
-      const nextData = { exercises: exList, vocabularies: vocab, referenceData: refData, programs: progMap };
+      const nextData = {
+        exercises: exList,
+        vocabularies: vocab,
+        referenceData: refData,
+        programs: progMap,
+        programPatientId: patientUser.id,
+        programPatientName: patientDisplayName,
+      };
       applyBootstrap(nextData, null);
       return nextData;
     } catch (err) {
       try {
         await offlineCache.init();
-        const [cachedExercises, cachedVocabularies, cachedReferenceData, cachedPrograms] = await Promise.all([
+        const [cachedUsers, cachedExercises, cachedVocabularies, cachedReferenceData, cachedPrograms] = await Promise.all([
+          offlineCache.getCachedUsers(),
           offlineCache.getCachedExercises(),
           offlineCache.getCachedProgramVocabularies(),
           offlineCache.getCachedProgramReferenceData(),
           offlineCache.getCachedPrograms(),
         ]);
+        const { patientUser, patientDisplayName } = resolvePatientScopedUserContext(cachedUsers, authUserId);
 
         const cachedProgramMap = Object.fromEntries((cachedPrograms ?? []).map((program) => [program.exercise_id, program]));
         const hasCachedBootstrap =
@@ -179,10 +209,14 @@ export default function ProgramPage() {
           vocabularies: cachedVocabularies ?? {},
           referenceData: cachedReferenceData ?? { equipment: [], muscles: [], formParameters: [] },
           programs: cachedProgramMap,
+          programPatientId: patientUser.id,
+          programPatientName: patientDisplayName,
         };
         applyBootstrap(nextData, 'Offline - showing cached editor data.');
         return nextData;
       } catch {
+        setProgramPatientId(null);
+        setProgramPatientName('');
         setOfflineNotice(null);
         setLoadError(err.message);
         return null;
@@ -194,11 +228,6 @@ export default function ProgramPage() {
     if (session) loadData(session.access_token, session.user.id);
   }, [session, loadData]);
 
-  function showToast(message, type = 'success') {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }
-
   const {
     mutationQueue,
     queueError,
@@ -209,6 +238,7 @@ export default function ProgramPage() {
     syncProgramMutations,
   } = useProgramOfflineQueue({
     session,
+    programPatientId,
     loadData,
     showToast,
     commitSnapshot: commitProgramSnapshot,
@@ -267,6 +297,7 @@ export default function ProgramPage() {
   } = useProgramMutationActions({
     session,
     selectedExercise: roleExercise,
+    programPatientId,
     dosageTarget,
     mutationQueue,
     enqueueMutation,
@@ -382,11 +413,7 @@ export default function ProgramPage() {
             )}
           </div>
         )}
-        {toast && (
-          <div className={`${styles.toast} ${styles[toast.type]}`}>
-            {toast.message}
-          </div>
-        )}
+        <Toast message={toastMessage} type={toastType} visible={toastVisible} />
 
         <div className={styles.header}>
           <h1 className={styles.title}>PT Editor</h1>
@@ -478,6 +505,11 @@ export default function ProgramPage() {
           <p className={styles.sectionDescription}>
             <strong>Dosages</strong> are the prescribed sets, reps, and parameters for each exercise.
           </p>
+          {programPatientName && (
+            <p className={styles.patientContextBanner}>
+              Patient context for dosage: <strong>{programPatientName}</strong>
+            </p>
+          )}
           <div className={styles.selectorStack}>
             <input
               className={styles.searchInput}

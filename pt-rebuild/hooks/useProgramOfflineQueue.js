@@ -5,6 +5,7 @@ import { isNetworkError, loadProgramQueue, markProgramMutationFailed, mergeProgr
 
 export function useProgramOfflineQueue({
   session,
+  programPatientId,
   loadData,
   showToast,
   commitSnapshot,
@@ -23,7 +24,7 @@ export function useProgramOfflineQueue({
     }
   }, [session?.user?.id]);
   const syncProgramMutations = useCallback(async () => {
-    if (!session?.access_token || !session?.user?.id || syncInFlightRef.current) return;
+    if (!session?.access_token || !session?.user?.id || !programPatientId || syncInFlightRef.current) return;
     const currentQueue = queueRef.current;
     if (!currentQueue.length) {
       setQueueError(null);
@@ -54,7 +55,7 @@ export function useProgramOfflineQueue({
       syncInFlightRef.current = false;
       setQueueSyncing(false);
     }
-  }, [loadData, persistQueue, session?.access_token, session?.user?.id, showToast]);
+  }, [loadData, persistQueue, programPatientId, session?.access_token, session?.user?.id, showToast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,9 +88,9 @@ export function useProgramOfflineQueue({
     };
   }, [session?.user?.id]);
   useEffect(() => {
-    if (!queueLoaded || !session?.user?.id || mutationQueue.length === 0 || !navigator.onLine) return;
+    if (!queueLoaded || !session?.user?.id || !programPatientId || mutationQueue.length === 0 || !navigator.onLine) return;
     syncProgramMutations();
-  }, [mutationQueue.length, queueLoaded, session?.user?.id, syncProgramMutations]);
+  }, [mutationQueue.length, programPatientId, queueLoaded, session?.user?.id, syncProgramMutations]);
   useEffect(() => {
     if (!session?.user?.id) return undefined;
     function handleOnline() {
@@ -131,7 +132,7 @@ export function useProgramOfflineQueue({
       commitSnapshot(previousSnapshot);
       throw error;
     }
-  }, [commitSnapshot, loadData, persistQueue, session?.access_token, session?.user?.id, showToast, syncProgramMutations]);
+  }, [commitSnapshot, loadData, persistQueue, programPatientId, session?.access_token, session?.user?.id, showToast, syncProgramMutations]);
   return {
     mutationQueue,
     queueError,

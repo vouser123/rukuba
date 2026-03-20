@@ -66,6 +66,11 @@ export function isNetworkError(error) {
   );
 }
 
+function isProgramMissingError(error) {
+  const message = String(error?.message ?? '').toLowerCase();
+  return message.includes('program not found');
+}
+
 export function markProgramMutationFailed(queue, mutationId, message) {
   return (queue ?? []).map((item) => (
     item.id === mutationId
@@ -178,7 +183,13 @@ export async function performProgramMutation(accessToken, mutation) {
       return deleteRole(accessToken, mutation.payload.roleId);
     case 'program.upsert':
       if (mutation.payload.programId && !isLocalProgramId(mutation.payload.programId)) {
-        return updateProgram(accessToken, mutation.payload.programId, mutation.payload.payload);
+        try {
+          return await updateProgram(accessToken, mutation.payload.programId, mutation.payload.payload);
+        } catch (error) {
+          if (!isProgramMissingError(error)) {
+            throw error;
+          }
+        }
       }
       return createProgram(accessToken, mutation.payload.payload);
     case 'vocab.create':
