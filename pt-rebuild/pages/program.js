@@ -59,8 +59,12 @@ export default function ProgramPage() {
   const [programs, setPrograms] = useState({});
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [roleSearch, setRoleSearch] = useState('');
+  const [dosageSearch, setDosageSearch] = useState('');
   // null = no form shown; 'new' = new exercise form; exercise object = edit form
   const [activeExercise, setActiveExercise] = useState(null);
+  const [roleExerciseId, setRoleExerciseId] = useState('');
+  const [dosageExerciseId, setDosageExerciseId] = useState('');
   // null = modal closed; { exercise, program } = modal open
   const [dosageTarget, setDosageTarget] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -231,11 +235,25 @@ export default function ProgramPage() {
 
 
   const filtered = session ? applyFilters(exercises, search, showArchived) : [];
+  const roleExerciseOptions = session
+    ? exercises.filter((ex) => {
+      if (ex.lifecycle?.status === 'deprecated') return false;
+      if (roleSearch && !ex.canonical_name.toLowerCase().includes(roleSearch.toLowerCase())) return false;
+      return true;
+    })
+    : [];
+  const dosageExerciseOptions = session
+    ? exercises.filter((ex) => {
+      if (ex.lifecycle?.status === 'deprecated') return false;
+      if (dosageSearch && !ex.canonical_name.toLowerCase().includes(dosageSearch.toLowerCase())) return false;
+      return true;
+    })
+    : [];
   // Pass null to ExerciseForm for new exercise; pass exercise object for edit
   const formExercise = activeExercise === 'new' ? null : activeExercise;
-  // Show dosage button when a real exercise is selected (not 'new')
-  const selectedExercise = activeExercise !== 'new' ? activeExercise : null;
-  const selectedProgram = selectedExercise ? (programs[selectedExercise.id] ?? null) : null;
+  const roleExercise = exercises.find((exercise) => exercise.id === roleExerciseId) ?? null;
+  const dosageExercise = exercises.find((exercise) => exercise.id === dosageExerciseId) ?? null;
+  const selectedProgram = dosageExercise ? (programs[dosageExercise.id] ?? null) : null;
   const dosageSummary = formatDosageSummary(selectedProgram);
 
   const {
@@ -248,7 +266,7 @@ export default function ProgramPage() {
     handleDeleteVocabTerm: handleDeleteVocabTermMutation,
   } = useProgramMutationActions({
     session,
-    selectedExercise,
+    selectedExercise: roleExercise,
     dosageTarget,
     mutationQueue,
     enqueueMutation,
@@ -258,6 +276,15 @@ export default function ProgramPage() {
     getSnapshot: getCurrentSnapshot,
     setDosageTarget,
   });
+
+  async function handleExerciseSaved(wasNew, savedExerciseId, payload) {
+    const result = await handleSaved(wasNew, savedExerciseId, payload);
+    if (result?.exerciseId) {
+      setRoleExerciseId(result.exerciseId);
+      setDosageExerciseId(result.exerciseId);
+    }
+    return result;
+  }
 
   async function handleAddRole(roleData) {
     setRolesLoading(true);
@@ -407,7 +434,7 @@ export default function ProgramPage() {
             referenceData={referenceData}
             vocabularies={vocabularies}
             accessToken={session?.access_token}
-            onSubmitExercise={handleSaved}
+            onSubmitExercise={handleExerciseSaved}
             onCancel={handleCancel}
           />
         )}
@@ -417,9 +444,28 @@ export default function ProgramPage() {
           <p className={styles.sectionDescription}>
             <strong>Roles</strong> define how an exercise contributes to different movement capacities in different body regions.
           </p>
+          <div className={styles.selectorStack}>
+            <input
+              className={styles.searchInput}
+              type="search"
+              placeholder="Search exercises…"
+              value={roleSearch}
+              onChange={(event) => setRoleSearch(event.target.value)}
+            />
+            <NativeSelect
+              className={styles.exerciseSelect}
+              value={roleExerciseId}
+              onChange={setRoleExerciseId}
+              placeholder="-- Choose an exercise --"
+              options={roleExerciseOptions.map((ex) => ({
+                value: ex.id,
+                label: `${ex.archived ? '[archived] ' : ''}${ex.canonical_name}`,
+              }))}
+            />
+          </div>
           <ProgramRolesSection
-            exercise={selectedExercise}
-            roles={selectedExercise?.roles ?? []}
+            exercise={roleExercise}
+            roles={roleExercise?.roles ?? []}
             rolesLoading={rolesLoading}
             vocabularies={vocabularies}
             onAddRole={handleAddRole}
@@ -432,36 +478,57 @@ export default function ProgramPage() {
           <p className={styles.sectionDescription}>
             <strong>Dosages</strong> are the prescribed sets, reps, and parameters for each exercise.
           </p>
-          {selectedExercise ? (
+          <div className={styles.selectorStack}>
+            <input
+              className={styles.searchInput}
+              type="search"
+              placeholder="Search exercises…"
+              value={dosageSearch}
+              onChange={(event) => setDosageSearch(event.target.value)}
+            />
+            <NativeSelect
+              className={styles.exerciseSelect}
+              value={dosageExerciseId}
+              onChange={setDosageExerciseId}
+              placeholder="-- Choose an exercise --"
+              options={dosageExerciseOptions.map((ex) => ({
+                value: ex.id,
+                label: `${ex.archived ? '[archived] ' : ''}${ex.canonical_name}`,
+              }))}
+            />
+          </div>
+          {dosageExercise ? (
             <div className={styles.dosageCard}>
-              <p className={styles.dosageName}>{selectedExercise.canonical_name}</p>
+              <p className={styles.dosageName}>{dosageExercise.canonical_name}</p>
               <p className={styles.dosageSummary}>
                 {dosageSummary ? `Current dosage: ${dosageSummary}` : 'No dosage assigned yet.'}
               </p>
               <button
                 className={styles.btnDosage}
-                onPointerUp={() => setDosageTarget({ exercise: selectedExercise, program: selectedProgram })}
+                onPointerUp={() => setDosageTarget({ exercise: dosageExercise, program: selectedProgram })}
               >
                 {dosageSummary ? 'Edit dosage' : 'Set dosage'}
               </button>
             </div>
           ) : (
-            <p className={styles.emptyState}>Select or save an exercise above to manage dosage.</p>
+            <p className={styles.emptyState}>Select an exercise to manage dosage.</p>
           )}
         </section>
 
         <section className={styles.workspaceSection}>
-          <h2 className={styles.sectionTitle}>Manage Vocabulary</h2>
-          <p className={styles.sectionDescription}>
-            Controlled vocabularies define the valid codes used by the editor and shared role selectors.
-          </p>
-          <ProgramVocabEditor
-            vocabularies={vocabularies}
-            onAddTerm={handleAddVocabTerm}
-            onUpdateTerm={handleUpdateVocabTerm}
-            onDeleteTerm={handleDeleteVocabTerm}
-            saving={vocabSaving}
-          />
+          <details className={styles.vocabDetails}>
+            <summary className={styles.vocabSummary}>Manage Vocabulary</summary>
+            <p className={styles.sectionDescription}>
+              Controlled vocabularies define the valid codes used by the editor and shared role selectors.
+            </p>
+            <ProgramVocabEditor
+              vocabularies={vocabularies}
+              onAddTerm={handleAddVocabTerm}
+              onUpdateTerm={handleUpdateVocabTerm}
+              onDeleteTerm={handleDeleteVocabTerm}
+              saving={vocabSaving}
+            />
+          </details>
         </section>
 
         {/* DosageModal — rendered outside ExerciseForm to keep it reusable */}

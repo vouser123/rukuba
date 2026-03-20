@@ -61,7 +61,7 @@ export default function ProgramRolesSection({
   }
 
   if (!exercise?.id) {
-    return <p className={styles.emptyNote}>Select or save an exercise above to manage roles.</p>;
+    return <p className={styles.emptyNote}>Select an exercise to manage roles.</p>;
   }
 
   return (
