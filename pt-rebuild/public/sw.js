@@ -7,13 +7,12 @@
  * - API calls: network-only (no caching, offline.js manages IndexedDB)
  */
 
-const CACHE_NAME = 'pt-tracker-v12';
+const CACHE_NAME = 'pt-tracker-v13';
 const STATIC_ASSETS = [
   '/',
   '/program',
   '/pt-view',
   '/rehab',
-  '/index.html',
   '/pt_editor.html',
   '/pt_view.html',
   '/rehab_coverage.html',
@@ -41,7 +40,11 @@ function getNavigationFallback(pathname) {
     return normalized;
   }
 
-  if (normalized === '/index.html' || normalized === '/pt_editor.html' || normalized === '/pt_view.html' || normalized === '/rehab_coverage.html') {
+  if (normalized === '/index.html') {
+    return '/';
+  }
+
+  if (normalized === '/pt_editor.html' || normalized === '/pt_view.html' || normalized === '/rehab_coverage.html') {
     return normalized;
   }
 
