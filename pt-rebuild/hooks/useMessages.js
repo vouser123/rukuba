@@ -2,10 +2,12 @@
  * useMessages — fetch, poll, send, and archive messages.
  *
  * Handles the 30-second polling interval and cleans up on unmount.
- * The page passes in the viewer's auth_id for badge count calculations.
+ * The page passes in the viewer's profile id (users table PK) for badge count calculations.
+ * NOTE: clinical_messages.sender_id stores the users table PK, NOT the Supabase auth UUID.
+ * Pass profileId (current.id from fetchUsers), not session.user.id (auth_id).
  *
  * @param {string|null} token  Supabase access token (null when signed out)
- * @param {string|null} viewerId  Current user's auth_id
+ * @param {string|null} viewerId  Current user's profile id (users table PK, not auth_id)
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {

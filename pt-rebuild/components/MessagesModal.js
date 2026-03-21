@@ -4,24 +4,31 @@
  * Receives messages and actions from the useMessages() hook in the parent page.
  * Does NOT fetch or poll — that's the hook's job.
  *
- * Archived messages are rolled up (collapsed one-liner) rather than hidden.
- * Clicking "Show" expands them locally; clicking "Hide" collapses again.
- * "Unarchive" restores a rolled-up message to full display permanently.
+ * Archived messages are hidden from the normal list. A "Show N archived" checkbox
+ * at the bottom reveals them as compact one-liners with a Restore button.
+ * Tapping a message body collapses it to a preview (local state, no DB write).
+ * Tapping again expands it.
+ *
+ * ID note: viewerId must be the users table PK (profile id), not the Supabase
+ * auth UUID, because clinical_messages.sender_id stores the profile id.
  *
  * Props:
- *   isOpen        boolean — show/hide the modal
- *   onClose       () => void
- *   messages      array from useMessages (includes is_archived flag)
- *   viewerId      string — current user's auth_id (to distinguish sent vs received)
- *   recipientId   string — the other user's id (for sending)
- *   emailEnabled  boolean — current email notification preference
- *   onSend        (recipientId: string, body: string) => Promise<void>
- *   onArchive     (messageId: string) => Promise<void>
- *   onUnarchive   (messageId: string) => Promise<void>
- *   onRemove      (messageId: string) => Promise<void> — permanent delete (undo-send)
- *   onMarkRead    (messageId: string) => Promise<void>
- *   onEmailToggle (enabled: boolean) => void
- *   onOpened      () => void — called when modal opens (clears unread badge)
+ *   isOpen           boolean — show/hide the modal
+ *   onClose          () => void
+ *   messages         array from useMessages (includes is_archived flag)
+ *   viewerId         string — current user's profile id (users table PK)
+ *   viewerName       string — current user's first name (for sender label)
+ *   otherName        string — other participant's first name
+ *   otherIsTherapist boolean — whether the other participant is the therapist
+ *   recipientId      string — the other user's profile id (for sending)
+ *   emailEnabled     boolean — current email notification preference
+ *   onSend           (recipientId: string, body: string) => Promise<void>
+ *   onArchive        (messageId: string) => Promise<void>
+ *   onUnarchive      (messageId: string) => Promise<void>
+ *   onRemove         (messageId: string) => Promise<void> — permanent delete (undo-send)
+ *   onMarkRead       (messageId: string) => Promise<void>
+ *   onEmailToggle    (enabled: boolean) => void
+ *   onOpened         () => void — called when modal opens (clears unread badge)
  */
 import { useState, useEffect, useRef } from 'react';
 import styles from './MessagesModal.module.css';
@@ -33,6 +40,9 @@ export default function MessagesModal({
     onClose,
     messages,
     viewerId,
+    viewerName,
+    otherName,
+    otherIsTherapist,
     recipientId,
     emailEnabled,
     onSend,
@@ -43,11 +53,13 @@ export default function MessagesModal({
     onEmailToggle,
     onOpened,
 }) {
-    const [draft, setDraft]           = useState('');
-    const [sending, setSending]       = useState(false);
-    // Set of message IDs that are archived but locally expanded (peek without unarchiving)
-    const [expandedIds, setExpandedIds] = useState(new Set());
-    const listRef                     = useRef(null);
+    const [draft, setDraft]             = useState('');
+    const [sending, setSending]         = useState(false);
+    // Local collapse state for non-archived messages (tap body to roll up/expand)
+    const [collapsedIds, setCollapsedIds] = useState(new Set());
+    // Show archived messages at bottom of list
+    const [showArchived, setShowArchived] = useState(false);
+    const listRef                       = useRef(null);
 
     // Notify parent that modal opened (clears unread count)
     useEffect(() => {
@@ -61,9 +73,12 @@ export default function MessagesModal({
         }
     }, [isOpen, messages]);
 
-    // Reset expanded set when modal closes
+    // Reset local state when modal closes
     useEffect(() => {
-        if (!isOpen) setExpandedIds(new Set());
+        if (!isOpen) {
+            setCollapsedIds(new Set());
+            setShowArchived(false);
+        }
     }, [isOpen]);
 
     if (!isOpen) return null;
@@ -91,31 +106,20 @@ export default function MessagesModal({
     }
 
     function handleKeyDown(e) {
-        // Send on Enter (not Shift+Enter)
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
         }
     }
 
-    /** Expand an archived message locally (peek without restoring). */
-    function handleExpand(messageId) {
-        setExpandedIds(prev => new Set([...prev, messageId]));
-    }
-
-    /** Collapse an expanded archived message back to rolled-up state. */
-    function handleCollapse(messageId) {
-        setExpandedIds(prev => {
+    /** Toggle local collapse for a non-archived message (tap body to roll up/expand). */
+    function toggleCollapse(messageId) {
+        setCollapsedIds(prev => {
             const next = new Set(prev);
-            next.delete(messageId);
+            if (next.has(messageId)) next.delete(messageId);
+            else next.add(messageId);
             return next;
         });
-    }
-
-    /** Permanently restore an archived message (unarchive via API). */
-    async function handleUnarchive(messageId) {
-        handleCollapse(messageId);
-        await onUnarchive(messageId);
     }
 
     /**
@@ -155,6 +159,21 @@ export default function MessagesModal({
         return `${prefix} ${dayName} ${month}/${day}/${year} ${hours}:${minutes} ${ampm} ${tz}`;
     }
 
+    /**
+     * Build the "From > To" sender label for a message.
+     * Shows role only for the therapist side: "Cindi > Melanie (PT)" or "Melanie (PT) > Cindi".
+     */
+    function getSenderLabel(isSent) {
+        const viewer = viewerName || 'You';
+        const other = otherIsTherapist
+            ? `${otherName || 'PT'} (PT)`
+            : (otherName || 'PT');
+        return isSent ? `${viewer} > ${other}` : `${other} > ${viewer}`;
+    }
+
+    const archivedCount = messages.filter(m => m.is_archived).length;
+    const activeMessages = messages.filter(m => !m.is_archived);
+
     return (
         <div className={styles.overlay} onPointerUp={e => { if (e.target === e.currentTarget) onClose(); }}>
             <div className={styles.modal}>
@@ -165,31 +184,43 @@ export default function MessagesModal({
 
                 {/* Message list */}
                 <div className={styles['message-list']} ref={listRef}>
-                    {messages.length === 0 && (
-                        <p style={{ textAlign: 'center', color: '#999', padding: '2rem' }}>No messages yet.</p>
+                    {activeMessages.length === 0 && !showArchived && (
+                        <p style={{ textAlign: 'center', color: '#999', padding: '2rem' }}>
+                            No messages yet. Send a message to your PT!
+                        </p>
                     )}
-                    {messages.map(msg => {
+
+                    {/* Active (non-archived) messages */}
+                    {activeMessages.map(msg => {
                         const isSent = msg.sender_id === viewerId;
                         const canUndoSend = isSent && (Date.now() - new Date(msg.created_at).getTime() < ONE_HOUR_MS);
+                        const isCollapsed = collapsedIds.has(msg.id);
+                        const senderLabel = getSenderLabel(isSent);
 
-                        // Rolled-up (archived) — show compact one-liner unless locally expanded
-                        if (msg.is_archived && !expandedIds.has(msg.id)) {
+                        // Locally collapsed — compact one-liner, tap to expand
+                        if (isCollapsed) {
                             return (
-                                <div key={msg.id} className={`${styles['rolled-up']} ${isSent ? styles['rolled-up-sent'] : styles['rolled-up-received']}`}>
+                                <div
+                                    key={msg.id}
+                                    className={`${styles['rolled-up']} ${isSent ? styles['rolled-up-sent'] : styles['rolled-up-received']}`}
+                                    onPointerUp={() => toggleCollapse(msg.id)}
+                                >
+                                    <span className={styles['rolled-up-label']}>{senderLabel}</span>
                                     <span className={styles['rolled-up-preview']}>
                                         {msg.body.length > 50 ? msg.body.slice(0, 50) + '…' : msg.body}
                                     </span>
-                                    <span className={styles['rolled-up-label']}>(hidden)</span>
-                                    <button className={styles['action-btn']} onPointerUp={() => handleExpand(msg.id)}>Show</button>
-                                    <button className={styles['action-btn']} onPointerUp={() => handleUnarchive(msg.id)}>Restore</button>
                                 </div>
                             );
                         }
 
-                        // Full bubble — normal or locally expanded archived
+                        // Full bubble — tap body to collapse
                         return (
                             <div key={msg.id}>
-                                <div className={`${styles['message-bubble']} ${isSent ? styles.sent : styles.received} ${msg.is_archived ? styles.archived : ''}`}>
+                                <div
+                                    className={`${styles['message-bubble']} ${isSent ? styles.sent : styles.received}`}
+                                    onPointerUp={() => toggleCollapse(msg.id)}
+                                >
+                                    <div className={styles['sender-label']}>{senderLabel}</div>
                                     {msg.body}
                                     <div className={styles['message-meta']}>
                                         <span>{formatMsgDateTime(msg.created_at, 'sent:')}</span>
@@ -199,7 +230,7 @@ export default function MessagesModal({
                                                 : <span className={styles['delivered']}>Delivered</span>
                                         )}
                                     </div>
-                                    <div className={styles['message-actions']}>
+                                    <div className={styles['message-actions']} onPointerUp={e => e.stopPropagation()}>
                                         {!isSent && !msg.read_by_recipient && (
                                             <button
                                                 className={styles['action-btn']}
@@ -208,7 +239,6 @@ export default function MessagesModal({
                                                 Mark read
                                             </button>
                                         )}
-                                        {/* Undo Send — only for sender within 1 hour, matches static pt_view.html */}
                                         {canUndoSend && (
                                             <button
                                                 className={styles['action-btn']}
@@ -217,27 +247,38 @@ export default function MessagesModal({
                                                 Undo Send
                                             </button>
                                         )}
-                                        {msg.is_archived ? (
-                                            <>
-                                                <button className={styles['action-btn']} onPointerUp={() => handleCollapse(msg.id)}>Hide</button>
-                                                <button className={styles['action-btn']} onPointerUp={() => handleUnarchive(msg.id)}>Restore</button>
-                                            </>
-                                        ) : (
-                                            <button
-                                                className={styles['action-btn']}
-                                                onPointerUp={() => onArchive(msg.id)}
-                                            >
-                                                Hide
-                                            </button>
-                                        )}
+                                        <button
+                                            className={styles['action-btn']}
+                                            onPointerUp={() => onArchive(msg.id)}
+                                        >
+                                            Archive
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         );
                     })}
+
+                    {/* Archived messages — only when showArchived is checked */}
+                    {showArchived && messages.filter(m => m.is_archived).map(msg => {
+                        const isSent = msg.sender_id === viewerId;
+                        const senderLabel = getSenderLabel(isSent);
+                        return (
+                            <div
+                                key={msg.id}
+                                className={`${styles['rolled-up']} ${isSent ? styles['rolled-up-sent'] : styles['rolled-up-received']}`}
+                            >
+                                <span className={styles['rolled-up-label']}>{senderLabel}</span>
+                                <span className={styles['rolled-up-preview']}>
+                                    {msg.body.length > 60 ? msg.body.slice(0, 60) + '…' : msg.body}
+                                </span>
+                                <button className={styles['action-btn']} onPointerUp={() => onUnarchive(msg.id)}>Restore</button>
+                            </div>
+                        );
+                    })}
                 </div>
 
-                {/* Email toggle */}
+                {/* Email notification toggle */}
                 <div className={styles['email-toggle']}>
                     <input
                         type="checkbox"
@@ -247,6 +288,21 @@ export default function MessagesModal({
                     />
                     <label htmlFor="email-notify">Email me when I receive a message</label>
                 </div>
+
+                {/* Show archived toggle — only visible when there are archived messages */}
+                {archivedCount > 0 && (
+                    <div className={styles['email-toggle']}>
+                        <input
+                            type="checkbox"
+                            id="show-archived"
+                            checked={showArchived}
+                            onChange={e => setShowArchived(e.target.checked)}
+                        />
+                        <label htmlFor="show-archived">
+                            Show {archivedCount} archived message{archivedCount !== 1 ? 's' : ''}
+                        </label>
+                    </div>
+                )}
 
                 {/* Compose */}
                 <div className={styles.compose}>
