@@ -34,6 +34,7 @@ function formatDosageSummary(exercise, program) {
 }
 
 function getAdherence(program) {
+    if (program?.history_pending) return null;
     if (program?.adherence_text) {
         const suffix = program?.total_sessions > 0
             ? ` · ${program.total_sessions} session${program.total_sessions > 1 ? 's' : ''} total`
@@ -343,9 +344,11 @@ export default function ExercisePicker({
                             >
                                 <span className={styles.name}>{exercise.canonical_name}</span>
                                 <span className={styles.dosage}>{formatDosageSummary(exercise, program)}</span>
-                                <span className={`${styles.adherence} ${styles[adherence.tone]}`}>
-                                    {adherence.label}
-                                </span>
+                                {adherence && (
+                                    <span className={`${styles.adherence} ${styles[adherence.tone]}`}>
+                                        {adherence.label}
+                                    </span>
+                                )}
                                 {category && <span className={styles.tag}>{category}</span>}
                             </button>
                             {isManualMode && (

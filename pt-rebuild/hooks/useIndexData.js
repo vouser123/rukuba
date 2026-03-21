@@ -19,41 +19,42 @@ export function useIndexData(token, patientId) {
     const [programs, setPrograms] = useState([]);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [historyError, setHistoryError] = useState(null);
     const [fromCache, setFromCache] = useState(false);
     const hadAuthRef = useRef(false);
 
     const reload = useCallback(async () => {
         if (!token || !patientId) return;
         setLoading(true);
+        setHistoryLoading(true);
         setError(null);
+        setHistoryError(null);
         setFromCache(false);
+
+        let nextExercises = [];
+        let nextPrograms = [];
+
         try {
-            const [nextExercises, nextPrograms, nextLogs] = await Promise.all([
+            [nextExercises, nextPrograms] = await Promise.all([
                 fetchIndexExercises(token),
                 fetchIndexPrograms(token, patientId),
-                fetchIndexLogs(token), // DN-059: no patientId — API resolves profile UUID from req.user.id
             ]);
             if (typeof window !== 'undefined') {
                 await offlineCache.init();
                 await Promise.all([
                     offlineCache.cacheExercises(nextExercises),
                     offlineCache.cachePrograms(nextPrograms),
-                    offlineCache.cacheLogs(nextLogs),
-                    offlineCache.cacheTrackerBootstrap(patientId, {
-                        exercises: nextExercises,
-                        programs: nextPrograms,
-                        logs: nextLogs,
-                    }),
                 ]);
             }
             setExercises(nextExercises);
             setPrograms(nextPrograms);
-            setLogs(nextLogs);
         } catch (err) {
             const message = getLoadErrorMessage(err);
             if (typeof window === 'undefined') {
                 setError(message);
+                setHistoryLoading(false);
                 return;
             }
 
@@ -70,6 +71,8 @@ export function useIndexData(token, patientId) {
                     setPrograms(cachedPrograms);
                     setLogs(cachedLogs);
                     setFromCache(true);
+                    setHistoryError(null);
+                    setHistoryLoading(false);
                     return;
                 }
             } catch (cacheError) {
@@ -77,8 +80,49 @@ export function useIndexData(token, patientId) {
             }
 
             setError(message);
+            setHistoryLoading(false);
+            return;
         } finally {
             setLoading(false);
+        }
+
+        try {
+            const nextLogs = await fetchIndexLogs(token); // DN-059: no patientId — API resolves profile UUID from req.user.id
+            if (typeof window !== 'undefined') {
+                await offlineCache.init();
+                await Promise.all([
+                    offlineCache.cacheLogs(nextLogs),
+                    offlineCache.cacheTrackerBootstrap(patientId, {
+                        exercises: nextExercises,
+                        programs: nextPrograms,
+                        logs: nextLogs,
+                    }),
+                ]);
+            }
+            setLogs(nextLogs);
+        } catch (err) {
+            const message = getLoadErrorMessage(err);
+            if (typeof window === 'undefined') {
+                setHistoryError(message);
+                return;
+            }
+
+            try {
+                await offlineCache.init();
+                const cachedBootstrap = await offlineCache.getCachedTrackerBootstrap(patientId);
+                const cachedLogs = cachedBootstrap?.logs ?? [];
+
+                if (cachedLogs.length > 0) {
+                    setLogs(cachedLogs);
+                    return;
+                }
+            } catch (cacheError) {
+                console.error('useIndexData history cache fallback failed:', cacheError);
+            }
+
+            setHistoryError(message);
+        } finally {
+            setHistoryLoading(false);
         }
     }, [token, patientId]);
 
@@ -105,7 +149,9 @@ export function useIndexData(token, patientId) {
             setPrograms([]);
             setLogs([]);
             setLoading(false);
+            setHistoryLoading(false);
             setError(null);
+            setHistoryError(null);
             setFromCache(false);
             hadAuthRef.current = false;
             return;
@@ -120,7 +166,9 @@ export function useIndexData(token, patientId) {
         programs,
         logs,
         loading,
+        historyLoading,
         error,
+        historyError,
         fromCache,
         reload,
     };

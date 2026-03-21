@@ -32,7 +32,17 @@ export default function IndexPage() {
     const { session, loading: authLoading, signIn } = useAuth();
     const userId = session?.user?.id ?? null;
     const token = session?.access_token ?? null;
-    const { exercises, programs, logs, loading, error, fromCache, reload } = useIndexData(token, userId);
+    const {
+        exercises,
+        programs,
+        logs,
+        loading,
+        historyLoading,
+        error,
+        historyError,
+        fromCache,
+        reload,
+    } = useIndexData(token, userId);
     const { pendingCount, enqueue, sync, clearQueue } = useIndexOfflineQueue(userId, token);
 
     const [activeTab, setActiveTab] = useState('exercises');
@@ -145,17 +155,24 @@ export default function IndexPage() {
     // profileId (users table PK) is the correct viewer id for message sender comparisons — not userId (auth_id)
     const msgs = useMessages(token, userCtx.profileId);
     const pickerPrograms = useMemo(() => {
+        const buildHistoryState = (exerciseId, canonicalName = null) => {
+            if (historyLoading && logs.length === 0) {
+                return { history_pending: true };
+            }
+            return getAdherenceBadgeState(allLogs, exerciseId, canonicalName);
+        };
+
         if (programs.length > 0) {
             return programs.map((program) => ({
                 ...program,
-                ...getAdherenceBadgeState(allLogs, program.exercise_id, program?.exercises?.canonical_name ?? null),
+                ...buildHistoryState(program.exercise_id, program?.exercises?.canonical_name ?? null),
             }));
         }
         return exercises.map((exercise) => ({
             exercise_id: exercise.id,
-            ...getAdherenceBadgeState(allLogs, exercise.id, exercise.canonical_name ?? null),
+            ...buildHistoryState(exercise.id, exercise.canonical_name ?? null),
         }));
-    }, [allLogs, exercises, programs]);
+    }, [allLogs, exercises, historyLoading, logs.length, programs]);
     const sessionProgress = useMemo(() => buildSessionProgress(selectedExercise, draftSession?.sets ?? []), [draftSession?.sets, selectedExercise]);
 
     const handleHistoryModalSubmit = useCallback(async () => {
@@ -258,6 +275,7 @@ export default function IndexPage() {
                     </div>
                 )}
                 {error && <div className={styles.errorBanner} role="alert">{error}</div>}
+                {!error && historyError && <div className={styles.infoBanner} role="status">{historyError}</div>}
                 <Toast message={toastMessage} type={toastType} visible={toastVisible} />
 
                 <main className={styles.main}>
