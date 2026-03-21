@@ -5,12 +5,15 @@ Use this file when you know what feature you need to build, but need the approve
 Use [`../README.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/README.md) to find file ownership.
 Use this file to answer "which shared thing should I use?" and "what should I avoid re-implementing?"
 
+These patterns are the default for current maintained codepaths, especially shared React and Next.js surfaces.
+Legacy static pages may preserve existing patterns unless the work is already migrating that surface or extracting a shared helper on purpose.
+
 ## Selects And Option Lists
 
-- Use [`components/NativeSelect.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/NativeSelect.js) for app selects that need touch-safe, iPhone-safe behavior.
+- Use [`components/NativeSelect.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/NativeSelect.js) for current app selects that need touch-safe, iPhone-safe behavior.
 - Use [`lib/vocab-options.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/vocab-options.js) to turn vocabulary rows into select options.
 - Use [`lib/text-format.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/text-format.js) when a select or companion text field needs consistent typed-value labels.
-- Do not hand-roll a plain select plus custom "Other" logic when `NativeSelect` already fits.
+- Do not hand-roll a plain select plus custom "Other" logic when the current surface can already use `NativeSelect`.
 - Do not hardcode extendable dropdown option lists without explicit sign-off. Domain data belongs in vocab/reference data, not inline arrays.
 
 ## Formatting And Labels
@@ -57,12 +60,14 @@ Use this file to answer "which shared thing should I use?" and "what should I av
 - Use [`hooks/useTimerSpeech.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerSpeech.js) as the panel-facing integration layer.
 - Use [`hooks/useExerciseTimer.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useExerciseTimer.js) and [`hooks/useTimerAudio.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerAudio.js) below that integration layer.
 - Use [`hooks/useLoggerFeedback.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useLoggerFeedback.js) for tracker-wide completion/save/comparison feedback timing.
-- Do not hardcode timer cue rules in page or component UI when the rule belongs in the timer machine or shared execution hooks.
+- Do not duplicate timer machine or tracker-wide feedback rules in page files when shared hooks already own them.
+- Panel-local execution feedback that belongs to [`components/TimerPanel.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/TimerPanel.js) may remain in the panel when it is part of the execution UI itself.
 
 ## Touch-Safe Interaction Patterns
 
-- Use `pointerup` rather than `onclick` for interactive controls.
-- Use `touch-action: manipulation` on interactive elements.
+- Use `pointerup` rather than `onclick` for custom interactive controls.
+- Use `touch-action: manipulation` on custom tappable controls and gesture-driven surfaces.
+- Do not assume native form controls like `select`, `input`, or standard `button` elements need extra touch-action styling unless device testing shows a real issue.
 - Keep touch-target size at or above 44px.
 - Do not add mouse-only interaction assumptions to primary app controls.
 

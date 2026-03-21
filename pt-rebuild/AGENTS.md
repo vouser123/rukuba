@@ -63,10 +63,8 @@ This project is operated by a non-technical user. Agents must not assume technic
 
 ## iOS PWA Interaction Rules
 
-- Always use `touch-action: manipulation` on interactive elements.
-- Use `pointerup` events instead of `onclick` for reliable touch handling.
-- Include `-webkit-tap-highlight-color: transparent` on buttons.
-- Minimum touch target size: 44px (Apple HIG).
+- Preserve iOS-safe interaction patterns.
+- Use `pt-rebuild/docs/IMPLEMENTATION_PATTERNS.md` for the detailed touch and interaction rules instead of duplicating them here.
 
 ## Active Tracker Policy (Required)
 
