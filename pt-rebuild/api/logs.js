@@ -558,7 +558,7 @@ async function getMessages(req, res) {
       .select('*')
       .is('deleted_at', null)
       .or(`sender_id.eq.${req.user.id},recipient_id.eq.${req.user.id}`)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true }); // oldest→newest so scroll-to-bottom shows latest
 
     if (error) throw error;
 

@@ -31,7 +31,9 @@ export function useMessages(token, viewerId) {
         try {
             const msgs = await fetchMessages(token);
             setMessages(msgs);
-            setUnreadCount(countUnreadMessages(msgs, viewerId));
+            // Guard: viewerId arrives async from useUserContext; return 0 until resolved
+            // to prevent a flash where all messages briefly appear unread.
+            setUnreadCount(viewerId ? countUnreadMessages(msgs, viewerId) : 0);
         } catch (err) {
             console.error('useMessages refresh:', err);
         }
