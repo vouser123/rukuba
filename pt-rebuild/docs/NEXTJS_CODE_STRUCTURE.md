@@ -142,6 +142,30 @@ Minimum maintenance expectations:
 
 **Aim: 350L. Hard cap: 500L.**
 
+**Default role: page as orchestrator.** For AI agents, assume a page file should coordinate route flow rather than own large feature sections. A good page file wires auth, top-level route state, shared hooks, and major components together. It should not become the main home for feature-specific UI or mutation logic once those concerns are large enough to stand on their own.
+
+**AI decision shortcut:** If a JSX block feels like its own workspace, panel, modal launcher, or task area, extract it to `components/`. If a stateful behavior feels like its own mutation flow, queue lifecycle, or form workflow, extract it to `hooks/`. Keep the page focused on composing those pieces.
+
+Examples for agents:
+
+- Keep in the page:
+  - auth guard for the route
+  - route-level tab state
+  - deciding which modal is open
+  - passing the selected exercise into child components
+  - composing shared child components such as `<ExercisePicker />`, `<HistoryPanel />`, and `<Toast />`
+- Extract from the page:
+  - a full "Manage Patient Dosages" workspace with its own selector, banner, summary card, and action button
+  - a full "Assign Roles to Exercises" workspace with its own selector and management UI
+  - a mutation hook that handles exercise saves, dosage writes, role writes, and vocabulary writes all in one file once it nears the hook cap
+
+Concrete repo example:
+
+- [`pages/index.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/index.js) is the model to follow. It stays as the route orchestrator while substantial UI and workflow concerns live in focused hooks and components.
+- [`pages/program.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/program.js) should follow the same pattern: route orchestration in the page, substantial editor workspaces in `components/`, and focused mutation/state concerns in `hooks/`.
+
+**Reusable subsystem rule:** If a feature can be hosted from more than one route, keep the feature subsystem extracted even when one route is its primary home. For example, the exercise editor should stay in shared components/hooks because it historically appears from both the tracker flow and the dedicated editor flow. Do not move that subsystem back into a page file just because one route currently hosts it most often.
+
 **Contains:**
 - `useAuth()` call + auth guard
 - `useEffect` for initial data load

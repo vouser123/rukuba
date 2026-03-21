@@ -81,6 +81,11 @@ Verified slices:
 
 Follow-up work can still exist under Beads even after the main phase slice is considered migrated.
 
+Deferred reusable-host follow-ups:
+
+- `pt-e5a`: wire the extracted roles workspace into rehab coverage when that host edit path is brought forward, since the legacy app supported roles editing from both surfaces
+- `pt-ve3`: wire the reusable exercise editor stack into the tracker host flow when that edit path is brought forward, since the legacy app supported editing from both the tracker and the dedicated editor
+
 ### Phase 4: Tracker index
 
 Status: in progress
