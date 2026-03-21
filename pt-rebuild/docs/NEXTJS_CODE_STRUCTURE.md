@@ -21,7 +21,7 @@ Authoritative rules for `pt-rebuild/` code organization during the Next.js migra
 
 **At or above cap:** Must resolve before adding more code. No exceptions.
 
-**Between aim and cap:** Acceptable. Take no action.
+**Between aim and cap:** Acceptable only when ownership is still clear and cohesive. Being under the cap is not permission to keep independently changeable concerns mixed together.
 
 **When no clean split exists:** Do not violate the cap unilaterally. Surface to the user: state the file size, the cap, and why no clean split is apparent. Wait for a decision.
 
@@ -30,6 +30,10 @@ Authoritative rules for `pt-rebuild/` code organization during the Next.js migra
 ## Core Principle (Why These Rules Exist)
 
 One file = one complete concern — not one file = smallest possible file. When an agent makes a change, it loads every file needed to understand the context. Two files that are always loaded together are worse than one moderate file. The right split is along true domain boundaries: things used independently belong in separate files; things always loaded together belong in one file. Caps exist to catch files that have grown beyond one concern, not to force artificial fragmentation.
+
+This codebase is maintained heavily by AI agents. Assume the entire codebase will continue to be managed by unknown future agents who do not share the current session's memory or rationale. Even when the future agent is still "Codex" or "Claude," it may be a different model release, different prompt environment, or different operating context with different defaults and blind spots. Optimize for narrow ownership boundaries that let a future agent load the fewest files necessary, understand quickly what a file owns, and make a change with low collateral risk. A file being under the hard cap does not justify keeping multiple independently editable concerns together.
+
+Why this matters here: broad mixed files are easier for agents to break accidentally. When filters, notes handling, modal glue, derived display shaping, and route orchestration live together, a future edit has to load and reason about all of them at once. That increases the chance of collateral changes, hidden regressions, duplicate logic, and timid maintenance where agents avoid cleanup because the file feels too risky to touch. Clear ownership boundaries reduce those risks.
 
 ---
 
@@ -58,9 +62,9 @@ One file = one complete concern — not one file = smallest possible file. When 
 1. **Is a cap violated?** → Must split (or surface to user if no clean split)
 2. **Does the cohesion check fail?** → Must split regardless of size
 3. **Would the split pieces always be loaded together?** → Do NOT split (artificial fragmentation)
-4. **Is the file under cap and cohesion OK?** → Do not split
+4. **Is the file under cap and cohesion OK?** → Only keep it together if the contents are still best understood and changed as one concern
 
-Do not split to reach the aim number. A 350L lib covering one domain is correct. A 150L lib mixing two domains must split.
+Do not split to reach the aim number. A 350L lib covering one domain is correct. A 150L lib mixing two domains must split. Likewise, a page or hook under cap must still split if doing so would create clearer ownership for future agent maintenance.
 
 ---
 
@@ -144,7 +148,11 @@ Minimum maintenance expectations:
 
 **Default role: page as orchestrator.** For AI agents, assume a page file should coordinate route flow rather than own large feature sections. A good page file wires auth, top-level route state, shared hooks, and major components together. It should not become the main home for feature-specific UI or mutation logic once those concerns are large enough to stand on their own.
 
-**AI decision shortcut:** If a JSX block feels like its own workspace, panel, modal launcher, or task area, extract it to `components/`. If a stateful behavior feels like its own mutation flow, queue lifecycle, or form workflow, extract it to `hooks/`. Keep the page focused on composing those pieces.
+**Agent-maintainability rule:** Prefer the structure that makes future agent edits safest and most local. If filters, notes handling, modal glue, or a page-only panel could reasonably be changed, debugged, or extended on their own, they should not stay mixed in the page just because the file is still under the cap. Treat ownership clarity as the limit; treat the cap as a backstop.
+
+Practical test: compare the amount of behavior a page coordinates with the amount of code it contains. If a modest route file is approaching the size or complexity of a much broader route, that is usually evidence that too many independently maintainable concerns are still mixed together.
+
+**AI decision shortcut:** If a JSX block feels like its own workspace, panel, modal launcher, task area, or independently maintainable page section, extract it to `components/`. If a stateful behavior feels like its own mutation flow, queue lifecycle, form workflow, persisted UI-state concern, or note/filter processing concern, extract it to `hooks/`. Keep the page focused on composing those pieces.
 
 Examples for agents:
 
@@ -172,6 +180,8 @@ Concrete repo example:
 - Page-level `useState` (filters, loading, error, data)
 - JSX layout: header, main sections, modal invocations
 - Small inline sub-components meeting the inline rule below
+
+Good page question: "If a future agent only needed to change this one panel, one persisted UI-state behavior, or one note/filter rule, could they do it without loading the whole page file?" If the honest answer is no, the page still owns too much.
 
 **Must not contain:** business logic, API calls, or hooks with complex state — those go in `lib/` and `hooks/`.
 
