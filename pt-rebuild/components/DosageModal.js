@@ -35,9 +35,14 @@ export default function DosageModal({ exercise, program, onSave, onClose }) {
   // Pre-fill from existing program when modal opens
   useEffect(() => {
     if (program) {
+      const usesDuration = program.dosage_type === 'duration' || (!program.dosage_type && hasDuration);
       setSets(program.sets != null ? String(program.sets) : '');
       setReps(program.reps_per_set != null ? String(program.reps_per_set) : '');
-      setSeconds(program.seconds_per_rep != null ? String(program.seconds_per_rep) : '');
+      setSeconds(
+        usesDuration
+          ? (program.seconds_per_set != null ? String(program.seconds_per_set) : '')
+          : (program.seconds_per_rep != null ? String(program.seconds_per_rep) : '')
+      );
       setDistance(program.distance_feet != null ? String(program.distance_feet) : '');
     } else {
       setSets('');
@@ -82,8 +87,10 @@ export default function DosageModal({ exercise, program, onSave, onClose }) {
     const formData = {
       sets: parsedSets,
       reps_per_set: showReps ? parseInt(reps, 10) || null : null,
-      seconds_per_rep: showSeconds ? parseInt(seconds, 10) || null : null,
+      seconds_per_rep: hasHold ? parseInt(seconds, 10) || null : null,
+      seconds_per_set: hasDuration ? parseInt(seconds, 10) || null : null,
       distance_feet: hasDistance ? parseInt(distance, 10) || null : null,
+      dosage_type: hasDistance ? 'distance' : (hasDuration ? 'duration' : (hasHold ? 'hold' : 'reps')),
     };
 
     setSaving(true);

@@ -40,7 +40,7 @@ function applyFilters(exercises, search, showArchived) {
 }
 
 export default function ProgramPage() {
-  const { session, loading: authLoading, signIn } = useAuth();
+  const { session, loading: authLoading, signIn, signOut } = useAuth();
 
   const [exercises, setExercises] = useState([]);
   const [referenceData, setReferenceData] = useState(emptyReferenceData());
@@ -63,6 +63,8 @@ export default function ProgramPage() {
   const [vocabSaving, setVocabSaving] = useState(false);
   const [programPatientId, setProgramPatientId] = useState(null);
   const [programPatientName, setProgramPatientName] = useState('');
+  const [currentUserRole, setCurrentUserRole] = useState(null);
+  const [accessError, setAccessError] = useState(null);
   const {
     showToast,
     toastMessage,
@@ -123,6 +125,7 @@ export default function ProgramPage() {
     vocabularies: vocab,
     referenceData: refData,
     programs: progMap,
+    currentUserRole: nextCurrentUserRole,
     programPatientId: nextProgramPatientId,
     programPatientName: nextProgramPatientName,
   }, notice = null) {
@@ -130,8 +133,10 @@ export default function ProgramPage() {
     setVocabularies(vocab);
     setReferenceData(refData);
     setPrograms(progMap);
+    setCurrentUserRole(nextCurrentUserRole);
     setProgramPatientId(nextProgramPatientId);
     setProgramPatientName(nextProgramPatientName);
+    setAccessError(null);
     setLoadError(null);
     setOfflineNotice(notice);
   }
@@ -142,6 +147,25 @@ export default function ProgramPage() {
       await offlineCache.init();
       const usersData = await fetchUsers(accessToken);
       await offlineCache.cacheUsers(usersData);
+      const currentUser = usersData.find((user) => user.auth_id === authUserId);
+
+      if (!currentUser) {
+        throw new Error('Current user profile not found');
+      }
+
+      if (currentUser.role !== 'therapist' && currentUser.role !== 'admin') {
+        setExercises([]);
+        setReferenceData(emptyReferenceData());
+        setVocabularies({});
+        setCurrentUserRole(currentUser.role);
+        setProgramPatientId(null);
+        setProgramPatientName('');
+        setPrograms({});
+        setAccessError('Therapist or admin access required.');
+        setLoadError(null);
+        setOfflineNotice(null);
+        return null;
+      }
 
       const { patientUser, patientDisplayName } = resolvePatientScopedUserContext(usersData, authUserId);
       const [exList, vocab, refData, progMap] = await Promise.all([
@@ -163,6 +187,7 @@ export default function ProgramPage() {
         vocabularies: vocab,
         referenceData: refData,
         programs: progMap,
+        currentUserRole: currentUser.role,
         programPatientId: patientUser.id,
         programPatientName: patientDisplayName,
       };
@@ -178,6 +203,26 @@ export default function ProgramPage() {
           offlineCache.getCachedProgramReferenceData(),
           offlineCache.getCachedPrograms(),
         ]);
+        const currentUser = (cachedUsers ?? []).find((user) => user.auth_id === authUserId);
+
+        if (!currentUser) {
+          throw err;
+        }
+
+        if (currentUser.role !== 'therapist' && currentUser.role !== 'admin') {
+          setExercises([]);
+          setReferenceData(emptyReferenceData());
+          setVocabularies({});
+          setCurrentUserRole(currentUser.role);
+          setProgramPatientId(null);
+          setProgramPatientName('');
+          setPrograms({});
+          setAccessError('Therapist or admin access required.');
+          setLoadError(null);
+          setOfflineNotice(null);
+          return null;
+        }
+
         const { patientUser, patientDisplayName } = resolvePatientScopedUserContext(cachedUsers, authUserId);
 
         const cachedProgramMap = Object.fromEntries((cachedPrograms ?? []).map((program) => [program.exercise_id, program]));
@@ -198,14 +243,17 @@ export default function ProgramPage() {
           vocabularies: cachedVocabularies ?? {},
           referenceData: cachedReferenceData ?? { equipment: [], muscles: [], formParameters: [] },
           programs: cachedProgramMap,
+          currentUserRole: currentUser.role,
           programPatientId: patientUser.id,
           programPatientName: patientDisplayName,
         };
         applyBootstrap(nextData, 'Offline - showing cached editor data.');
         return nextData;
       } catch {
+        setCurrentUserRole(null);
         setProgramPatientId(null);
         setProgramPatientName('');
+        setAccessError(null);
         setOfflineNotice(null);
         setLoadError(err.message);
         return null;
@@ -216,6 +264,13 @@ export default function ProgramPage() {
   useEffect(() => {
     if (session) loadData(session.access_token, session.user.id);
   }, [session, loadData]);
+
+  useEffect(() => {
+    if (!session) {
+      setCurrentUserRole(null);
+      setAccessError(null);
+    }
+  }, [session]);
 
   const {
     mutationQueue,
@@ -383,8 +438,8 @@ export default function ProgramPage() {
       {session && (
         <NavMenu
           user={session.user}
-          isAdmin={true}
-          onSignOut={() => supabase.auth.signOut()}
+          isAdmin={currentUserRole === 'therapist' || currentUserRole === 'admin'}
+          onSignOut={() => signOut?.() ?? supabase.auth.signOut()}
           currentPage="pt_editor"
           actions={[]}
           onAction={() => {}}
@@ -392,8 +447,13 @@ export default function ProgramPage() {
       )}
 
       <main className={styles.main}>
+        {accessError ? (
+          <p className={styles.errorBanner}>{accessError}</p>
+        ) : null}
         {loadError && <p className={styles.errorBanner}>{loadError}</p>}
         {offlineNotice && <p className={styles.offlineNotice}>{offlineNotice}</p>}
+        {accessError ? null : (
+          <>
         {queueLoaded && mutationQueue.length > 0 && (
           <div className={queueError ? styles.queueBannerError : styles.queueBanner}>
             <p className={styles.queueBannerText}>
@@ -498,6 +558,8 @@ export default function ProgramPage() {
             onSave={handleDosageSave}
             onClose={() => setDosageTarget(null)}
           />
+        )}
+          </>
         )}
       </main>
     </>

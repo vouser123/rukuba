@@ -51,6 +51,7 @@ export function mergeReferenceData(referenceData, payload) {
 
 export function inferDosageType(formData, exercise) {
   if (formData.distance_feet) return 'distance';
+  if (formData.seconds_per_set) return 'duration';
   if (exercise?.pattern_modifiers?.includes('duration_seconds')) return 'duration';
   if (formData.seconds_per_rep) return 'hold';
   return 'reps';
