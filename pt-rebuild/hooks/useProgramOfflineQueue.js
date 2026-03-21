@@ -119,12 +119,15 @@ export function useProgramOfflineQueue({
       return;
     }
     if (nextQueue.length > 1) {
-      showToast(successMessage);
+      // Queue backlog — let syncProgramMutations handle the toast when done
       syncProgramMutations();
       return;
     }
 
     try {
+      // Prevent the mutationQueue.length useEffect from triggering a concurrent
+      // syncProgramMutations call while we're already performing this mutation directly.
+      syncInFlightRef.current = true;
       await performProgramMutation(session.access_token, mutation);
       await persistQueue([]);
       setQueueError(null);
@@ -141,6 +144,9 @@ export function useProgramOfflineQueue({
       await persistQueue(nextQueue.filter((item) => item.id !== mutation.id));
       commitSnapshot(previousSnapshot);
       throw error;
+    } finally {
+      // Always release the in-flight lock so future syncs are not blocked
+      syncInFlightRef.current = false;
     }
   }, [commitSnapshot, loadData, persistQueue, programPatientId, session?.access_token, session?.user?.id, showToast, syncProgramMutations]);
   return {

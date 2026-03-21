@@ -117,7 +117,8 @@ export function useTrackerSession({
 
     const handleConfirmNextSet = useCallback(() => {
         if (!selectedExercise || !pendingSetPatch || !draftSession) return;
-        showSaveSuccess('');
+        // No toast here — set is added to draftSession only, not saved to server yet.
+        // Toast fires in handleSaveFinishedSession after Done + confirmed sync.
         const normalizedSet = normalizeSet({ ...pendingSetPatch, set_number: draftSession.sets.length + 1, performed_at: draftSession.date }, draftSession.sets.length, draftSession.activityType);
         const nextLoggedSets = [...draftSession.sets, normalizedSet];
         const comparison = getProgressComparison(allLogs, selectedExercise, nextLoggedSets, selectedExercise.pattern === 'side' ? normalizedSet.side : null, sessionStartedAt);
@@ -126,7 +127,7 @@ export function useTrackerSession({
         setPendingSetPatch(null);
         setPanelResetToken((value) => value + 1);
         if (comparison?.text) speakText(comparison.text, 1500);
-    }, [allLogs, draftSession, maybeAnnounceAllSetsComplete, pendingSetPatch, selectedExercise, sessionStartedAt, showSaveSuccess, speakText]);
+    }, [allLogs, draftSession, maybeAnnounceAllSetsComplete, pendingSetPatch, selectedExercise, sessionStartedAt, speakText]);
 
     const handleEditNextSet = useCallback(() => {
         if (!selectedExercise || !pendingSetPatch) return;
@@ -145,23 +146,27 @@ export function useTrackerSession({
         // Queue-first: push immediately so save is durable before any network attempt
         enqueue(payload);
 
-        // UX updates happen immediately — user sees feedback before sync outcome
+        // UX updates happen immediately — optimistic entry visible before sync outcome
         setOptimisticLogs((previous) => [buildOptimisticLogEntry(finalSession), ...previous]);
         handleNotesModalClose();
         abandonDraftSession();
         setActiveExercise(null);
-        showSaveSuccess(trimmedNotes);
 
-        // Fire-and-forget sync: clears optimistic entry and reloads on success
+        // Toast fires only after sync result is known — reflects actual save status
         sync([payload]).then(async (syncResult) => {
             if (syncResult?.failed === 0) {
                 await reload();
                 setOptimisticLogs((previous) => previous.filter((log) => log.client_mutation_id !== finalSession.sessionId));
+                showSaveSuccess(trimmedNotes);
+            } else {
+                showToast('Saved offline — will sync when online', 'success');
             }
-        }).catch(() => { /* network failure — session stays in queue for later sync */ });
+        }).catch(() => {
+            showToast('Saved offline — will sync when online', 'success');
+        });
 
         return true;
-    }, [abandonDraftSession, backdateEnabled, backdateValue, draftSession, enqueue, handleNotesModalClose, reload, selectedExercise, showSaveSuccess, sync]);
+    }, [abandonDraftSession, backdateEnabled, backdateValue, draftSession, enqueue, handleNotesModalClose, reload, selectedExercise, showSaveSuccess, showToast, sync]);
 
     return {
         selectedExerciseId, selectedExercise, draftSession, isTimerOpen, panelResetToken, pendingSetPatch, notesModalOpen,

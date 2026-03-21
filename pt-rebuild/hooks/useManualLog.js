@@ -18,7 +18,6 @@ export function useManualLog({
     setDraftSession,
     setIsTimerOpen,
     setPanelResetToken,
-    showSaveSuccess,
     maybeAnnounceAllSetsComplete,
 }) {
     const [manualLogState, setManualLogState] = useState(emptyManualLogState);
@@ -117,10 +116,11 @@ export function useManualLog({
         setDraftSession((previous) => (previous ? { ...previous, sets: nextLoggedSets } : previous));
         setManualLogState(emptyManualLogState());
         setIsTimerOpen(true);
-        showSaveSuccess('');
+        // No toast here — session is only added to draftSession, not yet saved to server.
+        // Toast fires in handleSaveFinishedSession after Done + confirmed sync.
         maybeAnnounceAllSetsComplete(selectedExercise, nextLoggedSets);
         setPanelResetToken((value) => value + 1);
-    }, [draftSession, manualLogState.exercise, manualLogState.sets, maybeAnnounceAllSetsComplete, selectedExercise, setDraftSession, setIsTimerOpen, setPanelResetToken, showSaveSuccess]);
+    }, [draftSession, manualLogState.exercise, manualLogState.sets, maybeAnnounceAllSetsComplete, selectedExercise, setDraftSession, setIsTimerOpen, setPanelResetToken]);
 
     const handleManualModalClose = useCallback(() => {
         setManualLogState(emptyManualLogState());

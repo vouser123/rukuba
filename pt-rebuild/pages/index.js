@@ -137,7 +137,6 @@ export default function IndexPage() {
         setDraftSession,
         setIsTimerOpen,
         setPanelResetToken,
-        showSaveSuccess,
         maybeAnnounceAllSetsComplete,
     });
     manualOpenRef.current = manualLog.openManualLog;
