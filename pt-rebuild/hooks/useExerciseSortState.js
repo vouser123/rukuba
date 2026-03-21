@@ -66,6 +66,7 @@ export function useExerciseSortState(userId, exercises = []) {
 
     useEffect(() => {
         if (!restoredState || restoredState.userId !== userId) return;
+        if (exercises.length === 0) return;
 
         const sameSortMode = sortMode === restoredState.sortMode;
         const sameManualOrder = normalizedManualOrderIds.length === restoredNormalizedOrderIds.length
@@ -74,20 +75,20 @@ export function useExerciseSortState(userId, exercises = []) {
         if (sameSortMode && sameManualOrder) {
             setHydratedUserId(userId);
         }
-    }, [normalizedManualOrderIds, restoredNormalizedOrderIds, restoredState, sortMode, userId]);
+    }, [exercises.length, normalizedManualOrderIds, restoredNormalizedOrderIds, restoredState, sortMode, userId]);
 
     useEffect(() => {
-        if (typeof window === 'undefined' || !userId || hydratedUserId !== userId) return;
+        if (typeof window === 'undefined' || !userId || hydratedUserId !== userId || exercises.length === 0) return;
         window.localStorage.setItem(getSortModeStorageKey(userId), sortMode);
-    }, [hydratedUserId, sortMode, userId]);
+    }, [exercises.length, hydratedUserId, sortMode, userId]);
 
     useEffect(() => {
-        if (typeof window === 'undefined' || !userId || hydratedUserId !== userId) return;
+        if (typeof window === 'undefined' || !userId || hydratedUserId !== userId || exercises.length === 0) return;
         window.localStorage.setItem(
             getExerciseOrderStorageKey(userId),
             JSON.stringify(normalizedManualOrderIds)
         );
-    }, [hydratedUserId, normalizedManualOrderIds, userId]);
+    }, [exercises.length, hydratedUserId, normalizedManualOrderIds, userId]);
 
     return {
         sortMode,
