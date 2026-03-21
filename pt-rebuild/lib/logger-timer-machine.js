@@ -1,3 +1,4 @@
+// lib/logger-timer-machine.js — pure timer/cue transition helpers for tracker logging flows
 import { createInitialTimerState } from './timer-panel.js';
 
 export function createLoggerTimerState({
