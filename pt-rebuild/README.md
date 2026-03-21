@@ -9,6 +9,12 @@ This folder contains two active code surfaces that agents must distinguish befor
 - Legacy surface: [`public/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public) and [`api/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/api). Some HTML pages in `public/` still define live or parity-relevant behavior.
 - Next.js surface: [`pages/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages), [`components/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components), [`hooks/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks), and the Next.js-layer files in [`lib/`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib).
 
+Default routing rule:
+
+- Treat the legacy static surface as frozen for routine work.
+- Only touch legacy/static files for user-approved work, security issues, or explicit migration/parity work that must read or preserve the static contract.
+- Put normal feature work, cleanup, shared-pattern alignment, and modernization on the Next.js surface.
+
 Use [`docs/NEXTJS_MIGRATION_STATUS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/NEXTJS_MIGRATION_STATUS.md) only for migration-status context. Use this README for the current file-ownership map.
 
 ## Current Route And Legacy Surface Map

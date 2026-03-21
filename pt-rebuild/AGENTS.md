@@ -34,6 +34,7 @@ Session-start requirement:
 - Use a docs-first workflow: check the canonical references before editing code.
 - Review `pt-rebuild/README.md` at session start as the first-stop map for what currently exists in the old and new app structures.
 - Use `pt-rebuild/README.md` as the practical guide for what shared files own, when to use them, where they fit in the stack, and where adjacent logic should not go.
+- Treat the static legacy surface as frozen unless the work is user-approved or a security issue. Default all routine feature, cleanup, and pattern-alignment work to the Next.js surface.
 - Do not invent new field names when existing vocabulary/schema terms are available.
 - Prefer plain JavaScript and browser APIs unless explicitly instructed otherwise.
 - Preserve offline/PWA behavior and iOS-safe interaction patterns (`pointerup`, touch-safe UI behavior).

@@ -7,6 +7,7 @@ Use this file to answer "which shared thing should I use?" and "what should I av
 
 These patterns are the default for current maintained codepaths, especially shared React and Next.js surfaces.
 Legacy static pages may preserve existing patterns unless the work is already migrating that surface or extracting a shared helper on purpose.
+Treat the static legacy surface as frozen for routine cleanup. Only apply these patterns there when the work is user-approved, a security issue, or an explicit migration/parity task.
 
 ## Selects And Option Lists
 
