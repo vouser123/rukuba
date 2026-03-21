@@ -200,7 +200,7 @@ export default function IndexPage() {
     }
 
     if (authLoading) return null;
-    if (!session) return <AuthForm title="PT Tracker Sign In" onSignIn={signIn} />;
+    if (!session) return <AuthForm onSignIn={signIn} />;
 
     const backdateWarningVisible = Boolean(
         draftSession

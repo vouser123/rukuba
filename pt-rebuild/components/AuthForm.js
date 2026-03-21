@@ -7,7 +7,7 @@
  *
  * Usage:
  *   <AuthForm
- *     title="Coverage Analysis Sign In"
+ *     title="Sign In"
  *     onSignIn={signIn}   // from useAuth()
  *   />
  *

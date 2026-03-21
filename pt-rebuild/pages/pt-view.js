@@ -254,7 +254,7 @@ export default function PtViewPage() {
     if (authLoading) return null;
 
     if (!session) {
-        return <AuthForm title="Rehab History Sign In" onSignIn={signIn} />;
+        return <AuthForm onSignIn={signIn} />;
     }
 
     return (

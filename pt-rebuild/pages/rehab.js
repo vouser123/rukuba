@@ -83,7 +83,6 @@ export default function RehabCoverage() {
             {/* Auth form — shown when not signed in (and auth check has resolved) */}
             {!session && !authLoading && (
                 <AuthForm
-                    title="Coverage Analysis Sign In"
                     onSignIn={signIn}
                 />
             )}
