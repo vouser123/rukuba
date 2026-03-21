@@ -127,7 +127,15 @@ export function useIndexOfflineQueue(userId, accessToken) {
         setQueue([]);
     }, [userId]);
 
-    // Auto-sync when coming back online
+    // Auto-sync on mount if already online with stranded queue items.
+    // Catches the case where the app opens while online but has queued sessions
+    // from a previous offline session (the 'online' event never fires in this case).
+    useEffect(() => {
+        if (!queueLoaded || !navigator.onLine) return;
+        if (queueRef.current.length > 0) sync();
+    }, [queueLoaded, sync]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Auto-sync when coming back online mid-session
     useEffect(() => {
         function handleOnline() {
             if (queueRef.current.length > 0) sync();
