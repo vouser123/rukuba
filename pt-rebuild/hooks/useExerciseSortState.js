@@ -57,12 +57,13 @@ export function useExerciseSortState(userId, exercises = []) {
     );
 
     useEffect(() => {
+        if (exercises.length === 0) return;
         if (manualOrderIds.length === normalizedManualOrderIds.length
             && manualOrderIds.every((id, index) => id === normalizedManualOrderIds[index])) {
             return;
         }
         setManualOrderIdsState(normalizedManualOrderIds);
-    }, [manualOrderIds, normalizedManualOrderIds]);
+    }, [exercises.length, manualOrderIds, normalizedManualOrderIds]);
 
     useEffect(() => {
         if (!restoredState || restoredState.userId !== userId) return;
