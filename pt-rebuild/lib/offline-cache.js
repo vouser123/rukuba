@@ -143,6 +143,21 @@ class OfflineCache {
     });
   }
 
+  async removeUiState(key) {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(['ui_state'], 'readwrite');
+      const store = tx.objectStore('ui_state');
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(new Error('Transaction aborted for ui_state'));
+
+      store.delete(key);
+    });
+  }
+
   cacheUsers(users) {
     return this.replaceAll('users', users ?? []);
   }
@@ -195,6 +210,25 @@ class OfflineCache {
   /** Retrieve cached roles API response, or null if not yet cached. */
   getCachedRolesData() {
     return this.getUiState('rehab_roles_data', null);
+  }
+
+  cacheTrackerBootstrap(patientId, data) {
+    return this.setUiState('tracker_bootstrap', {
+      patientId,
+      exercises: data?.exercises ?? [],
+      programs: data?.programs ?? [],
+      logs: data?.logs ?? [],
+    });
+  }
+
+  async getCachedTrackerBootstrap(patientId) {
+    const cached = await this.getUiState('tracker_bootstrap', null);
+    if (!cached || cached.patientId !== patientId) return null;
+    return cached;
+  }
+
+  clearTrackerBootstrap() {
+    return this.removeUiState('tracker_bootstrap');
   }
 
   /** Cache editor vocabularies for /program offline bootstrap. */

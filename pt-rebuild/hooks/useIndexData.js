@@ -40,6 +40,11 @@ export function useIndexData(token, patientId) {
                     offlineCache.cacheExercises(nextExercises),
                     offlineCache.cachePrograms(nextPrograms),
                     offlineCache.cacheLogs(nextLogs),
+                    offlineCache.cacheTrackerBootstrap(patientId, {
+                        exercises: nextExercises,
+                        programs: nextPrograms,
+                        logs: nextLogs,
+                    }),
                 ]);
             }
             setExercises(nextExercises);
@@ -54,11 +59,10 @@ export function useIndexData(token, patientId) {
 
             try {
                 await offlineCache.init();
-                const [cachedExercises, cachedPrograms, cachedLogs] = await Promise.all([
-                    offlineCache.getCachedExercises(),
-                    offlineCache.getCachedPrograms(),
-                    offlineCache.getCachedLogs(),
-                ]);
+                const cachedBootstrap = await offlineCache.getCachedTrackerBootstrap(patientId);
+                const cachedExercises = cachedBootstrap?.exercises ?? [];
+                const cachedPrograms = cachedBootstrap?.programs ?? [];
+                const cachedLogs = cachedBootstrap?.logs ?? [];
                 const hasCachedData = cachedExercises.length > 0 || cachedPrograms.length > 0 || cachedLogs.length > 0;
 
                 if (hasCachedData) {
@@ -91,6 +95,7 @@ export function useIndexData(token, patientId) {
                     offlineCache.clearExercises(),
                     offlineCache.clearPrograms(),
                     offlineCache.clearLogs(),
+                    offlineCache.clearTrackerBootstrap(),
                 ]).catch((cacheError) => {
                     console.error('useIndexData cache clear failed:', cacheError);
                 });
