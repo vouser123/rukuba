@@ -1,5 +1,5 @@
 // components/ExercisePicker.js — exercise list/search/select UI with dosage, sort, and manual ordering
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './ExercisePicker.module.css';
 import NativeSelect from './NativeSelect';
 import {
@@ -61,6 +61,9 @@ export default function ExercisePicker({
     const [dragState, setDragState] = useState(null);
     const [previewOrderIds, setPreviewOrderIds] = useState(null);
     const cardRefs = useRef(new Map());
+    const dragTargetRef = useRef(null);
+    const dragOverlayRef = useRef(null);
+    const listRef = useRef(null);
 
     const programsByExercise = useMemo(() => {
         const map = new Map();
@@ -97,13 +100,19 @@ export default function ExercisePicker({
         cardRefs.current.set(exerciseId, node);
     }
 
-    function finishDrag(pointerTarget) {
+    function finishDrag(pointerId = dragState?.pointerId) {
         if (!dragState) return;
-        if (pointerTarget && dragState.pointerId != null) {
+        if (dragTargetRef.current && dragState.pointerId != null) {
             try {
-                pointerTarget.releasePointerCapture?.(dragState.pointerId);
+                dragTargetRef.current.releasePointerCapture?.(pointerId);
             } catch {}
         }
+        if (dragOverlayRef.current && dragState.pointerId != null) {
+            try {
+                dragOverlayRef.current.releasePointerCapture?.(pointerId);
+            } catch {}
+        }
+        dragTargetRef.current = null;
 
         if (dragState.dragging && previewOrderIds) {
             onManualOrderChange?.(previewOrderIds);
@@ -122,8 +131,9 @@ export default function ExercisePicker({
         const rect = card?.getBoundingClientRect();
 
         event.currentTarget.setPointerCapture?.(event.pointerId);
+        dragTargetRef.current = event.currentTarget;
         setDragState({
-            dragging: false,
+            dragging: true,
             pointerId: event.pointerId,
             exerciseId: exercise.id,
             exerciseName: exercise.canonical_name,
@@ -141,46 +151,91 @@ export default function ExercisePicker({
 
     function handleDragMove(event) {
         if (!dragState || event.pointerId !== dragState.pointerId) return;
-        event.preventDefault();
-        event.stopPropagation();
+        if (event.cancelable) event.preventDefault();
 
         const nextX = event.clientX;
         const nextY = event.clientY;
-        const distance = Math.hypot(nextX - dragState.startX, nextY - dragState.startY);
-        const nowDragging = dragState.dragging || distance > 6;
+        const listRect = listRef.current?.getBoundingClientRect();
+
+        if (!listRect
+            || nextX < listRect.left - 24
+            || nextX > listRect.right + 24
+            || nextY < listRect.top
+            || nextY > listRect.bottom) {
+            setPreviewOrderIds(null);
+            setDragState((previous) => previous ? {
+                ...previous,
+                dragging: true,
+                x: nextX,
+                y: nextY,
+            } : previous);
+            return;
+        }
+
         const currentOrderIds = previewOrderIds ?? normalizedManualOrderIds;
 
-        let nextPreviewOrderIds = previewOrderIds;
-        if (nowDragging) {
-            const sourceIndex = visibleExerciseIds.indexOf(dragState.exerciseId);
-            let targetIndex = visibleExerciseIds.length - 1;
+        const sourceIndex = visibleExerciseIds.indexOf(dragState.exerciseId);
+        let targetIndex = visibleExerciseIds.length - 1;
 
-            for (let index = 0; index < visibleExerciseIds.length; index += 1) {
-                const id = visibleExerciseIds[index];
-                const rect = cardRefs.current.get(id)?.getBoundingClientRect();
-                if (!rect) continue;
-                if (nextY < rect.top + rect.height / 2) {
-                    targetIndex = index;
-                    break;
-                }
+        for (let index = 0; index < visibleExerciseIds.length; index += 1) {
+            const id = visibleExerciseIds[index];
+            const rect = cardRefs.current.get(id)?.getBoundingClientRect();
+            if (!rect) continue;
+            if (nextY < rect.top + rect.height / 2) {
+                targetIndex = index;
+                break;
             }
-
-            nextPreviewOrderIds = reorderVisibleSubset(
-                currentOrderIds,
-                visibleExerciseIds,
-                sourceIndex,
-                targetIndex
-            );
-            setPreviewOrderIds(nextPreviewOrderIds);
         }
+
+        const nextPreviewOrderIds = reorderVisibleSubset(
+            currentOrderIds,
+            visibleExerciseIds,
+            sourceIndex,
+            targetIndex
+        );
+        setPreviewOrderIds(nextPreviewOrderIds);
 
         setDragState((previous) => previous ? {
             ...previous,
-            dragging: nowDragging,
+            dragging: true,
             x: nextX,
             y: nextY,
         } : previous);
     }
+
+    function handleDragEnd(event) {
+        if (!dragState || event.pointerId !== dragState.pointerId) return;
+        finishDrag(event.pointerId);
+    }
+
+    useEffect(() => {
+        if (!dragState) return;
+        const { body, documentElement } = document;
+        const previousBodyTouchAction = body.style.touchAction;
+        const previousBodyUserSelect = body.style.userSelect;
+        const previousHtmlTouchAction = documentElement.style.touchAction;
+        body.style.touchAction = 'none';
+        body.style.userSelect = 'none';
+        documentElement.style.touchAction = 'none';
+        if (dragOverlayRef.current) {
+            try {
+                dragOverlayRef.current.setPointerCapture?.(dragState.pointerId);
+            } catch {}
+        }
+
+        window.addEventListener('pointermove', handleDragMove, { passive: false });
+        window.addEventListener('pointerup', handleDragEnd);
+        window.addEventListener('pointercancel', handleDragEnd);
+
+        return () => {
+            body.style.touchAction = previousBodyTouchAction;
+            body.style.userSelect = previousBodyUserSelect;
+            documentElement.style.touchAction = previousHtmlTouchAction;
+            window.removeEventListener('pointermove', handleDragMove);
+            window.removeEventListener('pointerup', handleDragEnd);
+            window.removeEventListener('pointercancel', handleDragEnd);
+        };
+    }, [dragState, handleDragEnd, handleDragMove]);
 
     return (
         <section className={styles.panel} aria-label="Exercise picker">
@@ -211,7 +266,7 @@ export default function ExercisePicker({
                 <div className={styles.empty}>No exercises found.</div>
             )}
 
-            <div className={styles.list}>
+            <div ref={listRef} className={styles.list}>
                 {visibleExercises.map((exercise) => {
                     const program = programsByExercise.get(exercise.id) ?? null;
                     const adherence = getAdherence(program);
@@ -247,9 +302,6 @@ export default function ExercisePicker({
                                     className={styles.dragHandle}
                                     aria-label={`Reorder ${exercise.canonical_name}`}
                                     onPointerDown={(event) => handleDragStart(event, exercise)}
-                                    onPointerMove={handleDragMove}
-                                    onPointerUp={(event) => finishDrag(event.currentTarget)}
-                                    onPointerCancel={(event) => finishDrag(event.currentTarget)}
                                 >
                                     <span className={styles.dragGrip} aria-hidden="true">
                                         <span className={styles.dragDot} />
@@ -267,18 +319,28 @@ export default function ExercisePicker({
             </div>
 
             {dragState?.dragging && (
-                <div
-                    className={styles.dragGhost}
-                    style={{
-                        left: `${dragState.x - dragState.offsetX}px`,
-                        top: `${dragState.y - dragState.offsetY}px`,
-                        width: dragState.width ? `${dragState.width}px` : undefined,
-                    }}
-                    aria-hidden="true"
-                >
-                    <span className={styles.name}>{dragState.exerciseName}</span>
-                    <span className={styles.dosage}>{dragState.dosageText}</span>
-                </div>
+                <>
+                    <div
+                        ref={dragOverlayRef}
+                        className={styles.dragOverlay}
+                        aria-hidden="true"
+                        onPointerMove={handleDragMove}
+                        onPointerUp={handleDragEnd}
+                        onPointerCancel={handleDragEnd}
+                    />
+                    <div
+                        className={styles.dragGhost}
+                        style={{
+                            left: `${dragState.x - dragState.offsetX}px`,
+                            top: `${dragState.y - dragState.offsetY}px`,
+                            width: dragState.width ? `${dragState.width}px` : undefined,
+                        }}
+                        aria-hidden="true"
+                    >
+                        <span className={styles.name}>{dragState.exerciseName}</span>
+                        <span className={styles.dosage}>{dragState.dosageText}</span>
+                    </div>
+                </>
             )}
         </section>
     );
