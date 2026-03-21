@@ -25,7 +25,6 @@ import MessagesModal from '../components/MessagesModal';
 import Toast from '../components/Toast';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildSessionProgress } from '../lib/index-tracker-session';
-import { collectGlobalParameterValues } from '../lib/session-form-params';
 import styles from './index.module.css';
 
 export default function IndexPage() {
@@ -120,6 +119,7 @@ export default function IndexPage() {
         handleConfirmNextSet,
         handleEditNextSet,
         handleSaveFinishedSession,
+        buildExerciseFormContext,
     } = trackerSession;
 
     const { maybeAnnounceAllSetsComplete, showSaveSuccess, speakText } = useLoggerFeedback(selectedExercise, sessionStartedAt, showToast);
@@ -127,6 +127,7 @@ export default function IndexPage() {
     const manualLog = useManualLog({
         draftSession,
         selectedExercise,
+        buildExerciseFormContext,
         setDraftSession,
         setIsTimerOpen,
         setPanelResetToken,
@@ -138,7 +139,6 @@ export default function IndexPage() {
     const logger = useSessionLogging(token, userId, reload, enqueue);
     // profileId (users table PK) is the correct viewer id for message sender comparisons — not userId (auth_id)
     const msgs = useMessages(token, userCtx.profileId);
-    const historicalFormParams = useMemo(() => collectGlobalParameterValues(allLogs), [allLogs]);
     const pickerPrograms = useMemo(() => {
         if (programs.length > 0) {
             return programs.map((program) => ({
@@ -300,7 +300,7 @@ export default function IndexPage() {
                     onSetChange={manualLog.manualLogState.isOpen ? manualLog.updateManualSet : logger.updateSet}
                     onFormParamChange={manualLog.manualLogState.isOpen ? manualLog.updateManualFormParam : logger.updateFormParam}
                     onSubmit={manualLog.manualLogState.isOpen ? manualLog.handleManualModalSubmit : handleHistoryModalSubmit}
-                    historicalFormParams={historicalFormParams}
+                    historicalFormParams={(manualLog.manualLogState.isOpen ? manualLog.manualLogState.exercise : logger.exercise)?.historical_form_params ?? {}}
                 />
 
                 <TimerPanel

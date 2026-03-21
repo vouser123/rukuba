@@ -1,7 +1,7 @@
 // hooks/useTrackerSession.js — active tracker session state and lifecycle handlers for pages/index.js
 import { useCallback, useMemo, useState } from 'react';
 import { buildOptimisticLogEntry, createDraftSession, toLocalDateTimeInputValue } from '../lib/index-tracker-session';
-import { buildDefaultFormDataForExercise } from '../lib/session-form-params';
+import { buildDefaultFormDataForExercise, collectParameterValuesForExercise } from '../lib/session-form-params';
 import { getProgressComparison } from '../lib/logger-progress-comparison';
 import { buildCreatePayload, inferActivityType, normalizeSet } from '../lib/session-logging';
 
@@ -31,6 +31,22 @@ export function useTrackerSession({
     const sessionStartedAt = useMemo(() => draftSession?.date ?? new Date().toISOString(), [draftSession?.date]);
     const allLogs = useMemo(() => [...optimisticLogs, ...logs], [logs, optimisticLogs]);
 
+    const buildExerciseFormContext = useCallback((exercise, side = null) => {
+        if (!exercise) return null;
+        const sessionSets = draftSession?.exerciseId === exercise.id ? (draftSession.sets ?? []) : [];
+        const scopedSide = exercise.pattern === 'side' ? (side ?? 'right') : null;
+        return {
+            ...exercise,
+            default_form_data: buildDefaultFormDataForExercise(exercise, allLogs, { side: scopedSide, sessionSets }),
+            historical_form_params: exercise.pattern === 'side'
+                ? {
+                    left: collectParameterValuesForExercise(allLogs, exercise.id, exercise.form_parameters_required ?? [], { side: 'left', sessionSets }),
+                    right: collectParameterValuesForExercise(allLogs, exercise.id, exercise.form_parameters_required ?? [], { side: 'right', sessionSets }),
+                }
+                : collectParameterValuesForExercise(allLogs, exercise.id, exercise.form_parameters_required ?? [], { sessionSets }),
+        };
+    }, [allLogs, draftSession]);
+
     const abandonDraftSession = useCallback(() => {
         setDraftSession(null);
         setSelectedExerciseId(null);
@@ -45,14 +61,14 @@ export function useTrackerSession({
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
-        const enrichedSelected = selected ? { ...selected, default_form_data: selected.default_form_data ?? buildDefaultFormDataForExercise(selected, allLogs) } : null;
+        const enrichedSelected = selected ? buildExerciseFormContext(selected, selected.pattern === 'side' ? 'right' : null) : null;
         setSelectedExercise(enrichedSelected);
         if (!enrichedSelected) return;
         setDraftSession(createDraftSession(enrichedSelected, inferActivityType(enrichedSelected)));
         setPendingSetPatch(null);
         setActiveExercise({ id: enrichedSelected.id, name: enrichedSelected.canonical_name || '' });
         setIsTimerOpen(true);
-    }, [allLogs, pickerExercises]);
+    }, [buildExerciseFormContext, pickerExercises]);
 
     const handleTimerBack = useCallback(() => {
         abandonDraftSession();
@@ -90,8 +106,12 @@ export function useTrackerSession({
 
     const handleTimerApplySet = useCallback((setPatch) => {
         if (!selectedExercise) return;
-        setPendingSetPatch({ ...setPatch, form_data: setPatch.form_data ?? selectedExercise.default_form_data ?? null });
-    }, [selectedExercise]);
+        const exerciseWithContext = buildExerciseFormContext(
+            selectedExercise,
+            selectedExercise.pattern === 'side' ? (setPatch.side ?? 'right') : null
+        );
+        setPendingSetPatch({ ...setPatch, form_data: setPatch.form_data ?? exerciseWithContext?.default_form_data ?? null });
+    }, [buildExerciseFormContext, selectedExercise]);
 
     const handleTimerOpenManual = useCallback((options = {}) => openManualLog(options), [openManualLog]);
 
@@ -149,6 +169,6 @@ export function useTrackerSession({
         setDraftSession, setPendingSetPatch, setBackdateValue, setActiveExercise, setIsTimerOpen, setPanelResetToken,
         handleExerciseSelect, handleTimerBack, handleFinishSession, handleNotesModalClose, handleCancelSession,
         handleToggleBackdate, handleTimerApplySet, handleTimerOpenManual, handleConfirmNextSet, handleEditNextSet,
-        handleSaveFinishedSession,
+        handleSaveFinishedSession, buildExerciseFormContext,
     };
 }

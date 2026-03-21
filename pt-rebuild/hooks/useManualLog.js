@@ -14,6 +14,7 @@ function emptyManualLogState() {
 export function useManualLog({
     draftSession,
     selectedExercise,
+    buildExerciseFormContext,
     setDraftSession,
     setIsTimerOpen,
     setPanelResetToken,
@@ -24,21 +25,25 @@ export function useManualLog({
 
     const openManualLog = useCallback((options = {}) => {
         if (!selectedExercise || !draftSession) return;
+        const side = selectedExercise.pattern === 'side' ? (options.side ?? options.seedSet?.side ?? 'right') : null;
+        const exerciseWithContext = buildExerciseFormContext
+            ? (buildExerciseFormContext(selectedExercise, side) ?? selectedExercise)
+            : selectedExercise;
         setManualLogState({
             isOpen: true,
-            exercise: selectedExercise,
+            exercise: exerciseWithContext,
             sets: [{
-                ...createDefaultSet(selectedExercise, 1),
+                ...createDefaultSet(exerciseWithContext, 1),
                 ...(options.seedSet ?? {}),
-                side: selectedExercise.pattern === 'side' ? (options.side ?? 'right') : null,
+                side: exerciseWithContext.pattern === 'side' ? side : null,
                 manual_log: true,
-                form_data: options.seedSet?.form_data ?? selectedExercise.default_form_data ?? null,
+                form_data: options.seedSet?.form_data ?? exerciseWithContext.default_form_data ?? null,
                 performed_at: draftSession.date,
             }],
             error: null,
         });
         setIsTimerOpen(false);
-    }, [draftSession, selectedExercise, setIsTimerOpen]);
+    }, [buildExerciseFormContext, draftSession, selectedExercise, setIsTimerOpen]);
 
     const handleManualAddSet = useCallback(() => {
         setManualLogState((previous) => ({
@@ -57,11 +62,24 @@ export function useManualLog({
     }, []);
 
     const updateManualSet = useCallback((index, patch) => {
-        setManualLogState((previous) => ({
-            ...previous,
-            sets: previous.sets.map((set, setIndex) => (setIndex === index ? { ...set, ...patch } : set)),
-        }));
-    }, []);
+        setManualLogState((previous) => {
+            const nextExercise = patch.side && previous.exercise?.pattern === 'side' && buildExerciseFormContext
+                ? (buildExerciseFormContext(previous.exercise, patch.side) ?? previous.exercise)
+                : previous.exercise;
+            return {
+                ...previous,
+                exercise: nextExercise,
+                sets: previous.sets.map((set, setIndex) => {
+                    if (setIndex !== index) return set;
+                    const nextSet = { ...set, ...patch };
+                    if (patch.side && previous.exercise?.pattern === 'side' && !patch.form_data) {
+                        return { ...nextSet, form_data: nextExercise?.default_form_data ?? nextSet.form_data ?? null };
+                    }
+                    return nextSet;
+                }),
+            };
+        });
+    }, [buildExerciseFormContext]);
 
     const updateManualFormParam = useCallback((index, paramName, paramValue, paramUnit = null) => {
         setManualLogState((previous) => ({

@@ -191,7 +191,11 @@ export default function SessionLoggerModal({
                                         const options = parameterOptions(paramName);
                                         const hasUnit = options.length > 0;
                                         const currentUnit = existing?.parameter_unit || options[0] || null;
-                                        const historicalValues = [...(historicalFormParams[paramName] ?? [])];
+                                        const historicalValues = [...(
+                                            isSided
+                                                ? (historicalFormParams?.[set.side ?? 'right']?.[paramName] ?? [])
+                                                : (historicalFormParams?.[paramName] ?? [])
+                                        )];
                                         const existingValue = existing?.parameter_value ?? '';
                                         if (!hasUnit && existingValue && !historicalValues.includes(existingValue)) {
                                             historicalValues.push(existingValue);
