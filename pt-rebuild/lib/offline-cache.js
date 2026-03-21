@@ -94,6 +94,21 @@ class OfflineCache {
     });
   }
 
+  async clearStore(storeName) {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction([storeName], 'readwrite');
+      const store = tx.objectStore(storeName);
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(new Error(`Transaction aborted for store ${storeName}`));
+
+      store.clear();
+    });
+  }
+
   async setUiState(key, value) {
     await this.init();
 
@@ -144,6 +159,10 @@ class OfflineCache {
     return this.getAll('programs');
   }
 
+  clearPrograms() {
+    return this.clearStore('programs');
+  }
+
   cacheExercises(exercises) {
     return this.replaceAll('exercises', exercises ?? []);
   }
@@ -152,12 +171,20 @@ class OfflineCache {
     return this.getAll('exercises');
   }
 
+  clearExercises() {
+    return this.clearStore('exercises');
+  }
+
   cacheLogs(logs) {
     return this.replaceAll('activity_logs', logs ?? []);
   }
 
   getCachedLogs() {
     return this.getAll('activity_logs');
+  }
+
+  clearLogs() {
+    return this.clearStore('activity_logs');
   }
 
   /** Cache the full roles API response { user_role, roles } for rehab offline fallback. */
