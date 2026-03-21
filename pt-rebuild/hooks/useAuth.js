@@ -17,6 +17,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+function isOfflineSignInError(error) {
+    const message = String(error?.message ?? '').toLowerCase();
+    return (
+        typeof navigator !== 'undefined' && navigator.onLine === false
+    ) || message.includes('failed to fetch')
+        || message.includes('network request failed')
+        || message.includes('networkerror')
+        || message.includes('fetch failed');
+}
+
 export function useAuth() {
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -51,7 +61,13 @@ export function useAuth() {
      */
     async function signIn(email, password) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        return error ? error.message : null;
+        if (!error) return null;
+
+        if (isOfflineSignInError(error)) {
+            return 'Signing in requires an internet connection. If you already signed in on this device before going offline, reopen the app and it should restore your saved session.';
+        }
+
+        return error.message;
     }
 
     /** Sign out the current user. */

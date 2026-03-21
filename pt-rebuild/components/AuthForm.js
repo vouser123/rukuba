@@ -16,7 +16,7 @@
  *   onSignIn: function,   (email, password) => Promise<string|null> — error message or null
  * }} props
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './AuthForm.module.css';
 
 export default function AuthForm({ title = 'Sign In', onSignIn }) {
@@ -24,6 +24,21 @@ export default function AuthForm({ title = 'Sign In', onSignIn }) {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [isOffline, setIsOffline] = useState(false);
+
+    useEffect(() => {
+        if (typeof navigator === 'undefined' || typeof window === 'undefined') return undefined;
+
+        const syncOnlineState = () => setIsOffline(navigator.onLine === false);
+        syncOnlineState();
+        window.addEventListener('online', syncOnlineState);
+        window.addEventListener('offline', syncOnlineState);
+
+        return () => {
+            window.removeEventListener('online', syncOnlineState);
+            window.removeEventListener('offline', syncOnlineState);
+        };
+    }, []);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -38,6 +53,11 @@ export default function AuthForm({ title = 'Sign In', onSignIn }) {
         <div className={styles['auth-modal']}>
             <div className={styles['auth-content']}>
                 <h2>{title}</h2>
+                {isOffline && (
+                    <p className={styles['auth-hint']}>
+                        Signing in needs internet access. If this device already has a saved session, reopening the app while offline may restore it automatically.
+                    </p>
+                )}
                 <form onSubmit={handleSubmit} className={styles['auth-form']}>
                     <input
                         type="email"
