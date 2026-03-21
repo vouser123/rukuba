@@ -11,6 +11,7 @@ import { useSessionLogging } from '../hooks/useSessionLogging';
 import { useLoggerFeedback } from '../hooks/useLoggerFeedback';
 import { useToast } from '../hooks/useToast';
 import { useMessages } from '../hooks/useMessages';
+import { useUserContext } from '../hooks/useUserContext';
 import AuthForm from '../components/AuthForm';
 import NavMenu from '../components/NavMenu';
 import HistoryPanel from '../components/HistoryPanel';
@@ -22,7 +23,6 @@ import SessionNotesModal from '../components/SessionNotesModal';
 import TimerPanel from '../components/TimerPanel';
 import MessagesModal from '../components/MessagesModal';
 import Toast from '../components/Toast';
-import { fetchUsers } from '../lib/users';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildSessionProgress } from '../lib/index-tracker-session';
 import { collectGlobalParameterValues } from '../lib/session-form-params';
@@ -38,16 +38,18 @@ export default function IndexPage() {
     const [activeTab, setActiveTab] = useState('exercises');
     const [sortMode, setSortMode] = useState('pt_order');
     const [isMessagesOpen, setIsMessagesOpen] = useState(false);
-    const [recipientId, setRecipientId] = useState(null);
+
+    // User identity and messaging context — shared hook, reusable on any page.
+    // profileId = users table PK — matches sender_id/recipient_id in clinical_messages.
+    // userId (session.user.id) is the Supabase auth UUID; always use profileId for message comparisons.
+    const userCtx = useUserContext(session);
+
+    // Local emailEnabled state — initialized from server value once userCtx loads.
+    // Kept local so the toggle can optimistically update without re-fetching users.
     const [emailEnabled, setEmailEnabled] = useState(true);
-    // profileId = users table PK (e.g. "35c3ec8d...") — matches sender_id/recipient_id in clinical_messages.
-    // This is different from userId (session.user.id = Supabase auth UUID / auth_id in users table).
-    // Always use profileId for message sender comparisons; userId is only for data fetching scoped to auth.
-    const [profileId, setProfileId] = useState(null);
-    // Display names for message sender labels ("Cindi > Melanie (PT)")
-    const [viewerName, setViewerName] = useState('');
-    const [otherName, setOtherName] = useState('');
-    const [otherIsTherapist, setOtherIsTherapist] = useState(false);
+    useEffect(() => {
+        if (!userCtx.loading) setEmailEnabled(userCtx.emailEnabled);
+    }, [userCtx.emailEnabled, userCtx.loading]);
 
     const pickerExercises = useMemo(() => {
         if (programs.length === 0) return exercises;
@@ -135,7 +137,7 @@ export default function IndexPage() {
 
     const logger = useSessionLogging(token, userId, reload, enqueue);
     // profileId (users table PK) is the correct viewer id for message sender comparisons — not userId (auth_id)
-    const msgs = useMessages(token, profileId);
+    const msgs = useMessages(token, userCtx.profileId);
     const historicalFormParams = useMemo(() => collectGlobalParameterValues(allLogs), [allLogs]);
     const pickerPrograms = useMemo(() => {
         if (programs.length > 0) {
@@ -179,29 +181,6 @@ export default function IndexPage() {
     useEffect(() => {
         if (!logger.isOpen) setActiveExercise(null);
     }, [logger.isOpen, setActiveExercise]);
-
-    useEffect(() => {
-        if (!session) return;
-        fetchUsers(token).then((users) => {
-            const current = users.find((user) => user.auth_id === session.user.id);
-            if (!current) return;
-            setEmailEnabled(current.email_notifications_enabled ?? true);
-            // profileId = users table PK — needed for sender_id comparison in messages
-            setProfileId(current.id);
-            setViewerName(current.first_name || '');
-            let otherUser = null;
-            if (current.role === 'therapist') {
-                const patient = users.find((user) => user.therapist_id === current.id);
-                setRecipientId(patient?.id ?? null);
-                otherUser = patient ?? null;
-            } else {
-                setRecipientId(current.therapist_id ?? null);
-                otherUser = users.find((u) => u.id === current.therapist_id) ?? null;
-            }
-            setOtherName(otherUser?.first_name || '');
-            setOtherIsTherapist(otherUser?.role === 'therapist');
-        }).catch((err) => console.error('index fetchUsers:', err));
-    }, [session, token]);
 
     const handleSignOut = useCallback(async () => {
         clearQueue();
@@ -367,11 +346,11 @@ export default function IndexPage() {
                     isOpen={isMessagesOpen}
                     onClose={() => setIsMessagesOpen(false)}
                     messages={msgs.messages}
-                    viewerId={profileId}
-                    viewerName={viewerName}
-                    otherName={otherName}
-                    otherIsTherapist={otherIsTherapist}
-                    recipientId={recipientId}
+                    viewerId={userCtx.profileId}
+                    viewerName={userCtx.viewerName}
+                    otherName={userCtx.otherName}
+                    otherIsTherapist={userCtx.otherIsTherapist}
+                    recipientId={userCtx.recipientId}
                     emailEnabled={emailEnabled}
                     onSend={msgs.send}
                     onArchive={msgs.archive}

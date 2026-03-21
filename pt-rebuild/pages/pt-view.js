@@ -12,6 +12,7 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useUserContext } from '../hooks/useUserContext';
 import { useMessages } from '../hooks/useMessages';
 import NavMenu from '../components/NavMenu';
 import AuthForm from '../components/AuthForm';
@@ -121,20 +122,25 @@ function FiltersPanel({ filters, programs, expanded, onToggle, onChange }) {
 
 export default function PtViewPage() {
     const { session, loading: authLoading, signIn, signOut } = useAuth();
-    const {
-        logs,
-        programs,
-        profileId,
-        recipientId,
-        emailEnabled,
-        userRole,
-        dataError,
-        offlineNotice,
-        setEmailEnabled,
-    } = usePtViewData(session);
+
+    // User identity and messaging context — shared hook, reusable on any page.
+    const userCtx = useUserContext(session);
+
+    // Logs and programs for this patient — waits for patientId from userCtx.
+    const { logs, programs, dataError, offlineNotice } = usePtViewData({
+        token: session?.access_token ?? null,
+        patientId: userCtx.patientId,
+    });
+
+    // Local emailEnabled state — initialized from server value once userCtx loads.
+    // Kept local so the toggle can optimistically update without re-fetching users.
+    const [emailEnabled, setEmailEnabled] = useState(true);
+    useEffect(() => {
+        if (!userCtx.loading) setEmailEnabled(userCtx.emailEnabled);
+    }, [userCtx.emailEnabled, userCtx.loading]);
 
     // Messages compare against sender_id / recipient_id, which use users.id profile values.
-    const msgs = useMessages(session?.access_token ?? null, profileId);
+    const msgs = useMessages(session?.access_token ?? null, userCtx.profileId);
 
     // UI state
     const [filters, setFilters] = useState({ exercise: '', dateFrom: '', dateTo: '', query: '' });
@@ -235,11 +241,11 @@ export default function PtViewPage() {
     }
 
     async function handleEmailToggle(enabled) {
-        setEmailEnabled(enabled);
+        setEmailEnabled(enabled); // optimistic update
         try {
             await patchEmailNotifications(session.access_token, enabled);
         } catch {
-            setEmailEnabled(!enabled); // revert on error
+            setEmailEnabled(!enabled); // revert on API error
         }
     }
 
@@ -277,7 +283,7 @@ export default function PtViewPage() {
                     </div>
                     <NavMenu
                         user={session.user}
-                        isAdmin={userRole !== 'patient'}
+                        isAdmin={userCtx.userRole !== 'patient'}
                         onSignOut={signOut}
                         currentPage="pt_view"
                         actions={[]}
@@ -331,8 +337,11 @@ export default function PtViewPage() {
                 isOpen={messagesOpen}
                 onClose={() => setMessagesOpen(false)}
                 messages={msgs.messages}
-                viewerId={profileId}
-                recipientId={recipientId}
+                viewerId={userCtx.profileId}
+                viewerName={userCtx.viewerName}
+                otherName={userCtx.otherName}
+                otherIsTherapist={userCtx.otherIsTherapist}
+                recipientId={userCtx.recipientId}
                 emailEnabled={emailEnabled}
                 onSend={msgs.send}
                 onArchive={msgs.archive}
