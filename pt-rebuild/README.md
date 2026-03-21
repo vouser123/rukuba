@@ -57,7 +57,7 @@ Pointers:
 
 Use these from `components/` when building or wiring Next.js pages. Prefer existing shared pieces before creating new page-local UI.
 
-- [`components/AuthForm.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/AuthForm.js): Shared sign-in form. Use it on authenticated pages instead of writing an inline login form. Basic usage: `<AuthForm title="..." onSignIn={signIn} />`.
+- [`components/AuthForm.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/AuthForm.js): Shared sign-in form. Use it on authenticated pages instead of writing an inline login form. It now shows shared offline guidance when the browser is offline so the user knows fresh sign-in still needs network access. Basic usage: `<AuthForm title="..." onSignIn={signIn} />`.
 - [`components/NavMenu.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/NavMenu.js): Shared React navigation drawer. Use it instead of legacy hamburger globals or script tags.
 - [`components/NativeSelect.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/NativeSelect.js): iOS-safe native select with optional "Other" text entry. Use it for app selects that need touch-safe behavior.
 - [`components/ExercisePicker.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/components/ExercisePicker.js): Exercise search, sort, and select UI for the tracker. Use it when the user needs to choose an exercise from the active program list.
@@ -166,7 +166,7 @@ Legacy API layer in `lib/`:
 
 Use these from `hooks/` to keep page files thin and consistent with the current migration structure.
 
-- [`hooks/useAuth.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useAuth.js): Shared authentication hook. Use it on any Next.js page that needs session, sign-in, or sign-out.
+- [`hooks/useAuth.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useAuth.js): Shared authentication hook. Use it on any Next.js page that needs session, sign-in, or sign-out. It preserves warmed-session offline restore behavior and converts offline sign-in network failures into clearer user-facing guidance.
 - [`hooks/useIndexData.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useIndexData.js): Loads tracker bootstrap data for exercises, programs, and logs.
 - [`hooks/useIndexOfflineQueue.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useIndexOfflineQueue.js): Manages the tracker offline queue, async IndexedDB hydration/persistence, sync, and sign-out cleanup.
 - [`hooks/useProgramOfflineQueue.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useProgramOfflineQueue.js): Manages the `/program` offline mutation queue lifecycle, including IndexedDB hydration, online replay, queue-status reporting, failed-change recovery state, and replay refresh against the resolved patient context.
