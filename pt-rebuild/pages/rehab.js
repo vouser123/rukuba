@@ -8,100 +8,38 @@
  *   <AuthForm />  — sign-in form from components/AuthForm.js
  *   <NavMenu />   — navigation sidebar from components/NavMenu.js
  *   supabase      — shared client from lib/supabase.js (used only for signOut here)
- *   buildCoverageData() — pure calculation from lib/rehab-coverage.js
+ *   useRehabCoverageData() — page bootstrap, caching, and offline fallback
  *
  * No window.*, no Script tags, no useRef plumbing to bridge React and globals.
  * CSS: page styles in rehab.module.css; component styles are self-contained.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Head from 'next/head';
 import { useAuth } from '../hooks/useAuth';
+import { useRehabCoverageData } from '../hooks/useRehabCoverageData';
 import { supabase } from '../lib/supabase';
 import NavMenu from '../components/NavMenu';
 import AuthForm from '../components/AuthForm';
 import CoverageSummary from '../components/CoverageSummary';
 import CoverageMatrix from '../components/CoverageMatrix';
-import { buildCoverageData, colorScoreToRGB, COVERAGE_CONSTANTS } from '../lib/rehab-coverage';
-import { offlineCache } from '../lib/offline-cache';
+import { colorScoreToRGB, COVERAGE_CONSTANTS } from '../lib/rehab-coverage';
 import styles from './rehab.module.css';
 
 export default function RehabCoverage() {
     const { session, loading: authLoading, signIn } = useAuth();
-
-    // User's role — determines which nav items are visible
-    const [userRole, setUserRole] = useState('patient');
-
-    // Data loading state
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-
-    // Coverage data returned by buildCoverageData()
-    const [coverageResult, setCoverageResult] = useState(null); // { coverageData, summary }
-    const [offlineNotice, setOfflineNotice] = useState(null);
+    const {
+        userRole,
+        loading,
+        error,
+        coverageResult,
+        offlineNotice,
+        reload,
+    } = useRehabCoverageData(session?.access_token ?? null);
 
     // UI interaction state — accordion open/close
     const [collapsedRegions, setCollapsedRegions] = useState(new Set());
     const [expandedCapacities, setExpandedCapacities] = useState(new Set());
     const [legendExpanded, setLegendExpanded] = useState(false);
-
-    // =========================================================================
-    // Data loading
-    // =========================================================================
-
-    /** Fetch logs + roles in parallel, compute coverage data. Caches to IndexedDB. */
-    const loadData = useCallback(async (accessToken) => {
-        setLoading(true);
-        setError(null);
-        setOfflineNotice(null);
-        try {
-            const headers = { Authorization: `Bearer ${accessToken}` };
-            const [logsRes, rolesRes] = await Promise.all([
-                fetch('/api/logs?limit=1000', { headers }),
-                fetch('/api/roles', { headers }),
-            ]);
-            if (!logsRes.ok) throw new Error(`Logs API: ${logsRes.status}`);
-            if (!rolesRes.ok) throw new Error(`Roles API: ${rolesRes.status}`);
-
-            const [logsData, rolesData] = await Promise.all([
-                logsRes.json(),
-                rolesRes.json(),
-            ]);
-
-            // Cache for offline fallback — fire and forget
-            void offlineCache.cacheLogs(logsData.logs || []);
-            void offlineCache.cacheRolesData(rolesData);
-
-            setUserRole(rolesData.user_role || 'patient');
-            setCoverageResult(buildCoverageData(logsData.logs || [], rolesData.roles || []));
-        } catch (err) {
-            console.error('loadData failed:', err);
-            // Network failed — try IndexedDB cache
-            try {
-                const [cachedLogs, cachedRoles] = await Promise.all([
-                    offlineCache.getCachedLogs(),
-                    offlineCache.getCachedRolesData(),
-                ]);
-                if (!cachedRoles) throw new Error('No cached coverage data available offline.');
-                setUserRole(cachedRoles.user_role || 'patient');
-                setCoverageResult(buildCoverageData(cachedLogs || [], cachedRoles.roles || []));
-                setOfflineNotice('Offline — showing cached data.');
-            } catch {
-                setError(err.message || 'Failed to load coverage data.');
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Load data when session becomes available; clear data on sign-out
-    useEffect(() => {
-        if (session) {
-            loadData(session.access_token);
-        } else if (!authLoading) {
-            setCoverageResult(null);
-            setUserRole('patient');
-        }
-    }, [session, authLoading, loadData]);
 
     // =========================================================================
     // UI event handlers
@@ -158,7 +96,7 @@ export default function RehabCoverage() {
                         <div className={styles['header-actions']}>
                             <button
                                 className={`${styles.btn} ${styles['btn-secondary']}`}
-                                onPointerUp={() => loadData(session.access_token)}
+                                onPointerUp={reload}
                                 aria-label="Refresh data"
                             >
                                 ↻
@@ -171,7 +109,7 @@ export default function RehabCoverage() {
                                 currentPage="rehab_coverage"
                                 actions={[{ action: 'refresh-data', icon: '🔄', label: 'Refresh Data' }]}
                                 onAction={(action) => {
-                                    if (action === 'refresh-data') loadData(session.access_token);
+                                    if (action === 'refresh-data') reload();
                                 }}
                             />
                         </div>

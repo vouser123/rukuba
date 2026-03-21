@@ -2,7 +2,8 @@
  * pt-view.js — Rehab History Dashboard (Phase 2 migration of pt_view.html).
  *
  * Architecture:
- *   Data fetching  → lib/pt-view.js (pure functions)
+ *   Data bootstrap → hooks/usePtViewData.js
+ *   Data helpers   → lib/pt-view.js (pure functions)
  *   Auth           → hooks/useAuth.js
  *   Messages       → hooks/useMessages.js + components/MessagesModal.js
  *   Exercise modal → components/ExerciseHistoryModal.js
@@ -19,12 +20,12 @@ import ExerciseHistoryModal from '../components/ExerciseHistoryModal';
 import PatientNotes from '../components/PatientNotes';
 import HistoryList from '../components/HistoryList';
 import NativeSelect from '../components/NativeSelect';
+import { usePtViewData } from '../hooks/usePtViewData';
 import {
-    fetchLogs, fetchPrograms,
     groupLogsByDate, findNeedsAttention, needsAttentionUrgency,
     computeSummaryStats, detectKeywords, applyFilters,
 } from '../lib/pt-view';
-import { fetchUsers, patchEmailNotifications, resolvePatientScopedUserContext } from '../lib/users';
+import { patchEmailNotifications } from '../lib/users';
 import { offlineCache } from '../lib/offline-cache';
 import styles from './pt-view.module.css';
 
@@ -120,19 +121,20 @@ function FiltersPanel({ filters, programs, expanded, onToggle, onChange }) {
 
 export default function PtViewPage() {
     const { session, loading: authLoading, signIn, signOut } = useAuth();
+    const {
+        logs,
+        programs,
+        profileId,
+        recipientId,
+        emailEnabled,
+        userRole,
+        dataError,
+        offlineNotice,
+        setEmailEnabled,
+    } = usePtViewData(session);
 
-    // Data
-    const [logs, setLogs]         = useState([]);
-    const [programs, setPrograms] = useState([]);
-    const [patientId, setPatientId]   = useState(null);
-    const [recipientId, setRecipientId] = useState(null);
-    const [emailEnabled, setEmailEnabled] = useState(true);
-    const [userRole, setUserRole] = useState('patient');
-    const [dataError, setDataError] = useState(null);
-    const [offlineNotice, setOfflineNotice] = useState(null);
-
-    // Messages compare against sender_id / recipient_id, which use auth_id values.
-    const msgs = useMessages(session?.access_token ?? null, session?.user?.id ?? null);
+    // Messages compare against sender_id / recipient_id, which use users.id profile values.
+    const msgs = useMessages(session?.access_token ?? null, profileId);
 
     // UI state
     const [filters, setFilters] = useState({ exercise: '', dateFrom: '', dateTo: '', query: '' });
@@ -174,73 +176,6 @@ export default function PtViewPage() {
             cancelled = true;
         };
     }, []);
-
-    // Load all data after sign-in
-    useEffect(() => {
-        if (!session) return;
-        const token = session.access_token;
-
-        async function applyBootstrap(usersData, logsArr, programsArr, notice = null) {
-            const { currentUser, patientUser, fallbackRecipientId } = resolvePatientScopedUserContext(usersData, session.user.id);
-            const pid = patientUser.id;
-
-            setPatientId(pid);
-            setUserRole(currentUser?.role ?? 'patient');
-            setEmailEnabled(currentUser?.email_notifications_enabled ?? true);
-            setRecipientId(fallbackRecipientId);
-            setLogs(logsArr ?? []);
-            setPrograms((programsArr ?? []).filter((program) => !program.exercises?.archived));
-            setOfflineNotice(notice);
-            setDataError(null);
-        }
-
-        async function loadFromCache(fallbackMessage) {
-            await offlineCache.init();
-            const [usersData, logsArr, programsArr] = await Promise.all([
-                offlineCache.getCachedUsers(),
-                offlineCache.getCachedLogs(),
-                offlineCache.getCachedPrograms(),
-            ]);
-
-            if (!usersData.length) {
-                throw new Error('No cached pt-view data available offline.');
-            }
-
-            await applyBootstrap(usersData, logsArr, programsArr, fallbackMessage);
-        }
-
-        async function load() {
-            try {
-                await offlineCache.init();
-                const usersData = await fetchUsers(token);
-                await offlineCache.cacheUsers(usersData);
-
-                const { patientUser } = resolvePatientScopedUserContext(usersData, session.user.id);
-                const pid = patientUser.id;
-                const [logsArr, programsArr] = await Promise.all([
-                    fetchLogs(token, pid),
-                    fetchPrograms(token, pid),
-                ]);
-
-                await Promise.all([
-                    offlineCache.cacheLogs(logsArr),
-                    offlineCache.cachePrograms(programsArr),
-                ]);
-
-                await applyBootstrap(usersData, logsArr, programsArr, null);
-            } catch (err) {
-                console.error('pt-view load:', err);
-                try {
-                    await loadFromCache('Offline - showing cached data.');
-                } catch (cacheError) {
-                    console.error('pt-view cache fallback:', cacheError);
-                    setOfflineNotice(null);
-                    setDataError(err.message);
-                }
-            }
-        }
-        load();
-    }, [session]);
 
     // Derived data
     const filteredLogs    = applyFilters(logs, filters);
@@ -303,8 +238,7 @@ export default function PtViewPage() {
         setEmailEnabled(enabled);
         try {
             await patchEmailNotifications(session.access_token, enabled);
-        } catch (err) {
-            console.error('emailToggle:', err);
+        } catch {
             setEmailEnabled(!enabled); // revert on error
         }
     }
@@ -397,7 +331,7 @@ export default function PtViewPage() {
                 isOpen={messagesOpen}
                 onClose={() => setMessagesOpen(false)}
                 messages={msgs.messages}
-                viewerId={session?.user?.id ?? null}
+                viewerId={profileId}
                 recipientId={recipientId}
                 emailEnabled={emailEnabled}
                 onSend={msgs.send}
