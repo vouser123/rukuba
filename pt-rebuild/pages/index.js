@@ -12,6 +12,7 @@ import { useLoggerFeedback } from '../hooks/useLoggerFeedback';
 import { useToast } from '../hooks/useToast';
 import { useMessages } from '../hooks/useMessages';
 import { useUserContext } from '../hooks/useUserContext';
+import { useExerciseSortState } from '../hooks/useExerciseSortState';
 import AuthForm from '../components/AuthForm';
 import NavMenu from '../components/NavMenu';
 import HistoryPanel from '../components/HistoryPanel';
@@ -35,7 +36,6 @@ export default function IndexPage() {
     const { pendingCount, enqueue, sync, clearQueue } = useIndexOfflineQueue(userId, token);
 
     const [activeTab, setActiveTab] = useState('exercises');
-    const [sortMode, setSortMode] = useState('pt_order');
     const [isMessagesOpen, setIsMessagesOpen] = useState(false);
 
     // User identity and messaging context — shared hook, reusable on any page.
@@ -68,6 +68,12 @@ export default function IndexPage() {
             })
             .filter((exercise) => Boolean(exercise.id));
     }, [exercises, programs]);
+    const {
+        sortMode,
+        setSortMode,
+        manualOrderIds,
+        setManualOrderIds,
+    } = useExerciseSortState(userId, pickerExercises);
 
     const { showToast, toastMessage, toastType, toastVisible } = useToast();
 
@@ -264,6 +270,8 @@ export default function IndexPage() {
                             onSelect={handleExerciseSelect}
                             sortMode={sortMode}
                             onSortChange={setSortMode}
+                            manualOrderIds={manualOrderIds}
+                            onManualOrderChange={setManualOrderIds}
                         />
                     )}
                     {activeTab === 'history' && (

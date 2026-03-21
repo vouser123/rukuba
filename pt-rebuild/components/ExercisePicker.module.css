@@ -43,6 +43,7 @@
 .list {
     display: grid;
     gap: 8px;
+    position: relative;
 }
 
 .card {
@@ -52,17 +53,69 @@
     border-radius: 12px;
     background: var(--bg-primary);
     color: var(--text-primary);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+}
+
+.cardButton {
+    border: 0;
+    background: transparent;
+    color: inherit;
     text-align: left;
     padding: 12px;
     display: grid;
     gap: 4px;
-    touch-action: manipulation;
+    min-height: 44px;
+}
+
+.dragHandle {
+    border: 0;
+    border-left: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px 10px;
+    display: grid;
+    place-items: center;
+    touch-action: none;
+    cursor: grab;
+    transition: background-color 140ms ease, transform 140ms ease;
     -webkit-tap-highlight-color: transparent;
+}
+
+.dragHandle:active {
+    background: rgba(10, 132, 255, 0.12);
+    cursor: grabbing;
+    transform: scale(0.98);
+}
+
+.dragGrip {
+    display: grid;
+    grid-template-columns: repeat(2, 6px);
+    gap: 4px;
+    align-items: center;
+    justify-items: center;
+}
+
+.dragDot {
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.82;
 }
 
 .selected {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.dragPlaceholder {
+    opacity: 0.35;
 }
 
 .name {
@@ -92,6 +145,22 @@
     padding: 2px 8px;
     font-size: 0.75rem;
     color: var(--text-secondary);
+}
+
+.dragGhost {
+    position: fixed;
+    z-index: 1200;
+    pointer-events: none;
+    border: 1px solid var(--accent-color);
+    border-radius: 12px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 12px;
+    display: grid;
+    gap: 4px;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+    opacity: 0.96;
+    transform: scale(1.01);
 }
 
 @media (max-width: 520px) {

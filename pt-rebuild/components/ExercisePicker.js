@@ -1,7 +1,12 @@
-// components/ExercisePicker.js — exercise list/search/select UI with dosage and adherence summary
-import { useMemo, useState } from 'react';
+// components/ExercisePicker.js — exercise list/search/select UI with dosage, sort, and manual ordering
+import { useMemo, useRef, useState } from 'react';
 import styles from './ExercisePicker.module.css';
 import NativeSelect from './NativeSelect';
+import {
+    normalizeManualOrderIds,
+    reorderVisibleSubset,
+    sortExercises,
+} from '../lib/exercise-sort';
 
 function formatDosageSummary(exercise, program) {
     const source = program || exercise || {};
@@ -49,8 +54,13 @@ export default function ExercisePicker({
     onSelect,
     sortMode = 'pt_order',
     onSortChange,
+    manualOrderIds = [],
+    onManualOrderChange,
 }) {
     const [query, setQuery] = useState('');
+    const [dragState, setDragState] = useState(null);
+    const [previewOrderIds, setPreviewOrderIds] = useState(null);
+    const cardRefs = useRef(new Map());
 
     const programsByExercise = useMemo(() => {
         const map = new Map();
@@ -60,51 +70,117 @@ export default function ExercisePicker({
         return map;
     }, [programs]);
 
+    const activeManualOrderIds = previewOrderIds ?? manualOrderIds;
+    const normalizedManualOrderIds = useMemo(
+        () => normalizeManualOrderIds(exercises, activeManualOrderIds),
+        [activeManualOrderIds, exercises]
+    );
+
     const visibleExercises = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        const filtered = exercises.filter((exercise) => {
-            if (exercise?.archived) return false;
-            if (!q) return true;
-            const name = exercise?.canonical_name ?? '';
-            return name.toLowerCase().includes(q);
+        return sortExercises({
+            exercises,
+            programsByExercise,
+            sortMode,
+            query,
+            manualOrderIds: activeManualOrderIds,
         });
+    }, [activeManualOrderIds, exercises, programsByExercise, query, sortMode]);
 
-        const sorted = [...filtered];
-        const byName = (a, b) => (a?.canonical_name ?? '').localeCompare(b?.canonical_name ?? '');
+    const visibleExerciseIds = useMemo(() => visibleExercises.map((exercise) => exercise.id), [visibleExercises]);
+    const isManualMode = sortMode === 'manual';
 
-        if (sortMode === 'alpha') {
-            sorted.sort(byName);
-            return sorted;
+    function setCardRef(exerciseId, node) {
+        if (!node) {
+            cardRefs.current.delete(exerciseId);
+            return;
+        }
+        cardRefs.current.set(exerciseId, node);
+    }
+
+    function finishDrag(pointerTarget) {
+        if (!dragState) return;
+        if (pointerTarget && dragState.pointerId != null) {
+            try {
+                pointerTarget.releasePointerCapture?.(dragState.pointerId);
+            } catch {}
         }
 
-        if (sortMode === 'body_area') {
-            sorted.sort((a, b) => {
-                const aCategory = a?.pt_category ?? '';
-                const bCategory = b?.pt_category ?? '';
-                const byCategory = aCategory.localeCompare(bCategory);
-                if (byCategory !== 0) return byCategory;
-                return byName(a, b);
-            });
-            return sorted;
+        if (dragState.dragging && previewOrderIds) {
+            onManualOrderChange?.(previewOrderIds);
         }
 
-        if (sortMode === 'recent') {
-            sorted.sort((a, b) => {
-                const aProgram = programsByExercise.get(a.id) ?? null;
-                const bProgram = programsByExercise.get(b.id) ?? null;
-                const aDays = aProgram?.adherence_days_since;
-                const bDays = bProgram?.adherence_days_since;
-                const aValue = Number.isFinite(aDays) ? aDays : Number.POSITIVE_INFINITY;
-                const bValue = Number.isFinite(bDays) ? bDays : Number.POSITIVE_INFINITY;
-                if (aValue !== bValue) return aValue - bValue;
-                return byName(a, b);
-            });
-            return sorted;
+        setDragState(null);
+        setPreviewOrderIds(null);
+    }
+
+    function handleDragStart(event, exercise) {
+        if (!isManualMode) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const card = cardRefs.current.get(exercise.id);
+        const rect = card?.getBoundingClientRect();
+
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        setDragState({
+            dragging: false,
+            pointerId: event.pointerId,
+            exerciseId: exercise.id,
+            exerciseName: exercise.canonical_name,
+            dosageText: formatDosageSummary(exercise, programsByExercise.get(exercise.id) ?? null),
+            startX: event.clientX,
+            startY: event.clientY,
+            x: event.clientX,
+            y: event.clientY,
+            offsetX: rect ? event.clientX - rect.left : 24,
+            offsetY: rect ? event.clientY - rect.top : 24,
+            width: rect?.width ?? 0,
+        });
+        setPreviewOrderIds(null);
+    }
+
+    function handleDragMove(event) {
+        if (!dragState || event.pointerId !== dragState.pointerId) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const nextX = event.clientX;
+        const nextY = event.clientY;
+        const distance = Math.hypot(nextX - dragState.startX, nextY - dragState.startY);
+        const nowDragging = dragState.dragging || distance > 6;
+        const currentOrderIds = previewOrderIds ?? normalizedManualOrderIds;
+
+        let nextPreviewOrderIds = previewOrderIds;
+        if (nowDragging) {
+            const sourceIndex = visibleExerciseIds.indexOf(dragState.exerciseId);
+            let targetIndex = visibleExerciseIds.length - 1;
+
+            for (let index = 0; index < visibleExerciseIds.length; index += 1) {
+                const id = visibleExerciseIds[index];
+                const rect = cardRefs.current.get(id)?.getBoundingClientRect();
+                if (!rect) continue;
+                if (nextY < rect.top + rect.height / 2) {
+                    targetIndex = index;
+                    break;
+                }
+            }
+
+            nextPreviewOrderIds = reorderVisibleSubset(
+                currentOrderIds,
+                visibleExerciseIds,
+                sourceIndex,
+                targetIndex
+            );
+            setPreviewOrderIds(nextPreviewOrderIds);
         }
 
-        // pt_order/manual keep incoming order for now (drag-and-drop handled in DN-050).
-        return sorted;
-    }, [exercises, programsByExercise, query, sortMode]);
+        setDragState((previous) => previous ? {
+            ...previous,
+            dragging: nowDragging,
+            x: nextX,
+            y: nextY,
+        } : previous);
+    }
 
     return (
         <section className={styles.panel} aria-label="Exercise picker">
@@ -141,25 +217,69 @@ export default function ExercisePicker({
                     const adherence = getAdherence(program);
                     const isSelected = exercise.id === selectedId;
                     const category = exercise.pt_category ?? '';
+                    const isDragging = dragState?.dragging && dragState.exerciseId === exercise.id;
 
                     return (
-                        <button
+                        <div
                             key={exercise.id}
-                            className={`${styles.card} ${isSelected ? styles.selected : ''}`}
-                            onPointerUp={() => onSelect?.(exercise.id)}
-                            aria-pressed={isSelected}
-                            type="button"
+                            ref={(node) => setCardRef(exercise.id, node)}
+                            className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDragging ? styles.dragPlaceholder : ''}`}
                         >
-                            <span className={styles.name}>{exercise.canonical_name}</span>
-                            <span className={styles.dosage}>{formatDosageSummary(exercise, program)}</span>
-                            <span className={`${styles.adherence} ${styles[adherence.tone]}`}>
-                                {adherence.label}
-                            </span>
-                            {category && <span className={styles.tag}>{category}</span>}
-                        </button>
+                            <button
+                                className={styles.cardButton}
+                                onPointerUp={() => {
+                                    if (dragState?.dragging) return;
+                                    onSelect?.(exercise.id);
+                                }}
+                                aria-pressed={isSelected}
+                                type="button"
+                            >
+                                <span className={styles.name}>{exercise.canonical_name}</span>
+                                <span className={styles.dosage}>{formatDosageSummary(exercise, program)}</span>
+                                <span className={`${styles.adherence} ${styles[adherence.tone]}`}>
+                                    {adherence.label}
+                                </span>
+                                {category && <span className={styles.tag}>{category}</span>}
+                            </button>
+                            {isManualMode && (
+                                <button
+                                    type="button"
+                                    className={styles.dragHandle}
+                                    aria-label={`Reorder ${exercise.canonical_name}`}
+                                    onPointerDown={(event) => handleDragStart(event, exercise)}
+                                    onPointerMove={handleDragMove}
+                                    onPointerUp={(event) => finishDrag(event.currentTarget)}
+                                    onPointerCancel={(event) => finishDrag(event.currentTarget)}
+                                >
+                                    <span className={styles.dragGrip} aria-hidden="true">
+                                        <span className={styles.dragDot} />
+                                        <span className={styles.dragDot} />
+                                        <span className={styles.dragDot} />
+                                        <span className={styles.dragDot} />
+                                        <span className={styles.dragDot} />
+                                        <span className={styles.dragDot} />
+                                    </span>
+                                </button>
+                            )}
+                        </div>
                     );
                 })}
             </div>
+
+            {dragState?.dragging && (
+                <div
+                    className={styles.dragGhost}
+                    style={{
+                        left: `${dragState.x - dragState.offsetX}px`,
+                        top: `${dragState.y - dragState.offsetY}px`,
+                        width: dragState.width ? `${dragState.width}px` : undefined,
+                    }}
+                    aria-hidden="true"
+                >
+                    <span className={styles.name}>{dragState.exerciseName}</span>
+                    <span className={styles.dosage}>{dragState.dosageText}</span>
+                </div>
+            )}
         </section>
     );
 }
