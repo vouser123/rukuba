@@ -4,6 +4,7 @@
  * Add global providers here as the migration progresses.
  */
 import { useEffect } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import '../styles/globals.css';
 
 export default function App({ Component, pageProps }) {
@@ -13,5 +14,10 @@ export default function App({ Component, pageProps }) {
         }
     }, []);
 
-    return <Component {...pageProps} />;
+    return (
+        <>
+            <Component {...pageProps} />
+            <SpeedInsights />
+        </>
+    );
 }
