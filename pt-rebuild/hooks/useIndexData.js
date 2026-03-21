@@ -2,6 +2,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchIndexExercises, fetchIndexLogs, fetchIndexPrograms } from '../lib/index-data';
 import { offlineCache } from '../lib/offline-cache';
+import {
+    markTrackerBootstrapStart,
+    markTrackerHistoryReady,
+    markTrackerPrimaryReady,
+} from '../lib/tracker-performance';
 
 function getLoadErrorMessage(error) {
     const message = error instanceof Error ? error.message : 'Failed to load index data';
@@ -32,6 +37,7 @@ export function useIndexData(token, patientId) {
         setError(null);
         setHistoryError(null);
         setFromCache(false);
+        markTrackerBootstrapStart();
 
         let nextExercises = [];
         let nextPrograms = [];
@@ -50,6 +56,7 @@ export function useIndexData(token, patientId) {
             }
             setExercises(nextExercises);
             setPrograms(nextPrograms);
+            markTrackerPrimaryReady();
         } catch (err) {
             const message = getLoadErrorMessage(err);
             if (typeof window === 'undefined') {
@@ -73,6 +80,8 @@ export function useIndexData(token, patientId) {
                     setFromCache(true);
                     setHistoryError(null);
                     setHistoryLoading(false);
+                    markTrackerPrimaryReady();
+                    markTrackerHistoryReady();
                     return;
                 }
             } catch (cacheError) {
@@ -100,6 +109,7 @@ export function useIndexData(token, patientId) {
                 ]);
             }
             setLogs(nextLogs);
+            markTrackerHistoryReady();
         } catch (err) {
             const message = getLoadErrorMessage(err);
             if (typeof window === 'undefined') {
@@ -114,6 +124,7 @@ export function useIndexData(token, patientId) {
 
                 if (cachedLogs.length > 0) {
                     setLogs(cachedLogs);
+                    markTrackerHistoryReady();
                     return;
                 }
             } catch (cacheError) {

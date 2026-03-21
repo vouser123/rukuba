@@ -26,6 +26,7 @@ import MessagesModal from '../components/MessagesModal';
 import Toast from '../components/Toast';
 import { getAdherenceBadgeState } from '../lib/index-history';
 import { buildSessionProgress } from '../lib/index-tracker-session';
+import { markTrackerPickerReady } from '../lib/tracker-performance';
 import styles from './index.module.css';
 
 export default function IndexPage() {
@@ -174,6 +175,17 @@ export default function IndexPage() {
         }));
     }, [allLogs, exercises, historyLoading, logs.length, programs]);
     const sessionProgress = useMemo(() => buildSessionProgress(selectedExercise, draftSession?.sets ?? []), [draftSession?.sets, selectedExercise]);
+
+    useEffect(() => {
+        if (loading) return;
+        if (pickerExercises.length === 0) return;
+
+        const frameId = window.requestAnimationFrame(() => {
+            markTrackerPickerReady();
+        });
+
+        return () => window.cancelAnimationFrame(frameId);
+    }, [loading, pickerExercises.length]);
 
     const handleHistoryModalSubmit = useCallback(async () => {
         const didSave = await logger.submit();
