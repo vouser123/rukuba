@@ -3,14 +3,16 @@
  *
  * Architecture:
  *   Data bootstrap → hooks/usePtViewData.js
+ *   Page UI state  → hooks/usePtViewUiState.js
  *   Data helpers   → lib/pt-view.js (pure functions)
  *   Auth           → hooks/useAuth.js
  *   Messages       → hooks/useMessages.js + components/MessagesModal.js
  *   Exercise modal → components/ExerciseHistoryModal.js
+ *   Page panels    → components/PtView*.js
  *   Styles         → pt-view.module.css
  */
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useUserContext } from '../hooks/useUserContext';
 import { useMessages } from '../hooks/useMessages';
@@ -20,105 +22,17 @@ import MessagesModal from '../components/MessagesModal';
 import ExerciseHistoryModal from '../components/ExerciseHistoryModal';
 import PatientNotes from '../components/PatientNotes';
 import HistoryList from '../components/HistoryList';
-import NativeSelect from '../components/NativeSelect';
+import PtViewNeedsAttention from '../components/PtViewNeedsAttention';
+import PtViewSummaryStats from '../components/PtViewSummaryStats';
+import PtViewFiltersPanel from '../components/PtViewFiltersPanel';
 import { usePtViewData } from '../hooks/usePtViewData';
+import { usePtViewUiState } from '../hooks/usePtViewUiState';
 import {
     groupLogsByDate, findNeedsAttention, needsAttentionUrgency,
-    computeSummaryStats, detectKeywords, applyFilters,
+    computeSummaryStats, applyFilters,
 } from '../lib/pt-view';
 import { patchEmailNotifications } from '../lib/users';
-import { offlineCache } from '../lib/offline-cache';
 import styles from './pt-view.module.css';
-
-// ── Local sub-components ────────────────────────────────────────────────────
-
-/** Overdue exercise cards — tap to open exercise history modal. */
-function NeedsAttention({ items, onCardClick }) {
-    if (items.length === 0) return null;
-    const urgencyColor = { red: '#dc3545', orange: '#ff5722', yellow: '#ff9800' };
-
-    return (
-        <div className={styles.section}>
-            <div className={styles['section-title']}>⚠️ Needs Attention</div>
-            <div className={styles['top-exercises-grid']}>
-                {items.map(item => (
-                    <div
-                        key={item.exerciseId}
-                        className={styles['exercise-card']}
-                        onPointerUp={() => onCardClick(item.exerciseId, item.exerciseName)}
-                        style={{ borderLeft: `4px solid ${urgencyColor[needsAttentionUrgency(item)]}` }}
-                    >
-                        <div className={styles['exercise-card-title']}>{item.exerciseName}</div>
-                        <div className={styles['exercise-card-meta']}>
-                            {item.neverDone ? 'Never performed' : `${item.daysSince} days ago`}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-/** Three summary stat chips. */
-function SummaryStats({ stats }) {
-    return (
-        <div className={styles['summary-section']}>
-            <div className={styles['summary-card']}>
-                <span className={styles['summary-value']}>{stats.daysActive}</span>
-                <span className={styles['summary-label']}>Days active</span>
-            </div>
-            <div className={styles['summary-card']}>
-                <span className={styles['summary-value']}>{stats.exercisesCovered}</span>
-                <span className={styles['summary-label']}>Exercises covered</span>
-            </div>
-            <div className={styles['summary-card']}>
-                <span className={styles['summary-value']}>{stats.totalSessions}</span>
-                <span className={styles['summary-label']}>Total sessions</span>
-            </div>
-        </div>
-    );
-}
-
-/** Collapsible filter controls. */
-function FiltersPanel({ filters, programs, expanded, onToggle, onChange }) {
-    return (
-        <div className={styles['filters-section']}>
-            <div className={styles['filters-toggle']} onPointerUp={onToggle}>
-                {expanded ? '▲ Hide filters' : '▼ Show filters'}
-            </div>
-            {expanded && (
-                <div className={styles['filters-content']}>
-                    <div className={styles['filter-group']}>
-                        <label>Exercise</label>
-                        <NativeSelect
-                            value={filters.exercise}
-                            onChange={(value) => onChange({ ...filters, exercise: value })}
-                            placeholder="All exercises"
-                            options={programs.map((p) => ({
-                                value: p.exercise_id,
-                                label: p.exercise_name,
-                            }))}
-                        />
-                    </div>
-                    <div className={styles['filter-group']}>
-                        <label>Date range</label>
-                        <div className={styles['date-range']}>
-                            <input type="date" value={filters.dateFrom} onChange={e => onChange({ ...filters, dateFrom: e.target.value })} />
-                            <input type="date" value={filters.dateTo}   onChange={e => onChange({ ...filters, dateTo:   e.target.value })} />
-                        </div>
-                    </div>
-                    <div className={styles['filter-group']}>
-                        <label>Search</label>
-                        <input type="text" placeholder="Exercise name or notes…" value={filters.query}
-                            onChange={e => onChange({ ...filters, query: e.target.value })} />
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ── Page ────────────────────────────────────────────────────────────────────
 
 export default function PtViewPage() {
     const { session, loading: authLoading, signIn, signOut } = useAuth();
@@ -142,90 +56,34 @@ export default function PtViewPage() {
     // Messages compare against sender_id / recipient_id, which use users.id profile values.
     const msgs = useMessages(session?.access_token ?? null, userCtx.profileId);
 
-    // UI state
-    const [filters, setFilters] = useState({ exercise: '', dateFrom: '', dateTo: '', query: '' });
     const [expandedSessions, setExpandedSessions] = useState(new Set());
-    const [notesCollapsed, setNotesCollapsed] = useState(false);
-    const [filtersExpanded, setFiltersExpanded] = useState(false);
-    const [dismissedNotes, setDismissedNotes] = useState([]);
-    const [uiStateLoaded, setUiStateLoaded] = useState(false);
+    const {
+        filters,
+        setFilters,
+        notesCollapsed,
+        filtersExpanded,
+        uiStateLoaded,
+        processedNotes,
+        dismissNote,
+        toggleNotesCollapsed,
+        toggleFilters,
+    } = usePtViewUiState(logs);
 
     // Modal state
     const [messagesOpen, setMessagesOpen] = useState(false);
     const [historyTarget, setHistoryTarget] = useState(null); // { name, logs }
 
-    useEffect(() => {
-        let cancelled = false;
-
-        async function loadUiState() {
-            try {
-                await offlineCache.init();
-                const [nextNotesCollapsed, nextFiltersExpanded, nextDismissedNotes] = await Promise.all([
-                    offlineCache.getUiState('pt_view_notes_collapsed', false),
-                    offlineCache.getUiState('pt_view_filters_expanded', false),
-                    offlineCache.getUiState('pt_view_dismissed_notes', []),
-                ]);
-                if (cancelled) return;
-                setNotesCollapsed(Boolean(nextNotesCollapsed));
-                setFiltersExpanded(Boolean(nextFiltersExpanded));
-                setDismissedNotes(Array.isArray(nextDismissedNotes) ? nextDismissedNotes : []);
-                setUiStateLoaded(true);
-            } catch {
-                // Keep default UI state if IndexedDB is unavailable.
-                if (!cancelled) setUiStateLoaded(true);
-            }
-        }
-
-        loadUiState();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
     // Derived data
     const filteredLogs    = applyFilters(logs, filters);
     const dateGroups      = groupLogsByDate(filteredLogs);
-    const needsAttention  = findNeedsAttention(logs, programs);
+    const needsAttention  = useMemo(() => {
+        const urgencyColor = { red: '#dc3545', orange: '#ff5722', yellow: '#ff9800' };
+        return findNeedsAttention(logs, programs).map((item) => ({
+            ...item,
+            urgencyColor: urgencyColor[needsAttentionUrgency(item)],
+        }));
+    }, [logs, programs]);
     const stats           = computeSummaryStats(logs);
-
-    // Pre-process notes for PatientNotes component (components cannot import from lib/)
-    const processedNotes  = logs
-        .filter(l => l.notes && !dismissedNotes.includes(l.id))
-        .slice(0, 10)
-        .map(log => {
-            const keywords = detectKeywords(log.notes);
-            const isConcerning = keywords.length > 0;
-            // Highlight concerning words in the note text for dangerouslySetInnerHTML
-            let displayText = log.notes;
-            if (isConcerning) {
-                keywords.forEach(word => {
-                    displayText = displayText.replace(
-                        new RegExp(`(${word})`, 'gi'),
-                        `<span class="concerning-word">$1</span>`
-                    );
-                });
-            }
-            return { ...log, isConcerning, displayText };
-        });
-
-    function dismissNote(logId) {
-        const next = [...dismissedNotes, logId];
-        setDismissedNotes(next);
-        void offlineCache.setUiState('pt_view_dismissed_notes', next);
-    }
-
-    function toggleNotesCollapsed() {
-        const next = !notesCollapsed;
-        setNotesCollapsed(next);
-        void offlineCache.setUiState('pt_view_notes_collapsed', next);
-    }
-
-    function toggleFilters() {
-        const next = !filtersExpanded;
-        setFiltersExpanded(next);
-        void offlineCache.setUiState('pt_view_filters_expanded', next);
-    }
 
     function toggleSession(id) {
         setExpandedSessions(prev => {
@@ -292,9 +150,7 @@ export default function PtViewPage() {
                 </div>
             </div>
 
-            {dataError && (
-                <p style={{ color: 'red', padding: '1rem' }}>Error loading data: {dataError}</p>
-            )}
+            {dataError && <p style={{ color: 'red', padding: '1rem' }}>Error loading data: {dataError}</p>}
             {offlineNotice && (
                 <p className={styles['offline-notice']}>{offlineNotice}</p>
             )}
@@ -310,12 +166,12 @@ export default function PtViewPage() {
                 <div className={styles['ui-state-placeholder']} />
             )}
 
-            <NeedsAttention items={needsAttention} onCardClick={openExerciseHistory} />
+            <PtViewNeedsAttention items={needsAttention} onCardClick={openExerciseHistory} />
 
-            <SummaryStats stats={stats} />
+            <PtViewSummaryStats stats={stats} />
 
             {uiStateLoaded ? (
-                <FiltersPanel
+                <PtViewFiltersPanel
                     filters={filters}
                     programs={programs}
                     expanded={filtersExpanded}

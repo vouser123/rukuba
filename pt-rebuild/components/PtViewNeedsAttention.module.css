@@ -1,0 +1,67 @@
+.section {
+    padding: 0 1rem 1rem 1rem;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.top-exercises-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.exercise-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.exercise-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.exercise-card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.exercise-card-meta {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+@media (prefers-color-scheme: dark) {
+    .exercise-card-meta {
+        color: var(--text-secondary);
+    }
+
+    .exercise-card-title,
+    .section-title {
+        color: var(--text-primary);
+    }
+
+    .exercise-card {
+        background: var(--bg-secondary);
+        border-color: var(--border-color);
+    }
+
+    .exercise-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+}
