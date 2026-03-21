@@ -8,6 +8,9 @@ import {
     sortExercises,
 } from '../lib/exercise-sort';
 
+const DRAG_HOLD_DELAY_MS = 220;
+const DRAG_CANCEL_MOVE_PX = 10;
+
 function formatDosageSummary(exercise, program) {
     const source = program || exercise || {};
     const sets = source.current_sets ?? source.sets ?? 0;
@@ -58,12 +61,14 @@ export default function ExercisePicker({
     onManualOrderChange,
 }) {
     const [query, setQuery] = useState('');
+    const [pendingDrag, setPendingDrag] = useState(null);
     const [dragState, setDragState] = useState(null);
     const [previewOrderIds, setPreviewOrderIds] = useState(null);
     const cardRefs = useRef(new Map());
     const dragTargetRef = useRef(null);
     const dragOverlayRef = useRef(null);
     const listRef = useRef(null);
+    const pendingTargetRef = useRef(null);
 
     const programsByExercise = useMemo(() => {
         const map = new Map();
@@ -124,16 +129,12 @@ export default function ExercisePicker({
 
     function handleDragStart(event, exercise) {
         if (!isManualMode) return;
-        event.preventDefault();
         event.stopPropagation();
 
         const card = cardRefs.current.get(exercise.id);
         const rect = card?.getBoundingClientRect();
-
-        event.currentTarget.setPointerCapture?.(event.pointerId);
-        dragTargetRef.current = event.currentTarget;
-        setDragState({
-            dragging: true,
+        pendingTargetRef.current = event.currentTarget;
+        setPendingDrag({
             pointerId: event.pointerId,
             exerciseId: exercise.id,
             exerciseName: exercise.canonical_name,
@@ -147,6 +148,11 @@ export default function ExercisePicker({
             width: rect?.width ?? 0,
         });
         setPreviewOrderIds(null);
+    }
+
+    function cancelPendingDrag() {
+        pendingTargetRef.current = null;
+        setPendingDrag(null);
     }
 
     function handleDragMove(event) {
@@ -207,6 +213,51 @@ export default function ExercisePicker({
         if (!dragState || event.pointerId !== dragState.pointerId) return;
         finishDrag(event.pointerId);
     }
+
+    useEffect(() => {
+        if (!pendingDrag) return;
+
+        const activationTimer = window.setTimeout(() => {
+            dragTargetRef.current = pendingTargetRef.current;
+            try {
+                dragTargetRef.current?.setPointerCapture?.(pendingDrag.pointerId);
+            } catch {}
+            setDragState({
+                dragging: true,
+                ...pendingDrag,
+            });
+            setPendingDrag(null);
+        }, DRAG_HOLD_DELAY_MS);
+
+        function handlePendingMove(event) {
+            if (event.pointerId !== pendingDrag.pointerId) return;
+            const dx = event.clientX - pendingDrag.startX;
+            const dy = event.clientY - pendingDrag.startY;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance > DRAG_CANCEL_MOVE_PX) {
+                window.clearTimeout(activationTimer);
+                cancelPendingDrag();
+            }
+        }
+
+        function handlePendingEnd(event) {
+            if (event.pointerId !== pendingDrag.pointerId) return;
+            window.clearTimeout(activationTimer);
+            cancelPendingDrag();
+        }
+
+        window.addEventListener('pointermove', handlePendingMove, { passive: true });
+        window.addEventListener('pointerup', handlePendingEnd);
+        window.addEventListener('pointercancel', handlePendingEnd);
+
+        return () => {
+            window.clearTimeout(activationTimer);
+            window.removeEventListener('pointermove', handlePendingMove);
+            window.removeEventListener('pointerup', handlePendingEnd);
+            window.removeEventListener('pointercancel', handlePendingEnd);
+        };
+    }, [pendingDrag]);
 
     useEffect(() => {
         if (!dragState) return;
@@ -273,12 +324,13 @@ export default function ExercisePicker({
                     const isSelected = exercise.id === selectedId;
                     const category = exercise.pt_category ?? '';
                     const isDragging = dragState?.dragging && dragState.exerciseId === exercise.id;
+                    const isPendingDrag = pendingDrag?.exerciseId === exercise.id;
 
                     return (
                         <div
                             key={exercise.id}
                             ref={(node) => setCardRef(exercise.id, node)}
-                            className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDragging ? styles.dragPlaceholder : ''}`}
+                            className={`${styles.card} ${isSelected ? styles.selected : ''} ${(isDragging || isPendingDrag) ? styles.dragPlaceholder : ''}`}
                         >
                             <button
                                 className={styles.cardButton}
