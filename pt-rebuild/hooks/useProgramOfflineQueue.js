@@ -1,7 +1,16 @@
 // hooks/useProgramOfflineQueue.js — offline mutation queue lifecycle for the /program editor
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isNetworkError, loadProgramQueue, markProgramMutationFailed, mergeProgramMutationQueue, performProgramMutation, replayProgramQueue, saveProgramQueue } from '../lib/program-offline';
+import {
+  isNetworkError,
+  loadProgramQueue,
+  markProgramMutationFailed,
+  mergeProgramMutationQueue,
+  performProgramMutation,
+  replayProgramQueue,
+  saveProgramQueue,
+  summarizeProgramQueue,
+} from '../lib/program-offline';
 
 export function useProgramOfflineQueue({
   session,
@@ -16,6 +25,7 @@ export function useProgramOfflineQueue({
   const [queueError, setQueueError] = useState(null);
   const queueRef = useRef([]);
   const syncInFlightRef = useRef(false);
+  const queueSummary = summarizeProgramQueue(mutationQueue);
   const persistQueue = useCallback(async (nextQueue) => {
     queueRef.current = nextQueue;
     setMutationQueue(nextQueue);
@@ -74,7 +84,7 @@ export function useProgramOfflineQueue({
         queueRef.current = queue;
         setMutationQueue(queue);
         setQueueLoaded(true);
-        setQueueError(queue.find((item) => item.status === 'failed')?.last_error ?? null);
+        setQueueError(summarizeProgramQueue(queue).firstFailed?.last_error ?? null);
       })
       .catch(() => {
         if (cancelled) return;
@@ -135,6 +145,7 @@ export function useProgramOfflineQueue({
   }, [commitSnapshot, loadData, persistQueue, programPatientId, session?.access_token, session?.user?.id, showToast, syncProgramMutations]);
   return {
     mutationQueue,
+    queueSummary,
     queueError,
     queueLoaded,
     queueSyncing,

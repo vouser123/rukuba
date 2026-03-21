@@ -18,6 +18,7 @@ import { useProgramOfflineQueue } from '../hooks/useProgramOfflineQueue';
 import { useProgramVocabActions } from '../hooks/useProgramVocabActions';
 import { useToast } from '../hooks/useToast';
 import { offlineCache } from '../lib/offline-cache';
+import { getProgramMutationLabel } from '../lib/program-offline';
 import { emptyReferenceData } from '../lib/program-optimistic';
 import {
   fetchExercises, fetchVocabularies, fetchReferenceData, fetchPrograms,
@@ -218,6 +219,7 @@ export default function ProgramPage() {
 
   const {
     mutationQueue,
+    queueSummary,
     queueError,
     queueLoaded,
     queueSyncing,
@@ -396,11 +398,16 @@ export default function ProgramPage() {
           <div className={queueError ? styles.queueBannerError : styles.queueBanner}>
             <p className={styles.queueBannerText}>
               {queueError
-                ? `${mutationQueue.length} program change${mutationQueue.length === 1 ? '' : 's'} waiting to sync. ${queueError}`
+                ? `${queueSummary.failedCount} failed ${getProgramMutationLabel(queueSummary.firstFailed)} change${queueSummary.failedCount === 1 ? '' : 's'} need attention.${queueSummary.pendingCount > 0 ? ` ${queueSummary.pendingCount} more change${queueSummary.pendingCount === 1 ? '' : 's'} are still queued.` : ''} ${queueError}`
                 : queueSyncing
-                  ? `Syncing ${mutationQueue.length} pending program change${mutationQueue.length === 1 ? '' : 's'}…`
-                  : `${mutationQueue.length} program change${mutationQueue.length === 1 ? '' : 's'} queued for sync.`}
+                  ? `Syncing ${queueSummary.pendingCount} pending program change${queueSummary.pendingCount === 1 ? '' : 's'}…`
+                  : `${queueSummary.pendingCount} program change${queueSummary.pendingCount === 1 ? '' : 's'} queued for sync.`}
             </p>
+            {queueError && (
+              <p className={styles.queueRecoveryHint}>
+                Open the affected item and save again to replace the failed queued change, or retry sync after the blocking issue is fixed.
+              </p>
+            )}
             {!queueSyncing && (
               <button type="button" className={styles.queueRetryButton} onPointerUp={() => syncProgramMutations()}>
                 Retry sync

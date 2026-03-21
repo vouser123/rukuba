@@ -171,6 +171,38 @@ export function mergeProgramMutationQueue(queue, mutation) {
   return nextQueue;
 }
 
+export function getProgramMutationLabel(mutation) {
+  switch (mutation?.type) {
+    case 'exercise.create':
+    case 'exercise.update':
+      return 'exercise';
+    case 'role.add':
+    case 'role.delete':
+      return 'role';
+    case 'program.upsert':
+      return 'dosage';
+    case 'vocab.create':
+    case 'vocab.update':
+    case 'vocab.delete':
+      return 'vocabulary term';
+    default:
+      return 'program change';
+  }
+}
+
+export function summarizeProgramQueue(queue) {
+  const items = queue ?? [];
+  const failed = items.filter((item) => item.status === 'failed');
+  const pending = items.filter((item) => item.status !== 'failed');
+
+  return {
+    totalCount: items.length,
+    failedCount: failed.length,
+    pendingCount: pending.length,
+    firstFailed: failed[0] ?? null,
+  };
+}
+
 export async function performProgramMutation(accessToken, mutation) {
   switch (mutation.type) {
     case 'exercise.create':
