@@ -3,6 +3,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchIndexExercises, fetchIndexLogs, fetchIndexPrograms } from '../lib/index-data';
 import { offlineCache } from '../lib/offline-cache';
 
+function getLoadErrorMessage(error) {
+    const message = error instanceof Error ? error.message : 'Failed to load index data';
+    if (message.startsWith('Failed to load exercises')) {
+        return 'Failed to load exercises. Check your connection.';
+    }
+    if (message.startsWith('Failed to load logs')) {
+        return 'Failed to load history.';
+    }
+    return message;
+}
+
 export function useIndexData(token, patientId) {
     const [exercises, setExercises] = useState([]);
     const [programs, setPrograms] = useState([]);
@@ -35,7 +46,7 @@ export function useIndexData(token, patientId) {
             setPrograms(nextPrograms);
             setLogs(nextLogs);
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to load index data';
+            const message = getLoadErrorMessage(err);
             if (typeof window === 'undefined') {
                 setError(message);
                 return;

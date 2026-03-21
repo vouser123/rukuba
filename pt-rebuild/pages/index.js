@@ -32,7 +32,7 @@ export default function IndexPage() {
     const { session, loading: authLoading, signIn } = useAuth();
     const userId = session?.user?.id ?? null;
     const token = session?.access_token ?? null;
-    const { exercises, programs, logs, loading, error, reload } = useIndexData(token, userId);
+    const { exercises, programs, logs, loading, error, fromCache, reload } = useIndexData(token, userId);
     const { pendingCount, enqueue, sync, clearQueue } = useIndexOfflineQueue(userId, token);
 
     const [activeTab, setActiveTab] = useState('exercises');
@@ -252,6 +252,11 @@ export default function IndexPage() {
                     </div>
                 </header>
 
+                {fromCache && !error && (
+                    <div className={styles.infoBanner} role="status">
+                        Using cached data
+                    </div>
+                )}
                 {error && <div className={styles.errorBanner} role="alert">{error}</div>}
                 <Toast message={toastMessage} type={toastType} visible={toastVisible} />
 
