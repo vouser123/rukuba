@@ -53,6 +53,11 @@ Pointers:
 - For shared Next.js file ownership, see `Shared Components`, `Tracker Execution Stack`, `Shared Utilities`, and `Shared Hooks` below.
 - For canonical operating rules, see [`AGENTS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/AGENTS.md).
 
+## Shared Styling
+
+- [`styles/globals.css`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/styles/globals.css): Shared Next.js design tokens, global control typography floor, and readable-text defaults. Use it for app-wide typography tokens and global control behavior before adding page-local font-size fixes.
+- Compact text is opt-in, not the default. Dense UI such as badges, timestamps, and compact metadata may use explicit compact tokens, but normal labels, helper text, and form controls should inherit the readable shared baseline.
+
 ## Shared Components
 
 Use these from `components/` when building or wiring Next.js pages. Prefer existing shared pieces before creating new page-local UI.

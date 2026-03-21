@@ -24,6 +24,16 @@ Treat the static legacy surface as frozen for routine cleanup. Only apply these 
 - Do not duplicate unit-label or typed-value formatting inline across components.
 - Do not create one-off parser/formatter helpers in page files when the logic is reusable.
 
+## Typography And Readability
+
+- Use [`styles/globals.css`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/styles/globals.css) as the shared typography architecture for the Next.js surface.
+- Treat `--font-size-body` as the readable default for body-like UI text and labels.
+- Treat `--font-size-control-min` as the global floor for interactive controls so `button`, `input`, `select`, and `textarea` never fall back to tiny iOS defaults.
+- Treat compact text as an explicit exception. Use tokens such as `--font-size-compact` or `--font-size-micro` only for dense UI that has been intentionally verified, such as badges, timestamps, and compact metadata.
+- When a component needs smaller text than the readable default, document that intent in the local selector rather than relying on inherited browser defaults.
+- Do not leave font sizing unset on form controls or custom action buttons.
+- Do not introduce new sub-body text sizes for labels, helper copy, or interactive affordances unless the compact layout has been deliberately reviewed for readability.
+
 ## Dates, Recency, And Calendar-Day Logic
 
 - Use [`lib/date-utils.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/date-utils.js) for recency, local-day comparisons, and any `Done today` or overdue semantics.
