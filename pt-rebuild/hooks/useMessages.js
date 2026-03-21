@@ -47,9 +47,27 @@ export function useMessages(token, viewerId) {
         return () => clearInterval(intervalRef.current);
     }, [token, refresh]);
 
-    /** Call when the messages modal opens — clears badge optimistically. */
+    /**
+     * Call when the messages modal opens.
+     * Clears the badge optimistically and PATCHes all unread received messages
+     * as read on the server — matching static pt_view.html markReceivedMessagesAsRead().
+     * Fire-and-forget: UI updates immediately; server patch runs in background.
+     */
     function markModalOpened() {
         setUnreadCount(0);
+
+        if (!token || !viewerId) return;
+
+        // Find all unread received messages (not sent by viewer, not yet read)
+        const unreadReceived = messages.filter(
+            m => m.sender_id !== viewerId && !m.read_by_recipient && !m.is_archived
+        );
+        if (unreadReceived.length === 0) return;
+
+        // PATCH each one as read then refresh once
+        Promise.all(unreadReceived.map(m => patchMessage(token, m.id, { read: true })))
+            .then(() => refresh())
+            .catch(err => console.error('markModalOpened patch read:', err));
     }
 
     /** Send a new message to recipientId. */
