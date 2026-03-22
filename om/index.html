@@ -1644,9 +1644,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         flash: settingsVisualPreviewFlash,
         shape: settingsVisualPreviewShape
       };
-      const leadInSec = 0.12;
+      const leadInSec = type === "user" ? 0.2 : 0.16;
       const visibleSec = 0.28;
-      const trailSec = 0.16;
+      const trailSec = type === "user" ? 0.24 : 0.2;
       const totalMs = (leadInSec + visibleSec + trailSec) * 1000;
 
       previewTarget.overlay.dataset.active = "true";
