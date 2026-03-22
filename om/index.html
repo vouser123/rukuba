@@ -1000,6 +1000,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const clearTimeInput = document.getElementById("clearTime");
     const fullTimeInput = document.getElementById("fullTime");
     const marginInput = document.getElementById("marginInput");
+    const numberInputs = [...document.querySelectorAll("input[type='number']")];
     const acceptableInputs = [...document.querySelectorAll("input[name='acceptableSound']")];
     const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
     const previewButtons = [...document.querySelectorAll(".preview-btn")];
@@ -2532,6 +2533,14 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         console.warn("SFXR data is configured but jsfxr is not loaded. Falling back to SOUND_FALLBACK_TONES.");
       }
     }
+
+    numberInputs.forEach((input) => {
+      input.addEventListener("focus", () => {
+        setTimeout(() => {
+          input.select();
+        }, 0);
+      });
+    });
 
     /* A11Y ADDITIONS START */
     outputModeInputs.forEach((input) => {
