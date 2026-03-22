@@ -804,6 +804,18 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             <button type="button" class="settings-action visual-preview-btn" data-visual-type="acceptable" aria-label="Preview acceptable reference visual cue">Preview: Acceptable shape</button>
             <button type="button" class="settings-action visual-preview-btn" data-visual-type="outside" aria-label="Preview outside reference visual cue">Preview: Outside shape</button>
           </div>
+          <label for="userPreviewLeadMs">User preview lead-in (ms)</label>
+          <input id="userPreviewLeadMs" type="number" min="0" step="10" inputmode="numeric" aria-label="User preview lead-in in milliseconds" />
+          <label for="userPreviewVisibleMs">User preview display time (ms)</label>
+          <input id="userPreviewVisibleMs" type="number" min="0" step="10" inputmode="numeric" aria-label="User preview display time in milliseconds" />
+          <label for="userPreviewExitMs">User preview exit black time (ms)</label>
+          <input id="userPreviewExitMs" type="number" min="0" step="10" inputmode="numeric" aria-label="User preview exit black time in milliseconds" />
+          <label for="shapePreviewLeadMs">Shape preview lead-in (ms)</label>
+          <input id="shapePreviewLeadMs" type="number" min="0" step="10" inputmode="numeric" aria-label="Shape preview lead-in in milliseconds" />
+          <label for="shapePreviewVisibleMs">Shape preview display time (ms)</label>
+          <input id="shapePreviewVisibleMs" type="number" min="0" step="10" inputmode="numeric" aria-label="Shape preview display time in milliseconds" />
+          <label for="shapePreviewExitMs">Shape preview exit black time (ms)</label>
+          <input id="shapePreviewExitMs" type="number" min="0" step="10" inputmode="numeric" aria-label="Shape preview exit black time in milliseconds" />
         </div>
         <div class="setup-group" aria-label="Time entry">
           <h3>Time Entry</h3>
@@ -995,6 +1007,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const exemplarButtons = [...document.querySelectorAll(".exemplar-btn")];
     const visualPreviewButtons = [...document.querySelectorAll(".visual-preview-btn")];
     const outsideVisualVariantInputs = [...document.querySelectorAll("input[name='outsideVisualVariant']")];
+    const userPreviewLeadMsInput = document.getElementById("userPreviewLeadMs");
+    const userPreviewVisibleMsInput = document.getElementById("userPreviewVisibleMs");
+    const userPreviewExitMsInput = document.getElementById("userPreviewExitMs");
+    const shapePreviewLeadMsInput = document.getElementById("shapePreviewLeadMs");
+    const shapePreviewVisibleMsInput = document.getElementById("shapePreviewVisibleMs");
+    const shapePreviewExitMsInput = document.getElementById("shapePreviewExitMs");
     const visualReplayOverlay = document.getElementById("visualReplayOverlay");
     const visualReplayFlash = document.getElementById("visualReplayFlash");
     const visualReplayShape = document.getElementById("visualReplayShape");
@@ -1079,6 +1097,14 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       useTextLabels: true,
       syncVisualReplay: false,
       outsideVisualVariant: "up",
+      previewTimingMs: {
+        userLeadIn: 200,
+        userVisible: 280,
+        userExit: 240,
+        shapeLeadIn: 160,
+        shapeVisible: 280,
+        shapeExit: 200,
+      },
       theme: "system",
       textSize: "default",
       highContrast: false,
@@ -1638,16 +1664,48 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       }, (startDelaySec + VISUAL_PULSE_SEC) * 1000);
     }
 
+    function normalizePreviewTimingMs(value, fallback) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) {
+        return fallback;
+      }
+      return Math.max(0, Math.round(parsed));
+    }
+
+    function applyPreviewTimingInputs() {
+      userPreviewLeadMsInput.value = String(a11ySettings.previewTimingMs.userLeadIn);
+      userPreviewVisibleMsInput.value = String(a11ySettings.previewTimingMs.userVisible);
+      userPreviewExitMsInput.value = String(a11ySettings.previewTimingMs.userExit);
+      shapePreviewLeadMsInput.value = String(a11ySettings.previewTimingMs.shapeLeadIn);
+      shapePreviewVisibleMsInput.value = String(a11ySettings.previewTimingMs.shapeVisible);
+      shapePreviewExitMsInput.value = String(a11ySettings.previewTimingMs.shapeExit);
+    }
+
+    function storePreviewTimingSettings() {
+      localStorage.setItem("om-preview-user-lead-ms", String(a11ySettings.previewTimingMs.userLeadIn));
+      localStorage.setItem("om-preview-user-visible-ms", String(a11ySettings.previewTimingMs.userVisible));
+      localStorage.setItem("om-preview-user-exit-ms", String(a11ySettings.previewTimingMs.userExit));
+      localStorage.setItem("om-preview-shape-lead-ms", String(a11ySettings.previewTimingMs.shapeLeadIn));
+      localStorage.setItem("om-preview-shape-visible-ms", String(a11ySettings.previewTimingMs.shapeVisible));
+      localStorage.setItem("om-preview-shape-exit-ms", String(a11ySettings.previewTimingMs.shapeExit));
+    }
+
     function playVisualPreview(type) {
       const previewTarget = {
         overlay: settingsVisualPreview,
         flash: settingsVisualPreviewFlash,
         shape: settingsVisualPreviewShape
       };
-      const leadInSec = type === "user" ? 0.2 : 0.16;
-      const visibleSec = 0.28;
-      const trailSec = type === "user" ? 0.24 : 0.2;
-      const totalMs = (leadInSec + visibleSec + trailSec) * 1000;
+      const leadInMs = type === "user"
+        ? a11ySettings.previewTimingMs.userLeadIn
+        : a11ySettings.previewTimingMs.shapeLeadIn;
+      const visibleMs = type === "user"
+        ? a11ySettings.previewTimingMs.userVisible
+        : a11ySettings.previewTimingMs.shapeVisible;
+      const exitMs = type === "user"
+        ? a11ySettings.previewTimingMs.userExit
+        : a11ySettings.previewTimingMs.shapeExit;
+      const totalMs = leadInMs + visibleMs + exitMs;
 
       previewTarget.overlay.dataset.active = "true";
       previewTarget.flash.style.background = "#000000";
@@ -1661,12 +1719,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         previewTarget.shape.dataset.type = type;
         previewTarget.shape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
         previewTarget.shape.style.display = "block";
-      }, leadInSec * 1000);
+      }, leadInMs);
 
       setTimeout(() => {
         previewTarget.flash.style.background = "#000000";
         previewTarget.shape.style.display = "none";
-      }, (leadInSec + visibleSec) * 1000);
+      }, leadInMs + visibleMs);
 
       setTimeout(() => {
         previewTarget.overlay.dataset.active = "false";
@@ -2225,6 +2283,24 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       });
     });
 
+    [
+      [userPreviewLeadMsInput, "userLeadIn"],
+      [userPreviewVisibleMsInput, "userVisible"],
+      [userPreviewExitMsInput, "userExit"],
+      [shapePreviewLeadMsInput, "shapeLeadIn"],
+      [shapePreviewVisibleMsInput, "shapeVisible"],
+      [shapePreviewExitMsInput, "shapeExit"],
+    ].forEach(([input, key]) => {
+      input.addEventListener("change", () => {
+        a11ySettings.previewTimingMs[key] = normalizePreviewTimingMs(
+          input.value,
+          a11ySettings.previewTimingMs[key]
+        );
+        input.value = String(a11ySettings.previewTimingMs[key]);
+        storePreviewTimingSettings();
+      });
+    });
+
     exemplarButtons.forEach((button) => {
       button.addEventListener("click", () => {
         ensureAudioContext();
@@ -2344,6 +2420,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const storedAnnounceCues = localStorage.getItem("om-a11y-announce-cues");
       const storedSyncVisualReplay = localStorage.getItem("om-a11y-sync-visual-replay");
       const storedOutsideVisualVariant = localStorage.getItem("om-a11y-outside-visual-variant");
+      const storedUserPreviewLeadMs = localStorage.getItem("om-preview-user-lead-ms");
+      const storedUserPreviewVisibleMs = localStorage.getItem("om-preview-user-visible-ms");
+      const storedUserPreviewExitMs = localStorage.getItem("om-preview-user-exit-ms");
+      const storedShapePreviewLeadMs = localStorage.getItem("om-preview-shape-lead-ms");
+      const storedShapePreviewVisibleMs = localStorage.getItem("om-preview-shape-visible-ms");
+      const storedShapePreviewExitMs = localStorage.getItem("om-preview-shape-exit-ms");
       /* A11Y ADDITIONS END */
 
       if (storedClear) {
@@ -2408,6 +2490,30 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (storedOutsideVisualVariant === "up" || storedOutsideVisualVariant === "down") {
         a11ySettings.outsideVisualVariant = storedOutsideVisualVariant;
       }
+      a11ySettings.previewTimingMs.userLeadIn = normalizePreviewTimingMs(
+        storedUserPreviewLeadMs,
+        a11ySettings.previewTimingMs.userLeadIn
+      );
+      a11ySettings.previewTimingMs.userVisible = normalizePreviewTimingMs(
+        storedUserPreviewVisibleMs,
+        a11ySettings.previewTimingMs.userVisible
+      );
+      a11ySettings.previewTimingMs.userExit = normalizePreviewTimingMs(
+        storedUserPreviewExitMs,
+        a11ySettings.previewTimingMs.userExit
+      );
+      a11ySettings.previewTimingMs.shapeLeadIn = normalizePreviewTimingMs(
+        storedShapePreviewLeadMs,
+        a11ySettings.previewTimingMs.shapeLeadIn
+      );
+      a11ySettings.previewTimingMs.shapeVisible = normalizePreviewTimingMs(
+        storedShapePreviewVisibleMs,
+        a11ySettings.previewTimingMs.shapeVisible
+      );
+      a11ySettings.previewTimingMs.shapeExit = normalizePreviewTimingMs(
+        storedShapePreviewExitMs,
+        a11ySettings.previewTimingMs.shapeExit
+      );
       a11yShowBanner.checked = a11ySettings.showBanner;
       a11yFlashAction.checked = a11ySettings.flashAction;
       a11yVibrate.checked = a11ySettings.vibrate;
@@ -2417,6 +2523,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       outsideVisualVariantInputs.forEach((input) => {
         input.checked = input.value === a11ySettings.outsideVisualVariant;
       });
+      applyPreviewTimingInputs();
       a11yTheme.value = a11ySettings.theme;
       a11yTextSize.value = a11ySettings.textSize;
       a11yHighContrast.checked = a11ySettings.highContrast;
