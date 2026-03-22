@@ -716,7 +716,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       Sound On
     </button>
 
-    <section class="markers" id="markers"></section>
+    <section class="markers" id="markers" aria-hidden="true"></section>
 
     <button class="action-btn" id="actionBtn" type="button">
       <span class="action-btn-label">Begin</span>
@@ -1878,7 +1878,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         item.dataset.index = String(index);
         item.innerHTML = `
           <div class="marker-shape"><span></span></div>
-          <span class="marker-label">${label} <span class="sr-only" data-marker-state></span></span>
+          <span class="marker-label">${label}</span>
         `;
         markersEl.appendChild(item);
       });
@@ -1890,16 +1890,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       markerNodes.forEach((node, index) => {
         node.classList.toggle("complete", index < stage);
         node.classList.toggle("current", index === stage && started);
-        const stateText = node.querySelector("[data-marker-state]");
-        if (stateText) {
-          if (index < stage) {
-            stateText.textContent = "(Complete)";
-          } else if (index === stage && started) {
-            stateText.textContent = "(Current)";
-          } else {
-            stateText.textContent = "(Not reached)";
-          }
-        }
       });
       updateMarkersSummary();
       updateActionButtonStage();
