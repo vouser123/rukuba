@@ -4,6 +4,8 @@ Operational guide for using Beads in `pt-rebuild/`.
 
 This document exists so `AGENTS.md` can stay short and policy-focused while this file carries the detailed Beads operating rules.
 
+Use [`BEADS_WORKFLOW.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/BEADS_WORKFLOW.md) for the canonical lifecycle order. This operations guide assumes that finished scoped work is closed promptly, including verification-only beads.
+
 ## Purpose
 
 <!-- QUICKREF:BEGIN -->
@@ -32,6 +34,23 @@ Beads is designed for concurrent multi-agent use, but safe concurrency still dep
 - If another thread is used in parallel, default split is:
   - implementation here
   - review/verification there
+
+## Lifecycle Rule
+
+The core workflow rule is:
+
+- close the bead when the scoped work is done
+
+Manual closure is required. Commits do not close beads automatically in the current Dolt-based workflow.
+
+That applies to all bead types, including verification-only beads.
+
+For code beads, the practical consequence is:
+
+- bead state must be accurate before the commit is created
+- manually close the bead before the commit if the scoped work is complete
+
+For verification beads, there may be no commit at all, so the rule is still closure on completion, not closure-before-commit as a general slogan.
 
 ## Dependency Rules
 
@@ -279,7 +298,15 @@ bd doctor --fix               # apply the standard fix path
 
 ## Duplicate Detection and Merge
 
-Find and consolidate duplicate issues:
+**When you know a specific issue is a duplicate, use `bd duplicate`:**
+
+```bash
+bd duplicate <dupe-id> --of <canonical-id>   # mark dupe, auto-closes it with reference
+```
+
+This is the correct command for "I found a Codex bead that duplicates mine" — not `bd close`. It records the relationship explicitly so the duplicate chain is traceable.
+
+Find and consolidate duplicate issues in bulk:
 
 ```bash
 bd duplicates              # find all content duplicates
@@ -287,12 +314,12 @@ bd duplicates --dry-run    # preview what would be merged
 bd duplicates --auto-merge # automatically merge all duplicates
 ```
 
-Merge specific issues manually:
+Merge specific issues manually (when content should be combined, not just closed):
 
 ```bash
 bd merge pt-42 --into pt-41           # merge one into another
-bd merge pt-42 pt-43 --into pt-41  # merge multiple
-bd merge pt-42 --into pt-41 --dry-run     # preview first
+bd merge pt-42 pt-43 --into pt-41     # merge multiple
+bd merge pt-42 --into pt-41 --dry-run # preview first
 ```
 
 Merge closes the source issues and migrates all dependencies and text references to the target. Cannot be undone (but git history preserves original state).
@@ -301,7 +328,7 @@ AI agent workflow when duplicates are found:
 
 1. `bd list --json | grep "similar text"` — search for similar issues
 2. `bd show pt-41 pt-42 --json` — compare details
-3. `bd merge pt-42 --into pt-41` — consolidate
+3. `bd duplicate pt-42 --of pt-41` — if pt-42 is the dupe; or `bd merge pt-42 --into pt-41` if content should be combined
 
 ## Dependency Tree
 
@@ -389,33 +416,40 @@ Work is NOT complete until `git push` succeeds and Beads is synced. Complete ALL
 # 1. File issues for any remaining work discovered this session
 bd create "..." -p 1 --deps discovered-from:pt-xxx --json
 
-# 2. Run quality gates (only if code changed)
+# 2. Close finished beads or narrow unfinished ones
+bd close pt-xxx --reason "Completed" --json
+# or, if not complete:
+bd update pt-xxx --append-notes "Remaining scope: ..." --json
+
+# 3. Run quality gates (only if code changed)
 # Example: run the checks that apply to the code you changed
 
-# 3. Close finished issues
-bd close pt-xxx --reason "Completed" --json
+# 4. If code changed, commit after bead state is accurate
+git commit -m "Your change (pt-xxx)"
 
-# 4. Push code to remote — MANDATORY, do not stop before this completes
+# 5. Push code to remote — MANDATORY, do not stop before this completes
 git pull --rebase
 git push          # work is stranded locally until this succeeds
 git status        # must show "up to date with origin/nextjs"
 
-# 5. Sync Beads
+# 6. Sync Beads
 bd dolt pull
 bd dolt push
 
-# 6. Clean up git state
+# 7. Clean up git state
 git stash clear
 git remote prune origin
 
-# 7. Verify
+# 8. Verify
 git status
 
-# 8. Choose next work and hand off context
+# 9. Choose next work and hand off context
 bd ready --json
 ```
 
 **Rules:**
+- Manual closure is required. Commits do not close beads automatically in the current Dolt-based workflow.
+- Close beads when their scoped work is done. For code beads, that means commit after bead state is accurate. For verification beads, close them in the same pass once they pass.
 - NEVER stop before `git push` completes — stranded local work breaks multi-agent coordination
 - NEVER say "ready to push when you are" — push it yourself
 - If push fails, resolve and retry until it succeeds

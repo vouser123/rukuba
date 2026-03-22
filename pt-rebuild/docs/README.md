@@ -22,6 +22,9 @@ Use this file to decide which doc to open next.
 - [`TESTING_CHECKLISTS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/TESTING_CHECKLISTS.md)
   - Open when: you are validating a behavior change or regression fix.
   - Answers: "How do I verify this safely?"
+- [`BEADS_WORKFLOW.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/BEADS_WORKFLOW.md)
+  - Open when: you need the required bead lifecycle and closure rules.
+  - Answers: "What exact order should I use for Beads work?"
 - [`BEADS_OPERATIONS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/docs/BEADS_OPERATIONS.md)
   - Open when: you need detailed Beads workflow, Dolt sync, or recovery steps.
   - Answers: "How do I operate the tracker safely?"

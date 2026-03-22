@@ -181,33 +181,40 @@ Work is NOT complete until `git push` succeeds and Beads is synced. Complete ALL
 # 1. File issues for any remaining work discovered this session
 bd create "..." -p 1 --deps discovered-from:pt-xxx --json
 
-# 2. Run quality gates (only if code changed)
+# 2. Close finished beads or narrow unfinished ones
+bd close pt-xxx --reason "Completed" --json
+# or, if not complete:
+bd update pt-xxx --append-notes "Remaining scope: ..." --json
+
+# 3. Run quality gates (only if code changed)
 # Example: run the checks that apply to the code you changed
 
-# 3. Close finished issues
-bd close pt-xxx --reason "Completed" --json
+# 4. If code changed, commit after bead state is accurate
+git commit -m "Your change (pt-xxx)"
 
-# 4. Push code to remote — MANDATORY, do not stop before this completes
+# 5. Push code to remote — MANDATORY, do not stop before this completes
 git pull --rebase
 git push          # work is stranded locally until this succeeds
 git status        # must show "up to date with origin/nextjs"
 
-# 5. Sync Beads
+# 6. Sync Beads
 bd dolt pull
 bd dolt push
 
-# 6. Clean up git state
+# 7. Clean up git state
 git stash clear
 git remote prune origin
 
-# 7. Verify
+# 8. Verify
 git status
 
-# 8. Choose next work and hand off context
+# 9. Choose next work and hand off context
 bd ready --json
 ```
 
 **Rules:**
+- Manual closure is required. Commits do not close beads automatically in the current Dolt-based workflow.
+- Close beads when their scoped work is done. For code beads, that means commit after bead state is accurate. For verification beads, close them in the same pass once they pass.
 - NEVER stop before `git push` completes — stranded local work breaks multi-agent coordination
 - NEVER say "ready to push when you are" — push it yourself
 - If push fails, resolve and retry until it succeeds

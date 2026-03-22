@@ -11,6 +11,7 @@ This file governs agent behavior for work inside `pt-rebuild/`.
 - `pt-rebuild/docs/IMPLEMENTATION_PATTERNS.md` - approved shared helpers, components, and do-this-not-that implementation guidance
 - `pt-rebuild/docs/DATA_VOCABULARIES.md` - canonical field names and data contracts
 - `pt-rebuild/docs/TESTING_CHECKLISTS.md` - all regression, parity, and verification checklists for pt-rebuild/
+- `pt-rebuild/docs/BEADS_WORKFLOW.md` - required bead lifecycle, including when to close work and how to handle verification-only beads
 - `pt-rebuild/docs/BEADS_OPERATIONS.md` - canonical Beads operating rules, parallel-thread guidance, and Dolt troubleshooting
 - `pt-rebuild/docs/BEADS_QUICKREF.md` - generated quick reference derived from `BEADS_OPERATIONS.md` for agent session startup and recovery
 - `pt-rebuild/docs/archive/dev-notes/dev_notes.json` - legacy tracking archive; no longer the active intake queue
@@ -125,6 +126,7 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 ## Beads Agent Discipline (Required)
 
+- Required lifecycle rules live in `pt-rebuild/docs/BEADS_WORKFLOW.md`.
 - Detailed operating rules live in `pt-rebuild/docs/BEADS_OPERATIONS.md`.
 - Keep `AGENTS.md` as the policy surface; use the workflow doc for command patterns, parallel-thread rules, and Dolt cleanup steps.
 - Check `bd dolt status` before trying to start Dolt; only run `bd dolt start` when the server is not already running.
@@ -159,6 +161,17 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
   - `bd update <id> --priority 4 --defer +14d`
 - Land-the-plane rule:
   - Update/close Beads items and push code before ending session; do not leave local-only state
+- Required execution order for every bead:
+  - `open bead` -> `claim / set in_progress when starting` -> `do the work and update notes / add discovered-from beads as needed` -> `close bead when the scoped work is finished`
+  - If the bead produces code changes, commit only after bead state is accurate.
+- Hard rule:
+  - Manual closure is required. Commits do not close beads automatically in the current Dolt-based workflow.
+  - Do not leave a bead open when its scoped work is done.
+  - Do not leave a verification-only bead open after the verification passes.
+  - If a parent bead stays open, close the completed child bead anyway and note the exact remaining open scope on the parent.
+- If code is implemented but waiting on another thread's verification:
+  - update the bead immediately with the pushed commit id and an explicit note that the status is `implemented, awaiting verification`
+  - do not leave the bead looking untouched or ambiguously open
 - Concurrency rule:
   - Beads supports multi-agent coordination, but shared-file implementation still needs one owner at a time. Use parallel threads for review/verification or clearly separate file domains, not for the same helper/state path.
 
@@ -227,11 +240,18 @@ bd close bd-42 --reason "Completed" --json
 ### Workflow for AI Agents
 
 1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task atomically**: `bd update <id> --claim`
-3. **Work on it**: Implement, test, document
+2. **Claim your task atomically and mark it in progress**: `bd update <id> --claim --status in_progress`
+3. **Work on it**: Implement, test, document, and keep notes current while you work
 4. **Discover new work?** Create linked issue:
    - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
+5. **Close the bead when the scoped work is finished**: `bd close <id> --reason "Done"`
+6. **Commit after the bead is closed**
+
+Required discipline:
+
+- Bead closure comes before commit creation.
+- Verification-only beads must be closed in the same pass once they pass.
+- If a bead is not being closed, leave an explicit note naming the unfinished scope so another agent does not repeat completed work.
 
 ### Auto-Sync
 
