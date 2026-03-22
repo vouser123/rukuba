@@ -440,23 +440,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       display: none;
     }
 
-    .cue-icon {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 700;
-    }
-
-    .cue-banner[data-color-icon="false"] .cue-icon {
-      display: none;
-    }
-
     .sr-only {
       position: absolute;
       width: 1px;
@@ -728,8 +711,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     <div class="status" id="statusText">Ready.</div>
     <!-- A11Y ADDITIONS START -->
-    <div class="cue-banner" id="cueBanner" data-visible="true" data-color-icon="true" aria-live="off">
-      <span class="cue-icon" id="cueIcon" aria-hidden="true">!</span>
+    <div class="cue-banner" id="cueBanner" data-visible="true" aria-live="off">
       <span class="cue-text" id="cueBannerText">Ready.</span>
     </div>
     <div id="srAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
@@ -878,10 +860,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             Vibrate on cue (if supported)
           </label>
           <label>
-            <input type="checkbox" id="a11yUseColorIcon" />
-            Use color + icon
-          </label>
-          <label>
             <input type="checkbox" id="a11yUseTextLabels" />
             Use text labels
           </label>
@@ -942,7 +920,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
      * - om-a11y-show-banner
      * - om-a11y-flash-action
      * - om-a11y-vibrate
-     * - om-a11y-use-color-icon
      * - om-a11y-use-text-labels
      * - om-a11y-theme
      * - om-a11y-text-size
@@ -971,13 +948,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const a11yTitle = document.getElementById("a11yTitle");
     const cueBanner = document.getElementById("cueBanner");
     const cueBannerText = document.getElementById("cueBannerText");
-    const cueIcon = document.getElementById("cueIcon");
     const srAnnouncer = document.getElementById("srAnnouncer");
     const outputModeInputs = [...document.querySelectorAll("input[name='a11yOutputMode']")];
     const a11yShowBanner = document.getElementById("a11yShowBanner");
     const a11yFlashAction = document.getElementById("a11yFlashAction");
     const a11yVibrate = document.getElementById("a11yVibrate");
-    const a11yUseColorIcon = document.getElementById("a11yUseColorIcon");
     const a11yUseTextLabels = document.getElementById("a11yUseTextLabels");
     const a11ySyncVisualReplay = document.getElementById("a11ySyncVisualReplay");
     const a11yTheme = document.getElementById("a11yTheme");
@@ -1026,7 +1001,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       a11yShowBanner,
       a11yFlashAction,
       a11yVibrate,
-      a11yUseColorIcon,
       a11yUseTextLabels,
       a11ySyncVisualReplay,
       a11yTheme,
@@ -1079,7 +1053,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       showBanner: true,
       flashAction: false,
       vibrate: false,
-      useColorIcon: true,
       useTextLabels: true,
       syncVisualReplay: false,
       outsideVisualVariant: "up",
@@ -2292,7 +2265,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     /* A11Y ADDITIONS START */
     function applyA11ySettings() {
       cueBanner.dataset.visible = String(a11ySettings.showBanner);
-      cueBanner.dataset.colorIcon = String(a11ySettings.useColorIcon);
       cueBannerText.classList.toggle("sr-only", !a11ySettings.useTextLabels);
       document.body.dataset.textSize = a11ySettings.textSize;
       document.body.classList.toggle("high-contrast", a11ySettings.highContrast);
@@ -2369,7 +2341,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const storedShowBanner = localStorage.getItem("om-a11y-show-banner");
       const storedFlashAction = localStorage.getItem("om-a11y-flash-action");
       const storedVibrate = localStorage.getItem("om-a11y-vibrate");
-      const storedUseColorIcon = localStorage.getItem("om-a11y-use-color-icon");
       const storedUseTextLabels = localStorage.getItem("om-a11y-use-text-labels");
       const storedTheme = localStorage.getItem("om-a11y-theme");
       const storedTextSize = localStorage.getItem("om-a11y-text-size");
@@ -2416,9 +2387,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (storedVibrate) {
         a11ySettings.vibrate = storedVibrate === "true";
       }
-      if (storedUseColorIcon) {
-        a11ySettings.useColorIcon = storedUseColorIcon === "true";
-      }
       if (storedUseTextLabels) {
         a11ySettings.useTextLabels = storedUseTextLabels === "true";
       }
@@ -2446,7 +2414,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       a11yShowBanner.checked = a11ySettings.showBanner;
       a11yFlashAction.checked = a11ySettings.flashAction;
       a11yVibrate.checked = a11ySettings.vibrate;
-      a11yUseColorIcon.checked = a11ySettings.useColorIcon;
       a11yUseTextLabels.checked = a11ySettings.useTextLabels;
       a11ySyncVisualReplay.checked = a11ySettings.syncVisualReplay;
       outsideVisualVariantInputs.forEach((input) => {
@@ -2502,12 +2469,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     a11yVibrate.addEventListener("change", () => {
       a11ySettings.vibrate = a11yVibrate.checked;
       localStorage.setItem("om-a11y-vibrate", String(a11ySettings.vibrate));
-    });
-
-    a11yUseColorIcon.addEventListener("change", () => {
-      a11ySettings.useColorIcon = a11yUseColorIcon.checked;
-      localStorage.setItem("om-a11y-use-color-icon", String(a11ySettings.useColorIcon));
-      applyA11ySettings();
     });
 
     a11yUseTextLabels.addEventListener("change", () => {
