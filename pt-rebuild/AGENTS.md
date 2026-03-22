@@ -30,6 +30,36 @@ Session-start requirement:
 - If guidance conflicts, prefer the file with the newer `LastWriteTime` and note the conflict in session updates.
 - When adding durable local operational notes, update both files with the same change.
 
+## Pre-Coding Layer Check (Required Before Writing Any Code)
+
+**Before writing any code to an existing file, you must ask: "What layer does this belong in?"**
+
+The answer determines where the code goes. Line count does not. A file being under its cap is not permission to add code that belongs elsewhere.
+
+| Layer | Only contains | Must not contain |
+|-------|--------------|-----------------|
+| `pages/` | Auth guard, route-level state, wiring hooks + components together | Feature UI, mutation logic, data transformation, form state, business logic |
+| `components/` | JSX and presentation logic; all data arrives via props | API calls, business logic, calculations, hooks |
+| `hooks/` | State + effects for one concern | JSX, API calls that don't belong to the hook's concern |
+| `lib/` | Pure functions for one domain | React imports, hooks, side effects |
+
+**Page = orchestrator. This is a hard rule, not a guideline.**
+
+A page file wires auth, route state, hooks, and components together. That is its entire job. If the code you are about to write is not wiring — if it is feature UI, mutation handling, data transformation, or form state — it does not go in the page file. It goes in a component or hook first, then the page wires it in.
+
+**This rule does not have a size exception.** A page at 200 lines must still reject non-orchestrator code. A page at 490 lines (just under the 500L cap) must still reject non-orchestrator code. The cap is a backstop that signals something already went wrong — not a budget to spend.
+
+**This is why fixed pages regress.** An agent sees room under the cap and adds non-orchestrator code. The fix is to never ask "is there room?" — only ask "does this belong here?"
+
+Before writing to a page file:
+1. Identify what the code does
+2. If it is not pure wiring (auth, route state, composing hooks/components) → stop
+3. Determine which layer it belongs in (component or hook)
+4. Create or extend that file instead
+5. Then wire it into the page
+
+---
+
 ## Core Rules
 
 - Use a docs-first workflow: check the canonical references before editing code.
