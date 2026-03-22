@@ -681,11 +681,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
   <main class="panel">
     <!-- A11Y ADDITIONS START -->
     <div class="settings-actions">
-      <button class="settings-trigger" id="settingsTrigger" type="button" aria-label="Open settings">
+      <button class="settings-trigger" id="settingsTrigger" type="button">
         <span aria-hidden="true">⚙️</span>
         Settings
       </button>
-      <button class="a11y-trigger" id="a11yTrigger" type="button" aria-label="Open accessibility settings">
+      <button class="a11y-trigger" id="a11yTrigger" type="button">
         <span class="icon-accessibility" aria-hidden="true">
           <svg viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
             <circle cx="12" cy="12" r="9"></circle>
@@ -701,22 +701,22 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     </div>
     <!-- A11Y ADDITIONS END -->
 
-    <div class="mode-toggle" role="group" aria-label="Mode selection">
+    <div class="mode-toggle" role="radiogroup" aria-label="Crossing mode">
       <label>
-        <input type="radio" name="mode" value="2" checked aria-label="Start to finish mode" />
-        Start → Finish
+        <input type="radio" name="mode" value="2" checked aria-label="Start to finish" />
+        <span aria-hidden="true">Start → Finish</span>
       </label>
       <label>
-        <input type="radio" name="mode" value="2b" aria-label="Start to halfway mode" />
-        Start → Halfway
+        <input type="radio" name="mode" value="2b" aria-label="Start to halfway" />
+        <span aria-hidden="true">Start → Halfway</span>
       </label>
       <label>
-        <input type="radio" name="mode" value="3" aria-label="Start halfway finish mode" />
-        Start → Halfway → Finish
+        <input type="radio" name="mode" value="3" aria-label="Start to halfway to finish" />
+        <span aria-hidden="true">Start → Halfway → Finish</span>
       </label>
     </div>
 
-    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true" aria-label="Toggle sound on or off">
+    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true">
       <span aria-hidden="true">🔊</span>
       Sound On
     </button>
@@ -733,10 +733,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     </div>
     <div id="srAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     <!-- A11Y ADDITIONS END -->
-    <div class="status debug" id="debugText" aria-live="polite"></div>
+    <div class="status debug" id="debugText" aria-live="off" aria-hidden="true"></div>
   </main>
 
-  <dialog id="settingsModal" aria-label="Settings">
+  <dialog id="settingsModal" aria-labelledby="settingsTitle">
     <div class="modal-card">
       <div class="visual-replay-overlay modal-visual-preview" id="settingsVisualPreview" aria-hidden="true" data-active="false">
         <div class="visual-replay-flash" id="settingsVisualPreviewFlash"></div>
@@ -757,12 +757,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
               <div class="sound-option">
                 <input type="radio" id="acceptable-a" name="acceptableSound" value="acceptable-a" />
                 <label for="acceptable-a">Chime A</label>
-                <button type="button" class="preview-btn" data-sound="acceptable-a" aria-label="Play acceptable sound option A">Play</button>
+                <button type="button" class="preview-btn" data-sound="acceptable-a">Play</button>
               </div>
               <div class="sound-option">
                 <input type="radio" id="acceptable-b" name="acceptableSound" value="acceptable-b" />
                 <label for="acceptable-b">Chime B</label>
-                <button type="button" class="preview-btn" data-sound="acceptable-b" aria-label="Play acceptable sound option B">Play</button>
+                <button type="button" class="preview-btn" data-sound="acceptable-b">Play</button>
               </div>
             </div>
           </fieldset>
@@ -772,12 +772,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
               <div class="sound-option">
                 <input type="radio" id="outside-a" name="outsideSound" value="outside-a" />
                 <label for="outside-a">Low Pulse A</label>
-                <button type="button" class="preview-btn" data-sound="outside-a" aria-label="Play out of bounds sound option A">Play</button>
+                <button type="button" class="preview-btn" data-sound="outside-a">Play</button>
               </div>
               <div class="sound-option">
                 <input type="radio" id="outside-b" name="outsideSound" value="outside-b" />
                 <label for="outside-b">Low Pulse B</label>
-                <button type="button" class="preview-btn" data-sound="outside-b" aria-label="Play out of bounds sound option B">Play</button>
+                <button type="button" class="preview-btn" data-sound="outside-b">Play</button>
               </div>
             </div>
           </fieldset>
@@ -800,42 +800,42 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             Outside triangle orientation: Down
           </label>
           <div class="exemplar-actions" role="group" aria-label="Preview visual cues">
-            <button type="button" class="settings-action visual-preview-btn" data-visual-type="user" aria-label="Preview user visual cue">Preview: User flash</button>
-            <button type="button" class="settings-action visual-preview-btn" data-visual-type="acceptable" aria-label="Preview acceptable reference visual cue">Preview: Acceptable shape</button>
-            <button type="button" class="settings-action visual-preview-btn" data-visual-type="outside" aria-label="Preview outside reference visual cue">Preview: Outside shape</button>
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="user">Preview: User flash</button>
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="acceptable">Preview: Acceptable shape</button>
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="outside">Preview: Outside shape</button>
           </div>
           <label for="userPreviewLeadMs">User preview lead-in (ms)</label>
-          <input id="userPreviewLeadMs" type="number" min="0" step="10" inputmode="numeric" aria-label="User preview lead-in in milliseconds" />
+          <input id="userPreviewLeadMs" type="number" min="0" step="10" inputmode="numeric" />
           <label for="userPreviewVisibleMs">User preview display time (ms)</label>
-          <input id="userPreviewVisibleMs" type="number" min="0" step="10" inputmode="numeric" aria-label="User preview display time in milliseconds" />
+          <input id="userPreviewVisibleMs" type="number" min="0" step="10" inputmode="numeric" />
           <label for="userPreviewExitMs">User preview exit black time (ms)</label>
-          <input id="userPreviewExitMs" type="number" min="0" step="10" inputmode="numeric" aria-label="User preview exit black time in milliseconds" />
+          <input id="userPreviewExitMs" type="number" min="0" step="10" inputmode="numeric" />
           <label for="shapePreviewLeadMs">Shape preview lead-in (ms)</label>
-          <input id="shapePreviewLeadMs" type="number" min="0" step="10" inputmode="numeric" aria-label="Shape preview lead-in in milliseconds" />
+          <input id="shapePreviewLeadMs" type="number" min="0" step="10" inputmode="numeric" />
           <label for="shapePreviewVisibleMs">Shape preview display time (ms)</label>
-          <input id="shapePreviewVisibleMs" type="number" min="0" step="10" inputmode="numeric" aria-label="Shape preview display time in milliseconds" />
+          <input id="shapePreviewVisibleMs" type="number" min="0" step="10" inputmode="numeric" />
           <label for="shapePreviewExitMs">Shape preview exit black time (ms)</label>
-          <input id="shapePreviewExitMs" type="number" min="0" step="10" inputmode="numeric" aria-label="Shape preview exit black time in milliseconds" />
+          <input id="shapePreviewExitMs" type="number" min="0" step="10" inputmode="numeric" />
         </div>
         <div class="setup-group" aria-label="Time entry">
           <h3>Time Entry</h3>
           <label for="clearTime">Time to clear from left (seconds)</label>
-          <input id="clearTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Time to clear from left in seconds" />
+          <input id="clearTime" type="number" step="0.1" min="0.1" inputmode="decimal" />
           <label for="fullTime">Full street time (seconds)</label>
-          <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" aria-label="Full street time in seconds" />
+          <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" />
         </div>
         <div class="setup-group" aria-label="Training exemplars">
           <h3>Training Exemplars</h3>
           <div class="exemplar-actions" role="group" aria-label="Play timing exemplars">
-            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2b" aria-label="Play exemplar for start to halfway">Play: Start → Halfway</button>
-            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2" aria-label="Play exemplar for start to finish">Play: Start → Finish</button>
-            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="3" aria-label="Play exemplar for start to halfway to finish">Play: Start → Halfway → Finish</button>
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2b">Play: Start → Halfway</button>
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2">Play: Start → Finish</button>
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="3">Play: Start → Halfway → Finish</button>
           </div>
         </div>
         <div class="setup-group" aria-label="Margin of error">
           <h3>Margin of Error</h3>
           <label for="marginInput">Acceptable margin of error (seconds)</label>
-          <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" aria-label="Acceptable margin of error in seconds" value="0.4" />
+          <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" value="0.4" />
         </div>
         <div class="setup-group" aria-label="Debug options">
           <h3>Debug</h3>
@@ -849,7 +849,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
   </dialog>
 
   <!-- A11Y ADDITIONS START -->
-  <dialog id="a11yModal" aria-label="Accessibility settings">
+  <dialog id="a11yModal" aria-labelledby="a11yTitle">
     <div class="modal-card">
       <div class="modal-header">
         <h2 id="a11yTitle" tabindex="-1">Accessibility</h2>
@@ -1973,6 +1973,14 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       }, 20);
     }
 
+    function applyDebugAccessibility() {
+      debugText.setAttribute("aria-live", showDebug ? "polite" : "off");
+      debugText.setAttribute("aria-hidden", showDebug ? "false" : "true");
+      if (!showDebug) {
+        debugText.textContent = "";
+      }
+    }
+
     function lockModeSelection(lock) {
       modeInputs.forEach((input) => {
         input.disabled = lock;
@@ -2005,8 +2013,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     /* A11Y ADDITIONS START */
     function setActionButtonLabel(label) {
       actionBtn.textContent = label;
-      actionBtn.setAttribute("aria-label", label);
-      announceScreenReader(`Action button: ${label}.`);
     }
 
     function updateNextPrompt() {
@@ -2317,6 +2323,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     debugToggle.addEventListener("change", () => {
       showDebug = debugToggle.checked;
       localStorage.setItem("om-debug-replay", String(showDebug));
+      applyDebugAccessibility();
     });
 
     clearTimeInput.addEventListener("change", () => {
@@ -2447,6 +2454,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       replayUsesConfirm.checked = replayUsesConfirmTone;
       showDebug = storedDebug === "true";
       debugToggle.checked = showDebug;
+      applyDebugAccessibility();
       /* A11Y ADDITIONS START */
       if (storedOutputMode) {
         a11ySettings.outputMode = storedOutputMode;
