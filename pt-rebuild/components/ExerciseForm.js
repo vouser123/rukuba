@@ -94,6 +94,19 @@ export default function ExerciseForm({ exercise, exercises, referenceData, vocab
   async function handleSave(e) {
     e.preventDefault();
     setError(null);
+
+    // Validate required fields before queuing — both online and offline.
+    // pt_category and pattern are required by the API but not enforced by HTML
+    // validation. An empty value will fail replay silently if queued offline.
+    if (!basics.pt_category) {
+      setError('Category is required. Please select a category before saving.');
+      return;
+    }
+    if (!basics.pattern) {
+      setError('Pattern (dosage side) is required. Please select a pattern before saving.');
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
