@@ -159,10 +159,10 @@ export function useTrackerSession({
                 setOptimisticLogs((previous) => previous.filter((log) => log.client_mutation_id !== finalSession.sessionId));
                 showSaveSuccess(trimmedNotes);
             } else {
-                showToast('Saved offline — will sync when online', 'success');
+                showToast('Offline - changes will sync later', 'error');
             }
         }).catch(() => {
-            showToast('Saved offline — will sync when online', 'success');
+            showToast('Offline - changes will sync later', 'error');
         });
 
         return true;

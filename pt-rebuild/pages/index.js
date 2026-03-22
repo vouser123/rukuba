@@ -249,8 +249,6 @@ export default function IndexPage() {
                 <title>PT Tracker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
                 <link rel="manifest" href="/manifest-tracker.json" />
-                <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
-                <link rel="apple-touch-icon" href="/icons/icon.svg" />
                 <meta name="mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -273,9 +271,13 @@ export default function IndexPage() {
                             onSignOut={handleSignOut}
                             currentPage="index"
                             actions={[{ action: 'manual-sync', label: 'Sync now' }]}
-                            onAction={(action) => {
-                                if (action === 'manual-sync') { sync(); return true; }
-                                return false;
+                            onAction={async (action) => {
+                                if (action !== 'manual-sync') return false;
+                                const result = await sync();
+                                if ((result?.succeeded ?? 0) === 0 && (result?.failed ?? 0) === 0) {
+                                    showToast('Nothing to sync!', 'success');
+                                }
+                                return true;
                             }}
                         />
                     </div>

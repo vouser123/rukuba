@@ -420,7 +420,7 @@ export default function ProgramPage() {
         <Head>
           <title>PT Editor - Exercise Library Manager</title>
           <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-          <link rel="manifest" href="/manifest.json" />
+          <link rel="manifest" href="/manifest-tracker.json" />
         </Head>
         <AuthForm onSignIn={signIn} />
       </>
@@ -432,7 +432,7 @@ export default function ProgramPage() {
       <Head>
         <title>PT Editor - Exercise Library Manager</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/manifest-tracker.json" />
       </Head>
 
       {session && (

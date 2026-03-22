@@ -8,15 +8,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  */
 export function useToast() {
     const [toast, setToast] = useState({ message: '', type: '', visible: false });
+    const showTimerRef = useRef(null);
     const hideTimerRef = useRef(null);
     const clearTimerRef = useRef(null);
 
     const showToast = useCallback((message, type = '', duration = 3000) => {
         // Cancel any in-flight timers so a new toast replaces the current one immediately
+        if (showTimerRef.current) clearTimeout(showTimerRef.current);
         if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
         if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
 
-        setToast({ message, type, visible: true });
+        setToast({ message, type, visible: false });
+
+        // Match the staged static behavior: insert first, then animate in shortly after mount.
+        showTimerRef.current = window.setTimeout(() => {
+            setToast((prev) => ({ ...prev, visible: true }));
+        }, 10);
 
         // After duration, begin fade-out
         hideTimerRef.current = window.setTimeout(() => {
@@ -30,6 +37,7 @@ export function useToast() {
 
     // Clean up on unmount
     useEffect(() => () => {
+        if (showTimerRef.current) clearTimeout(showTimerRef.current);
         if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
         if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
     }, []);
