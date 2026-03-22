@@ -4,27 +4,20 @@
  * Strategy: Network-first for everything.
  * - Online: always fetch from server, update cache with fresh copy
  * - Offline: fall back to cached version
- * - API calls: network-only (no caching, offline.js manages IndexedDB)
+ * - API calls: network-only (no caching, IndexedDB handles offline queue)
+ *
+ * STATIC_ASSETS contains only browser-served assets that exist in public/.
+ * Legacy HTML/CSS/JS were pruned from nextjs branch (pt-v4y). Do not re-add them.
  */
 
-const CACHE_NAME = 'pt-tracker-v13';
+const CACHE_NAME = 'pt-tracker-v14';
 const STATIC_ASSETS = [
   '/',
   '/program',
   '/pt-view',
   '/rehab',
-  '/pt_editor.html',
-  '/pt_view.html',
-  '/rehab_coverage.html',
-  '/reset-password.html',
-  '/js/offline.js',
-  '/js/pt_editor.js',
-  '/js/hamburger-menu.js',
-  '/js/vendor/supabase.min.js',
-  '/css/main.css',
-  '/css/hamburger-menu.css',
+  '/reset-password',
   '/icons/icon.svg',
-  '/manifest.json',
   '/manifest-tracker.json'
 ];
 
@@ -35,19 +28,8 @@ function normalizePathname(pathname) {
 
 function getNavigationFallback(pathname) {
   const normalized = normalizePathname(pathname);
-
-  if (normalized === '/' || normalized === '/program' || normalized === '/pt-view' || normalized === '/rehab') {
-    return normalized;
-  }
-
-  if (normalized === '/index.html') {
-    return '/';
-  }
-
-  if (normalized === '/pt_editor.html' || normalized === '/pt_view.html' || normalized === '/rehab_coverage.html') {
-    return normalized;
-  }
-
+  const nextjsRoutes = ['/', '/program', '/pt-view', '/rehab', '/reset-password'];
+  if (nextjsRoutes.includes(normalized)) return normalized;
   return '/';
 }
 
@@ -80,13 +62,14 @@ self.addEventListener('activate', (event) => {
 });
 
 /**
- * Fetch - network-first for all requests
+ * Fetch - network-first for all requests.
+ * Only GET requests are cached — Cache API rejects PUT/POST/HEAD.
  */
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // API calls: network-only, no caching (offline.js handles IndexedDB)
+  // API calls: network-only, no caching (IndexedDB handles offline queue)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request).catch(() => {
@@ -102,11 +85,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else: network-first, cache fallback for offline
+  // Everything else: network-first, cache fallback for offline.
+  // Only cache GET responses — Cache API does not support PUT/POST/HEAD.
   event.respondWith(
     fetch(request)
       .then((response) => {
-        if (response.ok) {
+        if (response.ok && request.method === 'GET') {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseClone);
@@ -119,8 +103,7 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) {
             return cachedResponse;
           }
-          // No cache available for this URL — use a route-aware navigation fallback
-          // so migrated Next.js routes do not drop into the legacy /index.html shell.
+          // No cache hit — use route-aware navigation fallback for Next.js routes.
           if (request.mode === 'navigate') {
             const fallbackPath = getNavigationFallback(url.pathname);
             return caches.match(fallbackPath).then((fallbackResponse) => {
