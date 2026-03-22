@@ -119,12 +119,14 @@ export default function IndexPage() {
         allLogs,
         activeExercise,
         sessionStartedAt,
+        currentSide,
         setDraftSession,
         setPendingSetPatch,
         setBackdateValue,
         setActiveExercise,
         setIsTimerOpen,
         setPanelResetToken,
+        setCurrentSide,
         handleExerciseSelect,
         handleTimerBack,
         handleFinishSession,
@@ -347,6 +349,8 @@ export default function IndexPage() {
                     exercise={selectedExercise}
                     resetToken={panelResetToken}
                     sessionProgress={sessionProgress}
+                    selectedSide={currentSide}
+                    onSideChange={setCurrentSide}
                     onClose={handleTimerBack}
                     onFinish={handleFinishSession}
                     onBack={handleTimerBack}

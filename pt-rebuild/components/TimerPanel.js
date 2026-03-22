@@ -10,13 +10,15 @@ export default function TimerPanel({
     exercise,
     resetToken = 0,
     sessionProgress,
+    selectedSide = null,
+    onSideChange,
     onClose,
     onFinish,
     onBack,
     onApplySet,
     onOpenManual,
 }) {
-    const timer = useTimerSpeech(exercise, isOpen, resetToken, sessionProgress);
+    const timer = useTimerSpeech(exercise, isOpen, resetToken, sessionProgress, selectedSide, onSideChange);
     const [isPocketOpen, setIsPocketOpen] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
     const syncPocketOpen = timer.setPocketOpen;

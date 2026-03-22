@@ -24,6 +24,7 @@ export function useTrackerSession({
 }) {
     const [selectedExerciseId, setSelectedExerciseId] = useState(null), [selectedExercise, setSelectedExercise] = useState(null);
     const [draftSession, setDraftSession] = useState(null), [isTimerOpen, setIsTimerOpen] = useState(false);
+    const [currentSide, setCurrentSide] = useState(null);
     const [panelResetToken, setPanelResetToken] = useState(0), [pendingSetPatch, setPendingSetPatch] = useState(null);
     const [notesModalOpen, setNotesModalOpen] = useState(false), [backdateEnabled, setBackdateEnabled] = useState(false);
     const [backdateValue, setBackdateValue] = useState('');
@@ -51,6 +52,7 @@ export function useTrackerSession({
         setDraftSession(null);
         setSelectedExerciseId(null);
         setSelectedExercise(null);
+        setCurrentSide(null);
         setIsTimerOpen(false);
         setPendingSetPatch(null);
         setNotesModalOpen(false);
@@ -61,8 +63,10 @@ export function useTrackerSession({
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
         const selected = pickerExercises.find((exercise) => exercise.id === exerciseId) || null;
-        const enrichedSelected = selected ? buildExerciseFormContext(selected, selected.pattern === 'side' ? 'right' : null) : null;
+        const nextSide = selected?.pattern === 'side' ? 'right' : null;
+        const enrichedSelected = selected ? buildExerciseFormContext(selected, nextSide) : null;
         setSelectedExercise(enrichedSelected);
+        setCurrentSide(nextSide);
         if (!enrichedSelected) return;
         setDraftSession(createDraftSession(enrichedSelected, inferActivityType(enrichedSelected)));
         setPendingSetPatch(null);
@@ -170,8 +174,8 @@ export function useTrackerSession({
 
     return {
         selectedExerciseId, selectedExercise, draftSession, isTimerOpen, panelResetToken, pendingSetPatch, notesModalOpen,
-        backdateEnabled, backdateValue, optimisticLogs, allLogs, activeExercise, sessionStartedAt,
-        setDraftSession, setPendingSetPatch, setBackdateValue, setActiveExercise, setIsTimerOpen, setPanelResetToken,
+        backdateEnabled, backdateValue, optimisticLogs, allLogs, activeExercise, sessionStartedAt, currentSide,
+        setDraftSession, setPendingSetPatch, setBackdateValue, setActiveExercise, setIsTimerOpen, setPanelResetToken, setCurrentSide,
         handleExerciseSelect, handleTimerBack, handleFinishSession, handleNotesModalClose, handleCancelSession,
         handleToggleBackdate, handleTimerApplySet, handleTimerOpenManual, handleConfirmNextSet, handleEditNextSet,
         handleSaveFinishedSession, buildExerciseFormContext,
