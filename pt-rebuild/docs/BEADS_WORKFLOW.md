@@ -7,7 +7,11 @@ Use [`BEADS_OPERATIONS.md`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-r
 
 ## Why This Matters
 
-Beads are the only persistent record of what was done and why. Conversation context is lost between sessions. If a bead is not updated, that work is invisible — and will be repeated by the next agent at real cost to the user. Stale open beads and undocumented discoveries are not minor oversights. They are the primary source of wasted tokens and duplicate effort.
+Beads are the only persistent record of what was done and why. Conversation context is lost between sessions. If a bead is not updated, that work is invisible — and will be repeated by the next agent.
+
+This is not abstract. The user has a fixed compute budget per 5-hour window and per week. When tokens run out mid-project, the next session is delayed a full week. The user works on this only on weekends. Repeated work from stale open beads also costs real money — on top of already-high medical and PT expenses. Every duplicate verification or re-done fix delays the project by days and may require the user to pay for additional compute.
+
+Stale open beads and undocumented discoveries are not minor oversights. They are the primary source of wasted sessions and direct financial cost to the user.
 
 ## Required Lifecycle
 
