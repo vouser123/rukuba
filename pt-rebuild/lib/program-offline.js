@@ -203,45 +203,105 @@ export function summarizeProgramQueue(queue) {
   };
 }
 
-export async function performProgramMutation(accessToken, mutation) {
+function resolveExerciseId(exerciseIdMap, exerciseId) {
+  return exerciseIdMap.get(exerciseId) ?? exerciseId;
+}
+
+function applyExerciseIdMapToMutation(mutation, exerciseIdMap) {
+  if (!exerciseIdMap?.size) return mutation;
+
   switch (mutation.type) {
     case 'exercise.create':
-      return createExercise(accessToken, mutation.payload.payload);
+      return mutation;
     case 'exercise.update':
-      return updateExercise(accessToken, mutation.payload.exerciseId, mutation.payload.payload);
+      return {
+        ...mutation,
+        payload: {
+          ...mutation.payload,
+          exerciseId: resolveExerciseId(exerciseIdMap, mutation.payload.exerciseId),
+          payload: {
+            ...mutation.payload.payload,
+            id: resolveExerciseId(exerciseIdMap, mutation.payload.payload?.id ?? mutation.payload.exerciseId),
+          },
+        },
+      };
     case 'role.add':
-      return addRole(accessToken, mutation.payload.payload);
-    case 'role.delete':
-      return deleteRole(accessToken, mutation.payload.roleId);
+      return {
+        ...mutation,
+        payload: {
+          ...mutation.payload,
+          payload: {
+            ...mutation.payload.payload,
+            exercise_id: resolveExerciseId(exerciseIdMap, mutation.payload.payload.exercise_id),
+          },
+        },
+      };
     case 'program.upsert':
-      if (mutation.payload.programId && !isLocalProgramId(mutation.payload.programId)) {
+      return {
+        ...mutation,
+        payload: {
+          ...mutation.payload,
+          exercise_id: resolveExerciseId(exerciseIdMap, mutation.payload.exercise_id),
+          payload: {
+            ...mutation.payload.payload,
+            exercise_id: resolveExerciseId(exerciseIdMap, mutation.payload.payload.exercise_id),
+          },
+        },
+      };
+    default:
+      return mutation;
+  }
+}
+
+export async function performProgramMutation(accessToken, mutation, exerciseIdMap = new Map()) {
+  const resolvedMutation = applyExerciseIdMapToMutation(mutation, exerciseIdMap);
+
+  switch (resolvedMutation.type) {
+    case 'exercise.create':
+      return createExercise(accessToken, resolvedMutation.payload.payload);
+    case 'exercise.update':
+      return updateExercise(accessToken, resolvedMutation.payload.exerciseId, resolvedMutation.payload.payload);
+    case 'role.add':
+      return addRole(accessToken, resolvedMutation.payload.payload);
+    case 'role.delete':
+      return deleteRole(accessToken, resolvedMutation.payload.roleId);
+    case 'program.upsert':
+      if (resolvedMutation.payload.programId && !isLocalProgramId(resolvedMutation.payload.programId)) {
         try {
-          return await updateProgram(accessToken, mutation.payload.programId, mutation.payload.payload);
+          return await updateProgram(accessToken, resolvedMutation.payload.programId, resolvedMutation.payload.payload);
         } catch (error) {
           if (!isProgramMissingError(error)) {
             throw error;
           }
         }
       }
-      return createProgram(accessToken, mutation.payload.payload);
+      return createProgram(accessToken, resolvedMutation.payload.payload);
     case 'vocab.create':
-      return createVocabularyTerm(accessToken, mutation.payload);
+      return createVocabularyTerm(accessToken, resolvedMutation.payload);
     case 'vocab.update':
-      return updateVocabularyTerm(accessToken, mutation.payload);
+      return updateVocabularyTerm(accessToken, resolvedMutation.payload);
     case 'vocab.delete':
-      return deleteVocabularyTerm(accessToken, mutation.payload);
+      return deleteVocabularyTerm(accessToken, resolvedMutation.payload);
     default:
-      throw new Error(`Unsupported offline mutation type: ${mutation.type}`);
+      throw new Error(`Unsupported offline mutation type: ${resolvedMutation.type}`);
   }
 }
 
 export async function replayProgramQueue(accessToken, queue, persistQueue) {
   let workingQueue = [...(queue ?? [])];
   let syncedCount = 0;
+  const exerciseIdMap = new Map();
 
   for (const mutation of queue ?? []) {
     try {
-      await performProgramMutation(accessToken, mutation);
+      const result = await performProgramMutation(accessToken, mutation, exerciseIdMap);
+      if (mutation.type === 'exercise.create') {
+        const sourceExerciseId = mutation.payload.exerciseId;
+        const createdExerciseId = result?.exercise?.id ?? mutation.payload.payload?.id ?? sourceExerciseId;
+        if (sourceExerciseId && createdExerciseId && createdExerciseId !== sourceExerciseId) {
+          exerciseIdMap.set(sourceExerciseId, createdExerciseId);
+        }
+      }
       syncedCount += 1;
       workingQueue = workingQueue.filter((item) => item.id !== mutation.id);
       await persistQueue(workingQueue);
