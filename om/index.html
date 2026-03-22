@@ -805,18 +805,14 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             <button type="button" class="settings-action visual-preview-btn" data-visual-type="acceptable">Preview: Acceptable shape</button>
             <button type="button" class="settings-action visual-preview-btn" data-visual-type="outside">Preview: Outside shape</button>
           </div>
-          <label for="userPreviewLeadMs">User preview lead-in (ms)</label>
-          <input id="userPreviewLeadMs" type="number" min="0" step="10" inputmode="numeric" />
-          <label for="userPreviewVisibleMs">User preview display time (ms)</label>
-          <input id="userPreviewVisibleMs" type="number" min="0" step="10" inputmode="numeric" />
+          <label for="userPreviewLeadMs">User preview enter time (ms)</label>
+          <input id="userPreviewLeadMs" type="number" min="10" step="10" inputmode="numeric" value="200" />
           <label for="userPreviewExitMs">User preview exit black time (ms)</label>
-          <input id="userPreviewExitMs" type="number" min="0" step="10" inputmode="numeric" />
-          <label for="shapePreviewLeadMs">Shape preview lead-in (ms)</label>
-          <input id="shapePreviewLeadMs" type="number" min="0" step="10" inputmode="numeric" />
-          <label for="shapePreviewVisibleMs">Shape preview display time (ms)</label>
-          <input id="shapePreviewVisibleMs" type="number" min="0" step="10" inputmode="numeric" />
+          <input id="userPreviewExitMs" type="number" min="10" step="10" inputmode="numeric" value="240" />
+          <label for="shapePreviewLeadMs">Shape preview enter time (ms)</label>
+          <input id="shapePreviewLeadMs" type="number" min="10" step="10" inputmode="numeric" value="160" />
           <label for="shapePreviewExitMs">Shape preview exit black time (ms)</label>
-          <input id="shapePreviewExitMs" type="number" min="0" step="10" inputmode="numeric" />
+          <input id="shapePreviewExitMs" type="number" min="10" step="10" inputmode="numeric" value="200" />
         </div>
         <div class="setup-group">
           <div class="setup-heading">Time Entry</div>
@@ -1011,10 +1007,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const visualPreviewButtons = [...document.querySelectorAll(".visual-preview-btn")];
     const outsideVisualVariantInputs = [...document.querySelectorAll("input[name='outsideVisualVariant']")];
     const userPreviewLeadMsInput = document.getElementById("userPreviewLeadMs");
-    const userPreviewVisibleMsInput = document.getElementById("userPreviewVisibleMs");
     const userPreviewExitMsInput = document.getElementById("userPreviewExitMs");
     const shapePreviewLeadMsInput = document.getElementById("shapePreviewLeadMs");
-    const shapePreviewVisibleMsInput = document.getElementById("shapePreviewVisibleMs");
     const shapePreviewExitMsInput = document.getElementById("shapePreviewExitMs");
     const visualReplayOverlay = document.getElementById("visualReplayOverlay");
     const visualReplayFlash = document.getElementById("visualReplayFlash");
@@ -1080,6 +1074,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     let flashTimeout;
     const VISUAL_PULSE_SEC = 0.2;
     const VISUAL_USER_FLASH_COLOR = "#8c8c8c";
+    const VISUAL_PREVIEW_VISIBLE_MS = {
+      user: 280,
+      shape: 280
+    };
     const visualReplayState = {
       rafId: null,
       nextIndex: 0,
@@ -1102,10 +1100,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       outsideVisualVariant: "up",
       previewTimingMs: {
         userLeadIn: 200,
-        userVisible: 280,
         userExit: 240,
         shapeLeadIn: 160,
-        shapeVisible: 280,
         shapeExit: 200,
       },
       theme: "system",
@@ -1672,24 +1668,20 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (!Number.isFinite(parsed)) {
         return fallback;
       }
-      return Math.max(0, Math.round(parsed));
+      return Math.max(10, Math.round(parsed));
     }
 
     function applyPreviewTimingInputs() {
       userPreviewLeadMsInput.value = String(a11ySettings.previewTimingMs.userLeadIn);
-      userPreviewVisibleMsInput.value = String(a11ySettings.previewTimingMs.userVisible);
       userPreviewExitMsInput.value = String(a11ySettings.previewTimingMs.userExit);
       shapePreviewLeadMsInput.value = String(a11ySettings.previewTimingMs.shapeLeadIn);
-      shapePreviewVisibleMsInput.value = String(a11ySettings.previewTimingMs.shapeVisible);
       shapePreviewExitMsInput.value = String(a11ySettings.previewTimingMs.shapeExit);
     }
 
     function storePreviewTimingSettings() {
       localStorage.setItem("om-preview-user-lead-ms", String(a11ySettings.previewTimingMs.userLeadIn));
-      localStorage.setItem("om-preview-user-visible-ms", String(a11ySettings.previewTimingMs.userVisible));
       localStorage.setItem("om-preview-user-exit-ms", String(a11ySettings.previewTimingMs.userExit));
       localStorage.setItem("om-preview-shape-lead-ms", String(a11ySettings.previewTimingMs.shapeLeadIn));
-      localStorage.setItem("om-preview-shape-visible-ms", String(a11ySettings.previewTimingMs.shapeVisible));
       localStorage.setItem("om-preview-shape-exit-ms", String(a11ySettings.previewTimingMs.shapeExit));
     }
 
@@ -1703,8 +1695,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         ? a11ySettings.previewTimingMs.userLeadIn
         : a11ySettings.previewTimingMs.shapeLeadIn;
       const visibleMs = type === "user"
-        ? a11ySettings.previewTimingMs.userVisible
-        : a11ySettings.previewTimingMs.shapeVisible;
+        ? VISUAL_PREVIEW_VISIBLE_MS.user
+        : VISUAL_PREVIEW_VISIBLE_MS.shape;
       const exitMs = type === "user"
         ? a11ySettings.previewTimingMs.userExit
         : a11ySettings.previewTimingMs.shapeExit;
@@ -2294,10 +2286,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     [
       [userPreviewLeadMsInput, "userLeadIn"],
-      [userPreviewVisibleMsInput, "userVisible"],
       [userPreviewExitMsInput, "userExit"],
       [shapePreviewLeadMsInput, "shapeLeadIn"],
-      [shapePreviewVisibleMsInput, "shapeVisible"],
       [shapePreviewExitMsInput, "shapeExit"],
     ].forEach(([input, key]) => {
       input.addEventListener("change", () => {
@@ -2431,10 +2421,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const storedSyncVisualReplay = localStorage.getItem("om-a11y-sync-visual-replay");
       const storedOutsideVisualVariant = localStorage.getItem("om-a11y-outside-visual-variant");
       const storedUserPreviewLeadMs = localStorage.getItem("om-preview-user-lead-ms");
-      const storedUserPreviewVisibleMs = localStorage.getItem("om-preview-user-visible-ms");
       const storedUserPreviewExitMs = localStorage.getItem("om-preview-user-exit-ms");
       const storedShapePreviewLeadMs = localStorage.getItem("om-preview-shape-lead-ms");
-      const storedShapePreviewVisibleMs = localStorage.getItem("om-preview-shape-visible-ms");
       const storedShapePreviewExitMs = localStorage.getItem("om-preview-shape-exit-ms");
       /* A11Y ADDITIONS END */
 
@@ -2505,10 +2493,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         storedUserPreviewLeadMs,
         a11ySettings.previewTimingMs.userLeadIn
       );
-      a11ySettings.previewTimingMs.userVisible = normalizePreviewTimingMs(
-        storedUserPreviewVisibleMs,
-        a11ySettings.previewTimingMs.userVisible
-      );
       a11ySettings.previewTimingMs.userExit = normalizePreviewTimingMs(
         storedUserPreviewExitMs,
         a11ySettings.previewTimingMs.userExit
@@ -2516,10 +2500,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       a11ySettings.previewTimingMs.shapeLeadIn = normalizePreviewTimingMs(
         storedShapePreviewLeadMs,
         a11ySettings.previewTimingMs.shapeLeadIn
-      );
-      a11ySettings.previewTimingMs.shapeVisible = normalizePreviewTimingMs(
-        storedShapePreviewVisibleMs,
-        a11ySettings.previewTimingMs.shapeVisible
       );
       a11ySettings.previewTimingMs.shapeExit = normalizePreviewTimingMs(
         storedShapePreviewExitMs,
