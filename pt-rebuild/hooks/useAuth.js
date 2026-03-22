@@ -34,8 +34,26 @@ export function useAuth() {
     useEffect(() => {
         // Check for an existing session on mount (handles page reload + return from OAuth).
         // Supabase auth persistence is backed by the shared IndexedDB storage adapter.
-        supabase.auth.getSession().then(({ data: { session: sess } }) => {
-            setSession(sess);
+        //
+        // getSession() trusts whatever is stored in IndexedDB without a server round-trip.
+        // A stored session can be stale if the password was reset or the token was revoked
+        // server-side. We validate with getUser() (network call) when a session exists to
+        // catch this case — if validation fails, sign out to clear the stale session and
+        // let the page fall through to AuthForm.
+        supabase.auth.getSession().then(async ({ data: { session: sess } }) => {
+            if (sess) {
+                const { error: userError } = await supabase.auth.getUser();
+                if (userError) {
+                    // Session is stored but token is invalid (revoked, password changed, etc.)
+                    // Sign out to clear stale IndexedDB state and prompt re-login.
+                    await supabase.auth.signOut();
+                    setSession(null);
+                } else {
+                    setSession(sess);
+                }
+            } else {
+                setSession(null);
+            }
             setLoading(false);
         });
 
