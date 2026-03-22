@@ -21,10 +21,11 @@ Use [`docs/NEXTJS_MIGRATION_STATUS.md`](C:/Users/cindi/OneDrive/Documents/GitHub
 
 Current visible page mapping:
 
-- [`pages/index.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/index.js) is the Next.js tracker route. Legacy parity baseline: [`public/index.html`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/public/index.html).
-- [`pages/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/pt-view.js) replaces `public/pt_view.html`.
-- [`pages/rehab.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/rehab.js) replaces `public/rehab_coverage.html`.
-- [`pages/program.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/program.js) is the exercise editor route; the legacy editor page is `public/pt_editor.html`. It now enforces the therapist/admin access gate at the route level before rendering the editor workspace.
+- [`pages/index.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/index.js) — tracker (session logging, history, messages). Legacy parity baseline: `public/index.html` (on `static` branch / `legacy.pttracker.app`).
+- [`pages/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/pt-view.js) — PT view (therapist-facing patient view). Replaced `public/pt_view.html`.
+- [`pages/rehab.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/rehab.js) — rehab coverage report. Replaced `public/rehab_coverage.html`.
+- [`pages/program.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/program.js) — exercise editor (therapist/admin only). Replaced `public/pt_editor.html`.
+- [`pages/reset-password.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/reset-password.js) — Supabase password recovery route. Replaced `public/reset-password.html`. Handles `PASSWORD_RECOVERY` auth event from email link.
 
 ## Folder Structure
 
@@ -37,7 +38,7 @@ pt-rebuild/
 |- hooks/        Shared React hooks for auth, data, logging, timers, and messaging
 |- lib/          Pure helpers and page-domain adapters used by Next.js code
 |- api/          Legacy and still-active API routes used by both old and new frontends
-|- public/       Legacy HTML app, service worker, shared assets, and old JS/CSS
+|- public/       Shared browser-served assets: sw.js, manifest-tracker.json, icons/. Legacy HTML/CSS/JS pruned.
 |- styles/       Global Next.js styles
 |- supabase/     Local Supabase config, snippets, and migrations
 |- docs/         Migration docs, workflow docs, testing notes, and tracker references
@@ -46,6 +47,8 @@ pt-rebuild/
 |- test/         Additional test helpers/assets
 |- scripts/      Local project scripts
 ```
+
+- [`pages/_document.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/_document.js): Shared document-level head ownership for the Next.js surface. Use it for global favicon and apple-touch-icon tags instead of repeating those links in individual route pages.
 
 Pointers:
 
@@ -193,7 +196,7 @@ Use these from `hooks/` to keep page files thin and consistent with the current 
 - [`hooks/useExerciseTimer.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useExerciseTimer.js): Timer adapter for hold/duration flows built on the logger timer machine.
 - [`hooks/useTimerAudio.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerAudio.js): Audio and speech side-effect executor for timer feedback.
 - [`hooks/useTimerSpeech.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useTimerSpeech.js): Panel-facing execution hook for the tracker timer flow.
-- [`hooks/useToast.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useToast.js): Floating toast state hook. Use it with `Toast` component for transient feedback. Provides `showToast(message, type, duration)` and props for `<Toast />`.
+- [`hooks/useToast.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useToast.js): Floating toast state hook. Use it with `Toast` component for transient feedback. It owns the staged static-style toast lifecycle: short animate-in delay, display duration, fade-out, then clear/unmount.
 - [`hooks/useMessages.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/hooks/useMessages.js): Shared messaging hook used by migrated pages that open the messages modal.
 
 For timer execution hook boundaries, see `Tracker Execution Stack` above.
