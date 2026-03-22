@@ -20,6 +20,7 @@ import { useTimerAudio } from './useTimerAudio';
 export function useTimerSpeech(exercise, isOpen = false, resetToken = 0, sessionProgress = null) {
     const mode = useMemo(() => getExerciseMode(exercise), [exercise]);
     const isSided = exercise?.pattern === 'side';
+    const exerciseId = exercise?.id ?? null;
     const targetReps = useMemo(() => getTargetReps(exercise), [exercise]);
     const targetSeconds = useMemo(() => getTargetSeconds(exercise, mode), [exercise, mode]);
     const audio = useTimerAudio();
@@ -58,19 +59,28 @@ export function useTimerSpeech(exercise, isOpen = false, resetToken = 0, session
         targetReps,
         targetSeconds,
         isOpen,
+        resetToken,
         audio,
         getDurationCompletionSpeech,
     });
 
     useEffect(() => {
-        setExecutionState(createLoggerTimerState({
-            mode,
-            targetReps,
-            targetSeconds,
-            isSided,
-            selectedSide: isSided ? 'right' : null,
-        }));
-    }, [exercise, isOpen, isSided, mode, resetToken, targetReps, targetSeconds]);
+        setExecutionState((previous) => {
+            const preservedSide = isSided && previous?.selectedSide && previous?.exerciseId === exerciseId
+                ? previous.selectedSide
+                : (isSided ? 'right' : null);
+            return {
+                ...createLoggerTimerState({
+                    mode,
+                    targetReps,
+                    targetSeconds,
+                    isSided,
+                    selectedSide: preservedSide,
+                }),
+                exerciseId,
+            };
+        });
+    }, [exerciseId, isOpen, isSided, mode, resetToken, targetReps, targetSeconds]);
 
     const dispatchExecutionEvent = useCallback((event) => {
         setExecutionState((prev) => {

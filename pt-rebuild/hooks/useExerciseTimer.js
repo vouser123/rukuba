@@ -12,6 +12,7 @@ export function useExerciseTimer({
     targetReps,
     targetSeconds,
     isOpen,
+    resetToken = 0,
     audio,
     getDurationCompletionSpeech,
 }) {
@@ -46,7 +47,7 @@ export function useExerciseTimer({
             isSided: false,
             selectedSide: null,
         }));
-    }, [clearTimerInterval, isOpen, mode, targetReps, targetSeconds]);
+    }, [clearTimerInterval, isOpen, mode, resetToken, targetReps, targetSeconds]);
 
     const dispatchTimerEvent = useCallback((event) => {
         setTimer((prev) => {
