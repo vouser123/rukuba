@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { supabase } from '../lib/supabase';
+import styles from '../styles/reset-password.module.css';
 
 /**
  * Reset password page — handles Supabase recovery tokens delivered via email link.
@@ -9,11 +10,10 @@ import { supabase } from '../lib/supabase';
  * 1. User clicks recovery link → lands here with #type=recovery&access_token=... in URL hash
  * 2. Supabase client (detectSessionInUrl: true) auto-processes the hash on module init,
  *    establishes a session, and fires the PASSWORD_RECOVERY auth event.
- * 3. We subscribe to that event via onAuthStateChange AND call getSession() to cover
- *    the case where the event fired before the subscription was set up (e.g. page refresh).
- * 4. On valid session: show password form.
- * 5. On success: updateUser({ password }), sign out, show confirmation.
- * 6. Redirect target is / (Next.js tracker root), not /index.html (legacy static shell).
+ * 3. We only show the form on PASSWORD_RECOVERY — not on any generic active session,
+ *    which would be a false positive for logged-in users visiting /reset-password directly.
+ * 4. On success: updateUser({ password }), sign out, show confirmation.
+ * 5. Redirect target is / (Next.js tracker root), not /index.html (legacy static shell).
  */
 export default function ResetPassword() {
   /** 'loading' | 'form' | 'success' | 'invalid' */
@@ -26,7 +26,7 @@ export default function ResetPassword() {
   useEffect(() => {
     /**
      * Only show the form on PASSWORD_RECOVERY event — not on a generic active session.
-     * getSession() would return true for any logged-in user, causing false positives.
+     * getSession() returns true for any logged-in user, causing false positives.
      * Recovery links are single-use: if the hash is gone (e.g. page refresh), show invalid.
      */
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -84,15 +84,15 @@ export default function ResetPassword() {
         <link rel="icon" href="/icons/icon.svg" />
       </Head>
 
-      <div style={pageStyles.page}>
-        <div style={pageStyles.card}>
+      <div className={styles.page}>
+        <div className={styles.card}>
 
           {view === 'loading' && (
-            <p style={pageStyles.center}>Verifying reset link…</p>
+            <p className={styles.center}>Verifying reset link…</p>
           )}
 
           {view === 'invalid' && (
-            <div style={pageStyles.center}>
+            <div className={styles.center}>
               <h2>Invalid or expired link</h2>
               <p>This password reset link is no longer valid.</p>
               <p>Please request a new one from the sign-in page.</p>
@@ -101,9 +101,9 @@ export default function ResetPassword() {
 
           {view === 'form' && (
             <>
-              <h2 style={pageStyles.heading}>Set New Password</h2>
+              <h2 className={styles.heading}>Set New Password</h2>
               <form onSubmit={handleSubmit}>
-                <div style={pageStyles.field}>
+                <div className={styles.field}>
                   <input
                     id="newPassword"
                     name="newPassword"
@@ -114,10 +114,10 @@ export default function ResetPassword() {
                     required
                     minLength={6}
                     autoComplete="new-password"
-                    style={pageStyles.input}
+                    className={styles.input}
                   />
                 </div>
-                <div style={pageStyles.field}>
+                <div className={styles.field}>
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -128,31 +128,26 @@ export default function ResetPassword() {
                     required
                     minLength={6}
                     autoComplete="new-password"
-                    style={pageStyles.input}
+                    className={styles.input}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{
-                    ...pageStyles.button,
-                    ...(submitting ? pageStyles.buttonDisabled : {}),
-                  }}
+                  className={styles.button}
                 >
                   {submitting ? 'Updating…' : 'Update Password'}
                 </button>
-                {error && <p style={pageStyles.error}>{error}</p>}
+                {error && <p className={styles.error}>{error}</p>}
               </form>
             </>
           )}
 
           {view === 'success' && (
-            <div style={pageStyles.center}>
+            <div className={styles.center}>
               <h2>Password Updated</h2>
               <p>Your password has been changed successfully.</p>
-              <p>
-                <a href="/" style={pageStyles.link}>Go to PT Tracker</a>
-              </p>
+              <p><a href="/" className={styles.link}>Go to PT Tracker</a></p>
             </div>
           )}
 
@@ -161,66 +156,3 @@ export default function ResetPassword() {
     </>
   );
 }
-
-/** Inline styles — isolated auth page, no shared layout needed */
-const pageStyles = {
-  page: {
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    margin: 0,
-    padding: 0,
-    background: '#f5f5f5',
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  card: {
-    background: 'white',
-    padding: '2rem',
-    borderRadius: '8px',
-    maxWidth: '400px',
-    width: '90%',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-  },
-  heading: {
-    margin: '0 0 1.5rem 0',
-    color: '#333',
-  },
-  field: {
-    marginBottom: '1rem',
-  },
-  input: {
-    width: '100%',
-    padding: '0.75rem',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '16px',
-    boxSizing: 'border-box',
-  },
-  button: {
-    width: '100%',
-    padding: '0.75rem',
-    background: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '16px',
-    cursor: 'pointer',
-  },
-  buttonDisabled: {
-    background: '#ccc',
-    cursor: 'default',
-  },
-  error: {
-    color: '#d32f2f',
-    marginTop: '1rem',
-    fontSize: '14px',
-  },
-  center: {
-    textAlign: 'center',
-    padding: '2rem 0',
-  },
-  link: {
-    color: '#007bff',
-  },
-};
