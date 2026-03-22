@@ -2450,6 +2450,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       input.addEventListener("change", () => {
         a11ySettings.outputMode = input.value;
         localStorage.setItem("om-a11y-output-mode", input.value);
+        if (a11ySettings.outputMode !== "audio-only") {
+          a11ySettings.syncVisualReplay = true;
+          a11ySyncVisualReplay.checked = true;
+          localStorage.setItem("om-a11y-sync-visual-replay", "true");
+        }
         applyA11ySettings();
         emitCue("sound_toggled", { soundEnabled: a11ySettings.outputMode !== "visual-only" });
       });
