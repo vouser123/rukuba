@@ -24,38 +24,26 @@ export default function ResetPassword() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    let settled = false;
-
     /**
-     * Listen for PASSWORD_RECOVERY event.
-     * Supabase fires this when it detects and processes a recovery hash in the URL.
+     * Only show the form on PASSWORD_RECOVERY event — not on a generic active session.
+     * getSession() would return true for any logged-in user, causing false positives.
+     * Recovery links are single-use: if the hash is gone (e.g. page refresh), show invalid.
      */
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        settled = true;
         setView('form');
       }
     });
 
-    /**
-     * Also check for an existing session — handles the page-refresh case where the
-     * hash has already been cleared by Supabase but the session is still active.
-     */
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!settled) {
-        if (session) {
-          settled = true;
-          setView('form');
-        } else {
-          // Give the PASSWORD_RECOVERY event a moment to arrive before showing invalid.
-          setTimeout(() => {
-            setView((prev) => (prev === 'loading' ? 'invalid' : prev));
-          }, 2000);
-        }
-      }
-    });
+    // If no PASSWORD_RECOVERY event arrives within 3s, the link is invalid/expired.
+    const timeout = setTimeout(() => {
+      setView((prev) => (prev === 'loading' ? 'invalid' : prev));
+    }, 3000);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   /** Handle password update form submission */
@@ -117,6 +105,8 @@ export default function ResetPassword() {
               <form onSubmit={handleSubmit}>
                 <div style={pageStyles.field}>
                   <input
+                    id="newPassword"
+                    name="newPassword"
                     type="password"
                     placeholder="New password"
                     value={newPassword}
@@ -129,6 +119,8 @@ export default function ResetPassword() {
                 </div>
                 <div style={pageStyles.field}>
                   <input
+                    id="confirmPassword"
+                    name="confirmPassword"
                     type="password"
                     placeholder="Confirm password"
                     value={confirmPassword}
