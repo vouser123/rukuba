@@ -616,12 +616,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     }
 
     .modal-visual-preview {
-      position: absolute;
+      position: fixed;
       inset: 0;
       pointer-events: none;
       opacity: 0;
-      z-index: 5;
-      border-radius: 20px;
+      z-index: 20;
       overflow: hidden;
     }
 
@@ -1639,6 +1638,43 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       }, (startDelaySec + VISUAL_PULSE_SEC) * 1000);
     }
 
+    function playVisualPreview(type) {
+      const previewTarget = {
+        overlay: settingsVisualPreview,
+        flash: settingsVisualPreviewFlash,
+        shape: settingsVisualPreviewShape
+      };
+      const leadInSec = 0.12;
+      const visibleSec = 0.28;
+      const trailSec = 0.16;
+      const totalMs = (leadInSec + visibleSec + trailSec) * 1000;
+
+      previewTarget.overlay.dataset.active = "true";
+      previewTarget.flash.style.background = "#000000";
+      previewTarget.shape.style.display = "none";
+
+      setTimeout(() => {
+        if (type === "user") {
+          previewTarget.flash.style.background = VISUAL_USER_FLASH_COLOR;
+          return;
+        }
+        previewTarget.shape.dataset.type = type;
+        previewTarget.shape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
+        previewTarget.shape.style.display = "block";
+      }, leadInSec * 1000);
+
+      setTimeout(() => {
+        previewTarget.flash.style.background = "#000000";
+        previewTarget.shape.style.display = "none";
+      }, (leadInSec + visibleSec) * 1000);
+
+      setTimeout(() => {
+        previewTarget.overlay.dataset.active = "false";
+        previewTarget.flash.style.background = "transparent";
+        previewTarget.shape.style.display = "none";
+      }, totalMs);
+    }
+
     function triggerVisualReplayEvent(event, elapsedSec) {
       if (event.type === "user") {
         visualReplayState.userFlashUntilSec = Math.max(
@@ -2178,22 +2214,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     visualPreviewButtons.forEach((button) => {
       button.addEventListener("click", () => {
         const type = button.dataset.visualType;
-        const previewTarget = {
-          overlay: settingsVisualPreview,
-          flash: settingsVisualPreviewFlash,
-          shape: settingsVisualPreviewShape
-        };
-        if (type === "user") {
-          showUserVisualPulse(0, previewTarget);
-          return;
-        }
-        if (type === "acceptable") {
-          showReferenceVisualPulse("acceptable", 0, previewTarget);
-          return;
-        }
-        if (type === "outside") {
-          showReferenceVisualPulse("outside", 0, previewTarget);
-        }
+        playVisualPreview(type);
       });
     });
 
