@@ -22,6 +22,7 @@ Use [`docs/NEXTJS_MIGRATION_STATUS.md`](C:/Users/cindi/OneDrive/Documents/GitHub
 Current visible page mapping:
 
 - [`pages/index.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/index.js) — tracker (session logging, history, messages). Legacy parity baseline: `public/index.html` (on `static` branch / `legacy.pttracker.app`).
+  - Owns the tracker header shell, including the legacy-style online/offline connectivity glyph (`🛜` when online, `🚫` when offline). Keep that tiny parity indicator at the route level instead of burying it in queue hooks or banners.
 - [`pages/pt-view.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/pt-view.js) — PT view (therapist-facing patient view). Replaced `public/pt_view.html`.
 - [`pages/rehab.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/rehab.js) — rehab coverage report. Replaced `public/rehab_coverage.html`.
 - [`pages/program.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/pages/program.js) — exercise editor (therapist/admin only). Replaced `public/pt_editor.html`.

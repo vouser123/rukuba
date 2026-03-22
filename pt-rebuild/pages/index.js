@@ -33,6 +33,9 @@ export default function IndexPage() {
     const { session, loading: authLoading, signIn } = useAuth();
     const userId = session?.user?.id ?? null;
     const token = session?.access_token ?? null;
+    const [isOnline, setIsOnline] = useState(() => (
+        typeof navigator === 'undefined' ? true : navigator.onLine !== false
+    ));
     const {
         exercises,
         programs,
@@ -218,6 +221,20 @@ export default function IndexPage() {
         if (!logger.isOpen) setActiveExercise(null);
     }, [logger.isOpen, setActiveExercise]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+
+        const syncOnlineState = () => setIsOnline(window.navigator.onLine !== false);
+        syncOnlineState();
+        window.addEventListener('online', syncOnlineState);
+        window.addEventListener('offline', syncOnlineState);
+
+        return () => {
+            window.removeEventListener('online', syncOnlineState);
+            window.removeEventListener('offline', syncOnlineState);
+        };
+    }, []);
+
     const handleSignOut = useCallback(async () => {
         clearQueue();
         const { supabase } = await import('../lib/supabase');
@@ -261,6 +278,14 @@ export default function IndexPage() {
                 <header className={styles.header}>
                     <h1 className={styles.title}>PT Tracker</h1>
                     <div className={styles.headerActions}>
+                        <span
+                            className={`${styles.connectivityIndicator} ${isOnline ? '' : styles.connectivityIndicatorOffline}`}
+                            role="status"
+                            aria-label={isOnline ? 'Online' : 'Offline'}
+                            title={isOnline ? 'Online' : 'Offline'}
+                        >
+                            {isOnline ? '🛜' : '🚫'}
+                        </span>
                         <div style={{ position: 'relative' }}>
                             <button className={styles.refreshButton} onPointerUp={() => { setIsMessagesOpen(true); msgs.markModalOpened(); }} aria-label="Open messages">
                                 ✉️
