@@ -1046,6 +1046,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       userFlashUntilSec: 0,
       referenceUntilSec: 0,
       currentReferenceType: null,
+      target: null,
     };
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const a11ySettings = {
@@ -1575,26 +1576,33 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     }
 
     function applyVisualReplayFrame(elapsedSec) {
+      const overlay = visualReplayState.target?.overlay || visualReplayOverlay;
+      const flash = visualReplayState.target?.flash || visualReplayFlash;
+      const shape = visualReplayState.target?.shape || visualReplayShape;
       const isUserPulseActive = elapsedSec < visualReplayState.userFlashUntilSec;
       const isReferencePulseActive = elapsedSec < visualReplayState.referenceUntilSec;
-      visualReplayOverlay.dataset.active = "true";
-      visualReplayFlash.style.background = isUserPulseActive ? VISUAL_USER_FLASH_COLOR : "#000000";
+      overlay.dataset.active = "true";
+      flash.style.background = isUserPulseActive ? VISUAL_USER_FLASH_COLOR : "#000000";
       if (isReferencePulseActive && visualReplayState.currentReferenceType) {
-        visualReplayShape.style.display = "block";
-        visualReplayShape.dataset.type = visualReplayState.currentReferenceType;
-        visualReplayShape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
+        shape.style.display = "block";
+        shape.dataset.type = visualReplayState.currentReferenceType;
+        shape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
       } else {
-        visualReplayShape.style.display = "none";
+        shape.style.display = "none";
       }
     }
 
     function hideVisualReplayFrame() {
-      visualReplayOverlay.dataset.active = "false";
-      visualReplayFlash.style.background = "transparent";
-      visualReplayShape.style.display = "none";
+      const overlay = visualReplayState.target?.overlay || visualReplayOverlay;
+      const flash = visualReplayState.target?.flash || visualReplayFlash;
+      const shape = visualReplayState.target?.shape || visualReplayShape;
+      overlay.dataset.active = "false";
+      flash.style.background = "transparent";
+      shape.style.display = "none";
       visualReplayState.userFlashUntilSec = 0;
       visualReplayState.referenceUntilSec = 0;
       visualReplayState.currentReferenceType = null;
+      visualReplayState.target = null;
     }
 
     function showUserVisualPulse(startDelaySec = 0, target = null) {
@@ -1700,7 +1708,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       hideVisualReplayFrame();
     }
 
-    function startSynchronizedVisualReplay(events, endAtSec) {
+    function startSynchronizedVisualReplay(events, endAtSec, target = null) {
       if (!a11ySettings.syncVisualReplay) {
         return;
       }
@@ -1713,6 +1721,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       visualReplayState.userFlashUntilSec = 0;
       visualReplayState.referenceUntilSec = 0;
       visualReplayState.currentReferenceType = null;
+      visualReplayState.target = target;
 
       const frame = () => {
         const elapsedSec = context.currentTime - visualReplayState.replayStartTime;
@@ -1779,7 +1788,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         type: "user"
       }));
       const doneAtSec = baseDelay + Math.max(...times) + TEST_TUNING.exemplarEndPadSec;
-      startSynchronizedVisualReplay(visualEvents, doneAtSec);
+      const exemplarVisualTarget = settingsModal.open ? {
+        overlay: settingsVisualPreview,
+        flash: settingsVisualPreviewFlash,
+        shape: settingsVisualPreviewShape
+      } : null;
+      startSynchronizedVisualReplay(visualEvents, doneAtSec, exemplarVisualTarget);
 
       labels.forEach((label, index) => {
         const time = times[index] ?? 0;
