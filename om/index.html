@@ -138,19 +138,26 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       gap: 10px;
     }
 
-    fieldset {
+    fieldset,
+    .option-group {
       border: 1px solid var(--divider);
       border-radius: 12px;
       padding: 10px 12px 12px;
       margin: 0;
     }
 
-    legend {
+    legend,
+    .option-group-title {
       padding: 0 6px;
       font-size: 0.85rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--muted);
+    }
+
+    .option-group-title {
+      display: inline-block;
+      margin-bottom: 8px;
     }
 
     .sound-option {
@@ -692,7 +699,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     </div>
     <!-- A11Y ADDITIONS END -->
 
-    <fieldset class="mode-toggle">
+    <div class="mode-toggle">
       <label>
         <input type="radio" id="mode-start-finish" name="mode" value="2" checked />
         <span aria-hidden="true">Start → Finish</span>
@@ -705,7 +712,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         <input type="radio" id="mode-start-halfway-finish" name="mode" value="3" />
         <span aria-hidden="true">Start → Halfway → Finish</span>
       </label>
-    </fieldset>
+    </div>
 
     <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true">
       <span aria-hidden="true">🔊</span>
@@ -745,8 +752,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       <div class="setup">
         <div class="setup-group">
           <div class="setup-heading">Sound Calibration</div>
-          <fieldset>
-            <legend>Acceptable (within tolerance)</legend>
+          <div class="option-group">
+            <div class="option-group-title">Acceptable (within tolerance)</div>
             <div class="sound-options">
               <div class="sound-option">
                 <input type="radio" id="acceptable-a" name="acceptableSound" value="acceptable-a" />
@@ -759,9 +766,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
                 <button type="button" class="preview-btn" data-sound="acceptable-b">Play Chime B</button>
               </div>
             </div>
-          </fieldset>
-          <fieldset>
-            <legend>Out of bounds (outside tolerance)</legend>
+          </div>
+          <div class="option-group">
+            <div class="option-group-title">Out of bounds (outside tolerance)</div>
             <div class="sound-options">
               <div class="sound-option">
                 <input type="radio" id="outside-a" name="outsideSound" value="outside-a" />
@@ -774,7 +781,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
                 <button type="button" class="preview-btn" data-sound="outside-b">Play Low Pulse B</button>
               </div>
             </div>
-          </fieldset>
+          </div>
           <button type="button" class="settings-action" id="previewUserSound">
             Hear my sound
           </button>
@@ -852,8 +859,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       <div class="setup">
         <div class="setup-group">
           <div class="setup-heading">Output / Feedback Mode</div>
-          <fieldset>
-            <legend>Preferred feedback</legend>
+          <div class="option-group">
+            <div class="option-group-title">Preferred feedback</div>
             <label>
               <input type="radio" name="a11yOutputMode" value="audio-visual" checked />
               Audio + Visual (default)
@@ -866,7 +873,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
               <input type="radio" name="a11yOutputMode" value="audio-only" />
               Audio only
             </label>
-          </fieldset>
+          </div>
         </div>
         <div class="setup-group">
           <div class="setup-heading">Visual Feedback</div>
