@@ -126,13 +126,20 @@ Practical notes:
 - `bd search` now includes `external_ref`, so legacy DN refs or external tracker refs are easier to find.
 - `--json` output and error handling are more reliable in `0.60.0`, especially for agent-driven workflows.
 
-### Additional `bd 0.61.0` commands
+### Additional `bd 0.61.0` and `0.62.0` commands
 
-These are new in `0.61.0` and are available locally now that `bd` has been updated:
+These are the newer commands and behaviors most likely to help in this workspace after the `0.61.0` and `0.62.0` updates:
 
 ```bash
 # Structured issue sections
 bd create "Title" --description="..." --skills "Required skills" --context "Extra context" --json
+
+# Shorthand for appending notes while you work
+bd note <id> "Validation note or handoff context"
+
+# Filter noise out of list/ready results
+bd ready --exclude-type chore --json
+bd list --exclude-type chore --json
 ```
 
 Practical notes:
@@ -140,6 +147,7 @@ Practical notes:
 - `bd bootstrap` can now auto-detect a Beads database on git origin and clone it when present.
 - `bd init` now warns when the git remote already appears to contain a Beads database.
 - `bd doctor` now auto-starts Dolt more reliably on cold standalone checks.
+- `--format json` is now accepted as an alias for `--json`, but the repo examples should keep using `--json` for consistency.
 <!-- QUICKREF:END -->
 
 ## Create vs Update Rules
@@ -493,6 +501,13 @@ bd dolt stop
 - `bd init` warns when an existing Beads DB is detected on origin
 - `bd doctor` auto-starts Dolt on cold standalone checks
 
+`bd 0.62.0` adds Windows and Dolt lifecycle fixes that matter in this workspace:
+
+- repo-local auto-started Dolt servers stay alive more reliably across commands
+- stale Windows Dolt state files and false auto-stop warnings were fixed
+- externally managed Dolt servers are less likely to be stopped by mistake
+- doctor is less likely to get stuck in a restart loop during recovery
+
 If `bd dolt status` says the server is not running and `bd dolt start` then fails after a Windows restart (stale stats cache):
 
 ```bash
@@ -667,7 +682,13 @@ git pull
 
 **Who does this:** User or agent, on request only — not a regular session task. Pull when you notice bd has a new release or want to check updated docs for a specific feature.
 
-This updates the docs only — it does not update the `bd` binary. To update the bd tool itself, use the original installer method (the install script at https://github.com/steveyegge/beads).
+This updates the docs only — it does not update the `bd` binary. To update the bd tool itself, use the established install method for this workspace:
+
+```bash
+go install github.com/steveyegge/beads/cmd/bd@latest
+```
+
+This installs to `C:\Users\cindi\go\bin\bd.exe`. Do NOT use winget, scoop, or other package managers — they install to different paths and create conflicting binaries.
 
 Key local docs for operational reference:
 - `AGENT_INSTRUCTIONS.md` — agent session workflow, session-end checklist
@@ -689,5 +710,5 @@ Three separate things — do not confuse them:
 
 Current repo note:
 
-- As of March 16, 2026, upstream `bd` is `0.61.0`.
-- The local mirror at `C:\Users\cindi\OneDrive\Documents\PT_Backup\beads` was refreshed on March 16, 2026.
+- As of March 22, 2026, upstream `bd` is `0.62.0`.
+- The local mirror at `C:\Users\cindi\OneDrive\Documents\PT_Backup\beads` was refreshed on March 22, 2026.

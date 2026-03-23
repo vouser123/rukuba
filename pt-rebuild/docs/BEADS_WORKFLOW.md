@@ -45,7 +45,9 @@ Verification beads rarely have commits. If the verification passes but the bead 
 bd update <id> --claim --status in_progress
 # ...do work...
 # if you discover new issues:
-bd create --title="..." --description="..." --discovered-from <id>
+bd create "..." --description="..." --deps discovered-from:<id> --json
+# short progress evidence while a bead stays open:
+bd note <id> "What changed, what was checked, or what remains"
 # when scoped work is complete:
 bd close <id> --reason "..."
 # then and only then:

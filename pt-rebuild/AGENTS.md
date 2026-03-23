@@ -180,6 +180,11 @@ Full rules: `pt-rebuild/docs/BEADS_WORKFLOW.md`.
   - `bd update <id> --claim --assignee codex` (or `claude`)
 - Search before create to reduce duplicate issues:
   - `bd list --json` then title/label search before `bd create`
+- For short progress or handoff notes on an existing bead, prefer:
+  - `bd note <id> "..."` (or `bd update <id> --append-notes "..."`)
+- If list/ready output is noisy, you can filter issue types directly:
+  - `bd ready --exclude-type chore --json`
+  - `bd list --exclude-type chore --json`
 - Install the repo-local commit hooks when setting up a clone:
   - `npm run beads:install-commit-hook`
 - The hook install writes both `.beads/hooks/commit-msg` and `.beads/hooks/pre-commit`.
