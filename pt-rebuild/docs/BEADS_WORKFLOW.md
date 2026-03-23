@@ -13,6 +13,22 @@ This is not abstract. The user has a fixed compute budget per 5-hour window and 
 
 Stale open beads and undocumented discoveries are not minor oversights. They are the primary source of wasted sessions and direct financial cost to the user.
 
+## The Three Agent Failures That Repeat Work
+
+These are the most common agent failures in this project. Each one directly causes work to be done twice.
+
+**Failure 1: Starting work without claiming the bead.**
+An agent does real work but never sets the bead to `in_progress`. The bead looks untouched. The next agent picks it up and repeats it. This is the most common failure.
+→ **You must run `bd update <id> --claim --status in_progress` before writing a single line of code or running a single verification.**
+
+**Failure 2: Noting discovered issues in conversation only.**
+An agent finds a new issue mid-work and mentions it in chat. After context compaction, the discovery is gone. The next agent finds the same issue and creates a new bead — or worse, never finds it and ships broken code.
+→ **You must run `bd create --discovered-from <current-id>` immediately when any new issue is found. Not in conversation. Not "later." Immediately.**
+
+**Failure 3: Leaving a verification bead open after it passes.**
+Verification beads rarely have commits. If the verification passes but the bead stays open, the next agent re-runs it — spending tokens and time re-verifying something that was already confirmed.
+→ **You must close verification beads in the same pass they pass. If it fails, leave an explicit failure note. Either way, the bead must be updated before you move on.**
+
 ## Required Lifecycle
 
 **This sequence is mandatory. No step may be skipped.**

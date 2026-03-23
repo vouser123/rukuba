@@ -156,6 +156,21 @@ See [`pt-rebuild/docs/TESTING_CHECKLISTS.md`](docs/TESTING_CHECKLISTS.md) for al
 
 ## Beads Agent Discipline (Required)
 
+**Before doing any work — before reading a file, before writing code, before running a verification — you must claim the bead and set it to `in_progress`. This is not optional.**
+
+```bash
+bd update <id> --claim --status in_progress
+```
+
+An unclaimed bead looks untouched to the next agent. That agent will repeat your work. Claiming is the only signal that the bead was touched.
+
+**The three failures that cause work to be repeated (read these):**
+1. **Starting without claiming** → bead looks untouched → next agent repeats it. Claim first, always.
+2. **Noting discoveries in conversation only** → lost on compaction → rediscovered and repeated. Use `bd create --discovered-from <id>` immediately, not later.
+3. **Leaving a passing verification bead open** → re-run by next agent. Close it in the same pass it passes.
+
+Full rules: `pt-rebuild/docs/BEADS_WORKFLOW.md`.
+
 - Required lifecycle rules live in `pt-rebuild/docs/BEADS_WORKFLOW.md`.
 - Detailed operating rules live in `pt-rebuild/docs/BEADS_OPERATIONS.md`.
 - Keep `AGENTS.md` as the policy surface; use the workflow doc for command patterns, parallel-thread rules, and Dolt cleanup steps.
