@@ -185,6 +185,21 @@ Full rules: `pt-rebuild/docs/BEADS_WORKFLOW.md`.
 - If list/ready output is noisy, you can filter issue types directly:
   - `bd ready --exclude-type chore --json`
   - `bd list --exclude-type chore --json`
+- Use issue types deliberately:
+  - `verification` = browser checks, parity confirmation, acceptance validation, or other proof-gathering work whose main purpose is to verify behavior rather than change it
+    Example: test a flow on iOS before closing, or confirm a parity bead passes on preview
+  - `bug` = broken behavior, regressions, or parity mismatches that need repair
+    Example: tracker history prefilter is wrong, or a queued write uses the wrong patient id
+  - `feature` = additive capability that is not just a fix or migration follow-through
+    Example: add a genuinely new app capability or new operator-facing workflow that did not exist before
+  - `task` = necessary implementation, investigation, refactor, setup, or follow-through that is not best described as a bug, feature, or chore
+    Example: split an oversized file, set up Playwright, or implement an agreed migration slice
+  - `chore` = low-product-impact maintenance or housekeeping
+    Example: clean up stale tracker/admin items or perform low-risk tooling upkeep
+  - `epic` = parent container for related child beads
+    Example: a parent bead for a parity domain, cutover track, or multi-step migration stream
+  - `decision` = work whose main purpose is to get or record user input, approval, or cutover direction before execution
+    Example: determine when to cut over to Next.js, or capture a user approval needed before continuing
 - Install the repo-local commit hooks when setting up a clone:
   - `npm run beads:install-commit-hook`
 - The hook install writes both `.beads/hooks/commit-msg` and `.beads/hooks/pre-commit`.

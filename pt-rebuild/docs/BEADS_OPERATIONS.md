@@ -25,6 +25,10 @@ Beads is designed for concurrent multi-agent use, but safe concurrency still dep
 
 ## Ownership Rules
 
+- Set `BEADS_ACTOR` in each agent's environment for attributable audit logs:
+  - Claude: `BEADS_ACTOR=claude`
+  - Codex: `BEADS_ACTOR=codex`
+  - Without this, both agents fall back to the same git `user.name` and audit logs lose attribution.
 - Claim first in multi-agent workflows:
   - `bd update <id> --claim --assignee codex`
   - `bd update <id> --claim --assignee claude`
@@ -100,9 +104,9 @@ bd create "Title" --body-file description.md
 bd update <id> --body-file description.md
 ```
 
-### Useful `bd 0.60.0` commands
+### Useful `bd 0.60.0`+ commands
 
-These are the `0.60.0` commands and behaviors most likely to help in this workspace:
+These are the commands and behaviors most likely to help in this workspace:
 
 ```bash
 # Safer troubleshooting context when bd errors
@@ -140,6 +144,16 @@ bd note <id> "Validation note or handoff context"
 # Filter noise out of list/ready results
 bd ready --exclude-type chore --json
 bd list --exclude-type chore --json
+
+# List all valid statuses (built-in + custom) — useful when custom statuses have been configured
+bd statuses
+bd statuses --json
+
+# Show the currently claimed bead without specifying an ID
+bd show --current
+
+# Find abandoned claims — run this if an in_progress bead looks stale or unclaimed
+bd stale --status in_progress --json
 ```
 
 Practical notes:
@@ -211,6 +225,21 @@ Quick decision guide:
   - `bd dep add ... --type ...`
 - Simple see-also relationship:
   - `bd dep relate <id1> <id2>`
+- Type selection:
+  - `verification` for browser checks, parity confirmation, acceptance validation, or other proof-gathering work whose main purpose is to verify behavior rather than change it
+    Example: test an iOS flow before closure or confirm preview parity after code lands
+  - `bug` for broken behavior, regressions, or parity mismatches
+    Example: a tracker regression, wrong patient context, or mismatched static parity behavior
+  - `feature` for additive capability that is not just a fix or required migration follow-through
+    Example: add a new workflow or user-facing capability that did not exist before
+  - `task` for implementation, investigation, refactor, setup, or other necessary work that is not best described as a bug, feature, or chore
+    Example: refactor a file, set up tooling, or land an agreed migration slice
+  - `chore` for low-product-impact maintenance or housekeeping
+    Example: tracker cleanup, housekeeping, or low-risk tooling upkeep
+  - `epic` for parent containers only
+    Example: a parent bead that groups a parity domain or cutover stream
+  - `decision` for beads whose main purpose is to get or record user input, approval, or cutover direction
+    Example: decide when to cut over, or capture a required user approval before implementation
 <!-- QUICKREF:END -->
 
 ## PT-Rebuild Issue Template
@@ -542,6 +571,7 @@ Known friction on Windows:
 - transient Dolt/TCP abort noise can happen
 - auto-push may fail with non-fast-forward when another writer updated remote
 - `bd dolt pull` can fail with `cannot merge with uncommitted changes`
+- pre-commit hooks that chain linters/formatters/type-checkers can time out (default shim timeout is 300s; if hitting this, raise it with `BEADS_HOOK_TIMEOUT=600 git commit ...`)
 
 When `bd dolt pull` fails with `cannot merge with uncommitted changes`:
 
@@ -589,8 +619,9 @@ Dolt uses cell-level 3-way merge — conflicts are isolated to the specific fiel
 Compact old closed issues when the database grows large:
 
 ```bash
-bd admin compact --dry-run --all    # preview
-bd admin compact --days 90          # compact issues closed > 90 days ago
+bd admin compact --analyze          # preview what would be compacted
+bd admin compact --apply            # run compaction
+bd admin compact --stats            # show database size stats
 
 # Run Dolt garbage collection after compaction
 cd .beads/dolt && dolt gc
@@ -706,7 +737,7 @@ Three separate things — do not confuse them:
 |------|-----|-------|
 | Issue database sync | `bd dolt pull` / `bd dolt push` | Every session |
 | Docs reference refresh | `git pull` in PT_Backup/beads | Periodically / before referencing docs |
-| bd binary update | Original installer (Homebrew etc.) | When new bd version is released |
+| bd binary update | `go install github.com/steveyegge/beads/cmd/bd@latest` | When new bd version is released |
 
 Current repo note:
 
