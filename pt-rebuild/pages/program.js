@@ -1,4 +1,21 @@
-// program.js — exercise editor page (/program route), Phase 3b: roles editing + patient dosage
+/**
+ * pages/program.js — Exercise Editor: exercise library, roles, dosage, vocabulary.
+ * Replaces public/pt_editor.html (Phase 3b migration).
+ *
+ * ⚠️  ORCHESTRATOR ONLY — this file wires hooks and components together. Nothing else.
+ * Before adding ANY code here, ask: "Is this pure wiring?"
+ * If the answer is no → it belongs in a hook or component, not this file.
+ * Adding non-wiring code here is how fixed pages regress. See AGENTS.md Pre-Coding Layer Check.
+ *
+ * Wires:
+ *   Auth           → hooks/useAuth.js
+ *   Data bootstrap → hooks/useProgramPageData.js
+ *   Snapshot sync  → hooks/useProgramDataSnapshot.js
+ *   Workspace UI   → hooks/useProgramWorkspaceState.js
+ *   Mutation UI    → hooks/useProgramMutationUi.js
+ *   Queue/mutation → hooks/useProgramOfflineQueue.js, hooks/useProgramMutationActions.js, hooks/useProgramVocabActions.js
+ *   Shell/UI       → components/NavMenu.js, components/AuthForm.js, program workspaces/modals
+ */
 import { useCallback } from 'react';
 import Head from 'next/head';
 import { useAuth } from '../hooks/useAuth';
