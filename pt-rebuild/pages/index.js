@@ -34,6 +34,8 @@ export default function IndexPage() {
     const { session, loading: authLoading, signIn } = useAuth();
     const userId = session?.user?.id ?? null;
     const token = session?.access_token ?? null;
+    const userCtx = useUserContext(session);
+    const trackerPatientId = userCtx.patientId ?? null;
     const [isOnline, setIsOnline] = useState(() => (
         typeof navigator === 'undefined' ? true : navigator.onLine !== false
     ));
@@ -47,18 +49,13 @@ export default function IndexPage() {
         historyError,
         fromCache,
         reload,
-    } = useIndexData(token, userId);
+    } = useIndexData(token, trackerPatientId);
     const { pendingCount, enqueue, sync, clearQueue } = useIndexOfflineQueue(userId, token, {
         autoSyncOnReconnect: false,
     });
 
     const [activeTab, setActiveTab] = useState('exercises');
     const [isMessagesOpen, setIsMessagesOpen] = useState(false);
-
-    // User identity and messaging context — shared hook, reusable on any page.
-    // profileId = users table PK — matches sender_id/recipient_id in clinical_messages.
-    // userId (session.user.id) is the Supabase auth UUID; always use profileId for message comparisons.
-    const userCtx = useUserContext(session);
 
     // Local emailEnabled state — initialized from server value once userCtx loads.
     // Kept local so the toggle can optimistically update without re-fetching users.
@@ -160,7 +157,7 @@ export default function IndexPage() {
     });
     manualOpenRef.current = manualLog.openManualLog;
 
-    const logger = useSessionLogging(token, userId, reload, enqueue);
+    const logger = useSessionLogging(token, trackerPatientId, reload, enqueue);
     // profileId (users table PK) is the correct viewer id for message sender comparisons — not userId (auth_id)
     const msgs = useMessages(token, userCtx.profileId);
     const pickerPrograms = useMemo(() => {
@@ -247,7 +244,7 @@ export default function IndexPage() {
         && !draftSession;
 
     useTrackerReconnectRecovery({
-        enabled: Boolean(session && token && userId),
+        enabled: Boolean(session && token && trackerPatientId),
         canRefreshNow: canRefreshOnReconnect,
         sync,
         reload,
