@@ -110,6 +110,27 @@ If code is implemented but another agent still needs to validate it:
 
 **Do not commit and plan to update beads afterward. That is how beads get left open.**
 
+## Custom Statuses
+
+This project uses one custom status beyond the built-in set:
+
+| Status | Category | Shows in `bd ready`? | Meaning |
+|--------|----------|----------------------|---------|
+| `browser_verify` | active | ✅ | Needs a live browser test on the Vercel preview. No code change required — open a browser, run the check, close the bead if it passes. |
+
+**When to use `browser_verify`:**
+- Parity verification beads (pt-spg, pt-eg2, pt-s2d, pt-780 "Verify..." items)
+- Any bead whose only remaining work is confirming behavior in a real browser
+
+**Do not use it for:**
+- Beads that still need code changes
+- Beads that need code review (just leave `in_progress` or `open`)
+
+```bash
+bd update <id> --status browser_verify   # mark as needing browser test
+bd close <id> --reason "Verified on preview: [what was checked]"  # after it passes
+```
+
 ## AMC Bead (Agent Memory Carry-over)
 
 The AMC bead is a running session log — not a task list, not a status mirror. It carries context that would otherwise be lost to compaction, crashes, or session breaks.
