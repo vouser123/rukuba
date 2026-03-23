@@ -1,24 +1,7 @@
 // hooks/useLoggerFeedback.js — tracker save/speech feedback for session completion, comparisons, and success copy
 import { useCallback, useEffect, useState } from 'react';
+import { buildSessionProgress } from '../lib/index-tracker-session';
 // Note: useState kept for allSetsAnnounced only; successMessage removed in favour of useToast
-
-function buildSessionProgressFromSets(exercise, sets) {
-    const targetSets = Number(exercise?.current_sets ?? 0) || 0;
-    const leftCount = sets.filter((set) => set?.side === 'left').length;
-    const rightCount = sets.filter((set) => set?.side === 'right').length;
-    const totalLogged = sets.length;
-    const allComplete = exercise?.pattern === 'side'
-        ? targetSets > 0 && leftCount >= targetSets && rightCount >= targetSets
-        : targetSets > 0 && totalLogged >= targetSets;
-
-    return {
-        allComplete,
-        leftCount,
-        rightCount,
-        targetSets,
-        totalLogged,
-    };
-}
 
 /**
  * @param {Function} showToast - from useToast; used for save-success feedback
@@ -52,7 +35,7 @@ export function useLoggerFeedback(selectedExercise, sessionStartedAt, showToast)
 
     const maybeAnnounceAllSetsComplete = useCallback((exercise, nextSets) => {
         if (!exercise || allSetsAnnounced) return;
-        const nextProgress = buildSessionProgressFromSets(exercise, nextSets);
+        const nextProgress = buildSessionProgress(exercise, nextSets);
         if (!nextProgress.allComplete) return;
         setAllSetsAnnounced(true);
         speakText('All sets complete', 500);

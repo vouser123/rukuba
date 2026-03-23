@@ -71,11 +71,22 @@ export default function TimerPanel({
     const totalLogged = sessionProgress?.totalLogged ?? 0;
     const leftCount = sessionProgress?.leftCount ?? 0;
     const rightCount = sessionProgress?.rightCount ?? 0;
-    const setsLeft = Math.max(0, targetSets - totalLogged);
+    const leftRemaining = sessionProgress?.leftRemaining ?? 0;
+    const rightRemaining = sessionProgress?.rightRemaining ?? 0;
+    const totalRemaining = sessionProgress?.totalRemaining ?? 0;
     const sideLabel = timer.selectedSide === 'left' ? 'Working left side' : 'Working right side';
+    const activeSideRemaining = timer.selectedSide === 'left' ? leftRemaining : rightRemaining;
     const pocketMeta = isTimerMode
-        ? `Rep ${timer.currentRep} of ${timer.totalReps} · Sets left: ${setsLeft} · ${timer.isRunning ? 'Running' : 'Paused'}`
-        : `Sets left: ${setsLeft} · Reps left: ${Math.max(0, timer.targetReps - timer.counterValue)}`;
+        ? (
+            timer.isSided
+                ? `Rep ${timer.currentRep} of ${timer.totalReps} · ${sideLabel}: ${activeSideRemaining} sets left · ${timer.isRunning ? 'Running' : 'Paused'}`
+                : `Rep ${timer.currentRep} of ${timer.totalReps} · Sets left: ${totalRemaining} · ${timer.isRunning ? 'Running' : 'Paused'}`
+        )
+        : (
+            timer.isSided
+                ? `${sideLabel}: ${activeSideRemaining} sets left · Reps left: ${Math.max(0, timer.targetReps - timer.counterValue)}`
+                : `Sets left: ${totalRemaining} · Reps left: ${Math.max(0, timer.targetReps - timer.counterValue)}`
+        );
     const pocketHint = isTimerMode
         ? (timer.isRunning ? 'Tap to pause · Hold for partial' : 'Tap to start')
         : 'Tap to count';

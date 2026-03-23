@@ -20,13 +20,31 @@ export function createDraftSession(exercise, activityType) {
 
 export function buildSessionProgress(exercise, acceptedSets) {
     const targetSets = Number(exercise?.current_sets ?? 0) || 0;
+    const isSided = exercise?.pattern === 'side';
     const leftCount = acceptedSets.filter((set) => set?.side === 'left').length;
     const rightCount = acceptedSets.filter((set) => set?.side === 'right').length;
+    const leftRemaining = isSided ? Math.max(0, targetSets - leftCount) : 0;
+    const rightRemaining = isSided ? Math.max(0, targetSets - rightCount) : 0;
+    const totalLogged = acceptedSets.length;
+    const totalTargetSets = isSided ? targetSets * 2 : targetSets;
+    const totalRemaining = isSided
+        ? leftRemaining + rightRemaining
+        : Math.max(0, targetSets - totalLogged);
+    const allComplete = isSided
+        ? targetSets > 0 && leftRemaining === 0 && rightRemaining === 0
+        : targetSets > 0 && totalRemaining === 0;
+
     return {
+        isSided,
+        allComplete,
         targetSets,
-        totalLogged: acceptedSets.length,
+        totalLogged,
+        totalTargetSets,
+        totalRemaining,
         leftCount,
         rightCount,
+        leftRemaining,
+        rightRemaining,
     };
 }
 
