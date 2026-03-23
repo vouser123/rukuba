@@ -119,6 +119,27 @@ export function useTrackerSession({
 
     const handleTimerOpenManual = useCallback((options = {}) => openManualLog(options), [openManualLog]);
 
+    const handlePreviousSet = useCallback(() => {
+        if (!draftSession || draftSession.sets.length === 0) {
+            showToast('No sets to undo', 'error');
+            return false;
+        }
+
+        const removedSet = draftSession.sets[draftSession.sets.length - 1];
+        const removedSetNumber = removedSet?.set_number ?? draftSession.sets.length;
+        setDraftSession((previous) => (
+            previous
+                ? { ...previous, sets: previous.sets.slice(0, -1) }
+                : previous
+        ));
+        showToast(`Removed set ${removedSetNumber}`, 'success');
+        return true;
+    }, [draftSession, showToast]);
+
+    const handleBlockedNextSet = useCallback(() => {
+        showToast('Please enter a value greater than 0', 'error');
+    }, [showToast]);
+
     const handleConfirmNextSet = useCallback(() => {
         if (!selectedExercise || !pendingSetPatch || !draftSession) return;
         // No toast here — set is added to draftSession only, not saved to server yet.
@@ -178,6 +199,6 @@ export function useTrackerSession({
         setDraftSession, setPendingSetPatch, setBackdateValue, setActiveExercise, setIsTimerOpen, setPanelResetToken, setCurrentSide,
         handleExerciseSelect, handleTimerBack, handleFinishSession, handleNotesModalClose, handleCancelSession,
         handleToggleBackdate, handleTimerApplySet, handleTimerOpenManual, handleConfirmNextSet, handleEditNextSet,
-        handleSaveFinishedSession, buildExerciseFormContext,
+        handleSaveFinishedSession, handlePreviousSet, handleBlockedNextSet, buildExerciseFormContext,
     };
 }

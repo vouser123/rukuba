@@ -1,17 +1,19 @@
 /**
- * Rehab Coverage Analysis — Next.js page (DN-033).
- * Replaces public/rehab_coverage.html.
- * public/rehab_coverage.html stays live until this is verified in production.
+ * pages/rehab.js — Rehab Coverage Analysis: exercise coverage matrix and region bars.
+ * Replaces public/rehab_coverage.html (DN-033).
  *
- * Architecture:
- *   useAuth()     — session, loading, signIn from hooks/useAuth.js
- *   <AuthForm />  — sign-in form from components/AuthForm.js
- *   <NavMenu />   — navigation sidebar from components/NavMenu.js
- *   supabase      — shared client from lib/supabase.js (used only for signOut here)
- *   useRehabCoverageData() — page bootstrap, caching, and offline fallback
+ * ⚠️  ORCHESTRATOR ONLY — this file wires hooks and components together. Nothing else.
+ * Before adding ANY code here, ask: "Is this pure wiring?"
+ * If the answer is no → it belongs in a hook or component, not this file.
+ * Adding non-wiring code here is how fixed pages regress. See AGENTS.md Pre-Coding Layer Check.
+ *
+ * Wires:
+ *   Auth          → hooks/useAuth.js
+ *   Data          → hooks/useRehabCoverageData.js
+ *   UI            → components/NavMenu.js, components/AuthForm.js
+ *   Styles        → rehab.module.css
  *
  * No window.*, no Script tags, no useRef plumbing to bridge React and globals.
- * CSS: page styles in rehab.module.css; component styles are self-contained.
  */
 import { useState } from 'react';
 import Head from 'next/head';

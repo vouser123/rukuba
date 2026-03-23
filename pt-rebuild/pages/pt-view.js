@@ -1,14 +1,21 @@
 /**
- * pt-view.js — Rehab History Dashboard (Phase 2 migration of pt_view.html).
+ * pages/pt-view.js — Rehab History Dashboard: exercise history, notes, messages.
+ * Replaces public/pt_view.html (Phase 2 migration).
  *
- * Architecture:
- *   Data bootstrap → hooks/usePtViewData.js
- *   Page UI state  → hooks/usePtViewUiState.js
- *   Data helpers   → lib/pt-view.js (pure functions)
+ * ⚠️  ORCHESTRATOR ONLY — this file wires hooks and components together. Nothing else.
+ * Before adding ANY code here, ask: "Is this pure wiring?"
+ * If the answer is no → it belongs in a hook or component, not this file.
+ * Adding non-wiring code here is how fixed pages regress. See AGENTS.md Pre-Coding Layer Check.
+ *
+ * Wires:
  *   Auth           → hooks/useAuth.js
- *   Messages       → hooks/useMessages.js + components/MessagesModal.js
- *   Exercise modal → components/ExerciseHistoryModal.js
- *   Page panels    → components/PtView*.js
+ *   User context   → hooks/useUserContext.js
+ *   Data bootstrap → hooks/usePtViewData.js
+ *   UI state       → hooks/usePtViewUiState.js
+ *   Data helpers   → lib/pt-view.js (pure functions)
+ *   Messages       → hooks/useMessages.js
+ *   UI             → components/MessagesModal.js, components/ExerciseHistoryModal.js,
+ *                    components/PtView*.js, components/NavMenu.js, components/AuthForm.js
  *   Styles         → pt-view.module.css
  */
 import Head from 'next/head';

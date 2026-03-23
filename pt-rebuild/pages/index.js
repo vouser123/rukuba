@@ -141,6 +141,8 @@ export default function IndexPage() {
         handleConfirmNextSet,
         handleEditNextSet,
         handleSaveFinishedSession,
+        handlePreviousSet,
+        handleBlockedNextSet,
         buildExerciseFormContext,
     } = trackerSession;
 
@@ -391,6 +393,8 @@ export default function IndexPage() {
                     sessionProgress={sessionProgress}
                     selectedSide={currentSide}
                     onSideChange={setCurrentSide}
+                    onPrevious={handlePreviousSet}
+                    onBlockedNextSet={handleBlockedNextSet}
                     onClose={handleTimerBack}
                     onFinish={handleFinishSession}
                     onBack={handleTimerBack}

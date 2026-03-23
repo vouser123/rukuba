@@ -24,6 +24,14 @@ function shouldShowReps(exercise) {
     return !isDuration && !isDistance;
 }
 
+function getSecondsLabel(exercise) {
+    const modifiers = exercise?.pattern_modifiers ?? [];
+    const dosageType = exercise?.dosage_type ?? null;
+    if (modifiers.includes('duration_seconds') || dosageType === 'duration') return 'Seconds performed';
+    if (modifiers.includes('hold_seconds') || dosageType === 'hold') return 'Seconds per rep';
+    return 'Seconds';
+}
+
 function parameterOptions(paramName) {
     if (paramName === 'weight') return ['lb', 'kg'];
     if (paramName === 'distance') return ['ft', 'in', 'cm', 'deg'];
@@ -78,6 +86,7 @@ export default function SessionLoggerModal({
     const showSeconds = shouldShowSeconds(exercise);
     const showDistance = shouldShowDistance(exercise);
     const isSided = exercise.pattern === 'side';
+    const secondsLabel = getSecondsLabel(exercise);
 
     function setCustomMode(setIndex, paramName, isCustom) {
         const key = `${setIndex}:${paramName}`;
@@ -146,7 +155,7 @@ export default function SessionLoggerModal({
                                 )}
                                 {showSeconds && (
                                     <label className={styles.fieldLabel}>
-                                        Seconds
+                                        {secondsLabel}
                                         <input
                                             className={styles.input}
                                             type="number"

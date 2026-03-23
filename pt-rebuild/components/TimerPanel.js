@@ -12,6 +12,8 @@ export default function TimerPanel({
     sessionProgress,
     selectedSide = null,
     onSideChange,
+    onPrevious,
+    onBlockedNextSet,
     onClose,
     onFinish,
     onBack,
@@ -118,7 +120,7 @@ export default function TimerPanel({
                             {timer.counterValue}
                         </button>
                         <div className={styles.controlRow}>
-                            <button type="button" className={styles.secondaryBtn} onPointerUp={timer.decrementCounter}>− Undo</button>
+                    <button type="button" className={styles.secondaryBtn} onPointerUp={timer.decrementCounter}>− Undo</button>
                         </div>
                     </div>
                 )}
@@ -170,7 +172,7 @@ export default function TimerPanel({
                 </div>
 
                 <footer className={styles.controlFooter}>
-                    <button type="button" className={styles.secondaryBtn} disabled>Previous</button>
+                    <button type="button" className={styles.secondaryBtn} onPointerUp={onPrevious}>Previous</button>
                     <button
                         type="button"
                         className={styles.primaryBtn}
@@ -181,8 +183,13 @@ export default function TimerPanel({
                     <button
                         type="button"
                         className={styles.successBtn}
-                        disabled={!timer.canApply}
-                        onPointerUp={() => onApplySet?.(timer.buildCurrentSetPatch())}
+                        onPointerUp={() => {
+                            if (!timer.canApply) {
+                                onBlockedNextSet?.();
+                                return;
+                            }
+                            onApplySet?.(timer.buildCurrentSetPatch());
+                        }}
                     >
                         Next Set
                     </button>

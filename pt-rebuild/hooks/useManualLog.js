@@ -105,6 +105,13 @@ export function useManualLog({
             setManualLogState((previous) => ({ ...previous, error: 'Add at least one set before saving.' }));
             return;
         }
+        if (
+            draftSession.activityType === 'hold'
+            && manualLogState.sets.some((set) => !Number(set.seconds ?? 0))
+        ) {
+            setManualLogState((previous) => ({ ...previous, error: 'Please enter seconds per rep' }));
+            return;
+        }
         const normalizedSets = manualLogState.sets.map((set, index) => normalizeSet({
             ...set,
             set_number: draftSession.sets.length + index + 1,

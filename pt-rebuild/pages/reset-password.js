@@ -1,3 +1,15 @@
+/**
+ * pages/reset-password.js — Password reset: handles Supabase recovery tokens from email links.
+ *
+ * ⚠️  ORCHESTRATOR ONLY — this file wires hooks and components together. Nothing else.
+ * Before adding ANY code here, ask: "Is this pure wiring?"
+ * If the answer is no → it belongs in a hook or component, not this file.
+ * Adding non-wiring code here is how fixed pages regress. See AGENTS.md Pre-Coding Layer Check.
+ *
+ * Wires:
+ *   Auth          → lib/supabase.js (direct — no auth hook needed; recovery token flow)
+ *   Styles        → styles/reset-password.module.css
+ */
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { supabase } from '../lib/supabase';
