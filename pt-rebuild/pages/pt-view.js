@@ -12,7 +12,7 @@
  *   Styles         → pt-view.module.css
  */
 import Head from 'next/head';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useUserContext } from '../hooks/useUserContext';
 import { useMessages } from '../hooks/useMessages';
@@ -27,11 +27,11 @@ import PtViewSummaryStats from '../components/PtViewSummaryStats';
 import PtViewFiltersPanel from '../components/PtViewFiltersPanel';
 import { usePtViewData } from '../hooks/usePtViewData';
 import { usePtViewUiState } from '../hooks/usePtViewUiState';
+import { useEmailNotifications } from '../hooks/useEmailNotifications';
 import {
     groupLogsByDate, findNeedsAttention, needsAttentionUrgency,
     computeSummaryStats, applyFilters,
 } from '../lib/pt-view';
-import { patchEmailNotifications } from '../lib/users';
 import styles from './pt-view.module.css';
 
 export default function PtViewPage() {
@@ -46,12 +46,12 @@ export default function PtViewPage() {
         patientId: userCtx.patientId,
     });
 
-    // Local emailEnabled state — initialized from server value once userCtx loads.
-    // Kept local so the toggle can optimistically update without re-fetching users.
-    const [emailEnabled, setEmailEnabled] = useState(true);
-    useEffect(() => {
-        if (!userCtx.loading) setEmailEnabled(userCtx.emailEnabled);
-    }, [userCtx.emailEnabled, userCtx.loading]);
+    // Email notification toggle — optimistic update with API revert on failure.
+    const { emailEnabled, handleEmailToggle } = useEmailNotifications({
+        token: session?.access_token ?? null,
+        initialEnabled: userCtx.emailEnabled,
+        loading: userCtx.loading,
+    });
 
     // Messages compare against sender_id / recipient_id, which use users.id profile values.
     const msgs = useMessages(session?.access_token ?? null, userCtx.profileId);
@@ -77,10 +77,9 @@ export default function PtViewPage() {
     const filteredLogs    = applyFilters(logs, filters);
     const dateGroups      = groupLogsByDate(filteredLogs);
     const needsAttention  = useMemo(() => {
-        const urgencyColor = { red: '#dc3545', orange: '#ff5722', yellow: '#ff9800' };
         return findNeedsAttention(logs, programs).map((item) => ({
             ...item,
-            urgencyColor: urgencyColor[needsAttentionUrgency(item)],
+            urgency: needsAttentionUrgency(item),
         }));
     }, [logs, programs]);
     const stats           = computeSummaryStats(logs);
@@ -96,15 +95,6 @@ export default function PtViewPage() {
     function openExerciseHistory(exerciseId, exerciseName) {
         const exerciseLogs = logs.filter(l => l.exercise_id === exerciseId);
         setHistoryTarget({ name: exerciseName, logs: exerciseLogs });
-    }
-
-    async function handleEmailToggle(enabled) {
-        setEmailEnabled(enabled); // optimistic update
-        try {
-            await patchEmailNotifications(session.access_token, enabled);
-        } catch {
-            setEmailEnabled(!enabled); // revert on API error
-        }
     }
 
     // ── Render ──
