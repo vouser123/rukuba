@@ -1,5 +1,29 @@
-// pages/index.js — Phase 4 tracker page (Strangler Fig: replaces public/index.html on cutover)
-// 4a: shell + auth + data (Codex) | 4e: HistoryPanel + BottomNav (Claude) | 4g: offline queue (Claude)
+/**
+ * pages/index.js — Tracker Logging Page: exercise picker, timer/counter logger, history panel.
+ * Replaces public/index.html (Strangler Fig cutover target).
+ *
+ * ⚠️  ORCHESTRATOR ONLY — this file wires hooks and components together. Nothing else.
+ * Before adding ANY code here, ask: "Is this pure wiring?"
+ * If the answer is no → it belongs in a hook, component, or lib file, not this file.
+ * Adding non-wiring code here is how fixed pages regress. See AGENTS.md Pre-Coding Layer Check.
+ *
+ * Wires:
+ *   Auth           → hooks/useAuth.js
+ *   User context   → hooks/useUserContext.js
+ *   Data bootstrap → hooks/useIndexData.js, hooks/useIndexOfflineQueue.js
+ *   Tracker state  → hooks/useTrackerSession.js, hooks/useSessionLogging.js,
+ *                    hooks/useManualLog.js, hooks/useLoggerFeedback.js
+ *   Recovery       → hooks/useTrackerReconnectRecovery.js
+ *   UI state       → hooks/useExerciseSortState.js, hooks/useToast.js, hooks/useMessages.js
+ *   Data helpers   → lib/index-history.js, lib/index-tracker-session.js,
+ *                    lib/tracker-performance.js
+ *   UI             → components/ExercisePicker.js, components/TimerPanel.js,
+ *                    components/HistoryPanel.js, components/BottomNav.js,
+ *                    components/NextSetConfirmModal.js, components/SessionLoggerModal.js,
+ *                    components/SessionNotesModal.js, components/MessagesModal.js,
+ *                    components/NavMenu.js, components/AuthForm.js, components/Toast.js
+ *   Styles         → index.module.css
+ */
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useAuth } from '../hooks/useAuth';

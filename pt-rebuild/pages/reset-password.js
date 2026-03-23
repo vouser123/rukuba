@@ -3,7 +3,7 @@
  *
  * ⚠️  ORCHESTRATOR ONLY — this file wires hooks and components together. Nothing else.
  * Before adding ANY code here, ask: "Is this pure wiring?"
- * If the answer is no → it belongs in a hook or component, not this file.
+ * If the answer is no → it belongs in a hook, component, or lib file, not this file.
  * Adding non-wiring code here is how fixed pages regress. See AGENTS.md Pre-Coding Layer Check.
  *
  * Wires:
