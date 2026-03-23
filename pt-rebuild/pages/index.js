@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useIndexData } from '../hooks/useIndexData';
 import { useIndexOfflineQueue } from '../hooks/useIndexOfflineQueue';
 import { useManualLog } from '../hooks/useManualLog';
+import { useTrackerReconnectRecovery } from '../hooks/useTrackerReconnectRecovery';
 import { useTrackerSession } from '../hooks/useTrackerSession';
 import { useSessionLogging } from '../hooks/useSessionLogging';
 import { useLoggerFeedback } from '../hooks/useLoggerFeedback';
@@ -47,7 +48,9 @@ export default function IndexPage() {
         fromCache,
         reload,
     } = useIndexData(token, userId);
-    const { pendingCount, enqueue, sync, clearQueue } = useIndexOfflineQueue(userId, token);
+    const { pendingCount, enqueue, sync, clearQueue } = useIndexOfflineQueue(userId, token, {
+        autoSyncOnReconnect: false,
+    });
 
     const [activeTab, setActiveTab] = useState('exercises');
     const [isMessagesOpen, setIsMessagesOpen] = useState(false);
@@ -234,6 +237,21 @@ export default function IndexPage() {
             window.removeEventListener('offline', syncOnlineState);
         };
     }, []);
+
+    const canRefreshOnReconnect = activeTab === 'exercises'
+        && !isTimerOpen
+        && !manualLog.manualLogState.isOpen
+        && !logger.isOpen
+        && !notesModalOpen
+        && !pendingSetPatch
+        && !draftSession;
+
+    useTrackerReconnectRecovery({
+        enabled: Boolean(session && token && userId),
+        canRefreshNow: canRefreshOnReconnect,
+        sync,
+        reload,
+    });
 
     const handleSignOut = useCallback(async () => {
         clearQueue();

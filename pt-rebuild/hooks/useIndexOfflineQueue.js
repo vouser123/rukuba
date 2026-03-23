@@ -23,7 +23,8 @@ import {
     buildApiPayload,
 } from '../lib/index-offline';
 
-export function useIndexOfflineQueue(userId, accessToken) {
+export function useIndexOfflineQueue(userId, accessToken, options = {}) {
+    const { autoSyncOnReconnect = true } = options;
     const [queue, setQueue] = useState([]);
     const [syncing, setSyncing] = useState(false);
     const [queueLoaded, setQueueLoaded] = useState(false);
@@ -137,12 +138,14 @@ export function useIndexOfflineQueue(userId, accessToken) {
 
     // Auto-sync when coming back online mid-session
     useEffect(() => {
+        if (!autoSyncOnReconnect) return undefined;
+
         function handleOnline() {
             if (queueRef.current.length > 0) sync();
         }
         window.addEventListener('online', handleOnline);
         return () => window.removeEventListener('online', handleOnline);
-    }, [sync]);
+    }, [autoSyncOnReconnect, sync]);
 
     return {
         queue,
