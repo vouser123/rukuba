@@ -110,6 +110,46 @@ If code is implemented but another agent still needs to validate it:
 
 **Do not commit and plan to update beads afterward. That is how beads get left open.**
 
+## AMC Bead (Agent Memory Carry-over)
+
+The AMC bead is a running session log — not a task list, not a status mirror. It carries context that would otherwise be lost to compaction, crashes, or session breaks.
+
+**Content rule: context and decisions only. No bead IDs in the text.** IDs go stale. Decisions don't.
+- ✅ "Decided not to touch index.js until Codex finishes its pass"
+- ✅ "program.js regressed after pt-roz — watch for this pattern again"
+- ✅ "Next session: pick up pt-86z (offline indicator)"
+- ❌ "pt-abc is open, pt-def is in progress" — use `related` links for live work items
+
+**Use `related` links** to point to priority beads. Their live status shows automatically in `bd show`.
+
+**Lifecycle:**
+1. **Session start**: read the open AMC bead → close it (it got you here) → create a new one
+2. **Throughout the session**: `bd note pt-amc.N "..."` at every meaningful moment:
+   - A decision is made
+   - Work shifts direction
+   - Something significant is discovered
+   - Before anything risky
+   - At natural milestones
+3. **Session end**: final `bd note` — "pick up here next session: [what + why]"
+
+The user will remind you to create the closing note at session end. But **do not wait for that reminder to note throughout** — if the session crashes or compacts, the last note is all that survives.
+
+```bash
+# Session start
+bd show pt-amc.N          # read it
+bd close pt-amc.N --reason "Read and carried forward. New session bead: pt-amc.M"
+bd create --title="Claude queue: YYYY-MM-DD session" --type=task --priority=2 --parent pt-amc
+bd update pt-amc.M --claim --status in_progress
+bd dep add pt-amc.M <priority-bead> --type related
+
+# Throughout
+bd note pt-amc.M "Decided X because Y"
+bd note pt-amc.M "Shifted to pt-abc — pt-def blocked on Codex"
+
+# Session end
+bd note pt-amc.M "Session end: pick up pt-86z next. Codex owns index.js + program.js. pt-lug.4/.5 open for Codex."
+```
+
 ## Session-End Rule
 
 **Before ending any session, this sweep is mandatory:**
@@ -119,5 +159,6 @@ If code is implemented but another agent still needs to validate it:
 3. Verify bead state is accurate, then commit
 4. Push code
 5. Sync beads: `bd dolt push`
+6. Final `bd note` on the AMC bead with session end context
 
 **If work was done but the bead still looks open or untouched, the session is not complete.**
