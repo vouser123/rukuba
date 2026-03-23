@@ -86,12 +86,21 @@ export default function DosageModal({ exercise, program, onSave, onClose }) {
 
     const formData = {
       sets: parsedSets,
-      reps_per_set: showReps ? parseInt(reps, 10) || null : null,
-      seconds_per_rep: hasHold ? parseInt(seconds, 10) || null : null,
-      seconds_per_set: hasDuration ? parseInt(seconds, 10) || null : null,
-      distance_feet: hasDistance ? parseInt(distance, 10) || null : null,
       dosage_type: hasDistance ? 'distance' : (hasDuration ? 'duration' : (hasHold ? 'hold' : 'reps')),
     };
+
+    if (showReps) {
+      formData.reps_per_set = parseInt(reps, 10) || null;
+    }
+    if (hasHold) {
+      formData.seconds_per_rep = parseInt(seconds, 10) || null;
+    }
+    if (hasDuration) {
+      formData.seconds_per_set = parseInt(seconds, 10) || null;
+    }
+    if (hasDistance) {
+      formData.distance_feet = parseInt(distance, 10) || null;
+    }
 
     setSaving(true);
     try {

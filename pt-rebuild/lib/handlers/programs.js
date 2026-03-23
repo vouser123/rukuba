@@ -12,6 +12,21 @@
 import { getSupabaseClient, getSupabaseAdmin, getSupabaseWithAuth } from '../db.js';
 import { requireAuth } from '../auth.js';
 
+export function resolveProgramDosageType({
+  dosage_type,
+  distance_feet,
+  seconds_per_set,
+  seconds_per_rep,
+  fallback = 'reps'
+}) {
+  return dosage_type
+    || (distance_feet ? 'distance' : (seconds_per_set ? 'duration' : (seconds_per_rep ? 'hold' : fallback)));
+}
+
+export function dosageTypeRequiresReps(dosageType) {
+  return !['duration', 'distance'].includes(dosageType);
+}
+
 /**
  * Normalize program data, transforming nested Supabase relations into flat arrays.
  *
@@ -263,8 +278,12 @@ async function createProgram(req, res) {
     dosage_type
   } = req.body;
 
-  const resolvedDosageType = dosage_type
-    || (distance_feet ? 'distance' : (seconds_per_set ? 'duration' : (seconds_per_rep ? 'hold' : 'reps')));
+  const resolvedDosageType = resolveProgramDosageType({
+    dosage_type,
+    distance_feet,
+    seconds_per_set,
+    seconds_per_rep,
+  });
   let resolvedSecondsPerRep = seconds_per_rep ?? null;
   let resolvedSecondsPerSet = seconds_per_set ?? null;
 
@@ -278,7 +297,7 @@ async function createProgram(req, res) {
   }
 
   // Validate required fields
-  if (!patient_id || !exercise_id || !sets || (!reps_per_set && !['duration', 'distance'].includes(resolvedDosageType))) {
+  if (!patient_id || !exercise_id || !sets || (!reps_per_set && dosageTypeRequiresReps(resolvedDosageType))) {
     return res.status(400).json({
       error: 'Missing required fields: patient_id, exercise_id, sets, reps_per_set'
     });
@@ -407,7 +426,7 @@ async function updateProgram(req, res, programId) {
     // First fetch the program to check ownership
     const { data: existingProgram, error: fetchError } = await supabase
       .from('patient_programs')
-      .select('patient_id')
+      .select('patient_id, dosage_type')
       .eq('id', programId)
       .single();
 
@@ -452,6 +471,13 @@ async function updateProgram(req, res, programId) {
     }
 
     const updateData = {};
+    const resolvedDosageType = resolveProgramDosageType({
+      dosage_type,
+      distance_feet,
+      seconds_per_set,
+      seconds_per_rep,
+      fallback: existingProgram.dosage_type ?? 'reps',
+    });
     const hasSecondsPerRep = seconds_per_rep !== undefined;
     const hasSecondsPerSet = seconds_per_set !== undefined;
     if (sets !== undefined) {
@@ -461,10 +487,15 @@ async function updateProgram(req, res, programId) {
       updateData.sets = sets;
     }
     if (reps_per_set !== undefined) {
-      if (!Number.isInteger(reps_per_set) || reps_per_set < 1) {
+      if (reps_per_set === null) {
+        if (dosageTypeRequiresReps(resolvedDosageType)) {
+          return res.status(400).json({ error: 'reps_per_set must be a positive integer' });
+        }
+      } else if (!Number.isInteger(reps_per_set) || reps_per_set < 1) {
         return res.status(400).json({ error: 'reps_per_set must be a positive integer' });
+      } else {
+        updateData.reps_per_set = reps_per_set;
       }
-      updateData.reps_per_set = reps_per_set;
     }
     if (hasSecondsPerRep) {
       if (seconds_per_rep !== null && (!Number.isInteger(seconds_per_rep) || seconds_per_rep < 0)) {
@@ -501,7 +532,6 @@ async function updateProgram(req, res, programId) {
       updateData.seconds_per_rep = null;
       updateData.seconds_per_set = null;
     }
-
     const { data: program, error } = await supabase
       .from('patient_programs')
       .update(updateData)
