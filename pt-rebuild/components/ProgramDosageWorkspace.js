@@ -1,18 +1,8 @@
 // components/ProgramDosageWorkspace.js — /program dosage workspace shell with patient context and selector controls
 
 import NativeSelect from './NativeSelect';
+import { formatDosageSummary } from '../lib/dosage-summary';
 import styles from './ProgramDosageWorkspace.module.css';
-
-function formatDosageSummary(program) {
-  if (!program) return null;
-  const { sets, reps_per_set, seconds_per_rep, seconds_per_set, distance_feet, dosage_type } = program;
-  if (!sets) return null;
-  if (distance_feet) return `${sets} × ${distance_feet} ft`;
-  if ((dosage_type === 'duration' || seconds_per_set) && seconds_per_set) return `${sets} × ${seconds_per_set}s duration`;
-  if (seconds_per_rep) return `${sets} × ${seconds_per_rep}s`;
-  if (reps_per_set) return `${sets} × ${reps_per_set}`;
-  return `${sets} set${sets !== 1 ? 's' : ''}`;
-}
 
 export default function ProgramDosageWorkspace({
   programPatientName,
@@ -25,7 +15,7 @@ export default function ProgramDosageWorkspace({
   selectedProgram,
   onEditDosage,
 }) {
-  const dosageSummary = formatDosageSummary(selectedProgram);
+  const dosageSummary = formatDosageSummary(selectedProgram, { exercise: dosageExercise });
 
   return (
     <section className={styles.section}>

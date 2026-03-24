@@ -7,31 +7,10 @@ import {
     reorderVisibleSubset,
     sortExercises,
 } from '../lib/exercise-sort';
+import { formatDosageSummary } from '../lib/dosage-summary';
 
 const DRAG_HOLD_DELAY_MS = 220;
 const DRAG_CANCEL_MOVE_PX = 10;
-
-function formatDosageSummary(exercise, program) {
-    const source = program || exercise || {};
-    const sets = source.current_sets ?? source.sets ?? 0;
-    const reps = source.current_reps ?? source.reps_per_set ?? 0;
-    const holdSeconds = source.seconds_per_rep ?? 0;
-    const durationSeconds = source.seconds_per_set ?? 0;
-    const distanceFeet = source.distance_feet ?? 0;
-    const dosageType = source.dosage_type;
-    const modifiers = source.pattern_modifiers ?? [];
-
-    const hasDuration = modifiers.includes('duration_seconds') || dosageType === 'duration';
-    const hasHold = modifiers.includes('hold_seconds') || dosageType === 'hold';
-    const hasDistance = modifiers.includes('distance_feet') || dosageType === 'distance';
-
-    if (hasDistance && distanceFeet > 0) return `${sets > 0 ? `${sets} x ` : ''}${distanceFeet} feet`;
-    if (hasDuration && durationSeconds > 0) return `${sets} x ${durationSeconds} sec`;
-    if (hasHold && holdSeconds > 0 && reps > 0) return `${sets} x ${reps} reps (${holdSeconds}s hold)`;
-    if (reps > 0 && sets > 0) return `${sets} x ${reps} reps`;
-    if (sets > 0) return `${sets} set${sets === 1 ? '' : 's'}`;
-    return 'No dosage set';
-}
 
 function getAdherence(program) {
     if (program?.history_pending) return null;
@@ -139,7 +118,10 @@ export default function ExercisePicker({
             pointerId: event.pointerId,
             exerciseId: exercise.id,
             exerciseName: exercise.canonical_name,
-            dosageText: formatDosageSummary(exercise, programsByExercise.get(exercise.id) ?? null),
+            dosageText: formatDosageSummary(programsByExercise.get(exercise.id) ?? exercise, {
+                exercise,
+                emptyLabel: 'No dosage set',
+            }),
             startX: event.clientX,
             startY: event.clientY,
             x: event.clientX,
@@ -343,7 +325,12 @@ export default function ExercisePicker({
                                 type="button"
                             >
                                 <span className={styles.name}>{exercise.canonical_name}</span>
-                                <span className={styles.dosage}>{formatDosageSummary(exercise, program)}</span>
+                                <span className={styles.dosage}>
+                                    {formatDosageSummary(program ?? exercise, {
+                                        exercise,
+                                        emptyLabel: 'No dosage set',
+                                    })}
+                                </span>
                                 {adherence && (
                                     <span className={`${styles.adherence} ${styles[adherence.tone]}`}>
                                         {adherence.label}

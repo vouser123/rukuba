@@ -20,8 +20,10 @@ Treat the static legacy surface as frozen for routine cleanup. Only apply these 
 ## Formatting And Labels
 
 - Use [`lib/text-format.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/text-format.js) for typed values, labels, and value-display formatting.
+- Use [`lib/dosage-summary.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/dosage-summary.js) for prescribed-dosage wording on tracker and program surfaces.
 - Use [`lib/session-form-params.js`](C:/Users/cindi/OneDrive/Documents/GitHub/rukuba/pt-rebuild/lib/session-form-params.js) for form-parameter defaults and history-derived parameter shaping.
 - Do not duplicate unit-label or typed-value formatting inline across components.
+- Do not duplicate `sets x reps` or `per side` dosage-summary wording inside components when the shared dosage helper already covers the surface.
 - Do not create one-off parser/formatter helpers in page files when the logic is reusable.
 
 ## Typography And Readability
