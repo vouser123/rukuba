@@ -59,4 +59,27 @@ describe('formatDosageSummary', () => {
       'No dosage set',
     );
   });
+
+  it('preserves exercise distance metadata when the program row contains null fallbacks', () => {
+    assert.equal(
+      formatDosageSummary(
+        {
+          sets: 4,
+          reps_per_set: 1,
+          dosage_type: null,
+          distance_feet: null,
+        },
+        {
+          exercise: {
+            current_sets: 4,
+            current_reps: 1,
+            dosage_type: 'distance',
+            distance_feet: 20,
+            pattern_modifiers: ['distance_feet'],
+          },
+        },
+      ),
+      '4 x 20 ft',
+    );
+  });
 });
