@@ -1,9 +1,10 @@
 // hooks/useTrackerSession.js — active tracker session state and lifecycle handlers for pages/index.js
 import { useCallback, useMemo, useState } from 'react';
-import { buildOptimisticLogEntry, createDraftSession, toLocalDateTimeInputValue } from '../lib/index-tracker-session';
+import { createDraftSession } from '../lib/index-tracker-session';
 import { buildDefaultFormDataForExercise, collectParameterValuesForExercise } from '../lib/session-form-params';
 import { getProgressComparison } from '../lib/logger-progress-comparison';
-import { buildCreatePayload, inferActivityType, normalizeSet } from '../lib/session-logging';
+import { inferActivityType, normalizeSet } from '../lib/session-logging';
+import { useTrackerSessionFinalization } from './useTrackerSessionFinalization';
 
 /**
  * Active in-progress tracker session state for the index page.
@@ -26,10 +27,40 @@ export function useTrackerSession({
     const [draftSession, setDraftSession] = useState(null), [isTimerOpen, setIsTimerOpen] = useState(false);
     const [currentSide, setCurrentSide] = useState(null);
     const [panelResetToken, setPanelResetToken] = useState(0), [pendingSetPatch, setPendingSetPatch] = useState(null);
-    const [notesModalOpen, setNotesModalOpen] = useState(false), [backdateEnabled, setBackdateEnabled] = useState(false);
-    const [backdateValue, setBackdateValue] = useState('');
-    const [optimisticLogs, setOptimisticLogs] = useState([]), [activeExercise, setActiveExercise] = useState(null);
+    const [activeExercise, setActiveExercise] = useState(null);
     const sessionStartedAt = useMemo(() => draftSession?.date ?? new Date().toISOString(), [draftSession?.date]);
+
+    const abandonDraftSession = useCallback(() => {
+        setDraftSession(null);
+        setSelectedExerciseId(null);
+        setSelectedExercise(null);
+        setCurrentSide(null);
+        setIsTimerOpen(false);
+        setPendingSetPatch(null);
+    }, []);
+
+    const {
+        notesModalOpen,
+        backdateEnabled,
+        backdateValue,
+        optimisticLogs,
+        setBackdateValue,
+        handleFinishSession,
+        handleNotesModalClose,
+        handleCancelSession,
+        handleToggleBackdate,
+        handleSaveFinishedSession,
+    } = useTrackerSessionFinalization({
+        draftSession,
+        selectedExercise,
+        enqueue,
+        sync,
+        reload,
+        showSaveSuccess,
+        showToast,
+        abandonDraftSession,
+        setActiveExercise,
+    });
     const allLogs = useMemo(() => [...optimisticLogs, ...logs], [logs, optimisticLogs]);
 
     const buildExerciseFormContext = useCallback((exercise, side = null) => {
@@ -47,18 +78,6 @@ export function useTrackerSession({
                 : collectParameterValuesForExercise(allLogs, exercise.id, exercise.form_parameters_required ?? [], { sessionSets }),
         };
     }, [allLogs, draftSession]);
-
-    const abandonDraftSession = useCallback(() => {
-        setDraftSession(null);
-        setSelectedExerciseId(null);
-        setSelectedExercise(null);
-        setCurrentSide(null);
-        setIsTimerOpen(false);
-        setPendingSetPatch(null);
-        setNotesModalOpen(false);
-        setBackdateEnabled(false);
-        setBackdateValue('');
-    }, []);
 
     const handleExerciseSelect = useCallback((exerciseId) => {
         setSelectedExerciseId(exerciseId);
@@ -78,35 +97,6 @@ export function useTrackerSession({
         abandonDraftSession();
         setActiveExercise(null);
     }, [abandonDraftSession]);
-
-    const handleFinishSession = useCallback(() => {
-        if (!draftSession || draftSession.sets.length === 0) {
-            showToast('Please log at least one set before finishing', 'error');
-            return false;
-        }
-        setNotesModalOpen(true);
-        return true;
-    }, [draftSession, showToast]);
-
-    const handleNotesModalClose = useCallback(() => {
-        setNotesModalOpen(false);
-        setBackdateEnabled(false);
-        setBackdateValue('');
-    }, []);
-
-    const handleCancelSession = useCallback(() => {
-        if (typeof window !== 'undefined' && !window.confirm('Cancel this session? Your in-progress session will be discarded.')) return;
-        handleNotesModalClose();
-        handleTimerBack();
-    }, [handleNotesModalClose, handleTimerBack]);
-
-    const handleToggleBackdate = useCallback(() => {
-        if (!draftSession) return;
-        setBackdateEnabled((previous) => {
-            setBackdateValue(previous ? '' : toLocalDateTimeInputValue(draftSession.date));
-            return !previous;
-        });
-    }, [draftSession]);
 
     const handleTimerApplySet = useCallback((setPatch) => {
         if (!selectedExercise) return;
@@ -159,39 +149,6 @@ export function useTrackerSession({
         handleTimerOpenManual({ side: pendingSetPatch.side, seedSet: pendingSetPatch });
         setPendingSetPatch(null);
     }, [handleTimerOpenManual, pendingSetPatch, selectedExercise]);
-
-    const handleSaveFinishedSession = useCallback(() => {
-        if (!draftSession || !selectedExercise) return false;
-        const trimmedNotes = draftSession.notes ? draftSession.notes.trim() : '';
-        const finalPerformedAt = backdateEnabled && backdateValue ? new Date(backdateValue).toISOString() : draftSession.date;
-        const finalSession = { ...draftSession, date: finalPerformedAt, notes: trimmedNotes || null, sets: draftSession.sets.map((set, index) => normalizeSet({ ...set, set_number: index + 1, performed_at: finalPerformedAt }, index, draftSession.activityType)) };
-        const payload = buildCreatePayload(selectedExercise, finalSession.date, finalSession.notes, finalSession.sets);
-        payload.client_mutation_id = finalSession.sessionId;
-
-        // Queue-first: push immediately so save is durable before any network attempt
-        enqueue(payload);
-
-        // UX updates happen immediately — optimistic entry visible before sync outcome
-        setOptimisticLogs((previous) => [buildOptimisticLogEntry(finalSession), ...previous]);
-        handleNotesModalClose();
-        abandonDraftSession();
-        setActiveExercise(null);
-
-        // Toast fires only after sync result is known — reflects actual save status
-        sync([payload]).then(async (syncResult) => {
-            if (syncResult?.failed === 0) {
-                await reload();
-                setOptimisticLogs((previous) => previous.filter((log) => log.client_mutation_id !== finalSession.sessionId));
-                showSaveSuccess(trimmedNotes);
-            } else {
-                showToast('Offline - changes will sync later', 'error');
-            }
-        }).catch(() => {
-            showToast('Offline - changes will sync later', 'error');
-        });
-
-        return true;
-    }, [abandonDraftSession, backdateEnabled, backdateValue, draftSession, enqueue, handleNotesModalClose, reload, selectedExercise, showSaveSuccess, showToast, sync]);
 
     return {
         selectedExerciseId, selectedExercise, draftSession, isTimerOpen, panelResetToken, pendingSetPatch, notesModalOpen,
