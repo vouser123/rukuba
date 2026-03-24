@@ -581,7 +581,11 @@ async function updateExercise(req, res, exerciseId) {
     if (pt_category !== undefined) updates.pt_category = pt_category;
     if (pattern !== undefined) updates.pattern = pattern;
     if (archived !== undefined) updates.archived = archived;
-    if (lifecycle_status !== undefined) updates.lifecycle_status = lifecycle_status;
+    if (lifecycle_status !== undefined) {
+      updates.lifecycle_status = lifecycle_status;
+      // Keep archived boolean in sync with lifecycle_status
+      updates.archived = lifecycle_status === 'archived';
+    }
     if (lifecycle_effective_start_date !== undefined) updates.lifecycle_effective_start_date = lifecycle_effective_start_date;
     if (lifecycle_effective_end_date !== undefined) updates.lifecycle_effective_end_date = lifecycle_effective_end_date;
     if (supersedes_exercise_id !== undefined) updates.supersedes_exercise_id = supersedes_exercise_id || null;
