@@ -684,12 +684,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     <div class="mode-toggle">
       <label>
-        <input type="radio" id="mode-start-finish" name="mode" value="2" checked />
-        <span aria-hidden="true">Start → Finish</span>
-      </label>
-      <label>
         <input type="radio" id="mode-start-halfway" name="mode" value="2b" />
         <span aria-hidden="true">Start → Halfway</span>
+      </label>
+      <label>
+        <input type="radio" id="mode-start-finish" name="mode" value="2" checked />
+        <span aria-hidden="true">Start → Finish</span>
       </label>
       <label>
         <input type="radio" id="mode-start-halfway-finish" name="mode" value="3" />
@@ -832,16 +832,16 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
           <div class="option-group">
             <div class="option-group-title">Preferred feedback</div>
             <label>
-              <input type="radio" name="a11yOutputMode" value="audio-visual" checked />
-              Audio + Visual (default)
+              <input type="radio" name="a11yOutputMode" value="audio-only" checked />
+              Audio only (default)
+            </label>
+            <label>
+              <input type="radio" name="a11yOutputMode" value="audio-visual" />
+              Audio + Visual
             </label>
             <label>
               <input type="radio" name="a11yOutputMode" value="visual-only" />
               Visual only (no sounds)
-            </label>
-            <label>
-              <input type="radio" name="a11yOutputMode" value="audio-only" />
-              Audio only
             </label>
           </div>
         </div>
@@ -1050,12 +1050,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     };
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const a11ySettings = {
-      outputMode: "audio-visual",
+      outputMode: "audio-only",
       showBanner: true,
       flashAction: false,
       vibrate: false,
       useTextLabels: true,
-      syncVisualReplay: false,
+      syncVisualReplay: true,
       outsideVisualVariant: "up",
       theme: "system",
       textSize: "default",
@@ -1606,6 +1606,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     }
 
     function showUserVisualPulse(startDelaySec = 0, target = null) {
+      if (!target && !visualOutputEnabled()) {
+        return;
+      }
       const overlay = target?.overlay || visualReplayOverlay;
       const flash = target?.flash || visualReplayFlash;
       const shape = target?.shape || visualReplayShape;
@@ -1623,6 +1626,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     }
 
     function showReferenceVisualPulse(feedbackType, startDelaySec = 0, target = null) {
+      if (!target && !visualOutputEnabled()) {
+        return;
+      }
       const overlay = target?.overlay || visualReplayOverlay;
       const flash = target?.flash || visualReplayFlash;
       const shape = target?.shape || visualReplayShape;
@@ -1709,7 +1715,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     }
 
     function startSynchronizedVisualReplay(events, endAtSec, target = null) {
-      if (!a11ySettings.syncVisualReplay) {
+      if (!visualOutputEnabled() || !a11ySettings.syncVisualReplay) {
         return;
       }
       stopVisualReplay();
@@ -1926,6 +1932,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       setTimeout(() => {
         srAnnouncer.textContent = message;
       }, 20);
+    }
+
+    function visualOutputEnabled() {
+      return a11ySettings.outputMode !== "audio-only";
     }
 
     function applyDebugAccessibility() {
@@ -2278,7 +2288,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     /* A11Y ADDITIONS START */
     function applyA11ySettings() {
-      cueBanner.dataset.visible = String(a11ySettings.showBanner);
+      cueBanner.dataset.visible = String(a11ySettings.showBanner && visualOutputEnabled());
       cueBannerText.classList.toggle("sr-only", !a11ySettings.useTextLabels);
       document.body.dataset.textSize = a11ySettings.textSize;
       document.body.classList.toggle("high-contrast", a11ySettings.highContrast);
@@ -2294,6 +2304,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       } else if (soundEnabled) {
         soundToggle.setAttribute("aria-pressed", "true");
         soundToggle.innerHTML = "<span aria-hidden=\"true\">🔊</span> Sound On";
+      }
+      const visualReplayAvailable = visualOutputEnabled();
+      a11ySyncVisualReplay.disabled = !visualReplayAvailable;
+      if (!visualReplayAvailable) {
+        a11ySyncVisualReplay.checked = false;
       }
     }
 
@@ -2468,6 +2483,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
           a11ySettings.syncVisualReplay = true;
           a11ySyncVisualReplay.checked = true;
           localStorage.setItem("om-a11y-sync-visual-replay", "true");
+        } else {
+          a11ySettings.syncVisualReplay = false;
+          a11ySyncVisualReplay.checked = false;
+          localStorage.setItem("om-a11y-sync-visual-replay", "false");
         }
         applyA11ySettings();
         emitCue("sound_toggled", { soundEnabled: a11ySettings.outputMode !== "visual-only" });
