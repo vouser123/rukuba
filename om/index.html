@@ -782,6 +782,21 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             <input type="radio" name="outsideVisualVariant" value="down" />
             Outside triangle orientation: Down
           </label>
+          <div class="option-group">
+            <div class="option-group-title">User flash contrast</div>
+            <label>
+              <input type="radio" name="userFlashContrast" value="soft" checked />
+              Soft
+            </label>
+            <label>
+              <input type="radio" name="userFlashContrast" value="balanced" />
+              Balanced
+            </label>
+            <label>
+              <input type="radio" name="userFlashContrast" value="high" />
+              High contrast
+            </label>
+          </div>
           <div class="exemplar-actions">
             <button type="button" class="settings-action visual-preview-btn" data-visual-type="user" aria-label="Preview user flash">Preview: User flash</button>
             <button type="button" class="settings-action visual-preview-btn" data-visual-type="acceptable" aria-label="Preview acceptable shape">Preview: Acceptable shape</button>
@@ -974,6 +989,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const exemplarButtons = [...document.querySelectorAll(".exemplar-btn")];
     const visualPreviewButtons = [...document.querySelectorAll(".visual-preview-btn")];
     const outsideVisualVariantInputs = [...document.querySelectorAll("input[name='outsideVisualVariant']")];
+    const userFlashContrastInputs = [...document.querySelectorAll("input[name='userFlashContrast']")];
     const visualReplayOverlay = document.getElementById("visualReplayOverlay");
     const visualReplayFlash = document.getElementById("visualReplayFlash");
     const visualReplayShape = document.getElementById("visualReplayShape");
@@ -993,6 +1009,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       ...previewButtons,
       ...visualPreviewButtons,
       ...outsideVisualVariantInputs,
+      ...userFlashContrastInputs,
       ...exemplarButtons
     ];
     /* A11Y ADDITIONS START */
@@ -1036,7 +1053,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     let lastDialogTrigger = null;
     let flashTimeout;
     const VISUAL_PULSE_SEC = 0.2;
-    const VISUAL_USER_FLASH_COLOR = "#8c8c8c";
+    const VISUAL_USER_FLASH_COLORS = {
+      soft: "#8c8c8c",
+      balanced: "#bcbcbc",
+      high: "#e6e6e6"
+    };
     const visualReplayState = {
       rafId: null,
       nextIndex: 0,
@@ -1057,6 +1078,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       useTextLabels: true,
       syncVisualReplay: true,
       outsideVisualVariant: "up",
+      userFlashContrast: "soft",
       theme: "system",
       textSize: "default",
       highContrast: false,
@@ -1575,6 +1597,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       return [0, clearTime, fullTime];
     }
 
+    function getUserFlashColor() {
+      return VISUAL_USER_FLASH_COLORS[a11ySettings.userFlashContrast] || VISUAL_USER_FLASH_COLORS.soft;
+    }
+
     function applyVisualReplayFrame(elapsedSec) {
       const overlay = visualReplayState.target?.overlay || visualReplayOverlay;
       const flash = visualReplayState.target?.flash || visualReplayFlash;
@@ -1582,7 +1608,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const isUserPulseActive = elapsedSec < visualReplayState.userFlashUntilSec;
       const isReferencePulseActive = elapsedSec < visualReplayState.referenceUntilSec;
       overlay.dataset.active = "true";
-      flash.style.background = isUserPulseActive ? VISUAL_USER_FLASH_COLOR : "#000000";
+      flash.style.background = isUserPulseActive ? getUserFlashColor() : "#000000";
       if (isReferencePulseActive && visualReplayState.currentReferenceType) {
         shape.style.display = "block";
         shape.dataset.type = visualReplayState.currentReferenceType;
@@ -1613,7 +1639,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const flash = target?.flash || visualReplayFlash;
       const shape = target?.shape || visualReplayShape;
       overlay.dataset.active = "true";
-      flash.style.background = VISUAL_USER_FLASH_COLOR;
+      flash.style.background = getUserFlashColor();
       shape.style.display = "none";
       setTimeout(() => {
         flash.style.background = "#000000";
@@ -1669,7 +1695,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
       setTimeout(() => {
         if (type === "user") {
-          previewTarget.flash.style.background = VISUAL_USER_FLASH_COLOR;
+          previewTarget.flash.style.background = getUserFlashColor();
           return;
         }
         previewTarget.shape.dataset.type = type;
@@ -2255,6 +2281,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       });
     });
 
+    userFlashContrastInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        a11ySettings.userFlashContrast = input.value;
+        localStorage.setItem("om-a11y-user-flash-contrast", a11ySettings.userFlashContrast);
+      });
+    });
+
     exemplarButtons.forEach((button) => {
       button.addEventListener("click", () => {
         ensureAudioContext();
@@ -2378,6 +2411,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const storedAnnounceCues = localStorage.getItem("om-a11y-announce-cues");
       const storedSyncVisualReplay = localStorage.getItem("om-a11y-sync-visual-replay");
       const storedOutsideVisualVariant = localStorage.getItem("om-a11y-outside-visual-variant");
+      const storedUserFlashContrast = localStorage.getItem("om-a11y-user-flash-contrast");
       /* A11Y ADDITIONS END */
 
       if (storedClear) {
@@ -2440,6 +2474,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (storedOutsideVisualVariant === "up" || storedOutsideVisualVariant === "down") {
         a11ySettings.outsideVisualVariant = storedOutsideVisualVariant;
       }
+      if (storedUserFlashContrast && VISUAL_USER_FLASH_COLORS[storedUserFlashContrast]) {
+        a11ySettings.userFlashContrast = storedUserFlashContrast;
+      }
       a11yShowBanner.checked = a11ySettings.showBanner;
       a11yFlashAction.checked = a11ySettings.flashAction;
       a11yVibrate.checked = a11ySettings.vibrate;
@@ -2447,6 +2484,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       a11ySyncVisualReplay.checked = a11ySettings.syncVisualReplay;
       outsideVisualVariantInputs.forEach((input) => {
         input.checked = input.value === a11ySettings.outsideVisualVariant;
+      });
+      userFlashContrastInputs.forEach((input) => {
+        input.checked = input.value === a11ySettings.userFlashContrast;
       });
       a11yTheme.value = a11ySettings.theme;
       a11yTextSize.value = a11ySettings.textSize;
