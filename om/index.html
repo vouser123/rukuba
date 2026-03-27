@@ -31,9 +31,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       --outline: #1b1b1b;
       --surface: #ffffff;
       --divider: #dedad1;
-      --base-font-size: 18px;
-      --ui-scale: 1;
       --viewport-height: 100vh;
+    }
+
+    html {
+      font-size: 18px;
     }
 
     *,
@@ -49,7 +51,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       text-size-adjust: 100%;
       background: var(--bg);
       color: var(--text);
-      font-size: calc(var(--base-font-size) * var(--ui-scale));
+      font-size: 1rem;
       display: flex;
       min-height: var(--viewport-height);
       align-items: center;
@@ -93,8 +95,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     .setup h2 {
       margin: 0;
       font-size: 1.1rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
     }
 
     .setup-heading {
@@ -486,6 +486,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       min-height: 1.2rem;
     }
 
+    .status:empty {
+      display: none;
+    }
+
     /* A11Y ADDITIONS START */
     .cue-banner {
       border: 2px solid var(--outline);
@@ -506,13 +510,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     }
 
     .setup-required-prompt {
-      border: 3px solid #ffbf47;
-      border-radius: 18px;
+      border: 2px solid #ffbf47;
+      border-radius: 14px;
       background: #2c2414;
       color: #fff3cf;
-      padding: 16px;
+      padding: 12px 14px;
       display: grid;
-      gap: 12px;
+      gap: 10px;
       text-align: left;
       min-width: 0;
     }
@@ -523,15 +527,27 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     .setup-required-prompt-title {
       margin: 0;
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.02em;
       text-transform: uppercase;
     }
 
     .setup-required-prompt p {
       margin: 0;
       line-height: 1.4;
+    }
+
+    .setup-required-prompt .settings-action {
+      width: 100%;
+    }
+
+    .field-help {
+      margin: 0;
+      font-size: 0.92rem;
+      line-height: 1.35;
+      color: var(--muted);
+      text-align: left;
     }
 
     .sr-only {
@@ -553,8 +569,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     .visual-replay-overlay {
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: var(--viewport-height);
       pointer-events: none;
       opacity: 0;
       z-index: 9999;
@@ -583,8 +599,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     }
 
     .visual-replay-shape {
-      width: 70vmin;
-      height: 70vmin;
+      width: min(70vmin, calc(var(--viewport-height) * 0.7), 70vw);
+      height: min(70vmin, calc(var(--viewport-height) * 0.7), 70vw);
       display: none;
     }
 
@@ -600,18 +616,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     .visual-replay-shape[data-outside-variant="down"] {
       transform: rotate(180deg);
-    }
-
-    body[data-text-size="large"] {
-      --ui-scale: 1.15;
-    }
-
-    body[data-text-size="largest"] {
-      --ui-scale: 1.3;
-    }
-
-    body[data-text-size="huge"] {
-      --ui-scale: 1.5;
     }
 
     body[data-theme="light"] {
@@ -788,116 +792,181 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       }
     }
 
-    @media (max-width: 700px) {
-      .panel {
-        width: min(560px, 100vw);
-        padding:
-          max(16px, env(safe-area-inset-top))
-          16px
-          calc(16px + env(safe-area-inset-bottom));
-      }
-
-      .settings-actions,
-      .mode-toggle {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .settings-trigger,
-      .a11y-trigger,
-      .mode-toggle label,
-      .sound-toggle {
-        width: 100%;
-      }
-
-      .modal-card {
-        width: 100%;
-        padding: 16px;
-        border-radius: 18px;
-        max-height: calc(var(--viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
-      }
-
-      .modal-header {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .modal-header h2 {
-        font-size: clamp(1.4rem, 1rem + 4vw, 2rem);
-      }
-
-      .close-modal {
-        width: 100%;
-      }
-
-      .sound-option {
-        grid-template-columns: auto minmax(0, 1fr);
-        grid-template-areas:
-          "input label"
-          "button button";
-        align-items: start;
-        row-gap: 10px;
-      }
-
-      .sound-option input {
-        grid-area: input;
-        margin-top: 0.2rem;
-      }
-
-      .sound-option label {
-        grid-area: label;
-      }
-
-      .sound-option button {
-        grid-area: button;
-        width: 100%;
-      }
-
-      .setup {
-        padding: 14px;
-      }
-
-      .setup-heading,
-      .option-group-title {
-        letter-spacing: 0.03em;
-      }
-
-      .option-group label,
-      .setup > label,
-      .setup-group > label {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        align-items: flex-start;
-        gap: 10px;
-        min-width: 0;
-      }
+    body.large-text-layout .setup-heading,
+    body.large-text-layout .option-group-title,
+    body.large-text-layout .marker .marker-label {
+      text-transform: none;
+      letter-spacing: 0;
     }
 
-    @media (orientation: landscape) and (max-height: 540px) {
-      body {
-        align-items: flex-start;
-      }
+    body.phone-safe-layout {
+      align-items: flex-start;
+    }
 
-      .panel {
-        width: min(920px, 100vw);
-        padding:
-          max(12px, env(safe-area-inset-top))
-          16px
-          calc(12px + env(safe-area-inset-bottom));
-        gap: 16px;
-      }
+    body.phone-safe-layout .panel {
+      width: min(44rem, 100vw);
+      padding:
+        max(12px, env(safe-area-inset-top))
+        16px
+        calc(16px + env(safe-area-inset-bottom));
+      gap: 16px;
+    }
 
-      .action-btn {
-        width: min(26rem, 100%);
-        min-height: 8rem;
-        height: min(48vh, 11rem);
-      }
+    body.phone-safe-layout .settings-actions,
+    body.phone-safe-layout .mode-toggle {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.phone-safe-layout .settings-trigger,
+    body.phone-safe-layout .a11y-trigger,
+    body.phone-safe-layout .mode-toggle label,
+    body.phone-safe-layout .sound-toggle {
+      width: 100%;
+    }
+
+    body.phone-safe-layout .mode-toggle label {
+      border-radius: 18px;
+      padding: 12px 14px;
+    }
+
+    body.phone-safe-layout dialog[open] {
+      padding:
+        max(8px, env(safe-area-inset-top))
+        8px
+        max(8px, env(safe-area-inset-bottom))
+        8px;
+    }
+
+    body.phone-safe-layout .modal-card {
+      width: 100%;
+      padding: 14px;
+      border-radius: 18px;
+      max-height: calc(var(--viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+    }
+
+    body.phone-safe-layout .modal-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    body.phone-safe-layout .modal-header h2 {
+      font-size: clamp(1.35rem, 1rem + 4vw, 2rem);
+    }
+
+    body.phone-safe-layout .close-modal {
+      width: 100%;
+    }
+
+    body.phone-safe-layout .sound-option {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        "input label"
+        "button button";
+      align-items: start;
+      row-gap: 10px;
+    }
+
+    body.phone-safe-layout .sound-option input {
+      grid-area: input;
+      margin-top: 0.15rem;
+    }
+
+    body.phone-safe-layout .sound-option label {
+      grid-area: label;
+    }
+
+    body.phone-safe-layout .sound-option button {
+      grid-area: button;
+      width: 100%;
+    }
+
+    body.phone-safe-layout .setup {
+      padding: 14px;
+    }
+
+    body.phone-safe-layout .option-group label,
+    body.phone-safe-layout .setup > label,
+    body.phone-safe-layout .setup-group > label {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: flex-start;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    body.phone-safe-layout .setup-heading,
+    body.phone-safe-layout .option-group-title,
+    body.phone-safe-layout .marker .marker-label {
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    body.phone-safe-layout .setup-required-prompt {
+      padding: 10px 12px;
+      gap: 8px;
+    }
+
+    body.phone-safe-layout .setup-required-prompt-title {
+      font-size: 0.88rem;
+    }
+
+    body.phone-safe-layout .setup-required-prompt p {
+      font-size: 0.95rem;
+    }
+
+    body.phone-safe-layout .setup-required-prompt .settings-action {
+      min-height: auto;
+      padding: 9px 14px;
+      font-size: 0.95rem;
+    }
+
+    body.phone-safe-layout .markers {
+      gap: 12px;
+    }
+
+    body.phone-safe-layout .action-btn {
+      width: min(24rem, 100%);
+      min-height: 7.5rem;
+      height: auto;
+      padding: 1.25rem;
+    }
+
+    body.short-screen-layout .panel {
+      gap: 12px;
+      padding:
+        max(10px, env(safe-area-inset-top))
+        16px
+        calc(12px + env(safe-area-inset-bottom));
+    }
+
+    body.short-screen-layout .action-btn {
+      min-height: 6.25rem;
+      padding: 1rem;
+    }
+
+    body.landscape-layout.phone-safe-layout .setup-required-prompt {
+      padding: 10px 12px;
+    }
+
+    body.short-screen-layout .setup-required-prompt-title {
+      font-size: 0.8rem;
+    }
+
+    body.short-screen-layout .setup-required-prompt p {
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+
+    body.short-screen-layout .setup-required-prompt .settings-action {
+      font-size: 0.9rem;
+      padding: 8px 12px;
     }
     /* A11Y ADDITIONS END */
   </style>
 </head>
 <body>
-  <main class="panel">
+  <main class="panel" id="appMain">
     <!-- A11Y ADDITIONS START -->
     <div class="settings-actions">
       <button class="settings-trigger" id="settingsTrigger" type="button">
@@ -940,7 +1009,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       Sound On
     </button>
 
-    <section class="setup-required-prompt" id="timingRequiredPrompt" hidden aria-live="polite">
+    <section class="setup-required-prompt" id="timingRequiredPrompt" hidden>
       <div class="setup-required-prompt-title">Times needed</div>
       <p id="timingRequiredPromptText">Enter both street times in Settings before using practice or exemplars.</p>
       <button class="settings-action" id="timingRequiredPromptButton" type="button">
@@ -1055,6 +1124,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
           <input id="clearTime" type="number" step="0.1" min="0.1" inputmode="decimal" />
           <label for="fullTime">Full street time (seconds)</label>
           <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" />
+          <div class="setup-heading">Margin of Error</div>
+          <label for="marginInput">Acceptable margin of error (seconds)</label>
+          <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" value="0.4" />
         </div>
         <div class="setup-group">
           <div class="setup-heading">Training Exemplars</div>
@@ -1063,11 +1135,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2" aria-label="Play Start to Finish">Play: Start → Finish</button>
             <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="3" aria-label="Play Start to Halfway to Finish">Play: Start → Halfway → Finish</button>
           </div>
-        </div>
-        <div class="setup-group">
-          <div class="setup-heading">Margin of Error</div>
-          <label for="marginInput">Acceptable margin of error (seconds)</label>
-          <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" value="0.4" />
         </div>
         <div class="setup-group">
           <div class="setup-heading">Debug</div>
@@ -1140,11 +1207,15 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
           </select>
           <label for="a11yTextSize">Text size</label>
           <select id="a11yTextSize">
+            <option value="smaller">Smaller</option>
             <option value="default">Default</option>
             <option value="large">Large</option>
             <option value="largest">Largest</option>
             <option value="huge">Huge</option>
           </select>
+          <p class="field-help" id="textSizeLandscapeHint" hidden>
+            Largest text works best in landscape for Settings and Accessibility.
+          </p>
           <label>
             <input type="checkbox" id="a11yHighContrast" />
             High contrast
@@ -1190,6 +1261,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
      * Supported cue types:
      * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled
      * A11Y ADDITIONS END */
+    const appMain = document.getElementById("appMain");
     const actionBtn = document.getElementById("actionBtn");
     const actionBtnLabel = actionBtn.querySelector(".action-btn-label");
     const actionBtnIndicator = document.getElementById("actionBtnIndicator");
@@ -1221,6 +1293,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const a11ySyncVisualReplay = document.getElementById("a11ySyncVisualReplay");
     const a11yTheme = document.getElementById("a11yTheme");
     const a11yTextSize = document.getElementById("a11yTextSize");
+    const textSizeLandscapeHint = document.getElementById("textSizeLandscapeHint");
     const a11yHighContrast = document.getElementById("a11yHighContrast");
     const a11yFocusBoost = document.getElementById("a11yFocusBoost");
     const a11yAnnounceCues = document.getElementById("a11yAnnounceCues");
@@ -1335,6 +1408,33 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     function syncViewportHeight() {
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
       document.documentElement.style.setProperty("--viewport-height", `${viewportHeight}px`);
+      applyLayoutMode();
+    }
+
+    function setMainContentInert(isInert) {
+      appMain.inert = isInert;
+      if (isInert) {
+        appMain.setAttribute("aria-hidden", "true");
+        return;
+      }
+      appMain.removeAttribute("aria-hidden");
+    }
+
+    function applyLayoutMode() {
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const coarsePointer = window.matchMedia("(any-pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+      const largeTextLayout = a11ySettings.textSize === "largest" || a11ySettings.textSize === "huge";
+      const phoneSafeLayout = coarsePointer || viewportWidth <= 430 || viewportHeight <= 500 || largeTextLayout;
+      document.body.classList.toggle("phone-safe-layout", phoneSafeLayout);
+      document.body.classList.toggle("short-screen-layout", viewportHeight <= 500);
+      document.body.classList.toggle("large-text-layout", largeTextLayout);
+      document.body.classList.toggle("landscape-layout", viewportWidth > viewportHeight);
+    }
+
+    function syncCueBannerVisibility() {
+      const hasMessage = Boolean(cueBannerText.textContent.trim());
+      cueBanner.dataset.visible = String(a11ySettings.showBanner && visualOutputEnabled() && hasMessage);
     }
 
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1859,6 +1959,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (!settingsModal.open) {
         lastDialogTrigger = timingRequiredPromptButton;
         lockPageScroll();
+        setMainContentInert(true);
         settingsModal.showModal();
       }
       requestAnimationFrame(() => {
@@ -1884,6 +1985,14 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         timingRequiredPromptButton.focus();
       }
       return false;
+    }
+
+    function getTextSizeScale(size) {
+      if (size === "smaller") return 16 / 18;
+      if (size === "large") return 1.15;
+      if (size === "largest") return 1.3;
+      if (size === "huge") return 1.5;
+      return 1;
     }
 
     function validateSetup() {
@@ -2266,6 +2375,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       statusText.textContent = message;
       /* A11Y ADDITIONS START */
       cueBannerText.textContent = message;
+      syncCueBannerVisibility();
       /* A11Y ADDITIONS END */
     }
 
@@ -2511,6 +2621,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     settingsTrigger.addEventListener("click", () => {
       lastDialogTrigger = settingsTrigger;
       lockPageScroll();
+      setMainContentInert(true);
       settingsModal.showModal();
       settingsTitle.focus();
     });
@@ -2524,6 +2635,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     a11yTrigger.addEventListener("click", () => {
       lastDialogTrigger = a11yTrigger;
       lockPageScroll();
+      setMainContentInert(true);
       a11yModal.showModal();
       a11yTitle.focus();
     });
@@ -2542,6 +2654,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       settingsVisualPreviewShape.style.display = "none";
       if (!a11yModal.open) {
         unlockPageScroll();
+        setMainContentInert(false);
       }
       lastDialogTrigger?.focus();
     });
@@ -2549,6 +2662,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     a11yModal.addEventListener("close", () => {
       if (!settingsModal.open) {
         unlockPageScroll();
+        setMainContentInert(false);
       }
       lastDialogTrigger?.focus();
     });
@@ -2655,9 +2769,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     /* A11Y ADDITIONS START */
     function applyA11ySettings() {
-      cueBanner.dataset.visible = String(a11ySettings.showBanner && visualOutputEnabled());
-      cueBannerText.classList.toggle("sr-only", !a11ySettings.useTextLabels);
       document.body.dataset.textSize = a11ySettings.textSize;
+      document.documentElement.style.fontSize = `${18 * getTextSizeScale(a11ySettings.textSize)}px`;
+      cueBannerText.classList.toggle("sr-only", !a11ySettings.useTextLabels);
       document.body.classList.toggle("high-contrast", a11ySettings.highContrast);
       document.body.classList.toggle("focus-boost", a11ySettings.focusBoost);
       const resolvedTheme =
@@ -2665,6 +2779,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
           ? (prefersDarkScheme.matches ? "dark" : "light")
           : a11ySettings.theme;
       document.body.dataset.theme = resolvedTheme;
+      textSizeLandscapeHint.hidden = a11ySettings.textSize !== "huge";
       if (a11ySettings.outputMode === "visual-only") {
         soundToggle.setAttribute("aria-pressed", "false");
         soundToggle.innerHTML = "<span aria-hidden=\"true\">🔇</span> Sound Off";
@@ -2677,6 +2792,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (!visualReplayAvailable) {
         a11ySyncVisualReplay.checked = false;
       }
+      syncCueBannerVisibility();
+      applyLayoutMode();
     }
 
     function emitCue(type, detail = {}) {
@@ -2694,6 +2811,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (a11ySettings.showBanner) {
         cueBannerText.textContent = message;
       }
+      syncCueBannerVisibility();
       announceScreenReader(message);
       if (a11ySettings.vibrate && navigator.vibrate) {
         const patterns = {
