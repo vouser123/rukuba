@@ -19,7 +19,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>O&M Timing Practice Prototype</title>
   <style>
     :root {
@@ -33,6 +33,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       --divider: #dedad1;
       --base-font-size: 18px;
       --ui-scale: 1;
+      --viewport-height: 100vh;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
     }
 
     body {
@@ -42,9 +49,18 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       color: var(--text);
       font-size: calc(var(--base-font-size) * var(--ui-scale));
       display: flex;
-      min-height: 100vh;
+      min-height: var(--viewport-height);
       align-items: center;
       justify-content: center;
+      overflow-x: hidden;
+      overscroll-behavior-y: none;
+    }
+
+    body.dialog-open {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      overflow: hidden;
     }
 
     .panel {
@@ -166,6 +182,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       align-items: center;
       gap: 14px;
       padding: 10px 0;
+      min-width: 0;
+    }
+
+    .sound-option label {
+      min-width: 0;
     }
 
     .sound-option button {
@@ -198,6 +219,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
       font-size: 1.05rem;
       border: 2px solid var(--outline);
       border-radius: 999px;
@@ -206,6 +228,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       cursor: pointer;
       min-height: 3rem;
       color: var(--text);
+      text-align: left;
     }
 
     .mode-toggle input[type="radio"] {
@@ -235,8 +258,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       font-size: 1.1rem;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       cursor: pointer;
+      white-space: normal;
+      text-align: center;
     }
 
     .sound-toggle[aria-pressed="false"] {
@@ -373,6 +399,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       justify-content: center;
       flex-direction: column;
       gap: 10px;
+      text-align: center;
+      white-space: normal;
     }
 
     .action-btn-indicator {
@@ -438,6 +466,34 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     .cue-banner[data-visible="false"] {
       display: none;
+    }
+
+    .setup-required-prompt {
+      border: 3px solid #ffbf47;
+      border-radius: 18px;
+      background: #2c2414;
+      color: #fff3cf;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      text-align: left;
+    }
+
+    .setup-required-prompt[hidden] {
+      display: none;
+    }
+
+    .setup-required-prompt-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .setup-required-prompt p {
+      margin: 0;
+      line-height: 1.4;
     }
 
     .sr-only {
@@ -575,8 +631,23 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       border: none;
       padding: 0;
       background: transparent;
-      max-width: min(640px, 92vw);
       width: 100%;
+      max-width: none;
+      max-height: none;
+    }
+
+    dialog[open] {
+      position: fixed;
+      inset: 0;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding:
+        max(12px, env(safe-area-inset-top))
+        12px
+        max(12px, env(safe-area-inset-bottom))
+        12px;
+      overflow: hidden;
     }
 
     dialog::backdrop {
@@ -592,16 +663,21 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       display: flex;
       flex-direction: column;
       gap: 16px;
-      max-height: min(90vh, 760px);
+      width: min(640px, 100%);
+      max-height: min(760px, calc(var(--viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
       overflow: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      z-index: 1;
     }
 
     .modal-visual-preview {
       position: fixed;
       inset: 0;
+      height: var(--viewport-height);
       pointer-events: none;
       opacity: 0;
-      z-index: 20;
+      z-index: 30;
       overflow: hidden;
     }
 
@@ -624,6 +700,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       font-size: 1.05rem;
       cursor: pointer;
       color: var(--text);
+      white-space: normal;
+      text-align: center;
     }
 
     .preview-btn,
@@ -637,6 +715,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       font-weight: 600;
       min-height: 2.9rem;
       color: var(--text);
+      white-space: normal;
+      text-align: center;
+      line-height: 1.25;
     }
 
     .exemplar-actions {
@@ -653,6 +734,50 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     @media (prefers-reduced-motion: reduce) {
       .action-btn.flash {
         box-shadow: none;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .panel {
+        width: min(560px, 100vw);
+        padding:
+          max(16px, env(safe-area-inset-top))
+          16px
+          calc(16px + env(safe-area-inset-bottom));
+      }
+
+      .modal-card {
+        width: 100%;
+        padding: 16px;
+        border-radius: 18px;
+        max-height: calc(var(--viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
+      }
+
+      .modal-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .modal-header h2 {
+        margin: 0;
+        font-size: clamp(1.6rem, 1.2rem + 2vw, 2.25rem);
+      }
+
+      .sound-option {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .sound-option button {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .option-group label,
+      .setup > label,
+      .setup-group > label {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
       }
     }
     /* A11Y ADDITIONS END */
@@ -702,6 +827,14 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       Sound On
     </button>
 
+    <section class="setup-required-prompt" id="timingRequiredPrompt" hidden aria-live="polite">
+      <div class="setup-required-prompt-title">Times needed</div>
+      <p id="timingRequiredPromptText">Enter both street times in Settings before using practice or exemplars.</p>
+      <button class="settings-action" id="timingRequiredPromptButton" type="button">
+        Open Settings to enter times
+      </button>
+    </section>
+
     <section class="markers" id="markers" aria-hidden="true"></section>
 
     <button class="action-btn" id="actionBtn" type="button">
@@ -720,13 +853,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
   </main>
 
   <dialog id="settingsModal" aria-labelledby="settingsTitle" aria-modal="true">
-    <div class="modal-card">
-      <div class="visual-replay-overlay modal-visual-preview" id="settingsVisualPreview" aria-hidden="true" data-active="false">
-        <div class="visual-replay-flash" id="settingsVisualPreviewFlash"></div>
-        <div class="visual-replay-shape-layer">
-          <div class="visual-replay-shape" id="settingsVisualPreviewShape" data-type="acceptable" data-outside-variant="up"></div>
-        </div>
+    <div class="visual-replay-overlay modal-visual-preview" id="settingsVisualPreview" aria-hidden="true" data-active="false">
+      <div class="visual-replay-flash" id="settingsVisualPreviewFlash"></div>
+      <div class="visual-replay-shape-layer">
+        <div class="visual-replay-shape" id="settingsVisualPreviewShape" data-type="acceptable" data-outside-variant="up"></div>
       </div>
+    </div>
+    <div class="modal-card">
       <div class="modal-header">
         <h2 id="settingsTitle" tabindex="-1">Settings / Setup</h2>
         <button class="close-modal" type="button" id="closeSettings">Close</button>
@@ -952,6 +1085,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const debugText = document.getElementById("debugText");
     const modeInputs = [...document.querySelectorAll("input[name='mode']")];
     const soundToggle = document.getElementById("soundToggle");
+    const timingRequiredPrompt = document.getElementById("timingRequiredPrompt");
+    const timingRequiredPromptText = document.getElementById("timingRequiredPromptText");
+    const timingRequiredPromptButton = document.getElementById("timingRequiredPromptButton");
     const settingsTrigger = document.getElementById("settingsTrigger");
     const settingsModal = document.getElementById("settingsModal");
     const closeSettings = document.getElementById("closeSettings");
@@ -1051,6 +1187,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
     /* A11Y ADDITIONS START */
     let lastDialogTrigger = null;
+    let lockedScrollY = 0;
     let flashTimeout;
     const VISUAL_PULSE_SEC = 0.2;
     const VISUAL_USER_FLASH_COLORS = {
@@ -1069,6 +1206,24 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       currentReferenceType: null,
       target: null,
     };
+
+    function lockPageScroll() {
+      lockedScrollY = window.scrollY;
+      document.body.classList.add("dialog-open");
+      document.body.style.top = `-${lockedScrollY}px`;
+    }
+
+    function unlockPageScroll() {
+      document.body.classList.remove("dialog-open");
+      document.body.style.top = "";
+      window.scrollTo(0, lockedScrollY);
+    }
+
+    function syncViewportHeight() {
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty("--viewport-height", `${viewportHeight}px`);
+    }
+
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const a11ySettings = {
       outputMode: "audio-only",
@@ -1542,25 +1697,83 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       return Number(marginInput.value);
     }
 
+    function getMissingTimingFields() {
+      const { clearTime, fullTime } = getTimingInputs();
+      const missing = [];
+      if (!Number.isFinite(clearTime) || clearTime <= 0) {
+        missing.push("clear");
+      }
+      if (!Number.isFinite(fullTime) || fullTime <= 0) {
+        missing.push("full");
+      }
+      return missing;
+    }
+
+    function getTimingRequirementMessage() {
+      const missing = getMissingTimingFields();
+      if (missing.length === 0) {
+        return "";
+      }
+      if (missing.length === 2) {
+        return "Enter the time to clear from left and full street time in Settings before using practice or exemplars.";
+      }
+      if (missing[0] === "clear") {
+        return "Enter the time to clear from left in Settings before using practice or exemplars.";
+      }
+      return "Enter the full street time in Settings before using practice or exemplars.";
+    }
+
+    function refreshTimingRequirementPrompt() {
+      const message = getTimingRequirementMessage();
+      const hasMissingTimes = Boolean(message);
+      timingRequiredPrompt.hidden = !hasMissingTimes;
+      timingRequiredPromptText.textContent = message || "Enter both street times in Settings before using practice or exemplars.";
+      return !hasMissingTimes;
+    }
+
+    function focusFirstMissingTimingField() {
+      const missing = getMissingTimingFields();
+      const target = missing[0] === "clear"
+        ? clearTimeInput
+        : missing[0] === "full"
+          ? fullTimeInput
+          : clearTimeInput;
+      target.focus();
+      target.select?.();
+    }
+
+    function openSettingsForTimingEntry() {
+      if (!settingsModal.open) {
+        lastDialogTrigger = timingRequiredPromptButton;
+        lockPageScroll();
+        settingsModal.showModal();
+      }
+      requestAnimationFrame(() => {
+        focusFirstMissingTimingField();
+      });
+    }
+
+    function requireTimingInputs(messageOverride = "") {
+      const message = messageOverride || getTimingRequirementMessage();
+      if (!message) {
+        refreshTimingRequirementPrompt();
+        return true;
+      }
+      refreshTimingRequirementPrompt();
+      setStatus(message);
+      announceScreenReader(message);
+      if (settingsModal.open) {
+        focusFirstMissingTimingField();
+      } else {
+        timingRequiredPromptButton.focus();
+      }
+      return false;
+    }
+
     function validateSetup() {
       const { clearTime, fullTime } = getTimingInputs();
       const margin = getMargin();
-      if (currentMode !== "2" && (!Number.isFinite(clearTime) || clearTime <= 0)) {
-        setStatus("Enter a time to clear from left before starting.");
-        /* A11Y ADDITIONS START */
-        emitCue("validation_error", {
-          message: "Need a time to clear from left before starting."
-        });
-        /* A11Y ADDITIONS END */
-        return false;
-      }
-      if (currentMode !== "2b" && (!Number.isFinite(fullTime) || fullTime <= 0)) {
-        setStatus("Enter a full street time before starting.");
-        /* A11Y ADDITIONS START */
-        emitCue("validation_error", {
-          message: "Need a full street time before starting."
-        });
-        /* A11Y ADDITIONS END */
+      if (!requireTimingInputs("Enter the missing street time in Settings before starting practice.")) {
         return false;
       }
       if (!Number.isFinite(margin) || margin < 0) {
@@ -1786,24 +1999,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     function playExemplar(mode) {
       const labels = modes[mode]?.labels;
       if (!labels) return;
+      if (!requireTimingInputs("Enter the missing street time in Settings before playing this exemplar.")) {
+        emitCue("validation_error", {
+          message: "Enter the missing street time in Settings before playing this exemplar."
+        });
+        return;
+      }
       const times = getReferenceTimesForMode(mode);
-      const needsClear = mode === "2b" || mode === "3";
-      const needsFull = mode === "2" || mode === "3";
-      const { clearTime, fullTime } = getTimingInputs();
-      if (needsClear && (!Number.isFinite(clearTime) || clearTime <= 0)) {
-        setStatus("Enter a time to clear from left before playing this exemplar.");
-        emitCue("validation_error", {
-          message: "Need a clear time for this exemplar."
-        });
-        return;
-      }
-      if (needsFull && (!Number.isFinite(fullTime) || fullTime <= 0)) {
-        setStatus("Enter a full street time before playing this exemplar.");
-        emitCue("validation_error", {
-          message: "Need a full street time for this exemplar."
-        });
-        return;
-      }
 
       clearTimeout(exemplarTimeout);
       clearExemplarVisuals();
@@ -2009,6 +2211,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     function updateNextPrompt() {
       if (!started) {
+        if (!refreshTimingRequirementPrompt()) {
+          setStatus(getTimingRequirementMessage());
+          return;
+        }
         setStatus("Press Begin to start.");
         return;
       }
@@ -2188,6 +2394,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     /* A11Y ADDITIONS START */
     settingsTrigger.addEventListener("click", () => {
       lastDialogTrigger = settingsTrigger;
+      lockPageScroll();
       settingsModal.showModal();
       settingsTitle.focus();
     });
@@ -2197,15 +2404,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       settingsModal.close();
     });
 
-    settingsModal.addEventListener("click", (event) => {
-      if (event.target === settingsModal) {
-        settingsModal.close();
-      }
-    });
-
     /* A11Y ADDITIONS START */
     a11yTrigger.addEventListener("click", () => {
       lastDialogTrigger = a11yTrigger;
+      lockPageScroll();
       a11yModal.showModal();
       a11yTitle.focus();
     });
@@ -2214,20 +2416,24 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       a11yModal.close();
     });
 
-    a11yModal.addEventListener("click", (event) => {
-      if (event.target === a11yModal) {
-        a11yModal.close();
-      }
+    timingRequiredPromptButton.addEventListener("click", () => {
+      openSettingsForTimingEntry();
     });
 
     settingsModal.addEventListener("close", () => {
       settingsVisualPreview.dataset.active = "false";
       settingsVisualPreviewFlash.style.background = "transparent";
       settingsVisualPreviewShape.style.display = "none";
+      if (!a11yModal.open) {
+        unlockPageScroll();
+      }
       lastDialogTrigger?.focus();
     });
 
     a11yModal.addEventListener("close", () => {
+      if (!settingsModal.open) {
+        unlockPageScroll();
+      }
       lastDialogTrigger?.focus();
     });
     /* A11Y ADDITIONS END */
@@ -2307,12 +2513,24 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       applyDebugAccessibility();
     });
 
+    clearTimeInput.addEventListener("input", () => {
+      refreshTimingRequirementPrompt();
+    });
+
     clearTimeInput.addEventListener("change", () => {
       localStorage.setItem("om-clear-time", clearTimeInput.value);
+      refreshTimingRequirementPrompt();
+      updateNextPrompt();
+    });
+
+    fullTimeInput.addEventListener("input", () => {
+      refreshTimingRequirementPrompt();
     });
 
     fullTimeInput.addEventListener("change", () => {
       localStorage.setItem("om-full-time", fullTimeInput.value);
+      refreshTimingRequirementPrompt();
+      updateNextPrompt();
     });
 
     marginInput.addEventListener("change", () => {
@@ -2597,8 +2815,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         applyA11ySettings();
       }
     });
+    window.addEventListener("resize", syncViewportHeight);
+    window.visualViewport?.addEventListener("resize", syncViewportHeight);
+    window.visualViewport?.addEventListener("scroll", syncViewportHeight);
     /* A11Y ADDITIONS END */
 
+    syncViewportHeight();
     applyStoredSelections();
     restoreStoredSettings();
     warnIfSfxrConfiguredWithoutEngine();
