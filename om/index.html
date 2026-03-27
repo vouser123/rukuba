@@ -45,6 +45,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     body {
       margin: 0;
       font-family: "Helvetica Neue", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
       background: var(--bg);
       color: var(--text);
       font-size: calc(var(--base-font-size) * var(--ui-scale));
@@ -72,6 +74,10 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       padding: 24px;
     }
 
+    .panel > * {
+      min-width: 0;
+    }
+
     .setup {
       background: var(--surface);
       border: 2px solid var(--outline);
@@ -81,6 +87,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       flex-direction: column;
       gap: 16px;
       text-align: left;
+      min-width: 0;
     }
 
     .setup h2 {
@@ -96,6 +103,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--accent);
+      overflow-wrap: anywhere;
     }
 
     .setup-group {
@@ -104,6 +112,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       display: flex;
       flex-direction: column;
       gap: 12px;
+      min-width: 0;
     }
 
     .setup-group:first-of-type {
@@ -115,10 +124,12 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       font-size: 1rem;
       color: var(--text);
       line-height: 1.35;
+      overflow-wrap: anywhere;
     }
 
     .setup input[type="number"] {
       width: 100%;
+      max-width: 100%;
       padding: 12px 12px;
       border-radius: 8px;
       border: 2px solid var(--outline);
@@ -130,6 +141,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     .setup select {
       width: 100%;
+      max-width: 100%;
       padding: 12px 12px;
       border-radius: 8px;
       border: 2px solid var(--outline);
@@ -152,6 +164,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-width: 0;
     }
 
     fieldset,
@@ -160,6 +173,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       border-radius: 12px;
       padding: 10px 12px 12px;
       margin: 0;
+      min-width: 0;
     }
 
     legend,
@@ -174,6 +188,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     .option-group-title {
       display: inline-block;
       margin-bottom: 8px;
+      overflow-wrap: anywhere;
     }
 
     .sound-option {
@@ -187,6 +202,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
 
     .sound-option label {
       min-width: 0;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
     }
 
     .sound-option button {
@@ -197,6 +214,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       cursor: pointer;
       font-size: 0.95rem;
       color: var(--text);
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .sound-option button:disabled {
@@ -213,11 +232,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       border: none;
       padding: 0;
       margin: 0;
+      min-width: 0;
     }
 
     .mode-toggle label {
       display: flex;
       align-items: center;
+      justify-content: flex-start;
       gap: 12px;
       flex-wrap: wrap;
       font-size: 1.05rem;
@@ -229,6 +250,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       min-height: 3rem;
       color: var(--text);
       text-align: left;
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .mode-toggle input[type="radio"] {
@@ -263,6 +286,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       cursor: pointer;
       white-space: normal;
       text-align: center;
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .sound-toggle[aria-pressed="false"] {
@@ -279,8 +304,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       font-weight: 600;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
       gap: 10px;
       cursor: pointer;
+      max-width: 100%;
+      text-align: center;
+      overflow-wrap: anywhere;
     }
 
     .settings-trigger span {
@@ -293,6 +323,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       justify-content: center;
       flex-wrap: wrap;
       gap: 12px;
+      min-width: 0;
     }
 
     .a11y-trigger {
@@ -305,8 +336,13 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       font-weight: 600;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
       gap: 10px;
       cursor: pointer;
+      max-width: 100%;
+      text-align: center;
+      overflow-wrap: anywhere;
     }
 
     .a11y-trigger .icon-accessibility {
@@ -462,6 +498,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       gap: 10px;
       font-size: 0.95rem;
       min-height: 2.2rem;
+      overflow-wrap: anywhere;
     }
 
     .cue-banner[data-visible="false"] {
@@ -477,6 +514,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       display: grid;
       gap: 12px;
       text-align: left;
+      min-width: 0;
     }
 
     .setup-required-prompt[hidden] {
@@ -664,6 +702,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       flex-direction: column;
       gap: 16px;
       width: min(640px, 100%);
+      min-width: 0;
       max-height: min(760px, calc(var(--viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
       overflow: auto;
       overscroll-behavior: contain;
@@ -690,6 +729,14 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+      min-width: 0;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      min-width: 0;
+      line-height: 1.05;
+      overflow-wrap: anywhere;
     }
 
     .close-modal {
@@ -702,6 +749,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       color: var(--text);
       white-space: normal;
       text-align: center;
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .preview-btn,
@@ -718,6 +767,8 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       white-space: normal;
       text-align: center;
       line-height: 1.25;
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .exemplar-actions {
@@ -746,6 +797,19 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
           calc(16px + env(safe-area-inset-bottom));
       }
 
+      .settings-actions,
+      .mode-toggle {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .settings-trigger,
+      .a11y-trigger,
+      .mode-toggle label,
+      .sound-toggle {
+        width: 100%;
+      }
+
       .modal-card {
         width: 100%;
         padding: 16px;
@@ -754,30 +818,79 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       }
 
       .modal-header {
-        align-items: flex-start;
-        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: stretch;
       }
 
       .modal-header h2 {
-        margin: 0;
-        font-size: clamp(1.6rem, 1.2rem + 2vw, 2.25rem);
+        font-size: clamp(1.4rem, 1rem + 4vw, 2rem);
+      }
+
+      .close-modal {
+        width: 100%;
       }
 
       .sound-option {
         grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas:
+          "input label"
+          "button button";
+        align-items: start;
+        row-gap: 10px;
+      }
+
+      .sound-option input {
+        grid-area: input;
+        margin-top: 0.2rem;
+      }
+
+      .sound-option label {
+        grid-area: label;
       }
 
       .sound-option button {
-        grid-column: 1 / -1;
+        grid-area: button;
         width: 100%;
+      }
+
+      .setup {
+        padding: 14px;
+      }
+
+      .setup-heading,
+      .option-group-title {
+        letter-spacing: 0.03em;
       }
 
       .option-group label,
       .setup > label,
       .setup-group > label {
-        display: flex;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
         align-items: flex-start;
         gap: 10px;
+        min-width: 0;
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 540px) {
+      body {
+        align-items: flex-start;
+      }
+
+      .panel {
+        width: min(920px, 100vw);
+        padding:
+          max(12px, env(safe-area-inset-top))
+          16px
+          calc(12px + env(safe-area-inset-bottom));
+        gap: 16px;
+      }
+
+      .action-btn {
+        width: min(26rem, 100%);
+        min-height: 8rem;
+        height: min(48vh, 11rem);
       }
     }
     /* A11Y ADDITIONS END */
