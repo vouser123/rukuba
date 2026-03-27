@@ -823,11 +823,39 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     body.phone-safe-layout .mode-toggle label,
     body.phone-safe-layout .sound-toggle {
       width: 100%;
+      min-width: 0;
+    }
+
+    body.phone-safe-layout .settings-trigger,
+    body.phone-safe-layout .a11y-trigger,
+    body.phone-safe-layout .sound-toggle {
+      min-height: 0;
+      border-radius: 20px;
+      padding: 10px 14px;
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    body.phone-safe-layout .settings-trigger span,
+    body.phone-safe-layout .a11y-trigger span {
+      font-size: 1.15rem;
     }
 
     body.phone-safe-layout .mode-toggle label {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      column-gap: 10px;
       border-radius: 18px;
-      padding: 12px 14px;
+      padding: 10px 12px;
+      min-height: 0;
+      font-size: 0.95rem;
+      line-height: 1.15;
+    }
+
+    body.phone-safe-layout .mode-toggle label span[aria-hidden="true"] {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     body.phone-safe-layout dialog[open] {
@@ -848,10 +876,17 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     body.phone-safe-layout .modal-header {
       flex-direction: column;
       align-items: stretch;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--surface);
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--divider);
     }
 
     body.phone-safe-layout .modal-header h2 {
-      font-size: clamp(1.35rem, 1rem + 4vw, 2rem);
+      font-size: clamp(1.1rem, 0.9rem + 3vw, 1.7rem);
+      line-height: 1.05;
     }
 
     body.phone-safe-layout .close-modal {
@@ -900,6 +935,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     body.phone-safe-layout .marker .marker-label {
       text-transform: none;
       letter-spacing: 0;
+      line-height: 1.1;
     }
 
     body.phone-safe-layout .setup-required-prompt {
@@ -938,6 +974,17 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         max(10px, env(safe-area-inset-top))
         16px
         calc(12px + env(safe-area-inset-bottom));
+    }
+
+    body.short-screen-layout .settings-trigger,
+    body.short-screen-layout .a11y-trigger,
+    body.short-screen-layout .sound-toggle,
+    body.short-screen-layout .mode-toggle label {
+      font-size: 0.9rem;
+    }
+
+    body.short-screen-layout .modal-header h2 {
+      font-size: clamp(1rem, 0.9rem + 2.2vw, 1.45rem);
     }
 
     body.short-screen-layout .action-btn {
@@ -1212,6 +1259,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             <option value="large">Large</option>
             <option value="largest">Largest</option>
             <option value="huge">Huge</option>
+            <option value="xl">Extra Large</option>
+            <option value="xxl">Extra Extra Large</option>
+            <option value="max">Maximum</option>
           </select>
           <p class="field-help" id="textSizeLandscapeHint" hidden>
             Largest text works best in landscape for Settings and Accessibility.
@@ -1424,7 +1474,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
       const coarsePointer = window.matchMedia("(any-pointer: coarse)").matches || navigator.maxTouchPoints > 0;
-      const largeTextLayout = a11ySettings.textSize === "largest" || a11ySettings.textSize === "huge";
+      const largeTextLayout = ["largest", "huge", "xl", "xxl", "max"].includes(a11ySettings.textSize);
       const phoneSafeLayout = coarsePointer || viewportWidth <= 430 || viewportHeight <= 500 || largeTextLayout;
       document.body.classList.toggle("phone-safe-layout", phoneSafeLayout);
       document.body.classList.toggle("short-screen-layout", viewportHeight <= 500);
@@ -1992,6 +2042,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (size === "large") return 1.15;
       if (size === "largest") return 1.3;
       if (size === "huge") return 1.5;
+      if (size === "xl") return 2;
+      if (size === "xxl") return 2.5;
+      if (size === "max") return 3;
       return 1;
     }
 
@@ -2779,7 +2832,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
           ? (prefersDarkScheme.matches ? "dark" : "light")
           : a11ySettings.theme;
       document.body.dataset.theme = resolvedTheme;
-      textSizeLandscapeHint.hidden = a11ySettings.textSize !== "huge";
+      textSizeLandscapeHint.hidden = !["huge", "xl", "xxl", "max"].includes(a11ySettings.textSize);
       if (a11ySettings.outputMode === "visual-only") {
         soundToggle.setAttribute("aria-pressed", "false");
         soundToggle.innerHTML = "<span aria-hidden=\"true\">🔇</span> Sound Off";
