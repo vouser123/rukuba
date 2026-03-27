@@ -1,0 +1,3122 @@
+<!DOCTYPE html>
+<!--
+MAINTAINER QUICK JUMP (line numbers are approximate and can drift after edits)
+Search token                              Approx line
+---------------------------------------  -----------
+const TEST_TUNING                        ~1020
+const SOUND_PRESET_LIBRARY               ~1032
+function presetTone                      ~1058
+const SOUND_SFXR_DATA                    ~1072
+const SOUND_FALLBACK_TONES               ~1083
+function playCompositeTone               ~1146
+function playSoundOption                 ~1299
+function playExemplar                    ~1425
+function beginReplay                     ~1686
+function warnIfSfxrConfiguredWithout...  ~2051
+
+Tip: use your editor Find with the exact token; that is more stable than line numbers.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>O&M Timing Practice Prototype</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f4ef;
+      --text: #1b1b1b;
+      --muted: #6c6c6c;
+      --accent: #2f5d62;
+      --outline: #1b1b1b;
+      --surface: #ffffff;
+      --divider: #dedad1;
+      --viewport-height: 100vh;
+    }
+
+    html {
+      font-size: 18px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+      display: flex;
+      min-height: var(--viewport-height);
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      overscroll-behavior-y: none;
+    }
+
+    body.dialog-open {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .panel {
+      width: min(560px, 90vw);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .panel > * {
+      min-width: 0;
+    }
+
+    .setup {
+      background: var(--surface);
+      border: 2px solid var(--outline);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
+      min-width: 0;
+    }
+
+    .setup h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .setup-heading {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      overflow-wrap: anywhere;
+    }
+
+    .setup-group {
+      border-top: 1px solid var(--divider);
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .setup-group:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .setup label {
+      font-size: 1rem;
+      color: var(--text);
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .setup input[type="number"] {
+      width: 100%;
+      max-width: 100%;
+      padding: 12px 12px;
+      border-radius: 8px;
+      border: 2px solid var(--outline);
+      font-size: 1.05rem;
+      margin-top: 6px;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .setup select {
+      width: 100%;
+      max-width: 100%;
+      padding: 12px 12px;
+      border-radius: 8px;
+      border: 2px solid var(--outline);
+      font-size: 1.05rem;
+      margin-top: 6px;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .setup input[type="checkbox"],
+    .setup input[type="radio"] {
+      width: 1.45rem;
+      height: 1.45rem;
+      margin: 0;
+      accent-color: var(--accent);
+      flex: 0 0 auto;
+    }
+
+    .sound-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    fieldset,
+    .option-group {
+      border: 1px solid var(--divider);
+      border-radius: 12px;
+      padding: 10px 12px 12px;
+      margin: 0;
+      min-width: 0;
+    }
+
+    legend,
+    .option-group-title {
+      padding: 0 6px;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .option-group-title {
+      display: inline-block;
+      margin-bottom: 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .sound-option {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 0;
+      min-width: 0;
+    }
+
+    .sound-option label {
+      min-width: 0;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .sound-option button {
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      background: var(--surface);
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text);
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .sound-option button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .mode-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      border: none;
+      padding: 0;
+      margin: 0;
+      min-width: 0;
+    }
+
+    .mode-toggle label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 1.05rem;
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: var(--surface);
+      cursor: pointer;
+      min-height: 3rem;
+      color: var(--text);
+      text-align: left;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .mode-toggle input[type="radio"] {
+      accent-color: var(--accent);
+      width: 1.4rem;
+      height: 1.4rem;
+      flex: 0 0 auto;
+    }
+
+    .mode-toggle label:focus-within {
+      outline: 4px solid var(--outline);
+      outline-offset: 2px;
+    }
+
+    .mode-toggle label:has(input:checked) {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .sound-toggle {
+      align-self: center;
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      padding: 10px 18px;
+      background: var(--surface);
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      white-space: normal;
+      text-align: center;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .sound-toggle[aria-pressed="false"] {
+      opacity: 0.55;
+    }
+
+    .settings-trigger {
+      align-self: center;
+      border: 3px solid var(--outline);
+      border-radius: 999px;
+      padding: 12px 20px;
+      background: var(--surface);
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      cursor: pointer;
+      max-width: 100%;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .settings-trigger span {
+      font-size: 1.5rem;
+    }
+
+    /* A11Y ADDITIONS START */
+    .settings-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .a11y-trigger {
+      align-self: center;
+      border: 3px solid var(--outline);
+      border-radius: 999px;
+      padding: 12px 20px;
+      background: var(--surface);
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      cursor: pointer;
+      max-width: 100%;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .a11y-trigger .icon-accessibility {
+      width: 1.5rem;
+      height: 1.5rem;
+      display: inline-block;
+      color: currentColor;
+    }
+
+    .a11y-trigger .icon-accessibility svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    /* A11Y ADDITIONS END */
+
+    .markers {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .marker-shape {
+      width: 2.6rem;
+      height: 2.6rem;
+      border-radius: 50%;
+      border: 3px solid var(--outline);
+      display: grid;
+      place-items: center;
+      background: var(--surface);
+    }
+
+    .marker-shape span {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      border: 2px solid var(--outline);
+    }
+
+    .marker.complete .marker-shape {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .marker.complete .marker-shape span {
+      border-color: var(--surface);
+      background: var(--surface);
+    }
+
+    .marker.current .marker-shape {
+      background: var(--surface);
+      border-style: double;
+    }
+
+    .marker .marker-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .action-btn {
+      width: min(22rem, 90vw);
+      min-height: 10rem;
+      height: clamp(10rem, 34vh, 14rem);
+      margin: 0 auto;
+      border-radius: 22px;
+      border: 4px solid var(--outline);
+      background: var(--surface);
+      font-size: clamp(1.1rem, 0.95rem + 1.1vw, 1.6rem);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+      white-space: normal;
+    }
+
+    .action-btn-indicator {
+      font-size: 2rem;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .action-btn.running {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 40px;
+      border-style: double;
+    }
+
+    .action-btn.running.stage-start {
+      background: #1b1b1b;
+      color: #fff;
+      border-radius: 8px;
+      border-style: solid;
+    }
+
+    .action-btn.running.stage-halfway {
+      background: #005a9c;
+      color: #fff;
+      border-radius: 999px;
+      border-style: dashed;
+    }
+
+    .action-btn.running.stage-finish {
+      background: #2f5d62;
+      color: #fff;
+      border-radius: 0;
+      border-style: double;
+    }
+
+
+    .action-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 0.95rem;
+      color: var(--muted);
+      min-height: 1.2rem;
+    }
+
+    .status:empty {
+      display: none;
+    }
+
+    /* A11Y ADDITIONS START */
+    .cue-banner {
+      border: 2px solid var(--outline);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      min-height: 2.2rem;
+      overflow-wrap: anywhere;
+    }
+
+    .cue-banner[data-visible="false"] {
+      display: none;
+    }
+
+    .setup-required-prompt {
+      border: 2px solid #ffbf47;
+      border-radius: 14px;
+      background: #2c2414;
+      color: #fff3cf;
+      padding: 12px 14px;
+      display: grid;
+      gap: 10px;
+      text-align: left;
+      min-width: 0;
+    }
+
+    .setup-required-prompt[hidden] {
+      display: none;
+    }
+
+    .setup-required-prompt-title {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .setup-required-prompt p {
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .setup-required-prompt .settings-action {
+      width: 100%;
+    }
+
+    .field-help {
+      margin: 0;
+      font-size: 0.92rem;
+      line-height: 1.35;
+      color: var(--muted);
+      text-align: left;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .action-btn.flash {
+      box-shadow: 0 0 0 6px rgba(47, 93, 98, 0.35);
+    }
+
+    .visual-replay-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: var(--viewport-height);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 9999;
+    }
+
+    .visual-replay-overlay[data-active="true"] {
+      opacity: 1;
+    }
+
+    .visual-replay-flash,
+    .visual-replay-shape-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .visual-replay-flash {
+      background: #000000;
+    }
+
+    .visual-replay-shape-layer {
+      display: grid;
+      place-items: center;
+      z-index: 1;
+    }
+
+    .visual-replay-shape {
+      width: min(70vmin, calc(var(--viewport-height) * 0.7), 70vw);
+      height: min(70vmin, calc(var(--viewport-height) * 0.7), 70vw);
+      display: none;
+    }
+
+    .visual-replay-shape[data-type="acceptable"] {
+      border-radius: 50%;
+      background: #00FF66;
+    }
+
+    .visual-replay-shape[data-type="outside"] {
+      background: #FF5500;
+      clip-path: polygon(50% 0%, 6.7% 75%, 93.3% 75%);
+    }
+
+    .visual-replay-shape[data-outside-variant="down"] {
+      transform: rotate(180deg);
+    }
+
+    body[data-theme="light"] {
+      --bg: #f6f4ef;
+      --text: #1b1b1b;
+      --muted: #5b5b5b;
+      --accent: #2f5d62;
+      --outline: #1b1b1b;
+      --surface: #ffffff;
+      --divider: #dedad1;
+    }
+
+    body[data-theme="dark"] {
+      --bg: #0f1315;
+      --text: #f2f6f7;
+      --muted: #c2c9cc;
+      --accent: #64d3bf;
+      --outline: #f2f6f7;
+      --surface: #171d21;
+      --divider: #2f383f;
+    }
+
+    body[data-theme="inverted"] {
+      --bg: #000000;
+      --text: #ffff00;
+      --muted: #fff176;
+      --accent: #00ffff;
+      --outline: #ffff00;
+      --surface: #000000;
+      --divider: #ffff00;
+    }
+
+    body.high-contrast {
+      --bg: #ffffff;
+      --text: #000000;
+      --muted: #1a1a1a;
+      --accent: #000000;
+      --outline: #000000;
+      --surface: #ffffff;
+      --divider: #000000;
+    }
+
+    body.focus-boost :focus-visible {
+      outline-width: 6px;
+      outline-offset: 4px;
+    }
+    /* A11Y ADDITIONS END */
+
+    .debug {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    dialog {
+      border: none;
+      padding: 0;
+      background: transparent;
+      width: 100%;
+      max-width: none;
+      max-height: none;
+    }
+
+    dialog[open] {
+      position: fixed;
+      inset: 0;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding:
+        max(12px, env(safe-area-inset-top))
+        12px
+        max(12px, env(safe-area-inset-bottom))
+        12px;
+      overflow: hidden;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-card {
+      position: relative;
+      background: var(--surface);
+      border: 3px solid var(--outline);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: min(640px, 100%);
+      min-width: 0;
+      max-height: min(760px, calc(var(--viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
+      overflow: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      z-index: 1;
+    }
+
+    .modal-visual-preview {
+      position: fixed;
+      inset: 0;
+      height: var(--viewport-height);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 30;
+      overflow: hidden;
+    }
+
+    .modal-visual-preview[data-active="true"] {
+      opacity: 1;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      min-width: 0;
+      line-height: 1.05;
+      overflow-wrap: anywhere;
+    }
+
+    .close-modal {
+      border: 2px solid var(--outline);
+      background: var(--surface);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 1.05rem;
+      cursor: pointer;
+      color: var(--text);
+      white-space: normal;
+      text-align: center;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .preview-btn,
+    .settings-action {
+      border: 2px solid var(--outline);
+      border-radius: 999px;
+      background: var(--surface);
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      min-height: 2.9rem;
+      color: var(--text);
+      white-space: normal;
+      text-align: center;
+      line-height: 1.25;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .exemplar-actions {
+      display: grid;
+      gap: 8px;
+    }
+
+    button:focus-visible {
+      outline: 4px solid var(--outline);
+      outline-offset: 2px;
+    }
+
+    /* A11Y ADDITIONS START */
+    @media (prefers-reduced-motion: reduce) {
+      .action-btn.flash {
+        box-shadow: none;
+      }
+    }
+
+    body.large-text-layout .setup-heading,
+    body.large-text-layout .option-group-title,
+    body.large-text-layout .marker .marker-label {
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    body.phone-safe-layout {
+      align-items: flex-start;
+    }
+
+    body.phone-safe-layout .panel {
+      width: min(44rem, 100vw);
+      padding:
+        max(12px, env(safe-area-inset-top))
+        16px
+        calc(16px + env(safe-area-inset-bottom));
+      gap: 16px;
+    }
+
+    body.phone-safe-layout .settings-actions,
+    body.phone-safe-layout .mode-toggle {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.phone-safe-layout .settings-trigger,
+    body.phone-safe-layout .a11y-trigger,
+    body.phone-safe-layout .mode-toggle label,
+    body.phone-safe-layout .sound-toggle {
+      width: 100%;
+      min-width: 0;
+    }
+
+    body.phone-safe-layout .settings-trigger,
+    body.phone-safe-layout .a11y-trigger,
+    body.phone-safe-layout .sound-toggle {
+      min-height: 0;
+      border-radius: 20px;
+      padding: 10px 14px;
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    body.phone-safe-layout .settings-trigger span,
+    body.phone-safe-layout .a11y-trigger span {
+      font-size: 1.15rem;
+    }
+
+    body.phone-safe-layout .mode-toggle label {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      column-gap: 10px;
+      border-radius: 18px;
+      padding: 10px 12px;
+      min-height: 0;
+      font-size: 0.95rem;
+      line-height: 1.15;
+    }
+
+    body.phone-safe-layout .mode-toggle label span[aria-hidden="true"] {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    body.phone-safe-layout dialog[open] {
+      padding:
+        max(8px, env(safe-area-inset-top))
+        8px
+        max(8px, env(safe-area-inset-bottom))
+        8px;
+    }
+
+    body.phone-safe-layout .modal-card {
+      width: 100%;
+      padding: 14px;
+      border-radius: 18px;
+      max-height: calc(var(--viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+    }
+
+    body.phone-safe-layout .modal-header {
+      flex-direction: column;
+      align-items: stretch;
+      /* Sticky so Close button stays reachable at any text size */
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--surface);
+      border-bottom: 1px solid var(--divider);
+      padding-bottom: 10px;
+      margin-bottom: 4px;
+    }
+
+    body.phone-safe-layout .modal-header h2 {
+      font-size: clamp(1.1rem, 0.9rem + 3vw, 1.7rem);
+      line-height: 1.05;
+    }
+
+    body.phone-safe-layout .close-modal {
+      width: 100%;
+    }
+
+    body.phone-safe-layout .sound-option {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        "input label"
+        "button button";
+      align-items: start;
+      row-gap: 10px;
+    }
+
+    body.phone-safe-layout .sound-option input {
+      grid-area: input;
+      margin-top: 0.15rem;
+    }
+
+    body.phone-safe-layout .sound-option label {
+      grid-area: label;
+    }
+
+    body.phone-safe-layout .sound-option button {
+      grid-area: button;
+      width: 100%;
+    }
+
+    body.phone-safe-layout .setup {
+      padding: 14px;
+    }
+
+    body.phone-safe-layout .option-group label,
+    body.phone-safe-layout .setup > label,
+    body.phone-safe-layout .setup-group > label {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: flex-start;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    body.phone-safe-layout .setup-heading,
+    body.phone-safe-layout .option-group-title,
+    body.phone-safe-layout .marker .marker-label {
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1.1;
+    }
+
+    body.phone-safe-layout .setup-required-prompt {
+      padding: 10px 12px;
+      gap: 8px;
+    }
+
+    body.phone-safe-layout .setup-required-prompt-title {
+      font-size: 0.88rem;
+    }
+
+    body.phone-safe-layout .setup-required-prompt p {
+      font-size: 0.95rem;
+    }
+
+    body.phone-safe-layout .setup-required-prompt .settings-action {
+      min-height: auto;
+      padding: 9px 14px;
+      font-size: 0.95rem;
+    }
+
+    body.phone-safe-layout .markers {
+      gap: 12px;
+    }
+
+    body.phone-safe-layout .action-btn {
+      width: min(24rem, 100%);
+      min-height: 7.5rem;
+      height: auto;
+      padding: 1.25rem;
+    }
+
+    body.short-screen-layout .panel {
+      gap: 12px;
+      padding:
+        max(10px, env(safe-area-inset-top))
+        16px
+        calc(12px + env(safe-area-inset-bottom));
+    }
+
+    body.short-screen-layout .settings-trigger,
+    body.short-screen-layout .a11y-trigger,
+    body.short-screen-layout .sound-toggle,
+    body.short-screen-layout .mode-toggle label {
+      font-size: 0.9rem;
+    }
+
+    body.short-screen-layout .modal-header h2 {
+      font-size: clamp(1rem, 0.9rem + 2.2vw, 1.45rem);
+    }
+
+    body.short-screen-layout .action-btn {
+      min-height: 6.25rem;
+      padding: 1rem;
+    }
+
+    body.landscape-layout.phone-safe-layout .setup-required-prompt {
+      padding: 10px 12px;
+    }
+
+    body.short-screen-layout .setup-required-prompt-title {
+      font-size: 0.8rem;
+    }
+
+    body.short-screen-layout .setup-required-prompt p {
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+
+    body.short-screen-layout .setup-required-prompt .settings-action {
+      font-size: 0.9rem;
+      padding: 8px 12px;
+    }
+    /* A11Y ADDITIONS END */
+  </style>
+</head>
+<body>
+  <main class="panel" id="appMain">
+    <!-- A11Y ADDITIONS START -->
+    <div class="settings-actions">
+      <button class="settings-trigger" id="settingsTrigger" type="button">
+        <span aria-hidden="true">⚙️</span>
+        Settings
+      </button>
+      <button class="a11y-trigger" id="a11yTrigger" type="button">
+        <span class="icon-accessibility" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9"></circle>
+            <circle cx="12" cy="7" r="1.6"></circle>
+            <path d="M8.8 10.2h6.4"></path>
+            <path d="M12 8.6v6.6"></path>
+            <path d="M12 15.2l-3.2 3.2"></path>
+            <path d="M12 15.2l3.2 3.2"></path>
+          </svg>
+        </span>
+        Accessibility
+      </button>
+    </div>
+    <!-- A11Y ADDITIONS END -->
+
+    <div class="mode-toggle" role="radiogroup" aria-label="Practice mode">
+      <label>
+        <input type="radio" id="mode-start-halfway" name="mode" value="2b" aria-label="Start to Halfway" />
+        <span aria-hidden="true">Start → Halfway</span>
+      </label>
+      <label>
+        <input type="radio" id="mode-start-finish" name="mode" value="2" checked aria-label="Start to Finish" />
+        <span aria-hidden="true">Start → Finish</span>
+      </label>
+      <label>
+        <input type="radio" id="mode-start-halfway-finish" name="mode" value="3" aria-label="Start to Halfway to Finish" />
+        <span aria-hidden="true">Start → Halfway → Finish</span>
+      </label>
+    </div>
+
+    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true">
+      <span aria-hidden="true">🔊</span>
+      Sound On
+    </button>
+
+    <section class="setup-required-prompt" id="timingRequiredPrompt" hidden>
+      <div class="setup-required-prompt-title">Times needed</div>
+      <p id="timingRequiredPromptText">Enter both street times in Settings before using practice or exemplars.</p>
+      <button class="settings-action" id="timingRequiredPromptButton" type="button">
+        Open Settings to enter times
+      </button>
+    </section>
+
+    <section class="markers" id="markers" aria-hidden="true"></section>
+
+    <button class="action-btn" id="actionBtn" type="button">
+      <span class="action-btn-label">Begin</span>
+      <span class="action-btn-indicator" id="actionBtnIndicator" aria-hidden="true">○</span>
+    </button>
+
+    <div class="status" id="statusText">Ready.</div>
+    <!-- A11Y ADDITIONS START -->
+    <div class="cue-banner" id="cueBanner" data-visible="true" aria-live="off">
+      <span class="cue-text" id="cueBannerText">Ready.</span>
+    </div>
+    <div id="srAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <!-- A11Y ADDITIONS END -->
+    <div class="status debug" id="debugText" aria-live="off" aria-hidden="true"></div>
+  </main>
+
+  <dialog id="settingsModal" aria-labelledby="settingsTitle" aria-modal="true">
+    <div class="visual-replay-overlay modal-visual-preview" id="settingsVisualPreview" aria-hidden="true" data-active="false">
+      <div class="visual-replay-flash" id="settingsVisualPreviewFlash"></div>
+      <div class="visual-replay-shape-layer">
+        <div class="visual-replay-shape" id="settingsVisualPreviewShape" data-type="acceptable" data-outside-variant="up"></div>
+      </div>
+    </div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="settingsTitle" tabindex="-1">Settings / Setup</h2>
+        <button class="close-modal" type="button" id="closeSettings">Close</button>
+      </div>
+      <div class="setup">
+        <div class="setup-group">
+          <div class="setup-heading">Sound Calibration</div>
+          <div class="option-group">
+            <div class="option-group-title">Acceptable (within tolerance)</div>
+            <div class="sound-options">
+              <div class="sound-option">
+                <input type="radio" id="acceptable-a" name="acceptableSound" value="acceptable-a" />
+                <label for="acceptable-a">Chime A</label>
+                <button type="button" class="preview-btn" data-sound="acceptable-a">Play Chime A</button>
+              </div>
+              <div class="sound-option">
+                <input type="radio" id="acceptable-b" name="acceptableSound" value="acceptable-b" />
+                <label for="acceptable-b">Chime B</label>
+                <button type="button" class="preview-btn" data-sound="acceptable-b">Play Chime B</button>
+              </div>
+            </div>
+          </div>
+          <div class="option-group">
+            <div class="option-group-title">Out of bounds (outside tolerance)</div>
+            <div class="sound-options">
+              <div class="sound-option">
+                <input type="radio" id="outside-a" name="outsideSound" value="outside-a" />
+                <label for="outside-a">Low Pulse A</label>
+                <button type="button" class="preview-btn" data-sound="outside-a">Play Low Pulse A</button>
+              </div>
+              <div class="sound-option">
+                <input type="radio" id="outside-b" name="outsideSound" value="outside-b" />
+                <label for="outside-b">Low Pulse B</label>
+                <button type="button" class="preview-btn" data-sound="outside-b">Play Low Pulse B</button>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="settings-action" id="previewUserSound">
+            Hear my sound
+          </button>
+          <label>
+            <input type="checkbox" id="replayUsesConfirm" />
+            Optional: use button chime instead of marker tone during replay
+          </label>
+        </div>
+        <div class="setup-group">
+          <div class="setup-heading">Visual Calibration</div>
+          <label>
+            <input type="radio" name="outsideVisualVariant" value="up" checked />
+            Outside triangle orientation: Up
+          </label>
+          <label>
+            <input type="radio" name="outsideVisualVariant" value="down" />
+            Outside triangle orientation: Down
+          </label>
+          <div class="option-group">
+            <div class="option-group-title">User flash contrast</div>
+            <label>
+              <input type="radio" name="userFlashContrast" value="soft" checked />
+              Soft
+            </label>
+            <label>
+              <input type="radio" name="userFlashContrast" value="balanced" />
+              Balanced
+            </label>
+            <label>
+              <input type="radio" name="userFlashContrast" value="high" />
+              High contrast
+            </label>
+          </div>
+          <div class="exemplar-actions">
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="user" aria-label="Preview user flash">Preview: User flash</button>
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="acceptable" aria-label="Preview acceptable shape">Preview: Acceptable shape</button>
+            <button type="button" class="settings-action visual-preview-btn" data-visual-type="outside" aria-label="Preview outside shape">Preview: Outside shape</button>
+          </div>
+        </div>
+        <div class="setup-group">
+          <div class="setup-heading">Time Entry</div>
+          <label for="clearTime">Time to clear from left (seconds)</label>
+          <input id="clearTime" type="number" step="0.1" min="0.1" inputmode="decimal" />
+          <label for="fullTime">Full street time (seconds)</label>
+          <input id="fullTime" type="number" step="0.1" min="0.1" inputmode="decimal" />
+          <div class="setup-heading">Margin of Error</div>
+          <label for="marginInput">Acceptable margin of error (seconds)</label>
+          <input id="marginInput" type="number" step="0.1" min="0" inputmode="decimal" value="0.4" />
+        </div>
+        <div class="setup-group">
+          <div class="setup-heading">Training Exemplars</div>
+          <div class="exemplar-actions">
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2b" aria-label="Play Start to Halfway">Play: Start → Halfway</button>
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="2" aria-label="Play Start to Finish">Play: Start → Finish</button>
+            <button type="button" class="settings-action exemplar-btn" data-exemplar-mode="3" aria-label="Play Start to Halfway to Finish">Play: Start → Halfway → Finish</button>
+          </div>
+        </div>
+        <div class="setup-group">
+          <div class="setup-heading">Debug</div>
+          <label>
+            <input type="checkbox" id="debugToggle" />
+            Show user times vs reference at replay start
+          </label>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- A11Y ADDITIONS START -->
+  <dialog id="a11yModal" aria-labelledby="a11yTitle" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="a11yTitle" tabindex="-1">Accessibility</h2>
+        <button class="close-modal" type="button" id="closeA11y">Close</button>
+      </div>
+      <div class="setup">
+        <div class="setup-group">
+          <div class="setup-heading">Output / Feedback Mode</div>
+          <div class="option-group">
+            <div class="option-group-title">Preferred feedback</div>
+            <label>
+              <input type="radio" name="a11yOutputMode" value="audio-only" checked />
+              Audio only (default)
+            </label>
+            <label>
+              <input type="radio" name="a11yOutputMode" value="audio-visual" />
+              Audio + Visual
+            </label>
+            <label>
+              <input type="radio" name="a11yOutputMode" value="visual-only" />
+              Visual only (no sounds)
+            </label>
+          </div>
+        </div>
+        <div class="setup-group">
+          <div class="setup-heading">Visual Feedback</div>
+          <label>
+            <input type="checkbox" id="a11yShowBanner" />
+            Show on-screen cue banner
+          </label>
+          <label>
+            <input type="checkbox" id="a11yFlashAction" />
+            Flash the action button briefly on cue
+          </label>
+          <label>
+            <input type="checkbox" id="a11yVibrate" />
+            Vibrate on cue (if supported)
+          </label>
+          <label>
+            <input type="checkbox" id="a11yUseTextLabels" />
+            Use text labels
+          </label>
+          <label>
+            <input type="checkbox" id="a11ySyncVisualReplay" />
+            Synchronized visual replay (AudioContext-timed)
+          </label>
+        </div>
+        <div class="setup-group">
+          <div class="setup-heading">Vision Preferences</div>
+          <label for="a11yTheme">Theme</label>
+          <select id="a11yTheme">
+            <option value="system">System default</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="inverted">Inverted</option>
+          </select>
+          <label for="a11yTextSize">Text size</label>
+          <select id="a11yTextSize">
+            <option value="smaller">Smaller</option>
+            <option value="default">Default</option>
+            <option value="large">Large (115%)</option>
+            <option value="largest">Larger (130%)</option>
+            <option value="huge">Huge (150%)</option>
+            <option value="xl">Extra Large (200%)</option>
+            <option value="xxl">XXL (250%)</option>
+            <option value="max">Maximum (300%)</option>
+          </select>
+          <p class="field-help" id="textSizeLandscapeHint" hidden>
+            Largest text works best in landscape for Settings and Accessibility.
+          </p>
+          <label>
+            <input type="checkbox" id="a11yHighContrast" />
+            High contrast
+          </label>
+          <label>
+            <input type="checkbox" id="a11yFocusBoost" />
+            Focus boost
+          </label>
+        </div>
+        <div class="setup-group">
+          <div class="setup-heading">Screen Reader / Announcements</div>
+          <label>
+            <input type="checkbox" id="a11yAnnounceCues" />
+            Announce cues
+          </label>
+        </div>
+      </div>
+    </div>
+  </dialog>
+  <!-- A11Y ADDITIONS END -->
+
+  <div class="visual-replay-overlay" id="visualReplayOverlay" aria-hidden="true" data-active="false">
+    <div class="visual-replay-flash" id="visualReplayFlash"></div>
+    <div class="visual-replay-shape-layer">
+      <div class="visual-replay-shape" id="visualReplayShape" data-type="acceptable" data-outside-variant="up"></div>
+    </div>
+  </div>
+
+  <!-- Optional: add a local jsfxr script for offline sfxr data support, e.g. <script src="./jsfxr.js"></script> -->
+  <script>
+    /* A11Y ADDITIONS START
+     * LocalStorage keys added:
+     * - om-a11y-output-mode
+     * - om-a11y-show-banner
+     * - om-a11y-flash-action
+     * - om-a11y-vibrate
+     * - om-a11y-use-text-labels
+     * - om-a11y-theme
+     * - om-a11y-text-size
+     * - om-a11y-high-contrast
+     * - om-a11y-focus-boost
+     * - om-a11y-announce-cues
+     * Supported cue types:
+     * - start, marker, replay_start, replay_end, validation_error, reference_ok, reference_bad, sound_toggled
+     * A11Y ADDITIONS END */
+    const appMain = document.getElementById("appMain");
+    const actionBtn = document.getElementById("actionBtn");
+    const actionBtnLabel = actionBtn.querySelector(".action-btn-label");
+    const actionBtnIndicator = document.getElementById("actionBtnIndicator");
+    const markersEl = document.getElementById("markers");
+    const statusText = document.getElementById("statusText");
+    const debugText = document.getElementById("debugText");
+    const modeInputs = [...document.querySelectorAll("input[name='mode']")];
+    const soundToggle = document.getElementById("soundToggle");
+    const timingRequiredPrompt = document.getElementById("timingRequiredPrompt");
+    const timingRequiredPromptText = document.getElementById("timingRequiredPromptText");
+    const timingRequiredPromptButton = document.getElementById("timingRequiredPromptButton");
+    const settingsTrigger = document.getElementById("settingsTrigger");
+    const settingsModal = document.getElementById("settingsModal");
+    const closeSettings = document.getElementById("closeSettings");
+    /* A11Y ADDITIONS START */
+    const a11yTrigger = document.getElementById("a11yTrigger");
+    const a11yModal = document.getElementById("a11yModal");
+    const closeA11y = document.getElementById("closeA11y");
+    const settingsTitle = document.getElementById("settingsTitle");
+    const a11yTitle = document.getElementById("a11yTitle");
+    const cueBanner = document.getElementById("cueBanner");
+    const cueBannerText = document.getElementById("cueBannerText");
+    const srAnnouncer = document.getElementById("srAnnouncer");
+    const outputModeInputs = [...document.querySelectorAll("input[name='a11yOutputMode']")];
+    const a11yShowBanner = document.getElementById("a11yShowBanner");
+    const a11yFlashAction = document.getElementById("a11yFlashAction");
+    const a11yVibrate = document.getElementById("a11yVibrate");
+    const a11yUseTextLabels = document.getElementById("a11yUseTextLabels");
+    const a11ySyncVisualReplay = document.getElementById("a11ySyncVisualReplay");
+    const a11yTheme = document.getElementById("a11yTheme");
+    const a11yTextSize = document.getElementById("a11yTextSize");
+    const textSizeLandscapeHint = document.getElementById("textSizeLandscapeHint");
+    const a11yHighContrast = document.getElementById("a11yHighContrast");
+    const a11yFocusBoost = document.getElementById("a11yFocusBoost");
+    const a11yAnnounceCues = document.getElementById("a11yAnnounceCues");
+    /* A11Y ADDITIONS END */
+    const previewUserSoundBtn = document.getElementById("previewUserSound");
+    const replayUsesConfirm = document.getElementById("replayUsesConfirm");
+    const debugToggle = document.getElementById("debugToggle");
+    const clearTimeInput = document.getElementById("clearTime");
+    const fullTimeInput = document.getElementById("fullTime");
+    const marginInput = document.getElementById("marginInput");
+    const numberInputs = [...document.querySelectorAll("input[type='number']")];
+    const acceptableInputs = [...document.querySelectorAll("input[name='acceptableSound']")];
+    const outsideInputs = [...document.querySelectorAll("input[name='outsideSound']")];
+    const previewButtons = [...document.querySelectorAll(".preview-btn")];
+    const exemplarButtons = [...document.querySelectorAll(".exemplar-btn")];
+    const visualPreviewButtons = [...document.querySelectorAll(".visual-preview-btn")];
+    const outsideVisualVariantInputs = [...document.querySelectorAll("input[name='outsideVisualVariant']")];
+    const userFlashContrastInputs = [...document.querySelectorAll("input[name='userFlashContrast']")];
+    const visualReplayOverlay = document.getElementById("visualReplayOverlay");
+    const visualReplayFlash = document.getElementById("visualReplayFlash");
+    const visualReplayShape = document.getElementById("visualReplayShape");
+    const settingsVisualPreview = document.getElementById("settingsVisualPreview");
+    const settingsVisualPreviewFlash = document.getElementById("settingsVisualPreviewFlash");
+    const settingsVisualPreviewShape = document.getElementById("settingsVisualPreviewShape");
+    const setupControls = [
+      settingsTrigger,
+      previewUserSoundBtn,
+      clearTimeInput,
+      fullTimeInput,
+      marginInput,
+      replayUsesConfirm,
+      debugToggle,
+      ...acceptableInputs,
+      ...outsideInputs,
+      ...previewButtons,
+      ...visualPreviewButtons,
+      ...outsideVisualVariantInputs,
+      ...userFlashContrastInputs,
+      ...exemplarButtons
+    ];
+    /* A11Y ADDITIONS START */
+    const a11yControls = [
+      a11yTrigger,
+      a11yShowBanner,
+      a11yFlashAction,
+      a11yVibrate,
+      a11yUseTextLabels,
+      a11ySyncVisualReplay,
+      a11yTheme,
+      a11yTextSize,
+      a11yHighContrast,
+      a11yFocusBoost,
+      a11yAnnounceCues,
+      ...outputModeInputs
+    ];
+    /* A11Y ADDITIONS END */
+
+    const modes = {
+      "2": { labels: ["Start", "Finish"] },
+      "2b": { labels: ["Start", "Halfway"] },
+      "3": { labels: ["Start", "Halfway", "Finish"] }
+    };
+
+    let audioContext;
+    let soundEnabled = true;
+    let markerTimes = [];
+    let currentMode = "2";
+    let stage = 0;
+    let started = false;
+    let replayTimeout;
+    let exemplarTimeout;
+    let exemplarVisualTimeouts = [];
+    let replayUsesConfirmTone = false;
+    let showDebug = false;
+    let suppressSrAnnouncements = false;
+    const sfxrBufferCache = new Map();
+    const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+    /* A11Y ADDITIONS START */
+    let lastDialogTrigger = null;
+    let lockedScrollY = 0;
+    let flashTimeout;
+    const VISUAL_PULSE_SEC = 0.2;
+    const VISUAL_USER_FLASH_COLORS = {
+      soft: "#8c8c8c",
+      balanced: "#bcbcbc",
+      high: "#e6e6e6"
+    };
+    const visualReplayState = {
+      rafId: null,
+      nextIndex: 0,
+      events: [],
+      endAtSec: 0,
+      replayStartTime: 0,
+      userFlashUntilSec: 0,
+      referenceUntilSec: 0,
+      currentReferenceType: null,
+      target: null,
+    };
+
+    function lockPageScroll() {
+      lockedScrollY = window.scrollY;
+      document.body.classList.add("dialog-open");
+      document.body.style.top = `-${lockedScrollY}px`;
+    }
+
+    function unlockPageScroll() {
+      document.body.classList.remove("dialog-open");
+      document.body.style.top = "";
+      window.scrollTo(0, lockedScrollY);
+    }
+
+    function syncViewportHeight() {
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty("--viewport-height", `${viewportHeight}px`);
+      applyLayoutMode();
+    }
+
+    function setMainContentInert(isInert) {
+      appMain.inert = isInert;
+      if (isInert) {
+        appMain.setAttribute("aria-hidden", "true");
+        return;
+      }
+      appMain.removeAttribute("aria-hidden");
+    }
+
+    function applyLayoutMode() {
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const coarsePointer = window.matchMedia("(any-pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+      const largeTextLayout = ["largest", "huge", "xl", "xxl", "max"].includes(a11ySettings.textSize);
+      const phoneSafeLayout = coarsePointer || viewportWidth <= 430 || viewportHeight <= 500 || largeTextLayout;
+      document.body.classList.toggle("phone-safe-layout", phoneSafeLayout);
+      document.body.classList.toggle("short-screen-layout", viewportHeight <= 500);
+      document.body.classList.toggle("large-text-layout", largeTextLayout);
+      document.body.classList.toggle("landscape-layout", viewportWidth > viewportHeight);
+    }
+
+    function syncCueBannerVisibility() {
+      const hasMessage = Boolean(cueBannerText.textContent.trim());
+      cueBanner.dataset.visible = String(a11ySettings.showBanner && visualOutputEnabled() && hasMessage);
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const a11ySettings = {
+      outputMode: "audio-only",
+      showBanner: true,
+      flashAction: false,
+      vibrate: false,
+      useTextLabels: true,
+      syncVisualReplay: true,
+      outsideVisualVariant: "up",
+      userFlashContrast: "soft",
+      theme: "system",
+      textSize: "default",
+      highContrast: false,
+      focusBoost: false,
+      announceCues: true
+    };
+    /* A11Y ADDITIONS END */
+
+    const tones = {
+      confirm: { base: 350, harmonic: 700 },
+      user: { base: 410 }
+    };
+    /*
+     * ============================================================
+     * SOUND / TIMING TUNING GUIDE (edit here, no code changes needed)
+     * ============================================================
+     *
+     * 1) TEST_TUNING: timing and loudness controls
+     * ------------------------------------------------------------
+     * replayLeadInSec:
+     * - What it does: delay before replay starts after user finishes marking.
+     * - Typical: 0.4 to 1.2 sec
+     * - Test extremes: 0 to 6 sec
+     *
+     * exemplarLeadInSec:
+     * - What it does: delay before exemplar playback starts.
+     * - Typical: 0.3 to 0.8 sec
+     * - Test extremes: 0 to 3 sec
+     *
+     * replayEndPadSec / exemplarEndPadSec:
+     * - What they do: extra time after final cue before UI resets.
+     * - Typical: 0.8 to 1.5 sec
+     * - Test extremes: 0 to 4 sec
+     *
+     * masterVolume:
+     * - What it does: scales all sounds globally.
+     * - Typical: 0.7 to 1.2
+     * - Safe range: 0 to 2
+     *
+     * userVolume:
+     * - What it does: scales user marker tone loudness only.
+     * - Typical: 0.8 to 1.3
+     * - Safe range: 0 to 2
+     *
+     * feedbackVolume:
+     * - What it does: scales acceptable/outside feedback loudness only.
+     * - Typical: 0.8 to 1.4
+     * - Safe range: 0 to 2
+     *
+     * confirmVolume:
+     * - What it does: scales button chime loudness (Begin/Mark click tone).
+     * - Typical: 0.6 to 1.2
+     * - Safe range: 0 to 2
+     *
+     * visualPreviewTimingMs:
+     * - What it does: controls Settings preview timing for the visual flash/shape samples.
+     * - enter: black screen before the cue appears
+     * - visible: how long the cue stays visible
+     * - exit: black screen after the cue disappears
+     * - These are maintainer overrides. Change them here if preview timing needs adjustment.
+     * - Typical: 250 to 600 ms
+     * - Safe range: 50 to 2000 ms
+     *
+     * 2) SOUND_PRESET_LIBRARY: named tone families
+     * ------------------------------------------------------------
+     * - Each preset has:
+     *   duration: seconds of tone (before release tail)
+     *   partials: freq + gain layers that shape timbre
+     * - For non-musicians, easiest path is:
+     *   A) pick a different preset name in SOUND_FALLBACK_TONES
+     *   B) then tweak gainScale / durationScale in presetTone(...)
+     *
+     * 3) SOUND_FALLBACK_TONES: assign presets to app sound roles
+     * ------------------------------------------------------------
+     * Roles:
+     * - acceptable-a / acceptable-b: within-margin feedback options
+     * - outside-a / outside-b: outside-margin feedback options
+     * - user-marker: replay marker tone (default replay tone)
+     * - user-confirm: optional replay alternative (button chime)
+     *
+     * 4) presetTone(...) options (most useful for tuning)
+     * ------------------------------------------------------------
+     * transposeSemitones:
+     * - What it means: pitch shift in semitone steps.
+     * - +12 = one octave higher, -12 = one octave lower.
+     * - +1 or -1 = very small pitch shift.
+     * - Typical: -3 to +3
+     * - Safe range: -24 to +24
+     *
+     * gainScale:
+     * - What it means: multiplier for partial gains in a preset.
+     * - Typical: 0.8 to 1.3
+     * - Safe range: 0 to 2
+     *
+     * durationScale:
+     * - What it means: multiplier for preset duration.
+     * - Typical: 0.8 to 1.4
+     * - Safe range: 0.3 to 3
+     *
+     * 5) SOUND_SFXR_DATA (optional)
+     * ------------------------------------------------------------
+     * - If you load local jsfxr (offline local file), non-empty values here
+     *   override fallback presets for that role.
+     * - If jsfxr is not loaded, app falls back to SOUND_FALLBACK_TONES.
+     */
+    const TEST_TUNING = {
+      // Timing controls for test/debug.
+      replayLeadInSec: 1.5,
+      exemplarLeadInSec: 0.5,
+      replayEndPadSec: 1.2,
+      exemplarEndPadSec: 0.9,
+      // Loudness mix controls.
+      masterVolume: 2,
+      userVolume: 2,
+      feedbackVolume: 2,
+      confirmVolume: 2,
+      visualPreviewTimingMs: {
+        userEnter: 500,
+        userVisible: 280,
+        userExit: 500,
+        shapeEnter: 500,
+        shapeVisible: 280,
+        shapeExit: 500,
+      }
+    };
+    const SOUND_PRESET_LIBRARY = {
+      chime_soft: {
+        duration: 0.12,
+        partials: [{ freq: 659, gain: 0.18 }, { freq: 823, gain: 0.08 }]
+      },
+      chime_bright: {
+        duration: 0.12,
+        partials: [{ freq: 523, gain: 0.22 }, { freq: 659, gain: 0.11 }]
+      },
+      pulse_low: {
+        duration: 0.12,
+        partials: [{ freq: 240, gain: 0.9 }, { freq: 300, gain: 0.18 }]
+      },
+      pulse_dull: {
+        duration: 0.12,
+        partials: [{ freq: 260, gain: 0.85 }, { freq: 312, gain: 0.2 }]
+      },
+      marker_tone: {
+        duration: 0.14,
+        partials: [{ freq: tones.user.base, gain: 0.22 }]
+      },
+      confirm_chime: {
+        duration: 0.18,
+        partials: [{ freq: tones.confirm.base, gain: 0.24 }, { freq: tones.confirm.harmonic, gain: 0.11 }]
+      }
+    };
+    function presetTone(name, options = {}) {
+      const base = SOUND_PRESET_LIBRARY[name] || SOUND_PRESET_LIBRARY.marker_tone;
+      const transposeSemitones = Number(options.transposeSemitones || 0);
+      const transpose = Math.pow(2, transposeSemitones / 12);
+      const gainScale = Number(options.gainScale || 1);
+      const durationScale = Number(options.durationScale || 1);
+      return {
+        duration: base.duration * durationScale,
+        partials: base.partials.map((partial) => ({
+          freq: partial.freq * transpose,
+          gain: partial.gain * gainScale
+        }))
+      };
+    }
+    const SOUND_SFXR_DATA = {
+      // Paste sfxr.me data here (URL hash value, export string, or JSON array).
+      // Leave blank ("") to use fallback tones in SOUND_FALLBACK_TONES below.
+      // Example: "0,,0.173,0.3984,0.4291,0.4291,,,,,,0.5327,0.5256,,,,,,1,,,,,0.5"
+      "acceptable-a": "",
+      "acceptable-b": "",
+      "outside-a": "",
+      "outside-b": "",
+      "user-marker": "",
+      "user-confirm": ""
+    };
+    const SOUND_FALLBACK_TONES = {
+      // Easier to edit: swap preset names/options instead of hand-editing frequencies.
+      "acceptable-a": presetTone("chime_soft"),
+      "acceptable-b": presetTone("chime_bright"),
+      "outside-a": presetTone("pulse_low"),
+      "outside-b": presetTone("pulse_dull"),
+      "user-marker": presetTone("marker_tone"),
+      "user-confirm": presetTone("confirm_chime")
+    };
+
+    const feedbackOptions = {
+      acceptable: {
+        "acceptable-a": {
+          label: "Chime A",
+          sfxrData: SOUND_SFXR_DATA["acceptable-a"],
+          duration: SOUND_FALLBACK_TONES["acceptable-a"].duration,
+          partials: SOUND_FALLBACK_TONES["acceptable-a"].partials
+        },
+        "acceptable-b": {
+          label: "Chime B",
+          sfxrData: SOUND_SFXR_DATA["acceptable-b"],
+          duration: SOUND_FALLBACK_TONES["acceptable-b"].duration,
+          partials: SOUND_FALLBACK_TONES["acceptable-b"].partials
+        }
+      },
+      outside: {
+        "outside-a": {
+          label: "Low Pulse A",
+          sfxrData: SOUND_SFXR_DATA["outside-a"],
+          duration: SOUND_FALLBACK_TONES["outside-a"].duration,
+          partials: SOUND_FALLBACK_TONES["outside-a"].partials
+        },
+        "outside-b": {
+          label: "Low Pulse B",
+          sfxrData: SOUND_SFXR_DATA["outside-b"],
+          duration: SOUND_FALLBACK_TONES["outside-b"].duration,
+          partials: SOUND_FALLBACK_TONES["outside-b"].partials
+        }
+      }
+    };
+    const userSoundOptions = {
+      marker: {
+        sfxrData: SOUND_SFXR_DATA["user-marker"],
+        duration: SOUND_FALLBACK_TONES["user-marker"].duration,
+        partials: SOUND_FALLBACK_TONES["user-marker"].partials
+      },
+      confirm: {
+        sfxrData: SOUND_SFXR_DATA["user-confirm"],
+        duration: SOUND_FALLBACK_TONES["user-confirm"].duration,
+        partials: SOUND_FALLBACK_TONES["user-confirm"].partials
+      }
+    };
+
+    function ensureAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      return audioContext;
+    }
+
+    function playCompositeTone(
+      partials,
+      duration = 0.16,
+      startTime = 0,
+      allowMuted = false,
+      volumeScale = 1
+    ) {
+      /* A11Y ADDITIONS START */
+      if (a11ySettings.outputMode === "visual-only") return;
+      /* A11Y ADDITIONS END */
+      if (!soundEnabled && !allowMuted) return;
+      const context = ensureAudioContext();
+      if (context.state === "suspended") {
+        context.resume().then(() => {
+          playCompositeTone(partials, duration, startTime, allowMuted, volumeScale);
+        });
+        return;
+      }
+      const now = context.currentTime + startTime;
+      const gain = context.createGain();
+      const attack = 0.01;
+      const release = 0.07;
+      const outputLevel = TEST_TUNING.masterVolume * volumeScale;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(outputLevel, now + attack);
+      gain.gain.linearRampToValueAtTime(0, now + duration + release);
+      partials.forEach((partial) => {
+        const osc = context.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = partial.freq;
+        const oscGain = context.createGain();
+        oscGain.gain.setValueAtTime(partial.gain, now);
+        osc.connect(oscGain).connect(gain);
+        osc.start(now);
+        osc.stop(now + duration + release + 0.02);
+      });
+      gain.connect(context.destination);
+    }
+
+    function playConfirmTone(startTime = 0, allowMuted = false) {
+      playSoundOption(userSoundOptions.confirm, startTime, allowMuted, TEST_TUNING.confirmVolume);
+    }
+
+    function playUserMarkerTone(startTime = 0, allowMuted = false) {
+      playSoundOption(userSoundOptions.marker, startTime, allowMuted, TEST_TUNING.userVolume);
+    }
+
+    function getSelectionStorageKey(category) {
+      return category === "acceptable" ? "om-feedback-acceptable" : "om-feedback-outside";
+    }
+
+    function parseSfxrData(raw) {
+      const text = String(raw || "").trim();
+      if (!text) {
+        throw new Error("No custom sound data was entered.");
+      }
+      let normalized = text;
+      if (normalized.includes("#")) {
+        const hash = normalized.split("#").pop();
+        if (hash) {
+          normalized = hash;
+        }
+      }
+      try {
+        normalized = decodeURIComponent(normalized);
+      } catch {
+        // Keep original text when percent-decoding is not required.
+      }
+      if (normalized.startsWith("[")) {
+        return JSON.parse(normalized);
+      }
+      if (normalized.startsWith("{")) {
+        const parsed = JSON.parse(normalized);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+        if (Array.isArray(parsed.params)) {
+          return parsed.params;
+        }
+      }
+      return normalized;
+    }
+
+    function normalizeSfxrData(raw) {
+      const parsed = parseSfxrData(raw);
+      if (Array.isArray(parsed)) {
+        return JSON.stringify(parsed);
+      }
+      return String(parsed).trim();
+    }
+
+    function buildSfxrSource(raw) {
+      if (typeof window.jsfxr !== "function") {
+        throw new Error("Custom sound engine failed to load.");
+      }
+      const parsed = parseSfxrData(raw);
+      const attempts = [];
+      attempts.push(() => window.jsfxr(parsed));
+      if (typeof parsed === "string") {
+        const nums = parsed
+          .split(",")
+          .map((value) => Number(value.trim()))
+          .filter((value) => Number.isFinite(value));
+        if (nums.length > 0) {
+          attempts.push(() => window.jsfxr(nums));
+        }
+      }
+      if (Array.isArray(parsed)) {
+        attempts.push(() => window.jsfxr(parsed.join(",")));
+      }
+      for (const attempt of attempts) {
+        try {
+          const src = attempt();
+          if (typeof src === "string" && src.startsWith("data:audio/wav")) {
+            return src;
+          }
+        } catch {
+          // Try the next accepted input format.
+        }
+      }
+      throw new Error("Custom sound data is not in a supported sfxr format.");
+    }
+
+    async function getSfxrAudioBuffer(raw) {
+      const cacheKey = normalizeSfxrData(raw);
+      if (sfxrBufferCache.has(cacheKey)) {
+        return sfxrBufferCache.get(cacheKey);
+      }
+      const src = buildSfxrSource(cacheKey);
+      const context = ensureAudioContext();
+      const response = await fetch(src);
+      const bytes = await response.arrayBuffer();
+      const decoded = await context.decodeAudioData(bytes.slice(0));
+      sfxrBufferCache.set(cacheKey, decoded);
+      return decoded;
+    }
+
+    async function playSfxrSound(rawData, startTime = 0, allowMuted = false, volumeScale = 1) {
+      /* A11Y ADDITIONS START */
+      if (a11ySettings.outputMode === "visual-only") return;
+      /* A11Y ADDITIONS END */
+      if (!soundEnabled && !allowMuted) return;
+      const context = ensureAudioContext();
+      const buffer = await getSfxrAudioBuffer(rawData);
+      const source = context.createBufferSource();
+      const gainNode = context.createGain();
+      source.buffer = buffer;
+      gainNode.gain.value = TEST_TUNING.masterVolume * volumeScale;
+      source.connect(gainNode).connect(context.destination);
+      const now = context.currentTime + Math.max(0, startTime);
+      source.start(now);
+    }
+
+    function playSoundOption(option, startTime = 0, allowMuted = false, volumeScale = 1) {
+      if (!option) return;
+      if (option.sfxrData) {
+        playSfxrSound(option.sfxrData, startTime, allowMuted, volumeScale).catch(() => {
+          playCompositeTone(option.partials, option.duration || 0.12, startTime, allowMuted, volumeScale);
+        });
+        return;
+      }
+      playCompositeTone(option.partials, option.duration || 0.12, startTime, allowMuted, volumeScale);
+    }
+
+    function playFeedbackTone(type, startTime = 0) {
+      const selection = getSelectedSound(type);
+      const option = feedbackOptions[type][selection];
+      playSoundOption(option, startTime, false, TEST_TUNING.feedbackVolume);
+    }
+
+    function getSelectedSound(category) {
+      const key = getSelectionStorageKey(category);
+      const inputs = category === "acceptable" ? acceptableInputs : outsideInputs;
+      const stored = localStorage.getItem(key);
+      const fallback = inputs.find((input) => input.value.endsWith("-a"))?.value || inputs[0]?.value;
+      if (stored && feedbackOptions[category][stored]) {
+        return stored;
+      }
+      return fallback;
+    }
+
+    function applyStoredSelections() {
+      const acceptableSelection = getSelectedSound("acceptable");
+      const outsideSelection = getSelectedSound("outside");
+      acceptableInputs.forEach((input) => {
+        input.checked = input.value === acceptableSelection;
+      });
+      outsideInputs.forEach((input) => {
+        input.checked = input.value === outsideSelection;
+      });
+      if (acceptableSelection) {
+        storeSelection("acceptable", acceptableSelection);
+      }
+      if (outsideSelection) {
+        storeSelection("outside", outsideSelection);
+      }
+    }
+
+    function storeSelection(category, value) {
+      localStorage.setItem(getSelectionStorageKey(category), value);
+    }
+
+    function lockSettings(lock) {
+      setupControls.forEach((control) => {
+        control.disabled = lock;
+      });
+      /* A11Y ADDITIONS START */
+      a11yControls.forEach((control) => {
+        control.disabled = lock;
+      });
+      /* A11Y ADDITIONS END */
+    }
+
+    function getTimingInputs() {
+      return {
+        clearTime: Number(clearTimeInput.value),
+        fullTime: Number(fullTimeInput.value)
+      };
+    }
+
+    function getMargin() {
+      return Number(marginInput.value);
+    }
+
+    function getMissingTimingFields() {
+      const { clearTime, fullTime } = getTimingInputs();
+      const missing = [];
+      if (!Number.isFinite(clearTime) || clearTime <= 0) {
+        missing.push("clear");
+      }
+      if (!Number.isFinite(fullTime) || fullTime <= 0) {
+        missing.push("full");
+      }
+      return missing;
+    }
+
+    function getTimingRequirementMessage() {
+      const missing = getMissingTimingFields();
+      if (missing.length === 0) {
+        return "";
+      }
+      if (missing.length === 2) {
+        return "Enter the time to clear from left and full street time in Settings before using practice or exemplars.";
+      }
+      if (missing[0] === "clear") {
+        return "Enter the time to clear from left in Settings before using practice or exemplars.";
+      }
+      return "Enter the full street time in Settings before using practice or exemplars.";
+    }
+
+    function refreshTimingRequirementPrompt() {
+      const message = getTimingRequirementMessage();
+      const hasMissingTimes = Boolean(message);
+      timingRequiredPrompt.hidden = !hasMissingTimes;
+      timingRequiredPromptText.textContent = message || "Enter both street times in Settings before using practice or exemplars.";
+      return !hasMissingTimes;
+    }
+
+    function focusFirstMissingTimingField() {
+      const missing = getMissingTimingFields();
+      const target = missing[0] === "clear"
+        ? clearTimeInput
+        : missing[0] === "full"
+          ? fullTimeInput
+          : clearTimeInput;
+      target.focus();
+      target.select?.();
+    }
+
+    function openSettingsForTimingEntry() {
+      if (!settingsModal.open) {
+        lastDialogTrigger = timingRequiredPromptButton;
+        lockPageScroll();
+        setMainContentInert(true);
+        settingsModal.showModal();
+      }
+      requestAnimationFrame(() => {
+        focusFirstMissingTimingField();
+      });
+    }
+
+    function requireTimingInputs() {
+      const message = getTimingRequirementMessage();
+      if (!message) {
+        refreshTimingRequirementPrompt();
+        if (!started) {
+          setStatus("Press Begin to start.");
+        }
+        return true;
+      }
+      refreshTimingRequirementPrompt();
+      setStatus("");
+      announceScreenReader(message);
+      if (settingsModal.open) {
+        focusFirstMissingTimingField();
+      } else {
+        timingRequiredPromptButton.focus();
+      }
+      return false;
+    }
+
+    function getTextSizeScale(size) {
+      if (size === "smaller") return 16 / 18;
+      if (size === "large") return 1.15;
+      if (size === "largest") return 1.3;
+      if (size === "huge") return 1.5;
+      if (size === "xl") return 2;
+      if (size === "xxl") return 2.5;
+      if (size === "max") return 3;
+      return 1;
+    }
+
+    function validateSetup() {
+      const { clearTime, fullTime } = getTimingInputs();
+      const margin = getMargin();
+      if (!requireTimingInputs()) {
+        return false;
+      }
+      if (!Number.isFinite(margin) || margin < 0) {
+        setStatus("Enter a margin of error before starting.");
+        /* A11Y ADDITIONS START */
+        emitCue("validation_error", {
+          message: "Need a margin of error before starting."
+        });
+        /* A11Y ADDITIONS END */
+        return false;
+      }
+      return true;
+    }
+
+    function getReferenceTimes() {
+      const { clearTime, fullTime } = getTimingInputs();
+      if (currentMode === "2") {
+        return [0, fullTime];
+      }
+      if (currentMode === "2b") {
+        return [0, clearTime];
+      }
+      return [0, clearTime, fullTime];
+    }
+
+    function getReferenceTimesForMode(mode) {
+      const { clearTime, fullTime } = getTimingInputs();
+      if (mode === "2") {
+        return [0, fullTime];
+      }
+      if (mode === "2b") {
+        return [0, clearTime];
+      }
+      return [0, clearTime, fullTime];
+    }
+
+    function getUserFlashColor() {
+      return VISUAL_USER_FLASH_COLORS[a11ySettings.userFlashContrast] || VISUAL_USER_FLASH_COLORS.soft;
+    }
+
+    function applyVisualReplayFrame(elapsedSec) {
+      const overlay = visualReplayState.target?.overlay || visualReplayOverlay;
+      const flash = visualReplayState.target?.flash || visualReplayFlash;
+      const shape = visualReplayState.target?.shape || visualReplayShape;
+      const isUserPulseActive = elapsedSec < visualReplayState.userFlashUntilSec;
+      const isReferencePulseActive = elapsedSec < visualReplayState.referenceUntilSec;
+      overlay.dataset.active = "true";
+      flash.style.background = isUserPulseActive ? getUserFlashColor() : "#000000";
+      if (isReferencePulseActive && visualReplayState.currentReferenceType) {
+        shape.style.display = "block";
+        shape.dataset.type = visualReplayState.currentReferenceType;
+        shape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
+      } else {
+        shape.style.display = "none";
+      }
+    }
+
+    function hideVisualReplayFrame() {
+      const overlay = visualReplayState.target?.overlay || visualReplayOverlay;
+      const flash = visualReplayState.target?.flash || visualReplayFlash;
+      const shape = visualReplayState.target?.shape || visualReplayShape;
+      overlay.dataset.active = "false";
+      flash.style.background = "transparent";
+      shape.style.display = "none";
+      visualReplayState.userFlashUntilSec = 0;
+      visualReplayState.referenceUntilSec = 0;
+      visualReplayState.currentReferenceType = null;
+      visualReplayState.target = null;
+    }
+
+    function showUserVisualPulse(startDelaySec = 0, target = null) {
+      if (!target && !visualOutputEnabled()) {
+        return;
+      }
+      const overlay = target?.overlay || visualReplayOverlay;
+      const flash = target?.flash || visualReplayFlash;
+      const shape = target?.shape || visualReplayShape;
+      overlay.dataset.active = "true";
+      flash.style.background = getUserFlashColor();
+      shape.style.display = "none";
+      setTimeout(() => {
+        flash.style.background = "#000000";
+      }, (startDelaySec + VISUAL_PULSE_SEC) * 1000);
+      setTimeout(() => {
+        overlay.dataset.active = "false";
+        flash.style.background = "transparent";
+        shape.style.display = "none";
+      }, (startDelaySec + VISUAL_PULSE_SEC + 0.05) * 1000);
+    }
+
+    function showReferenceVisualPulse(feedbackType, startDelaySec = 0, target = null) {
+      if (!target && !visualOutputEnabled()) {
+        return;
+      }
+      const overlay = target?.overlay || visualReplayOverlay;
+      const flash = target?.flash || visualReplayFlash;
+      const shape = target?.shape || visualReplayShape;
+      overlay.dataset.active = "true";
+      flash.style.background = "#000000";
+      shape.dataset.type = feedbackType;
+      shape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
+      setTimeout(() => {
+        shape.style.display = "block";
+      }, startDelaySec * 1000);
+      setTimeout(() => {
+        shape.style.display = "none";
+        overlay.dataset.active = "false";
+        flash.style.background = "transparent";
+      }, (startDelaySec + VISUAL_PULSE_SEC) * 1000);
+    }
+
+    function playVisualPreview(type) {
+      const previewTarget = {
+        overlay: settingsVisualPreview,
+        flash: settingsVisualPreviewFlash,
+        shape: settingsVisualPreviewShape
+      };
+      const leadInMs = type === "user"
+        ? TEST_TUNING.visualPreviewTimingMs.userEnter
+        : TEST_TUNING.visualPreviewTimingMs.shapeEnter;
+      const visibleMs = type === "user"
+        ? TEST_TUNING.visualPreviewTimingMs.userVisible
+        : TEST_TUNING.visualPreviewTimingMs.shapeVisible;
+      const exitMs = type === "user"
+        ? TEST_TUNING.visualPreviewTimingMs.userExit
+        : TEST_TUNING.visualPreviewTimingMs.shapeExit;
+      const totalMs = leadInMs + visibleMs + exitMs;
+
+      previewTarget.overlay.dataset.active = "true";
+      previewTarget.flash.style.background = "#000000";
+      previewTarget.shape.style.display = "none";
+
+      setTimeout(() => {
+        if (type === "user") {
+          previewTarget.flash.style.background = getUserFlashColor();
+          return;
+        }
+        previewTarget.shape.dataset.type = type;
+        previewTarget.shape.dataset.outsideVariant = a11ySettings.outsideVisualVariant;
+        previewTarget.shape.style.display = "block";
+      }, leadInMs);
+
+      setTimeout(() => {
+        previewTarget.flash.style.background = "#000000";
+        previewTarget.shape.style.display = "none";
+      }, leadInMs + visibleMs);
+
+      setTimeout(() => {
+        previewTarget.overlay.dataset.active = "false";
+        previewTarget.flash.style.background = "transparent";
+        previewTarget.shape.style.display = "none";
+      }, totalMs);
+    }
+
+    function triggerVisualReplayEvent(event, elapsedSec) {
+      if (event.type === "user") {
+        visualReplayState.userFlashUntilSec = Math.max(
+          visualReplayState.userFlashUntilSec,
+          elapsedSec + VISUAL_PULSE_SEC
+        );
+        return;
+      }
+      if (event.type === "reference") {
+        visualReplayState.currentReferenceType = event.feedbackType;
+        visualReplayState.referenceUntilSec = Math.max(
+          visualReplayState.referenceUntilSec,
+          elapsedSec + VISUAL_PULSE_SEC
+        );
+      }
+    }
+
+    function stopVisualReplay() {
+      if (visualReplayState.rafId !== null) {
+        cancelAnimationFrame(visualReplayState.rafId);
+        visualReplayState.rafId = null;
+      }
+      hideVisualReplayFrame();
+    }
+
+    function startSynchronizedVisualReplay(events, endAtSec, target = null) {
+      if (!visualOutputEnabled() || !a11ySettings.syncVisualReplay) {
+        return;
+      }
+      stopVisualReplay();
+      const context = ensureAudioContext();
+      visualReplayState.events = [...events].sort((a, b) => a.timeSec - b.timeSec);
+      visualReplayState.nextIndex = 0;
+      visualReplayState.endAtSec = endAtSec;
+      visualReplayState.replayStartTime = context.currentTime;
+      visualReplayState.userFlashUntilSec = 0;
+      visualReplayState.referenceUntilSec = 0;
+      visualReplayState.currentReferenceType = null;
+      visualReplayState.target = target;
+
+      const frame = () => {
+        const elapsedSec = context.currentTime - visualReplayState.replayStartTime;
+        while (
+          visualReplayState.nextIndex < visualReplayState.events.length &&
+          elapsedSec >= visualReplayState.events[visualReplayState.nextIndex].timeSec
+        ) {
+          triggerVisualReplayEvent(
+            visualReplayState.events[visualReplayState.nextIndex],
+            elapsedSec
+          );
+          visualReplayState.nextIndex += 1;
+        }
+        applyVisualReplayFrame(elapsedSec);
+        const done =
+          elapsedSec >= visualReplayState.endAtSec &&
+          visualReplayState.nextIndex >= visualReplayState.events.length &&
+          elapsedSec >= visualReplayState.userFlashUntilSec &&
+          elapsedSec >= visualReplayState.referenceUntilSec;
+        if (done) {
+          stopVisualReplay();
+          return;
+        }
+        visualReplayState.rafId = requestAnimationFrame(frame);
+      };
+
+      visualReplayState.rafId = requestAnimationFrame(frame);
+    }
+
+    function playExemplar(mode) {
+      const labels = modes[mode]?.labels;
+      if (!labels) return;
+      if (!requireTimingInputs()) {
+        emitCue("validation_error", {
+          message: getTimingRequirementMessage()
+        });
+        return;
+      }
+      const times = getReferenceTimesForMode(mode);
+
+      clearTimeout(exemplarTimeout);
+      clearExemplarVisuals();
+      suppressSrAnnouncements = true;
+      actionBtn.classList.add("running");
+      actionBtn.disabled = true;
+      setActionButtonLabel("Exemplar");
+      const sequenceLabel = labels.join(" to ");
+      setStatus(`Playing exemplar: ${sequenceLabel}.`);
+      emitCue("replay_start", { mode, exemplar: true });
+      const baseDelay = TEST_TUNING.exemplarLeadInSec;
+      const visualEvents = labels.map((_, index) => ({
+        timeSec: baseDelay + (times[index] ?? 0),
+        type: "user"
+      }));
+      const doneAtSec = baseDelay + Math.max(...times) + TEST_TUNING.exemplarEndPadSec;
+      const exemplarVisualTarget = settingsModal.open ? {
+        overlay: settingsVisualPreview,
+        flash: settingsVisualPreviewFlash,
+        shape: settingsVisualPreviewShape
+      } : null;
+      startSynchronizedVisualReplay(visualEvents, doneAtSec, exemplarVisualTarget);
+
+      labels.forEach((label, index) => {
+        const time = times[index] ?? 0;
+        exemplarVisualTimeouts.push(
+          setTimeout(() => {
+            setActionButtonStageByLabel(label);
+          }, (baseDelay + time) * 1000)
+        );
+        playUserMarkerTone(baseDelay + time, true);
+      });
+
+      const doneAt = doneAtSec * 1000;
+      exemplarTimeout = setTimeout(() => {
+        suppressSrAnnouncements = false;
+        actionBtn.classList.remove("running");
+        actionBtn.disabled = false;
+        setActionButtonLabel("Begin");
+        setActionButtonStageByLabel("");
+        setStatus("Exemplar complete. Ready.");
+        emitCue("replay_end", { message: "Exemplar complete. Ready." });
+      }, doneAt);
+    }
+
+    function updateMode() {
+      const selected = modeInputs.find((input) => input.checked);
+      currentMode = selected?.value || "2";
+      localStorage.setItem("om-mode", currentMode);
+      renderMarkers();
+      resetState();
+    }
+
+    function renderMarkers() {
+      markersEl.innerHTML = "";
+      const { labels } = modes[currentMode];
+      labels.forEach((label, index) => {
+        const item = document.createElement("div");
+        item.className = "marker";
+        item.dataset.index = String(index);
+        item.innerHTML = `
+          <div class="marker-shape"><span></span></div>
+          <span class="marker-label">${label}</span>
+        `;
+        markersEl.appendChild(item);
+      });
+      updateMarkerStates();
+    }
+
+    function updateMarkerStates() {
+      const markerNodes = [...markersEl.querySelectorAll(".marker")];
+      markerNodes.forEach((node, index) => {
+        node.classList.toggle("complete", index < stage);
+        node.classList.toggle("current", index === stage && started);
+      });
+      updateMarkersSummary();
+      updateActionButtonStage();
+    }
+
+    /* A11Y ADDITIONS START */
+    function updateMarkersSummary() {
+      const markerNodes = [...markersEl.querySelectorAll(".marker")];
+      const summaries = markerNodes.map((node) => {
+        const label = node.querySelector(".marker-label")?.childNodes[0]?.textContent?.trim() || "";
+        if (node.classList.contains("complete")) {
+          return `${label} complete`;
+        }
+        if (node.classList.contains("current")) {
+          return `${label} current`;
+        }
+        return `${label} not reached`;
+      });
+      markersEl.setAttribute("aria-label", `Progress markers: ${summaries.join(", ")}`);
+    }
+    /* A11Y ADDITIONS END */
+
+    function getStageClassForLabel(label) {
+      const normalized = String(label || "").toLowerCase();
+      if (normalized === "start") return "stage-start";
+      if (normalized === "halfway" || normalized === "boundary") return "stage-halfway";
+      if (normalized === "finish") return "stage-finish";
+      return "";
+    }
+
+    function getIndicatorSymbolForLabel(label) {
+      const normalized = String(label || "").trim().toLowerCase();
+      if (normalized === "start") return "●";
+      if (normalized === "halfway" || normalized === "boundary") return "▲";
+      if (normalized === "finish") return "■";
+      return "○";
+    }
+
+    function setActionButtonStageByLabel(label) {
+      actionBtn.classList.remove("stage-start", "stage-halfway", "stage-finish");
+      const stageClass = getStageClassForLabel(label);
+      if (stageClass) {
+        actionBtn.classList.add(stageClass);
+      }
+      actionBtnIndicator.textContent = getIndicatorSymbolForLabel(label);
+    }
+
+    function updateActionButtonStage() {
+      setActionButtonStageByLabel("");
+      if (!started || stage <= 0) {
+        return;
+      }
+      const labels = modes[currentMode]?.labels || [];
+      if (labels.length === 0) {
+        return;
+      }
+      const clampedIndex = Math.min(stage - 1, labels.length - 1);
+      setActionButtonStageByLabel(labels[clampedIndex]);
+    }
+
+    function clearExemplarVisuals() {
+      exemplarVisualTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      exemplarVisualTimeouts = [];
+      stopVisualReplay();
+    }
+
+    function setStatus(message) {
+      statusText.textContent = message;
+      /* A11Y ADDITIONS START */
+      cueBannerText.textContent = message;
+      syncCueBannerVisibility();
+      /* A11Y ADDITIONS END */
+    }
+
+    function announceScreenReader(message) {
+      if (!a11ySettings.announceCues) return;
+      if (suppressSrAnnouncements) return;
+      srAnnouncer.textContent = "";
+      setTimeout(() => {
+        srAnnouncer.textContent = message;
+      }, 20);
+    }
+
+    function visualOutputEnabled() {
+      return a11ySettings.outputMode !== "audio-only";
+    }
+
+    function applyDebugAccessibility() {
+      debugText.setAttribute("aria-live", showDebug ? "polite" : "off");
+      debugText.setAttribute("aria-hidden", showDebug ? "false" : "true");
+      if (!showDebug) {
+        debugText.textContent = "";
+      }
+    }
+
+    function lockModeSelection(lock) {
+      modeInputs.forEach((input) => {
+        input.disabled = lock;
+      });
+    }
+
+    function resetState(message = "Ready.") {
+      clearTimeout(exemplarTimeout);
+      clearExemplarVisuals();
+      suppressSrAnnouncements = false;
+      markerTimes = [];
+      stage = 0;
+      started = false;
+      actionBtn.disabled = false;
+      /* A11Y ADDITIONS START */
+      setActionButtonLabel("Begin");
+      /* A11Y ADDITIONS END */
+      setStatus(message);
+      /* A11Y ADDITIONS START */
+      updateNextPrompt();
+      /* A11Y ADDITIONS END */
+      debugText.textContent = "";
+      updateMarkerStates();
+      lockModeSelection(false);
+      lockSettings(false);
+      actionBtn.classList.remove("running");
+      setActionButtonStageByLabel("");
+    }
+
+    /* A11Y ADDITIONS START */
+    function setActionButtonLabel(label) {
+      actionBtnLabel.textContent = label;
+      actionBtn.setAttribute("aria-label", label);
+    }
+
+    function updateNextPrompt() {
+      if (!started) {
+        if (!refreshTimingRequirementPrompt()) {
+          setStatus("");
+          return;
+        }
+        setStatus("Press Begin to start.");
+        return;
+      }
+      const labels = modes[currentMode].labels;
+      const nextLabel = labels[stage] || "Next";
+      setStatus(`Press Mark for ${nextLabel}.`);
+    }
+    /* A11Y ADDITIONS END */
+
+    function recordMarker() {
+      if (!started) {
+        if (!validateSetup()) {
+          return;
+        }
+        started = true;
+        lockModeSelection(true);
+        lockSettings(true);
+        markerTimes = [0];
+        stage = 1;
+        /* A11Y ADDITIONS START */
+        setActionButtonLabel("Mark");
+        updateNextPrompt();
+        /* A11Y ADDITIONS END */
+        playConfirmTone();
+        actionBtn.classList.add("running");
+        /* A11Y ADDITIONS START */
+        emitCue("start", { mode: currentMode });
+        /* A11Y ADDITIONS END */
+        updateMarkerStates();
+        return;
+      }
+
+      const elapsed = (performance.now() - startTimestamp) / 1000;
+      markerTimes.push(elapsed);
+      playConfirmTone();
+      /* A11Y ADDITIONS START */
+      const stageLabel = modes[currentMode].labels[stage] || "Marker";
+      emitCue("marker", { stageIndex: stage, stageLabel, elapsed });
+      /* A11Y ADDITIONS END */
+      stage += 1;
+
+      if (stage >= modes[currentMode].labels.length) {
+        actionBtn.disabled = true;
+        /* A11Y ADDITIONS START */
+        setActionButtonLabel("Replay");
+        /* A11Y ADDITIONS END */
+        setStatus("Replaying your markers and the reference.");
+        updateMarkerStates();
+        beginReplay();
+      } else {
+        /* A11Y ADDITIONS START */
+        updateNextPrompt();
+        /* A11Y ADDITIONS END */
+        updateMarkerStates();
+      }
+    }
+
+    function beginReplay() {
+      const reference = getReferenceTimes();
+      const labels = modes[currentMode].labels;
+      const baseDelay = TEST_TUNING.replayLeadInSec;
+      const maxTime = Math.max(
+        ...markerTimes,
+        ...reference
+      );
+      clearExemplarVisuals();
+      suppressSrAnnouncements = true;
+      if (labels[0]) {
+        exemplarVisualTimeouts.push(
+          setTimeout(() => {
+            setActionButtonStageByLabel(labels[0]);
+          }, baseDelay * 1000)
+        );
+      }
+      /* A11Y ADDITIONS START */
+      emitCue("replay_start", { referenceTimes: reference, markerTimes });
+      /* A11Y ADDITIONS END */
+
+      markerTimes.forEach((time) => {
+        if (replayUsesConfirmTone) {
+          playConfirmTone(baseDelay + time);
+          return;
+        }
+        playUserMarkerTone(baseDelay + time);
+      });
+
+      if (showDebug) {
+        const userTimes = markerTimes.map((time) => time.toFixed(2)).join(", ");
+        const refTimes = reference.map((time) => time.toFixed(2)).join(", ");
+        debugText.textContent = `User: ${userTimes}s | Ref: ${refTimes}s`;
+      } else {
+        debugText.textContent = "";
+      }
+
+      reference.slice(1).forEach((time, index) => {
+        const userTime = markerTimes[index + 1] ?? 0;
+        const diff = Math.abs(userTime - time);
+        const latency =
+          (audioContext?.baseLatency || 0) + (audioContext?.outputLatency || 0);
+        const timingEpsilon = Math.max(0.02, latency);
+        const feedbackType = diff <= getMargin() + timingEpsilon ? "acceptable" : "outside";
+        playFeedbackTone(feedbackType, baseDelay + time);
+        exemplarVisualTimeouts.push(
+          setTimeout(() => {
+            setActionButtonStageByLabel(labels[index + 1]);
+          }, (baseDelay + time) * 1000)
+        );
+        /* A11Y ADDITIONS START */
+        const stageLabel = modes[currentMode].labels[index + 1] || "Reference";
+        const cueType = feedbackType === "acceptable" ? "reference_ok" : "reference_bad";
+        setTimeout(() => {
+          emitCue(cueType, { stageLabel, diff });
+        }, (baseDelay + time) * 1000);
+        /* A11Y ADDITIONS END */
+      });
+
+      const visualEvents = [
+        ...markerTimes.map((time) => ({
+          timeSec: baseDelay + time,
+          type: "user"
+        })),
+        ...reference.slice(1).map((time, index) => {
+          const userTime = markerTimes[index + 1] ?? 0;
+          const diff = Math.abs(userTime - time);
+          const latency =
+            (audioContext?.baseLatency || 0) + (audioContext?.outputLatency || 0);
+          const timingEpsilon = Math.max(0.02, latency);
+          const feedbackType = diff <= getMargin() + timingEpsilon ? "acceptable" : "outside";
+          return {
+            timeSec: baseDelay + time,
+            type: "reference",
+            feedbackType
+          };
+        })
+      ];
+      const replayDoneAtSec = maxTime + baseDelay + TEST_TUNING.replayEndPadSec;
+      startSynchronizedVisualReplay(visualEvents, replayDoneAtSec);
+
+      clearTimeout(replayTimeout);
+      replayTimeout = setTimeout(() => {
+        suppressSrAnnouncements = false;
+        resetState("Ready for another try.");
+        /* A11Y ADDITIONS START */
+        emitCue("replay_end", { message: "Ready for another try." });
+        /* A11Y ADDITIONS END */
+      }, (maxTime + baseDelay + TEST_TUNING.replayEndPadSec) * 1000);
+    }
+
+    let startTimestamp = 0;
+
+    actionBtn.addEventListener("click", () => {
+      ensureAudioContext();
+      if (!started) {
+        startTimestamp = performance.now();
+      }
+      recordMarker();
+    });
+
+    modeInputs.forEach((input) => {
+      input.addEventListener("change", updateMode);
+    });
+
+    soundToggle.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+      soundToggle.innerHTML = soundEnabled
+        ? "<span aria-hidden=\"true\">🔊</span> Sound On"
+        : "<span aria-hidden=\"true\">🔇</span> Sound Off";
+      if (soundEnabled) {
+        playConfirmTone();
+      }
+      /* A11Y ADDITIONS START */
+      emitCue("sound_toggled", { soundEnabled });
+      /* A11Y ADDITIONS END */
+    });
+
+    /* A11Y ADDITIONS START */
+    settingsTrigger.addEventListener("click", () => {
+      lastDialogTrigger = settingsTrigger;
+      lockPageScroll();
+      setMainContentInert(true);
+      settingsModal.showModal();
+      settingsTitle.focus();
+    });
+    /* A11Y ADDITIONS END */
+
+    closeSettings.addEventListener("click", () => {
+      settingsModal.close();
+    });
+
+    /* A11Y ADDITIONS START */
+    a11yTrigger.addEventListener("click", () => {
+      lastDialogTrigger = a11yTrigger;
+      lockPageScroll();
+      setMainContentInert(true);
+      a11yModal.showModal();
+      a11yTitle.focus();
+    });
+
+    closeA11y.addEventListener("click", () => {
+      a11yModal.close();
+    });
+
+    timingRequiredPromptButton.addEventListener("click", () => {
+      openSettingsForTimingEntry();
+    });
+
+    settingsModal.addEventListener("close", () => {
+      settingsVisualPreview.dataset.active = "false";
+      settingsVisualPreviewFlash.style.background = "transparent";
+      settingsVisualPreviewShape.style.display = "none";
+      if (!a11yModal.open) {
+        unlockPageScroll();
+        setMainContentInert(false);
+      }
+      lastDialogTrigger?.focus();
+    });
+
+    a11yModal.addEventListener("close", () => {
+      if (!settingsModal.open) {
+        unlockPageScroll();
+        setMainContentInert(false);
+      }
+      lastDialogTrigger?.focus();
+    });
+    /* A11Y ADDITIONS END */
+
+    acceptableInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        storeSelection("acceptable", input.value);
+      });
+    });
+
+    outsideInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        storeSelection("outside", input.value);
+      });
+    });
+
+    previewButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        ensureAudioContext();
+        const soundId = button.dataset.sound;
+        if (feedbackOptions.acceptable[soundId]) {
+          playSoundOption(feedbackOptions.acceptable[soundId], 0, true);
+          return;
+        }
+        if (feedbackOptions.outside[soundId]) {
+          playSoundOption(feedbackOptions.outside[soundId], 0, true);
+        }
+      });
+    });
+
+    previewUserSoundBtn.addEventListener("click", () => {
+      ensureAudioContext();
+      if (replayUsesConfirmTone) {
+        playConfirmTone(0, true);
+        return;
+      }
+      playUserMarkerTone(0, true);
+    });
+
+    visualPreviewButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const type = button.dataset.visualType;
+        playVisualPreview(type);
+      });
+    });
+
+    outsideVisualVariantInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        a11ySettings.outsideVisualVariant = input.value;
+        localStorage.setItem("om-a11y-outside-visual-variant", a11ySettings.outsideVisualVariant);
+      });
+    });
+
+    userFlashContrastInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        a11ySettings.userFlashContrast = input.value;
+        localStorage.setItem("om-a11y-user-flash-contrast", a11ySettings.userFlashContrast);
+      });
+    });
+
+    exemplarButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        ensureAudioContext();
+        const exemplarMode = button.dataset.exemplarMode;
+        playExemplar(exemplarMode);
+      });
+    });
+
+    replayUsesConfirm.addEventListener("change", () => {
+      replayUsesConfirmTone = replayUsesConfirm.checked;
+      localStorage.setItem("om-replay-use-confirm", String(replayUsesConfirmTone));
+    });
+
+    debugToggle.addEventListener("change", () => {
+      showDebug = debugToggle.checked;
+      localStorage.setItem("om-debug-replay", String(showDebug));
+      applyDebugAccessibility();
+    });
+
+    clearTimeInput.addEventListener("input", () => {
+      refreshTimingRequirementPrompt();
+    });
+
+    clearTimeInput.addEventListener("change", () => {
+      localStorage.setItem("om-clear-time", clearTimeInput.value);
+      refreshTimingRequirementPrompt();
+      updateNextPrompt();
+    });
+
+    fullTimeInput.addEventListener("input", () => {
+      refreshTimingRequirementPrompt();
+    });
+
+    fullTimeInput.addEventListener("change", () => {
+      localStorage.setItem("om-full-time", fullTimeInput.value);
+      refreshTimingRequirementPrompt();
+      updateNextPrompt();
+    });
+
+    marginInput.addEventListener("change", () => {
+      localStorage.setItem("om-margin", marginInput.value);
+    });
+
+    /* A11Y ADDITIONS START */
+    function applyA11ySettings() {
+      document.body.dataset.textSize = a11ySettings.textSize;
+      document.documentElement.style.fontSize = `${18 * getTextSizeScale(a11ySettings.textSize)}px`;
+      cueBannerText.classList.toggle("sr-only", !a11ySettings.useTextLabels);
+      document.body.classList.toggle("high-contrast", a11ySettings.highContrast);
+      document.body.classList.toggle("focus-boost", a11ySettings.focusBoost);
+      const resolvedTheme =
+        a11ySettings.theme === "system"
+          ? (prefersDarkScheme.matches ? "dark" : "light")
+          : a11ySettings.theme;
+      document.body.dataset.theme = resolvedTheme;
+      textSizeLandscapeHint.hidden = !["huge", "xl", "xxl", "max"].includes(a11ySettings.textSize);
+      if (a11ySettings.outputMode === "visual-only") {
+        soundToggle.setAttribute("aria-pressed", "false");
+        soundToggle.innerHTML = "<span aria-hidden=\"true\">🔇</span> Sound Off";
+      } else if (soundEnabled) {
+        soundToggle.setAttribute("aria-pressed", "true");
+        soundToggle.innerHTML = "<span aria-hidden=\"true\">🔊</span> Sound On";
+      }
+      const visualReplayAvailable = visualOutputEnabled();
+      a11ySyncVisualReplay.disabled = !visualReplayAvailable;
+      if (!visualReplayAvailable) {
+        a11ySyncVisualReplay.checked = false;
+      }
+      syncCueBannerVisibility();
+      applyLayoutMode();
+    }
+
+    function emitCue(type, detail = {}) {
+      const messages = {
+        start: "Started.",
+        marker: `Marker recorded${detail.stageLabel ? `: ${detail.stageLabel}` : ""}.`,
+        replay_start: "Replaying your markers and reference.",
+        replay_end: detail.message || "Ready for another try.",
+        validation_error: detail.message || "Need more information to start.",
+        reference_ok: `Reference: acceptable${detail.stageLabel ? ` for ${detail.stageLabel}` : ""}.`,
+        reference_bad: `Reference: outside tolerance${detail.stageLabel ? ` for ${detail.stageLabel}` : ""}.`,
+        sound_toggled: detail.soundEnabled ? "Sound on." : "Sound off."
+      };
+      const message = messages[type] || "Updated.";
+      if (a11ySettings.showBanner) {
+        cueBannerText.textContent = message;
+      }
+      syncCueBannerVisibility();
+      announceScreenReader(message);
+      if (a11ySettings.vibrate && navigator.vibrate) {
+        const patterns = {
+          marker: [40],
+          reference_ok: [30, 30, 30],
+          reference_bad: [120]
+        };
+        const pattern = patterns[type];
+        if (pattern) {
+          navigator.vibrate(pattern);
+        }
+      }
+      if (a11ySettings.flashAction && !prefersReducedMotion.matches) {
+        actionBtn.classList.add("flash");
+        clearTimeout(flashTimeout);
+        flashTimeout = setTimeout(() => {
+          actionBtn.classList.remove("flash");
+        }, 160);
+      }
+    }
+    /* A11Y ADDITIONS END */
+
+    const unlockAudio = () => {
+      ensureAudioContext();
+      document.removeEventListener("pointerdown", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+    };
+
+    document.addEventListener("pointerdown", unlockAudio, { once: true });
+    document.addEventListener("keydown", unlockAudio, { once: true });
+
+    function restoreStoredSettings() {
+      const storedClear = localStorage.getItem("om-clear-time");
+      const storedFull = localStorage.getItem("om-full-time");
+      const storedMargin = localStorage.getItem("om-margin");
+      const storedMode = localStorage.getItem("om-mode");
+      const storedReplay = localStorage.getItem("om-replay-use-confirm");
+      const storedDebug = localStorage.getItem("om-debug-replay");
+      /* A11Y ADDITIONS START */
+      const storedOutputMode = localStorage.getItem("om-a11y-output-mode");
+      const storedShowBanner = localStorage.getItem("om-a11y-show-banner");
+      const storedFlashAction = localStorage.getItem("om-a11y-flash-action");
+      const storedVibrate = localStorage.getItem("om-a11y-vibrate");
+      const storedUseTextLabels = localStorage.getItem("om-a11y-use-text-labels");
+      const storedTheme = localStorage.getItem("om-a11y-theme");
+      const storedTextSize = localStorage.getItem("om-a11y-text-size");
+      const storedHighContrast = localStorage.getItem("om-a11y-high-contrast");
+      const storedFocusBoost = localStorage.getItem("om-a11y-focus-boost");
+      const storedAnnounceCues = localStorage.getItem("om-a11y-announce-cues");
+      const storedSyncVisualReplay = localStorage.getItem("om-a11y-sync-visual-replay");
+      const storedOutsideVisualVariant = localStorage.getItem("om-a11y-outside-visual-variant");
+      const storedUserFlashContrast = localStorage.getItem("om-a11y-user-flash-contrast");
+      /* A11Y ADDITIONS END */
+
+      if (storedClear) {
+        clearTimeInput.value = storedClear;
+      }
+      if (storedFull) {
+        fullTimeInput.value = storedFull;
+      }
+      if (storedMargin) {
+        marginInput.value = storedMargin;
+      }
+      if (storedMode && modes[storedMode]) {
+        currentMode = storedMode;
+        modeInputs.forEach((input) => {
+          input.checked = input.value === storedMode;
+        });
+      }
+      replayUsesConfirmTone = storedReplay === "true";
+      replayUsesConfirm.checked = replayUsesConfirmTone;
+      showDebug = storedDebug === "true";
+      debugToggle.checked = showDebug;
+      applyDebugAccessibility();
+      /* A11Y ADDITIONS START */
+      if (storedOutputMode) {
+        a11ySettings.outputMode = storedOutputMode;
+        outputModeInputs.forEach((input) => {
+          input.checked = input.value === storedOutputMode;
+        });
+      }
+      if (storedShowBanner) {
+        a11ySettings.showBanner = storedShowBanner === "true";
+      }
+      if (storedFlashAction) {
+        a11ySettings.flashAction = storedFlashAction === "true";
+      }
+      if (storedVibrate) {
+        a11ySettings.vibrate = storedVibrate === "true";
+      }
+      if (storedUseTextLabels) {
+        a11ySettings.useTextLabels = storedUseTextLabels === "true";
+      }
+      if (storedTheme) {
+        a11ySettings.theme = storedTheme;
+      }
+      if (storedTextSize) {
+        a11ySettings.textSize = storedTextSize;
+      }
+      if (storedHighContrast) {
+        a11ySettings.highContrast = storedHighContrast === "true";
+      }
+      if (storedFocusBoost) {
+        a11ySettings.focusBoost = storedFocusBoost === "true";
+      }
+      if (storedAnnounceCues) {
+        a11ySettings.announceCues = storedAnnounceCues === "true";
+      }
+      if (storedSyncVisualReplay) {
+        a11ySettings.syncVisualReplay = storedSyncVisualReplay === "true";
+      }
+      if (storedOutsideVisualVariant === "up" || storedOutsideVisualVariant === "down") {
+        a11ySettings.outsideVisualVariant = storedOutsideVisualVariant;
+      }
+      if (storedUserFlashContrast && VISUAL_USER_FLASH_COLORS[storedUserFlashContrast]) {
+        a11ySettings.userFlashContrast = storedUserFlashContrast;
+      }
+      a11yShowBanner.checked = a11ySettings.showBanner;
+      a11yFlashAction.checked = a11ySettings.flashAction;
+      a11yVibrate.checked = a11ySettings.vibrate;
+      a11yUseTextLabels.checked = a11ySettings.useTextLabels;
+      a11ySyncVisualReplay.checked = a11ySettings.syncVisualReplay;
+      outsideVisualVariantInputs.forEach((input) => {
+        input.checked = input.value === a11ySettings.outsideVisualVariant;
+      });
+      userFlashContrastInputs.forEach((input) => {
+        input.checked = input.value === a11ySettings.userFlashContrast;
+      });
+      a11yTheme.value = a11ySettings.theme;
+      a11yTextSize.value = a11ySettings.textSize;
+      a11yHighContrast.checked = a11ySettings.highContrast;
+      a11yFocusBoost.checked = a11ySettings.focusBoost;
+      a11yAnnounceCues.checked = a11ySettings.announceCues;
+      applyA11ySettings();
+      /* A11Y ADDITIONS END */
+    }
+
+    function warnIfSfxrConfiguredWithoutEngine() {
+      const hasConfiguredSfxr = Object.values(SOUND_SFXR_DATA).some((value) =>
+        String(value || "").trim().length > 0
+      );
+      if (hasConfiguredSfxr && typeof window.jsfxr !== "function") {
+        console.warn("SFXR data is configured but jsfxr is not loaded. Falling back to SOUND_FALLBACK_TONES.");
+      }
+    }
+
+    numberInputs.forEach((input) => {
+      input.addEventListener("focus", () => {
+        setTimeout(() => {
+          input.select();
+        }, 0);
+      });
+    });
+
+    /* A11Y ADDITIONS START */
+    outputModeInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        a11ySettings.outputMode = input.value;
+        localStorage.setItem("om-a11y-output-mode", input.value);
+        if (a11ySettings.outputMode !== "audio-only") {
+          a11ySettings.syncVisualReplay = true;
+          a11ySyncVisualReplay.checked = true;
+          localStorage.setItem("om-a11y-sync-visual-replay", "true");
+        } else {
+          a11ySettings.syncVisualReplay = false;
+          a11ySyncVisualReplay.checked = false;
+          localStorage.setItem("om-a11y-sync-visual-replay", "false");
+        }
+        applyA11ySettings();
+        emitCue("sound_toggled", { soundEnabled: a11ySettings.outputMode !== "visual-only" });
+      });
+    });
+
+    a11yShowBanner.addEventListener("change", () => {
+      a11ySettings.showBanner = a11yShowBanner.checked;
+      localStorage.setItem("om-a11y-show-banner", String(a11ySettings.showBanner));
+      applyA11ySettings();
+    });
+
+    a11yFlashAction.addEventListener("change", () => {
+      a11ySettings.flashAction = a11yFlashAction.checked;
+      localStorage.setItem("om-a11y-flash-action", String(a11ySettings.flashAction));
+    });
+
+    a11yVibrate.addEventListener("change", () => {
+      a11ySettings.vibrate = a11yVibrate.checked;
+      localStorage.setItem("om-a11y-vibrate", String(a11ySettings.vibrate));
+    });
+
+    a11yUseTextLabels.addEventListener("change", () => {
+      a11ySettings.useTextLabels = a11yUseTextLabels.checked;
+      localStorage.setItem("om-a11y-use-text-labels", String(a11ySettings.useTextLabels));
+      applyA11ySettings();
+    });
+
+    a11yTheme.addEventListener("change", () => {
+      a11ySettings.theme = a11yTheme.value;
+      localStorage.setItem("om-a11y-theme", a11ySettings.theme);
+      applyA11ySettings();
+    });
+
+    a11yTextSize.addEventListener("change", () => {
+      a11ySettings.textSize = a11yTextSize.value;
+      localStorage.setItem("om-a11y-text-size", a11ySettings.textSize);
+      applyA11ySettings();
+    });
+
+    a11yHighContrast.addEventListener("change", () => {
+      a11ySettings.highContrast = a11yHighContrast.checked;
+      localStorage.setItem("om-a11y-high-contrast", String(a11ySettings.highContrast));
+      applyA11ySettings();
+    });
+
+    a11yFocusBoost.addEventListener("change", () => {
+      a11ySettings.focusBoost = a11yFocusBoost.checked;
+      localStorage.setItem("om-a11y-focus-boost", String(a11ySettings.focusBoost));
+      applyA11ySettings();
+    });
+
+    a11yAnnounceCues.addEventListener("change", () => {
+      a11ySettings.announceCues = a11yAnnounceCues.checked;
+      localStorage.setItem("om-a11y-announce-cues", String(a11ySettings.announceCues));
+    });
+
+    a11ySyncVisualReplay.addEventListener("change", () => {
+      a11ySettings.syncVisualReplay = a11ySyncVisualReplay.checked;
+      localStorage.setItem("om-a11y-sync-visual-replay", String(a11ySettings.syncVisualReplay));
+      if (!a11ySettings.syncVisualReplay) {
+        stopVisualReplay();
+      }
+    });
+
+    prefersDarkScheme.addEventListener("change", () => {
+      if (a11ySettings.theme === "system") {
+        applyA11ySettings();
+      }
+    });
+    window.addEventListener("resize", syncViewportHeight);
+    window.visualViewport?.addEventListener("resize", syncViewportHeight);
+    window.visualViewport?.addEventListener("scroll", syncViewportHeight);
+    /* A11Y ADDITIONS END */
+
+    syncViewportHeight();
+    applyStoredSelections();
+    restoreStoredSettings();
+    warnIfSfxrConfiguredWithoutEngine();
+    renderMarkers();
+    /* A11Y ADDITIONS START */
+    updateNextPrompt();
+    /* A11Y ADDITIONS END */
+  </script>
+</body>
+</html>
