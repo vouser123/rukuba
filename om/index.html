@@ -1753,14 +1753,17 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       });
     }
 
-    function requireTimingInputs(messageOverride = "") {
-      const message = messageOverride || getTimingRequirementMessage();
+    function requireTimingInputs() {
+      const message = getTimingRequirementMessage();
       if (!message) {
         refreshTimingRequirementPrompt();
+        if (!started) {
+          setStatus("Press Begin to start.");
+        }
         return true;
       }
       refreshTimingRequirementPrompt();
-      setStatus(message);
+      setStatus("");
       announceScreenReader(message);
       if (settingsModal.open) {
         focusFirstMissingTimingField();
@@ -1773,7 +1776,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     function validateSetup() {
       const { clearTime, fullTime } = getTimingInputs();
       const margin = getMargin();
-      if (!requireTimingInputs("Enter the missing street time in Settings before starting practice.")) {
+      if (!requireTimingInputs()) {
         return false;
       }
       if (!Number.isFinite(margin) || margin < 0) {
@@ -1999,9 +2002,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     function playExemplar(mode) {
       const labels = modes[mode]?.labels;
       if (!labels) return;
-      if (!requireTimingInputs("Enter the missing street time in Settings before playing this exemplar.")) {
+      if (!requireTimingInputs()) {
         emitCue("validation_error", {
-          message: "Enter the missing street time in Settings before playing this exemplar."
+          message: getTimingRequirementMessage()
         });
         return;
       }
@@ -2212,7 +2215,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     function updateNextPrompt() {
       if (!started) {
         if (!refreshTimingRequirementPrompt()) {
-          setStatus(getTimingRequirementMessage());
+          setStatus("");
           return;
         }
         setStatus("Press Begin to start.");
