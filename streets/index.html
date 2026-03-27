@@ -832,13 +832,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       min-height: 0;
       border-radius: 20px;
       padding: 10px 14px;
-      font-size: 1rem;
       line-height: 1.2;
-    }
-
-    body.phone-safe-layout .settings-trigger span,
-    body.phone-safe-layout .a11y-trigger span {
-      font-size: 1.15rem;
     }
 
     body.phone-safe-layout .mode-toggle label {
@@ -849,7 +843,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       border-radius: 18px;
       padding: 10px 12px;
       min-height: 0;
-      font-size: 0.95rem;
       line-height: 1.15;
     }
 
@@ -886,10 +879,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       margin-bottom: 4px;
     }
 
-    body.phone-safe-layout .modal-header h2 {
-      font-size: clamp(1.1rem, 0.9rem + 3vw, 1.7rem);
-      line-height: 1.05;
-    }
 
     body.phone-safe-layout .close-modal {
       width: 100%;
@@ -978,16 +967,6 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
         calc(12px + env(safe-area-inset-bottom));
     }
 
-    body.short-screen-layout .settings-trigger,
-    body.short-screen-layout .a11y-trigger,
-    body.short-screen-layout .sound-toggle,
-    body.short-screen-layout .mode-toggle label {
-      font-size: 0.9rem;
-    }
-
-    body.short-screen-layout .modal-header h2 {
-      font-size: clamp(1rem, 0.9rem + 2.2vw, 1.45rem);
-    }
 
     body.short-screen-layout .action-btn {
       min-height: 6.25rem;
@@ -998,17 +977,11 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       padding: 10px 12px;
     }
 
-    body.short-screen-layout .setup-required-prompt-title {
-      font-size: 0.8rem;
-    }
-
     body.short-screen-layout .setup-required-prompt p {
-      font-size: 0.85rem;
       line-height: 1.3;
     }
 
     body.short-screen-layout .setup-required-prompt .settings-action {
-      font-size: 0.9rem;
       padding: 8px 12px;
     }
     /* A11Y ADDITIONS END */
@@ -1265,9 +1238,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
             <option value="xxl">XXL (250%)</option>
             <option value="max">Maximum (300%)</option>
           </select>
-          <p class="field-help" id="textSizeLandscapeHint" hidden>
-            Largest text works best in landscape for Settings and Accessibility.
-          </p>
+          <p class="field-help" id="textSizeLandscapeHint" hidden></p>
           <label>
             <input type="checkbox" id="a11yHighContrast" />
             High contrast
@@ -1428,6 +1399,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     let lockedScrollY = 0;
     let flashTimeout;
     const VISUAL_PULSE_SEC = 0.2;
+    const VISUAL_REPLAY_PRE_DELAY_SEC = 0.5; // screen stays normal for this long before overlay goes black
     const VISUAL_USER_FLASH_COLORS = {
       soft: "#8c8c8c",
       balanced: "#bcbcbc",
@@ -2095,6 +2067,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
     }
 
     function applyVisualReplayFrame(elapsedSec) {
+      if (elapsedSec < VISUAL_REPLAY_PRE_DELAY_SEC) return;
       const overlay = visualReplayState.target?.overlay || visualReplayOverlay;
       const flash = visualReplayState.target?.flash || visualReplayFlash;
       const shape = visualReplayState.target?.shape || visualReplayShape;
