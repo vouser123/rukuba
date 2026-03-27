@@ -1073,9 +1073,9 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       <span class="action-btn-indicator" id="actionBtnIndicator" aria-hidden="true">○</span>
     </button>
 
-    <div class="status" id="statusText">Ready.</div>
+    <div class="status" id="statusText" hidden>Ready.</div>
     <!-- A11Y ADDITIONS START -->
-    <div class="cue-banner" id="cueBanner" data-visible="true" aria-live="off">
+    <div class="cue-banner" id="cueBanner" data-visible="false" aria-live="off">
       <span class="cue-text" id="cueBannerText">Ready.</span>
     </div>
     <div id="srAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
@@ -2024,7 +2024,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
       if (!message) {
         refreshTimingRequirementPrompt();
         if (!started) {
-          setStatus("Press Begin to start.");
+          setStatus("");
         }
         return true;
       }
@@ -2496,7 +2496,7 @@ Tip: use your editor Find with the exact token; that is more stable than line nu
           setStatus("");
           return;
         }
-        setStatus("Press Begin to start.");
+        setStatus("");
         return;
       }
       const labels = modes[currentMode].labels;
